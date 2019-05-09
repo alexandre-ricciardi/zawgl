@@ -5,10 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #set(CMAKE_CXX_EXTENSIONS OFF)
-#set(BOOST_INSTALL_PATH STRING "C:/Users/Alexandre/Documents/dev/boost")
-#set(ANTLR4_INSTALL_PATH "C:/Users/Alexandre/Documents/dev/liteapps/antlr4")
-set(BOOST_INSTALL_PATH STRING "C:/Users/Alexandre/dev/ah/boost")
-set(ANTLR4_INSTALL_PATH "C:/Users/Alexandre/dev/liteapps/antlr4")
+set(BOOST_INSTALL_PATH STRING "C:/libs/boost")
+set(ANTLR4_INSTALL_PATH "C:/libs/antlr4")
 
 
 
