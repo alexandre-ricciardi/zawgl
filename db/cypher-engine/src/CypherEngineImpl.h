@@ -12,6 +12,10 @@ using namespace antlr4;
 class CypherEngineImpl {
 private:
 	CypherModel model;
+	Graph currentGraphPattern;
+	Node currentNodePattern;
+	Property currentProperty;
+	std::vector<Property> currentProperties;
 	void iterateCypherTree(CypherParser::OC_CypherContext* tree);
 	void iterateRegularQuery(CypherParser::OC_RegularQueryContext* rq);
 	void iterateSingleQuery(CypherParser::OC_SingleQueryContext* sq);

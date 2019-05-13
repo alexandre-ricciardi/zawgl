@@ -121,18 +121,19 @@ void CypherEngineImpl::iterateExpression(CypherParser::OC_ExpressionContext* exp
 
 void CypherEngineImpl::iterateMapLiteral(CypherParser::OC_MapLiteralContext* map)
 {
-	auto pkeys = map->oC_PropertyKeyName();
-	for (auto keyName : pkeys) {
+	for (int i = 0; i < pkeys.size(); ++i) {
+		currentProperty = {};
+		auto keyName = pkeys[i];
+		auto expr = exprs[i];
 		iteratePropertyKeyName(keyName);
-	}
-	auto exprs = map->oC_Expression();
-	for (auto expr : exprs) {
 		iterateExpression(expr);
+		currentProperties.push_back(currentProperty);
 	}
 }
 
 void CypherEngineImpl::iterateProperties(CypherParser::OC_PropertiesContext* props)
 {
+	currentProperties = {};
 	auto map = props->oC_MapLiteral();
 	if (map) {
 		iterateMapLiteral(map);
@@ -141,14 +142,17 @@ void CypherEngineImpl::iterateProperties(CypherParser::OC_PropertiesContext* pro
 
 void CypherEngineImpl::iterateNodePattern(CypherParser::OC_NodePatternContext* npat)
 {
+	currentNodePattern = {};
 	auto props = npat->oC_Properties();
 	if (props) {
 		iterateProperties(props);
 	}
+	currentNodePattern.properties = currentProperties;
 	auto var = npat->oC_Variable();
 	if (var) {
 		iterateVariable(var);
 	}
+	
 }
 
 void CypherEngineImpl::iteratePatternElement(CypherParser::OC_PatternElementContext* elt)
@@ -185,7 +189,9 @@ void CypherEngineImpl::iterateCreate(CypherParser::OC_CreateContext* create)
 {
 	auto pattern = create->oC_Pattern();
 	if (pattern) {
+		currentGraphPattern = {};
 		iteratePattern(pattern);
+		model.createGraphs.push_back(currentGraphPattern);
 	}
 }
 
@@ -195,7 +201,6 @@ void CypherEngineImpl::iterateSinglePartQuery(CypherParser::OC_SinglePartQueryCo
 	for (auto update : updates) {
 		auto create = update->oC_Create();
 		if (create) {
-			model.createGraphs.push_back({});
 			iterateCreate(create);
 		}
 	}
