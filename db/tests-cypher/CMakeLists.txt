@@ -19,6 +19,7 @@ if (Boost_FOUND)
 target_include_directories(tests-cypher PRIVATE ${Boost_INCLUDE_DIR})
 endif()
 target_link_libraries(tests-cypher graph-store cypher-engine tests-common)
+
 install(TARGETS tests-cypher DESTINATION bin)
 
 

@@ -5,14 +5,14 @@
 #include <iostream>
 #include "CypherEngineImpl.h"
 
-CypherEngine::CypherEngine(GraphRepository& gr): gr(gr)
+CypherEngine::CypherEngine()
 {
 
 }
 
 void CypherEngine::process(const std::string & expr)
 {
-	CypherEngineImpl impl(gr);
+	CypherEngineImpl impl;
 	impl.process(expr);
 }
 

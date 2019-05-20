@@ -41,6 +41,6 @@ private:
 	void iteratePropertyKeyName(CypherParser::OC_PropertyKeyNameContext* pkey);
 	void iterateVariable(CypherParser::OC_VariableContext* var);
 public:
-	CypherEngineImpl(GraphRepository& gr);
+	CypherEngineImpl();
 	void process(const std::string& expr);
 };

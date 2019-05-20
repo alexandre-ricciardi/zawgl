@@ -6,12 +6,7 @@
 #include "TestCommon.h"
 
 TEST_CASE("Create a node record") {
-	Config conf;
-	configure(conf);
-	deleteFiles(conf);
-
-	GraphRepository gr(conf);
-	CypherEngine ce(gr);
+	CypherEngine ce;
 	ce.process("CREATE (a:Artist { Name : \"Strapping Young Lad\" })");
 
 	REQUIRE(0 == 0);

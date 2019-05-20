@@ -3,7 +3,7 @@
 
 #include "CypherEngineImpl.h"
 #include <iostream>
-CypherEngineImpl::CypherEngineImpl(GraphRepository& gr)
+CypherEngineImpl::CypherEngineImpl()
 {
 
 }
@@ -121,6 +121,8 @@ void CypherEngineImpl::iterateExpression(CypherParser::OC_ExpressionContext* exp
 
 void CypherEngineImpl::iterateMapLiteral(CypherParser::OC_MapLiteralContext* map)
 {
+	auto pkeys = map->oC_PropertyKeyName();
+	auto exprs = map->oC_Expression();
 	for (int i = 0; i < pkeys.size(); ++i) {
 		currentProperty = {};
 		auto keyName = pkeys[i];
