@@ -6,9 +6,7 @@
 #include "CypherModel.h"
 
 class DB_CLASS CypherEngine {
-private:
-	GraphRepository& gr;
 public:
-	CypherEngine(GraphRepository& gr);
+	CypherEngine();
 	void process(const std::string& expr);
 };
