@@ -15,7 +15,6 @@ TEST_CASE("Property repository") {
 	props.push_back({ { 0, true }, "key1", true });
 	props.push_back({ { 0, true }, "key2", false });
 	props.push_back({ { 0, true }, "key3", std::string("test-string") });
-	props.push_back({ { 0, true }, "key4", 22ll });
 	props.push_back({ { 0, true }, "key5", 12.005 });
 	pr.putProperties(props);
 
@@ -32,11 +31,8 @@ TEST_CASE("Property repository") {
 	REQUIRE(retrieve[2].key == "key3");
 	REQUIRE(std::get<GString>(retrieve[2].value) == "test-string");
 
-	REQUIRE(retrieve[3].key == "key4");
-	REQUIRE(std::get<GInteger>(retrieve[3].value) == 22);
-
-	REQUIRE(retrieve[4].key == "key5");
-	REQUIRE(std::get<GDouble>(retrieve[4].value) == 12.005);
+	REQUIRE(retrieve[3].key == "key5");
+	REQUIRE(std::get<GDouble>(retrieve[3].value) == 12.005);
 }
 
 TEST_CASE("Graph repository") {
@@ -52,7 +48,6 @@ TEST_CASE("Graph repository") {
 	n0.properties.push_back({ { 0, true }, "key1", true });
 	n0.properties.push_back({ { 0, true }, "key2", false });
 	n0.properties.push_back({ { 0, true }, "key3", std::string("test-string") });
-	n0.properties.push_back({ { 0, true }, "key4", 22ll });
 	n0.properties.push_back({ { 0, true }, "key5", 12.005 });
 
 	auto v1 = boost::add_vertex(g);
@@ -60,7 +55,6 @@ TEST_CASE("Graph repository") {
 	n1.properties.push_back({ { 0, true }, "key1", true });
 	n1.properties.push_back({ { 0, true }, "key2", false });
 	n1.properties.push_back({ { 0, true }, "key3", std::string("test-string") });
-	n1.properties.push_back({ { 0, true }, "key4", 22ll });
 	n1.properties.push_back({ { 0, true }, "key5", 12.005 });
 
 	auto e0 = boost::add_edge(v0, v1, g);
@@ -68,7 +62,6 @@ TEST_CASE("Graph repository") {
 	rel0.properties.push_back({ { 0, true }, "key1", true });
 	rel0.properties.push_back({ { 0, true }, "key2", false });
 	rel0.properties.push_back({ { 0, true }, "key3", std::string("test-string") });
-	rel0.properties.push_back({ { 0, true }, "key4", 22ll });
 	rel0.properties.push_back({ { 0, true }, "key5", 12.005 });
 
 

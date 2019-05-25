@@ -18,12 +18,12 @@
 #include <variant>
 
 
-typedef long long GId;
-typedef long long GInteger;
+typedef int64_t GId;
+typedef int64_t GInteger;
 typedef bool GBool;
 typedef double GDouble;
 typedef std::string GString;
-typedef std::variant<bool, long long, double, std::string> ValueType;
+typedef std::variant<bool, int64_t, double, std::string> ValueType;
 
 struct GStoreId {
 	GId id;

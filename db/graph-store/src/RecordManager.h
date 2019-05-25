@@ -19,7 +19,7 @@ public:
 		ofs.open(fileName, std::ios::binary | std::ios::out);
 		ifs.open(fileName, std::ios::binary | std::ios::in);
 		if (!ofs.is_open() || !ifs.is_open()) {
-			throw std::exception("issue opening file");
+			throw std::runtime_error("issue opening file");
 		}
 	}
 	GId writeRecord(T rec)
@@ -39,9 +39,9 @@ public:
 		return length / T::size() - 1;
 	}
 
-	void updateRecord(GId id, T rec)
+	void updateRecord(GId id, T& rec)
 	{
-		ofs.seekp(0, id * T::size());
+		ofs.seekp(0, static_cast<std::ios_base::seekdir>(id * T::size()));
 		rec.serialize(ofs);
 		ofs.flush();
 	}
@@ -52,7 +52,7 @@ public:
 		rec.deSerialize(ifs);
 		return rec;
 	}
-	void scan(std::function<bool(GId, T&)> callback)
+	void scan(std::function<bool(GId, T&&)> callback)
 	{
 		GId curr = 0;
 		bool next = true;
@@ -69,7 +69,7 @@ public:
 	std::vector<GStoreId> getFreeIds(int n)
 	{
 		std::vector<GStoreId> res;
-		scan([&](GId id, T& rec) {
+		scan([&](GId id, T&& rec) {
 			if (!rec.isInUse()) {
 				res.push_back({ id, false });
 			}

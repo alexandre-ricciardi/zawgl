@@ -49,7 +49,7 @@ struct PropertyRecord {
 		nextPropId = boost::endian::big_to_native(bnp);
 	}
 
-	static constexpr int size()
+	static constexpr std::size_t size()
 	{
 		return sizeof(char) * 2 + BlockSize + sizeof(GId);
 	}

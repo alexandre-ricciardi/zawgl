@@ -1,4 +1,4 @@
-// CypherEngineImpl.cpp : Définit les fonctions exportées pour l'application DLL.
+// CypherEngineImpl.cpp : Dï¿½finit les fonctions exportï¿½es pour l'application DLL.
 //
 
 #include "CypherEngineImpl.h"
@@ -94,9 +94,9 @@ void CypherEngineImpl::iterateComparisonExpression(CypherParser::OC_ComparisonEx
 	}
 }
 
-void CypherEngineImpl::iterateXorExpression(CypherParser::OC_XorExpressionContext*xor)
+void CypherEngineImpl::iterateXorExpression(CypherParser::OC_XorExpressionContext* xor_)
 {
-	auto axps = xor ->oC_AndExpression();
+	auto axps = xor_ ->oC_AndExpression();
 	for (auto axp : axps) {
 		auto nxps = axp->oC_NotExpression();
 		for (auto nxp : nxps) {
@@ -113,8 +113,8 @@ void CypherEngineImpl::iterateExpression(CypherParser::OC_ExpressionContext* exp
 	auto oxp = expr->oC_OrExpression();
 	if (oxp) {
 		auto xorxps = oxp->oC_XorExpression();
-		for (auto xor : xorxps) {
-			iterateXorExpression(xor);
+		for (auto xor_ : xorxps) {
+			iterateXorExpression(xor_);
 		}
 	}
 }

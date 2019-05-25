@@ -28,7 +28,7 @@ private:
 	void iterateProperties(CypherParser::OC_PropertiesContext* props);
 	void iterateMapLiteral(CypherParser::OC_MapLiteralContext* map);
 	void iterateExpression(CypherParser::OC_ExpressionContext* expr);
-	void iterateXorExpression(CypherParser::OC_XorExpressionContext*xor);
+	void iterateXorExpression(CypherParser::OC_XorExpressionContext* xor_);
 	void iterateComparisonExpression(CypherParser::OC_ComparisonExpressionContext* cxp);
 	void iterateMultiplyDivideModuloExpression(CypherParser::OC_MultiplyDivideModuloExpressionContext* mdme);
 	void iteratePowerOfExpression(CypherParser::OC_PowerOfExpressionContext* poe);
