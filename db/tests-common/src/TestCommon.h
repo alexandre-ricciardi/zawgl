@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Config.h"
 
 void deleteFiles(Config& conf)
 {
