@@ -1,5 +1,7 @@
 mod fsm;
 use std;
+use std::fmt;
+use std::error::Error;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TokenType {
@@ -20,6 +22,11 @@ pub enum TokenType {
     OpenParenthesis,
     CloseParenthesis,
     Identifier,
+    Colon,
+    Comma,
+    OpenBrace,
+    CloseBrace,
+    Quote,
 }
 
 
@@ -32,9 +39,16 @@ pub struct Token {
     content: String
 }
 
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(&format!("{}", self.content))
+    }
+}
+
+
 impl Token {
-    pub fn new(ttype: TokenType, beg: usize, end: usize, token_expr: &String) -> Token {
-        Token {token_type: ttype, begin: beg, end: end, content: token_expr.clone()}
+    pub fn new(ttype: TokenType, beg: usize, end: usize, token_expr: &str) -> Token {
+        Token {token_type: ttype, begin: beg, end: end, content: token_expr.to_owned()}
     }
     pub fn size(&self) -> usize {
         self.end - self.begin
@@ -50,19 +64,48 @@ pub struct Lexer {
     lookahead: usize,
 }
 
-fn make_token(ttype: TokenType, beg: usize, end: usize, input: &String) -> Option<Token> {
+fn make_token(ttype: TokenType, beg: usize, end: usize, input: &str) -> Option<Token> {
     input.get(beg..end).map(|tok_expr| Token {token_type: ttype, begin: beg, end: end, content: String::from(tok_expr)})
 }
 
-fn run_keyword_fsm(tok_type: TokenType, keyword: &'static str, input: &String, index:usize) -> Option<Token> {
+fn run_keyword_fsm(tok_type: TokenType, keyword: &'static str, input: &str, index:usize) -> Option<Token> {
     let mut kfsm = fsm::keyword_fsm::make_keyword_ignorecase_fsm(keyword);
-    kfsm.run(&input[index..input.len()]).map(|size| Token::new(tok_type, index, index + size, input))
+    input.get(index..).and_then(|rest| kfsm.run(&rest)).and_then(|size| input.get(index..index+size)).map(|tok_expr| Token::new(tok_type, index, index + tok_expr.len(), tok_expr))
 }
 
 #[derive(Debug, Clone)]
-pub struct LexerError(&'static str);
+pub enum LexerError {
+    NotFound,
+    WrongNumberFormat(usize),
+    EndOfFile(usize),
+    WrongIdentifierFormat(usize),
+}
 
 pub type LexerResult<T> = std::result::Result<T, LexerError>;
+
+
+impl fmt::Display for LexerError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            LexerError::NotFound => f.write_str("NotFound"),
+            LexerError::EndOfFile(pos) => f.write_str(&format!("end of file at position : {}", pos)),
+            LexerError::WrongNumberFormat(pos) => f.write_str(&format!("wrong format for number at position : {}", pos)),
+            LexerError::WrongIdentifierFormat(pos) => f.write_str(&format!("wrong identifier format at position : {}", pos)),
+        }
+    }
+}
+
+impl Error for LexerError {
+    fn description(&self) -> &str {
+        match *self {
+            LexerError::NotFound => "Record not found",
+            LexerError::EndOfFile(_pos) => "Internal server error",
+            LexerError::WrongNumberFormat(_pos) => "wrong number format",
+            LexerError::WrongIdentifierFormat(_pos) => "wrong identifier format",
+
+        }
+    }
+}
 
 impl Lexer {
     pub fn new(input: &str) -> Lexer {
@@ -73,51 +116,66 @@ impl Lexer {
                             (TokenType::Divide, "/"), (TokenType::Mult, "*"),
                             (TokenType::Match, "match"), (TokenType::Where, "where"),
                             (TokenType::Return, "return"), (TokenType::CloseParenthesis, ")"),
-                            (TokenType::OpenParenthesis, "(")],
+                            (TokenType::OpenParenthesis, "("), (TokenType::Colon, ":"),
+                            (TokenType::OpenBrace, "{"), (TokenType::CloseBrace, "}"),
+                            (TokenType::Create, "create"),
+                            (TokenType::Comma, ","), (TokenType::Quote, "'")],
             input: input.to_owned(), position: 0, line: 0, column: 0, lookahead: 0}
     }
     pub  fn  next_token(&mut self) -> LexerResult<Token> {
         
         self.position = self.position + self.lookahead;
         if self.position >= self.input.len() {
-            return Err(LexerError("EOF"));
+            return Err(LexerError::EndOfFile(self.position));
         }
-        for c in self.input[self.position..self.input.len()].chars() {
+        for c in self.input.get(self.position..self.input.len()).unwrap().chars() {
             if c.is_whitespace() {
                 self.position += 1;
                 continue;
             }
             if c.is_numeric() {
                 let mut number_fsm = fsm::number_fsm::make_number_fsm();
-                return match number_fsm.run(&self.input[self.position..self.input.len()]) {
+                return match number_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                     Some(numlen) =>{
                         self.lookahead = numlen;
-                        Ok(Token::new(TokenType::Number, self.position, self.position + numlen, &self.input))
+                        Ok(make_token(TokenType::Number, self.position, self.position + numlen, &self.input).unwrap())
                     } ,
-                    None => Err(LexerError("not found")),
+                    None => Err(LexerError::WrongNumberFormat(self.position)),
                 };
             }
-            if c.is_alphabetic() {
-                for keyword in &self.keywords {
-                    match run_keyword_fsm(keyword.0, keyword.1, &self.input, self.position) {
-                        Some(tok) => {
-                            self.lookahead = tok.size();
-                            return Ok(tok)
-                        },
-                        None => {},
-                    }
+            for keyword in &self.keywords {
+                match run_keyword_fsm(keyword.0, keyword.1, &self.input, self.position) {
+                    Some(tok) => {
+                        self.lookahead = tok.size();
+                        return Ok(tok)
+                    },
+                    None => {},
                 }
-                let mut identifier_fsm = fsm::identifier_fsm::make_identifier_fsm();
-                return match identifier_fsm.run(&self.input[self.position..self.input.len()]) {
-                    Some(idlen) =>{
-                        self.lookahead = idlen;
-                        Ok(Token::new(TokenType::Identifier, self.position, self.position + idlen, &self.input))
-                    } ,
-                    None => Err(LexerError("not found")),
-                };
             }
+            let mut identifier_fsm = fsm::identifier_fsm::make_identifier_fsm();
+            return match identifier_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
+                Some(idlen) =>{
+                    self.lookahead = idlen;
+                    Ok(make_token(TokenType::Identifier, self.position, self.position + idlen, &self.input).unwrap())
+                } ,
+
+                None => Err(LexerError::WrongIdentifierFormat(self.position)),
+            };
         }
-        Err(LexerError("not found"))
+        Err(LexerError::NotFound)
+    }
+
+    pub fn has_next(&self) -> bool {
+        self.position < self.input.len() - 1
+    }
+
+    pub fn get_tokens(&mut self) -> LexerResult<Vec<Token>> {
+        let mut res = Vec::new();
+        while self.has_next() {
+            let token = self.next_token()?;
+            res.push(token);
+        }
+        Ok(res)
     }
 }
 
@@ -155,7 +213,7 @@ mod test_lexer {
     }
     #[test]
     fn test_run_identifier_fsm() {
-        let mut lexer = Lexer::new("thisidmyid or             12.00033e-08");
+        let mut lexer = Lexer::new("thisidmyid or      n       12.00033e-08");
         let tres0 = lexer.next_token();
         match tres0 {
             Ok(tok) => {
@@ -169,6 +227,11 @@ mod test_lexer {
             Ok(tok) => assert_eq!(tok.content, "or"),
             Err(_msg) => assert!(false),
         }
+
+        match lexer.next_token() {
+            Ok(tok) => assert_eq!(tok.content, "n"),
+            Err(_msg) => assert!(false),
+        }
         
         let tres2 = lexer.next_token();
         match tres2 {
@@ -178,7 +241,7 @@ mod test_lexer {
 
         match lexer.next_token() {
             Ok(_tok) => assert!(false),
-            Err(msg) => assert_eq!(msg.0, "EOF"),
+            Err(_msg) => assert!(true),
         }
     }
 }

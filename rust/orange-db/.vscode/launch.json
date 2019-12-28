@@ -10,11 +10,11 @@
             "name": "(Windows) Launchv test",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/orange_db-94bdabb61df9f8ba.exe",
+            "program": "${workspaceFolder}/target/debug/orange_db-f777b52f3f372480.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": [{"name":    "RUST_BACKTRACE", "value": "1" }],
             "externalConsole": false
         }
     ]

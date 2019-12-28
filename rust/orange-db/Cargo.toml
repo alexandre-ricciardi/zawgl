@@ -5,3 +5,6 @@ authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]
 
 [dependencies]
 log = "0.4"
+
+[profile.dev]
+opt-level = 0
