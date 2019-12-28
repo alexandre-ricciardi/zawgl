@@ -1,0 +1,7 @@
+[package]
+name = "orange-db"
+version = "0.1.0"
+authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]
+
+[dependencies]
+log = "0.4"

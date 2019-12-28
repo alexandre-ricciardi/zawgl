@@ -1,9 +1,7 @@
 #pragma once
 
 #include <string>
-
-#include "GraphRepository.h"
-#include "CypherModel.h"
+#include "Definitions.h"
 
 class DB_CLASS CypherEngine {
 public:
