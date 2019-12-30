@@ -55,7 +55,7 @@ impl Parser {
 
     fn enter_identifier(&mut self, mut parent_node: Box<AstNode>) -> error::ParserResult<Box<AstNode>> {
         if self.current_token_type(TokenType::Identifier) {
-            let id_node = Box::new(AstNode::new(self.index));
+            let id_node = Box::new(AstNode::new(self.index - 1));
             parent_node.childs.push(id_node);
             Ok(parent_node)
         } else {
@@ -119,14 +119,26 @@ mod test_parser {
     fn test_create() {
         let qry = "CREATE (n:Person)";
         let mut lexer = Lexer::new(&qry);
-        let vtoks = lexer.get_tokens();
-        match vtoks {
+        match lexer.get_tokens() {
             Ok(tokens) => {
                 let mut parser = Parser::new(tokens);
                 let root = parser.parse();
                 parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
             },
-            Err(value) => panic!("{}", value)
+            Err(value) => assert!(false)
+        }
+    }
+    #[test]
+    fn test_create_labels() {
+        let qry = "CREATE (n:Person,Friend,Etc)";
+        let mut lexer = Lexer::new(&qry);
+        match lexer.get_tokens() {
+            Ok(tokens) => {
+                let mut parser = Parser::new(tokens);
+                let root = parser.parse();
+                parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
+            },
+            Err(value) => assert!(false)
         }
     }
 }
