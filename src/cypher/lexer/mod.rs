@@ -34,9 +34,9 @@ pub enum TokenType {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    begin: usize,
-    end: usize,
-    content: String
+    pub begin: usize,
+    pub end: usize,
+    pub content: String
 }
 
 impl fmt::Display for Token {

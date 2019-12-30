@@ -1,5 +1,6 @@
 mod error;
-use super::lexer::{Token, TokenType};
+use super::lexer::{Token, TokenType, Lexer};
+mod parser_utils;
 
 pub struct AstNode {
     token_id: usize,
@@ -22,6 +23,10 @@ impl Parser {
         Parser {tokens : tokens, index: 0}
     }
 
+    pub fn get_tokens(&self) -> &Vec<Token> {
+        &self.tokens
+    } 
+    
     pub fn parse(&mut self) -> error::ParserResult<Box<AstNode>> {
         if self.tokens.len() > 0  {
             let tok = &self.tokens[0];
@@ -37,10 +42,10 @@ impl Parser {
     }
 
     fn require(&mut self, ast_node: Box<AstNode>, token_type: TokenType) -> error::ParserResult<Box<AstNode>> {
-        self.index += 1;
         if self.tokens[self.index].token_type != token_type {
             return Err(error::ParserError::SyntaxError);
         }
+        self.index += 1;
         Ok(ast_node)
     }
 
@@ -101,8 +106,18 @@ impl Parser {
 mod test_parser {
     use super::*;
     #[test]
-    fn test_bool_expr() {
-
+    fn test_create() {
+        let qry = "CREATE (n:Person { name: 'Andy', title: 'Developer' })";
+        let mut lexer = Lexer::new(&qry);
+        let vtoks = lexer.get_tokens();
+        match vtoks {
+            Ok(tokens) => {
+                let mut parser = Parser::new(tokens);
+                let root = parser.parse();
+                parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
+            },
+            Err(value) => panic!("{}", value)
+        }
     }
 }
 
