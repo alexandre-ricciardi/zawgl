@@ -1,7 +1,7 @@
 use super::error::*;
 use super::super::lexer::{Token, TokenType};
 use super::parser::*;
-use super::parser_graph_delegate::GraphParserDelegate;
+use super::graph_parser_delegate::GraphParserDelegate;
 
 pub struct CypherParser {
     parser: Parser,
