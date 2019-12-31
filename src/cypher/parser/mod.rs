@@ -1,7 +1,9 @@
 pub mod error;
 pub mod parser_utils;
 pub mod parser;
+pub mod graph_parser_delegate;
 pub mod cypher_parser;
+
 use super::lexer::*;
 
 
@@ -14,8 +16,8 @@ mod test_parser {
         let mut lexer = Lexer::new(&qry);
         match lexer.get_tokens() {
             Ok(tokens) => {
-                let mut parser = CypherParser::new(tokens);
-                let root = parser.parse();
+                let mut parser = parser::Parser::new(tokens);
+                let root = cypher_parser::parse(&mut parser);
                 parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
             },
             Err(value) => assert!(false)
@@ -27,8 +29,8 @@ mod test_parser {
         let mut lexer = Lexer::new(&qry);
         match lexer.get_tokens() {
             Ok(tokens) => {
-                let mut parser = Parser::new(tokens);
-                let root = parser.parse();
+                let mut parser = parser::Parser::new(tokens);
+                let root = cypher_parser::parse(&mut parser);
                 parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
             },
             Err(value) => assert!(false)
