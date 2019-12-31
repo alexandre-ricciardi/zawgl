@@ -27,6 +27,11 @@ pub enum TokenType {
     OpenBrace,
     CloseBrace,
     Quote,
+    LeftSourceRel,
+    RightTargetRel,
+    LeftTargetRel,
+    RightSourceRel,
+    UndirectedRel,
 }
 
 
@@ -118,7 +123,9 @@ impl Lexer {
                             (TokenType::Return, "return"), (TokenType::CloseParenthesis, ")"),
                             (TokenType::OpenParenthesis, "("), (TokenType::Colon, ":"),
                             (TokenType::OpenBrace, "{"), (TokenType::CloseBrace, "}"),
-                            (TokenType::Create, "create"),
+                            (TokenType::LeftSourceRel, "-["), (TokenType::RightTargetRel, "]->"),
+                            (TokenType::LeftTargetRel, "<-["), (TokenType::RightSourceRel, "]-"),
+                            (TokenType::UndirectedRel, "{"), (TokenType::Create, "create"),
                             (TokenType::Comma, ","), (TokenType::Quote, "'")],
             input: input.to_owned(), position: 0, line: 0, column: 0, lookahead: 0}
     }
