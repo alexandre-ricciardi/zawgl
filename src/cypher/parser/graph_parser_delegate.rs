@@ -16,7 +16,7 @@ fn enter_identifier(parser: &mut Parser, mut parent_node: Box<AstNode>) -> Parse
 fn enter_labels(parser: &mut Parser, parent_node: Box<AstNode>) -> ParserResult<Box<AstNode>> {
     if parser.check(TokenType::Identifier) {
         let id_res = enter_identifier(parser, parent_node)?;
-        if parser.current_token_type(TokenType::Comma) {
+        if parser.current_token_type(TokenType::Colon) {
             return enter_labels(parser, id_res);
         } else {
             return Ok(id_res);
@@ -26,17 +26,41 @@ fn enter_labels(parser: &mut Parser, parent_node: Box<AstNode>) -> ParserResult<
 }
 
 fn enter_node_def(parser: &mut Parser, parent_node: Box<AstNode>) -> ParserResult<Box<AstNode>> {
-    let id_res = enter_identifier(parser, parent_node)?;
+    let req_open_par = parser.require(parent_node, TokenType::OpenParenthesis)?;
+    let id_res = enter_identifier(parser, req_open_par)?;
     let req_sc = parser.require(id_res, TokenType::Colon)?;
     let labels = enter_labels(parser, req_sc)?;
-    Ok(labels)
+    let req_close_par = parser.require(labels, TokenType::CloseParenthesis)?;
+    Ok(req_close_par)
 }
 
-pub fn parse_graph(parser: &mut Parser) -> ParserResult<Box<AstNode>> {
-    let create_node = Box::new(AstNode::new(parser.index));
-    parser.advance();
-    let res = parser.require(create_node, TokenType::OpenParenthesis)?;
-    let next = enter_node_def(parser, res)?;
-    let req_close_par = parser.require(next, TokenType::CloseParenthesis)?;
-    Ok(req_close_par)
+fn enter_rel(parser: &mut Parser, parent_node: Box<AstNode>) -> ParserResult<Box<AstNode>> {
+    if parser.current_token_type(TokenType::Identifier) {
+        let id_res = enter_identifier(parser, parent_node)?;
+        if parser.current_token_type(TokenType::Identifier) {
+
+        }
+    }
+}
+
+fn enter_rel_def(parser: &mut Parser, parent_node: Box<AstNode>) -> ParserResult<Box<AstNode>> {
+    match parser.get_current_token_type() {
+        TokenType::LeftSourceRel |
+        TokenType::RightSourceRel |
+        TokenType::LeftTargetRel |
+        TokenType::RightTargetRel => {
+            parser.advance();
+            let id_tags = enter_rel_tags(parser, parent_node)?;
+            Ok(id_tags)
+        },
+        _ => {
+            Err(ParserError::SyntaxError)
+        }
+    }
+}
+
+pub fn parse_graph(parser: &mut Parser, parent_node: Box<AstNode>) -> ParserResult<Box<AstNode>> {
+    let graph = enter_node_def(parser, parent_node)?;
+    let rel = enter_rel_def(parser, graph)?;
+    Ok(rel)
 }

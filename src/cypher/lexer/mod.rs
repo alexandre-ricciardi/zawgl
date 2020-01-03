@@ -21,6 +21,8 @@ pub enum TokenType {
     Return,
     OpenParenthesis,
     CloseParenthesis,
+    OpenBracket,
+    CloseBracket,
     Identifier,
     Colon,
     Comma,

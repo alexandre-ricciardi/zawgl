@@ -47,6 +47,10 @@ impl Parser {
         }
     }
 
+    pub fn get_current_token_type(&self) -> TokenType {
+        self.tokens[self.index].token_type
+    }
+
     pub fn check(&self, token_type: TokenType) -> bool {
         self.tokens[self.index].token_type == token_type
     }
