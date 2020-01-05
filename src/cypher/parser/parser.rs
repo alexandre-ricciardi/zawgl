@@ -38,7 +38,11 @@ impl Parser {
         self.index += 1;
     }
 
-    pub fn current_token_type(&mut self, token_type: TokenType) -> bool {
+    pub fn has_next(&self) -> bool {
+        self.index + 1 < self.tokens.len()
+    }
+
+    pub fn current_token_type_advance(&mut self, token_type: TokenType) -> bool {
         if self.tokens[self.index].token_type == token_type {
             self.advance();
             true

@@ -1,7 +1,7 @@
 use super::error::*;
 use super::super::lexer::{Token, TokenType};
 use super::parser::*;
-use super::graph_parser_delegate::*;
+use super::pattern_parser_delegate::*;
 use std::rc::Rc;
 use std::cell::{RefCell, RefMut};
 
@@ -12,7 +12,7 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<AstNode>> {
             TokenType::Create =>  {
                 let create_node = Box::new(AstNode::new(parser.index));
                 parser.advance();
-                parse_graph(parser, create_node)
+                parse_pattern(parser, create_node)
             },
             _ => Err(ParserError::SyntaxError)
         }

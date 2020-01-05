@@ -34,6 +34,7 @@ pub enum TokenType {
     LeftTargetRel,
     RightSourceRel,
     UndirectedRel,
+    Pipe,
 }
 
 
@@ -119,7 +120,7 @@ impl Lexer {
         Lexer {
             keywords: vec![(TokenType::True, "true"), (TokenType::False, "false"),
                             (TokenType::And, "and"), (TokenType::Or, "or"),
-                            (TokenType::Plus, "+"), (TokenType::Minus, "-"),
+                            (TokenType::Plus, "+"),
                             (TokenType::Divide, "/"), (TokenType::Mult, "*"),
                             (TokenType::Match, "match"), (TokenType::Where, "where"),
                             (TokenType::Return, "return"), (TokenType::CloseParenthesis, ")"),
@@ -128,7 +129,8 @@ impl Lexer {
                             (TokenType::LeftSourceRel, "-["), (TokenType::RightTargetRel, "]->"),
                             (TokenType::LeftTargetRel, "<-["), (TokenType::RightSourceRel, "]-"),
                             (TokenType::UndirectedRel, "{"), (TokenType::Create, "create"),
-                            (TokenType::Comma, ","), (TokenType::Quote, "'")],
+                            (TokenType::Comma, ","), (TokenType::Quote, "'"),
+                            (TokenType::Pipe, "|"), (TokenType::Minus, "-")],
             input: input.to_owned(), position: 0, line: 0, column: 0, lookahead: 0}
     }
     pub  fn  next_token(&mut self) -> LexerResult<Token> {
