@@ -1,14 +1,26 @@
 use super::error::*;
 use super::super::lexer::{Token, TokenType};
 
+#[derive(Debug)]
+pub enum AstTag  {
+    Node,
+    Relationship,
+    Property
+}
+
+
 pub struct AstNode {
     pub token_id: usize,
     pub childs: Vec<Box<AstNode>>,
+    pub ast_tag: Option<AstTag>,
 }
 
 impl AstNode {
     pub fn new(token_id: usize) -> Self {
-        AstNode {token_id: token_id, childs: Vec::new()}
+        AstNode {token_id: token_id, childs: Vec::new(), ast_tag: None}
+    }
+    pub fn new_tag(ast_tag: AstTag) -> Self {
+        AstNode {token_id: 0, childs: Vec::new(), ast_tag: Some(ast_tag)}
     }
 }
 
@@ -26,12 +38,12 @@ impl Parser {
         &self.tokens
     } 
 
-    pub fn require(&mut self, ast_node: Box<AstNode>, token_type: TokenType) -> ParserResult<Box<AstNode>> {
-        if self.tokens[self.index].token_type != token_type {
+    pub fn require(&mut self, token_type: TokenType) -> ParserResult<usize> {
+        if !self.check(token_type) {
             return Err(ParserError::SyntaxError);
         }
         self.advance();
-        Ok(ast_node)
+        Ok(self.index)
     }
 
     pub fn advance(&mut self) {

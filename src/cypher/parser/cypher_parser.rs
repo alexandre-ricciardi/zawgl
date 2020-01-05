@@ -10,9 +10,15 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<AstNode>> {
         let tok = &parser.get_tokens()[0];
         match tok.token_type {
             TokenType::Create =>  {
-                let create_node = Box::new(AstNode::new(parser.index));
+                let mut create_node = Box::new(AstNode::new(parser.index));
                 parser.advance();
-                parse_pattern(parser, create_node)
+                let res = parse_pattern(parser, &mut create_node);
+                if res.is_err() {
+                    Err(res.err().unwrap())
+                } else {
+                    Ok(create_node)
+                }
+                
             },
             _ => Err(ParserError::SyntaxError)
         }
