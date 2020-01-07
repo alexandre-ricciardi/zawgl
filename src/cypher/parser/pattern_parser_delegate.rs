@@ -1,6 +1,7 @@
 use super::parser::*;
 use super::error::*;
 use super::super::lexer::{TokenType};
+use super::properties_parser_delegate::*;
 
 fn enter_identifier(parser: &mut Parser, parent_node: &mut Box<AstNode>) -> ParserResult<usize> {
     if parser.current_token_type_advance(TokenType::Identifier) {
@@ -30,6 +31,9 @@ fn enter_node_def(parser: &mut Parser, mut parent_node: &mut Box<AstNode>) -> Pa
     enter_identifier(parser,&mut parent_node)?;
     parser.require(TokenType::Colon)?;
     enter_labels(parser, &mut parent_node)?;
+
+    enter_properties(parser, parent_node)?;
+
     parser.require(TokenType::CloseParenthesis)?;
 
     

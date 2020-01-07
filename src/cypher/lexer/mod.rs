@@ -28,13 +28,13 @@ pub enum TokenType {
     Comma,
     OpenBrace,
     CloseBrace,
-    Quote,
     LeftSourceRel,
     RightTargetRel,
     LeftTargetRel,
     RightSourceRel,
     UndirectedRel,
     Pipe,
+    StringType,
 }
 
 
@@ -129,7 +129,7 @@ impl Lexer {
                             (TokenType::LeftSourceRel, "-["), (TokenType::RightTargetRel, "]->"),
                             (TokenType::LeftTargetRel, "<-["), (TokenType::RightSourceRel, "]-"),
                             (TokenType::UndirectedRel, "{"), (TokenType::Create, "create"),
-                            (TokenType::Comma, ","), (TokenType::Quote, "'"),
+                            (TokenType::Comma, ","),
                             (TokenType::Pipe, "|"), (TokenType::Minus, "-")],
             input: input.to_owned(), position: 0, line: 0, column: 0, lookahead: 0}
     }
@@ -163,9 +163,17 @@ impl Lexer {
                     None => {},
                 }
             }
+            let mut string_fsm = fsm::string_fsm::make_string_fsm();
+            match string_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
+                Some(string_len) => {
+                    self.lookahead = string_len;
+                    return Ok(make_token(TokenType::StringType, self.position, self.position + string_len, &self.input).unwrap());
+                },
+                None => {},
+            }
             let mut identifier_fsm = fsm::identifier_fsm::make_identifier_fsm();
             return match identifier_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
-                Some(idlen) =>{
+                Some(idlen) => {
                     self.lookahead = idlen;
                     Ok(make_token(TokenType::Identifier, self.position, self.position + idlen, &self.input).unwrap())
                 } ,
@@ -253,6 +261,23 @@ mod test_lexer {
         match lexer.next_token() {
             Ok(_tok) => assert!(false),
             Err(_msg) => assert!(true),
+        }
+    }
+
+    #[test]
+    fn test_run_string_fsm() {
+        let mut lexer = Lexer::new("'this is a string' or 'this is another string'");
+        match lexer.next_token() {
+            Ok(tok) => assert_eq!(tok.content, "'this is a string'"),
+            Err(_msg) => assert!(false),
+        }
+        match lexer.next_token() {
+            Ok(tok) => assert_eq!(tok.content, "or"),
+            Err(_msg) => assert!(false),
+        }
+        match lexer.next_token() {
+            Ok(tok) => assert_eq!(tok.content, "'this is another string'"),
+            Err(_msg) => assert!(false),
         }
     }
 }

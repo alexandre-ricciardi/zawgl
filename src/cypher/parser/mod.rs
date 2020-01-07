@@ -38,5 +38,10 @@ mod test_parser {
         run("CREATE (n:Person)-[r:FRIEND_OF]->(m:Person)");
     }
 
+    #[test]
+    fn test_properties_node() {
+        run("CREATE (n:Person { name: 'hello', value: 'world' })");
+    }
+
 }
 

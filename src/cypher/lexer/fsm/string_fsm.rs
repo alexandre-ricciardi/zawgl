@@ -9,7 +9,7 @@ enum StringState {
 }
 
 fn is_valid_string_char(c: char) -> bool {
-    c.is_alphanumeric()
+    c.is_alphanumeric() || c.is_whitespace()
 }
 
 pub fn make_string_fsm() -> Box<dyn RunnableFSM>  {
@@ -57,5 +57,10 @@ mod test_identifier_fsm {
     fn test_string_fsm() {
         let mut fsm = make_string_fsm();
         assert_eq!(fsm.run("'blabla' test"), Some(8));
+    }
+    #[test]
+    fn test_string_ws_fsm() {
+        let mut fsm = make_string_fsm();
+        assert_eq!(fsm.run("'blab la' test"), Some(9));
     }
 }
