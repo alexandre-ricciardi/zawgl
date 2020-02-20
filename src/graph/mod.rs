@@ -20,8 +20,14 @@ pub struct Successors<'graph> {
     current_edge_index: Option<usize>,
 }
 
+pub struct Ancestors<'graph> {
+    graph: &'graph Graph,
+    current_edge_index: Option<usize>,
+}
 
-impl <'graph> Iterator for Successors {
+impl <'graph> Iterator for Successors<'graph> {
+    type Item = usize;
+
     fn next(&mut self) -> Option<usize> {
         match self.current_edge_index {
             None => None,
@@ -29,6 +35,21 @@ impl <'graph> Iterator for Successors {
                 let edge = &self.graph.edges[edge_index];
                 self.current_edge_index = edge.next_outbound_edge;
                 Some(edge.target)
+            }
+        }
+    }
+}
+
+impl <'graph> Iterator for Ancestors<'graph> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<usize> {
+        match self.current_edge_index {
+            None => None,
+            Some(edge_index) => {
+                let edge = &self.graph.edges[edge_index];
+                self.current_edge_index = edge.next_inbound_edge;
+                Some(edge.source)
             }
         }
     }
@@ -47,27 +68,38 @@ impl Graph {
 
     pub fn add_edge(&mut self, source: usize, target: usize) -> usize {
         let index = self.edges.len();
-        let source_data = &mut self.nodes[source];
-        let target_data = &mut self.nodes[target];
-        self.edges.push(EdgeData{source: source, target: target,
-             next_inbound_edge: target_data.next_inbound_edge, 
-             next_outbound_edge: source_data.next_outbound_edge});
-        source_data.next_outbound_edge = index;
-        target_data.next_inbound_edge = index;
+        {
+            let source_data = &self.nodes[source];
+            let target_data = &self.nodes[target];
+            self.edges.push(EdgeData{source: source, target: target,
+                 next_inbound_edge: target_data.first_inbound_edge, 
+                 next_outbound_edge: source_data.first_outbound_edge});
+        }
+        
+        let ms = &mut self.nodes[source];
+        ms.first_outbound_edge = Some(index);
+        let mt = &mut self.nodes[target];
+        mt.first_inbound_edge = Some(index);
         index
     }
 
     pub fn successors(&self, source: usize) -> Successors {
-        let first_outbound_edge = self.nodes[source].next_outbound_edge;
+        let first_outbound_edge = self.nodes[source].first_outbound_edge;
         Successors{ graph: self, current_edge_index: first_outbound_edge }
+    }
+    
+    pub fn ancestors(&self, target: usize) -> Ancestors {
+        let first_inbound_edge = self.nodes[target].first_inbound_edge;
+        Ancestors{ graph: self, current_edge_index: first_inbound_edge }
     }
 }
 
 #[cfg(test)]
 mod test_graph {
+    use super::*;
     #[test]
     fn test_small_graph_it() {
-        let graph = Graph::new();
+        let mut graph = Graph::new();
         let n0 = graph.add_node();
         let n1 = graph.add_node();
         let n2 = graph.add_node();
@@ -80,6 +112,14 @@ mod test_graph {
         for e in graph.successors(n0) {
             count += 1;
         }
+
+        assert_eq!(count, 2);
+
+        count = 0;
+        for e in graph.ancestors(n2) {
+            count += 1;
+        }
+
         assert_eq!(count, 2);
     }
 }
