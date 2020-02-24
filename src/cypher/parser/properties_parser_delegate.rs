@@ -4,8 +4,10 @@ use super::super::lexer::{TokenType};
 
 fn enter_string_expr(parser: &mut Parser, mut parent_node: &mut Box<AstNode>) -> ParserResult<usize> {
     if parser.current_token_type_advance(TokenType::StringType) {
+        let mut str_tag = Box::new(AstNode::new_token_type(TokenType::StringType));
         let str_node = Box::new(AstNode::new(parser.index - 1));
-        parent_node.childs.push(str_node);
+        str_tag.childs.push(str_node);
+        parent_node.childs.push(str_tag);
         if parser.current_token_type_advance(TokenType::Plus) {
             enter_string_expr(parser, parent_node)
         } else {

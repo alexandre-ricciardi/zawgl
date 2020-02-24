@@ -5,7 +5,10 @@ use super::super::lexer::{Token, TokenType};
 pub enum AstTag  {
     Node,
     Relationship,
-    Property
+    Property,
+    DirectedLR,
+    DirectedRL,
+    Undirected,
 }
 
 
@@ -13,14 +16,18 @@ pub struct AstNode {
     pub token_id: usize,
     pub childs: Vec<Box<AstNode>>,
     pub ast_tag: Option<AstTag>,
+    pub token_type: Option<TokenType>,
 }
 
 impl AstNode {
     pub fn new(token_id: usize) -> Self {
-        AstNode {token_id: token_id, childs: Vec::new(), ast_tag: None}
+        AstNode {token_id: token_id, childs: Vec::new(), ast_tag: None, token_type: None}
     }
     pub fn new_tag(ast_tag: AstTag) -> Self {
-        AstNode {token_id: 0, childs: Vec::new(), ast_tag: Some(ast_tag)}
+        AstNode {token_id: 0, childs: Vec::new(), ast_tag: Some(ast_tag), token_type: None}
+    }
+    pub fn new_token_type(tok_type: TokenType) -> Self {
+        AstNode {token_id: 0, childs: Vec::new(), ast_tag: None, token_type: Some(tok_type)}
     }
 }
 

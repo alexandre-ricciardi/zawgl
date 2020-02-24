@@ -76,9 +76,7 @@ fn enter_rel_def(parser: &mut Parser, parent_node: &mut Box<AstNode>) -> ParserR
     if parser.has_next() {
         match parser.get_current_token_type() {
             TokenType::LeftSourceRel |
-            TokenType::RightSourceRel |
-            TokenType::LeftTargetRel |
-            TokenType::RightTargetRel => {
+            TokenType::LeftTargetRel => {
                 parser.advance();
                 let mut rel = Box::new(AstNode::new_tag(AstTag::Relationship));
                 enter_rel_id(parser, &mut rel)?;
@@ -99,9 +97,7 @@ fn enter_rel_def(parser: &mut Parser, parent_node: &mut Box<AstNode>) -> ParserR
 pub fn exit_rel_def(parser: &mut Parser, parent_node: &mut Box<AstNode>) -> ParserResult<usize> {
     if parser.has_next() {
         match parser.get_current_token_type() {
-            TokenType::LeftSourceRel |
             TokenType::RightSourceRel |
-            TokenType::LeftTargetRel |
             TokenType::RightTargetRel => {
                 parser.advance();
                 Ok(parse_pattern(parser, parent_node)?)
