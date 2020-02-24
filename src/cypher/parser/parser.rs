@@ -4,11 +4,10 @@ use super::super::lexer::{Token, TokenType};
 #[derive(Debug)]
 pub enum AstTag  {
     Node,
-    Relationship,
     Property,
-    DirectedLR,
-    DirectedRL,
-    Undirected,
+    RelDirectedLR,
+    RelDirectedRL,
+    RelUndirected,
 }
 
 
@@ -20,6 +19,9 @@ pub struct AstNode {
 }
 
 impl AstNode {
+    pub fn new_empty() -> Self {
+        AstNode::new(0)
+    }
     pub fn new(token_id: usize) -> Self {
         AstNode {token_id: token_id, childs: Vec::new(), ast_tag: None, token_type: None}
     }
