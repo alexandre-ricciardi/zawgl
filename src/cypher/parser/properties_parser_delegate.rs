@@ -1,4 +1,4 @@
-use super::parser::*;
+use super::*;
 use super::error::*;
 use super::super::lexer::{TokenType};
 

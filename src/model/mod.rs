@@ -7,6 +7,12 @@ pub enum PropertyValue {
     PBool(bool),
 }
 
+pub enum Directive {
+    CREATE,
+    MATCH,
+    DELETE
+}
+
 pub struct Property {
     name: String,
     value: PropertyValue,
@@ -28,8 +34,14 @@ impl Property {
 }
 
 pub struct Node {
-    propeties: Vec<Property>,
-    labels: Vec<String>
+    pub properties: Vec<Property>,
+    pub labels: Vec<String>
+}
+
+impl Node {
+    pub fn new() -> Self {
+        Node {properties: Vec::new(), labels: Vec::new()}
+    }
 }
 
 pub struct Relationship {
@@ -60,12 +72,12 @@ impl Pattern {
 }
 
 pub struct Request {
-    pattern: Pattern,
-
+    pub pattern: Pattern,
+    pub directive: Directive,
 }
 
 impl Request {
-    pub fn new() -> Self {
-        Request {pattern: Pattern::new()}
+    pub fn new(directive: Directive) -> Self {
+        Request {pattern: Pattern::new(), directive: directive}
     }
 }

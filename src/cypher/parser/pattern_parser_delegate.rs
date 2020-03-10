@@ -1,4 +1,4 @@
-use super::parser::*;
+use super::*;
 use super::error::*;
 use super::super::lexer::{TokenType};
 use super::properties_parser_delegate::*;
@@ -94,10 +94,12 @@ fn enter_identifier(parser: &mut Parser, parent_node: &mut Box<AstNode>) -> Pars
 
 fn enter_labels(parser: &mut Parser, mut parent_node: &mut Box<AstNode>) -> ParserResult<usize> {
     if parser.check(TokenType::Identifier) {
-        enter_identifier(parser, parent_node)?;
+        let mut label_tag = Box::new(AstNode::new_tag(AstTag::Label));
+        enter_identifier(parser, &mut label_tag)?;
         if parser.current_token_type_advance(TokenType::Colon) {
-            return enter_labels(parser, &mut parent_node);
+            return enter_labels(parser, &mut label_tag);
         } else {
+            parent_node.childs.push(label_tag);
             return Ok(parser.index);
         }
     }

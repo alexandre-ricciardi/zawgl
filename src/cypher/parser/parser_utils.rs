@@ -1,4 +1,4 @@
-use super::parser::*;
+use super::*;
 use super::super::lexer::*;
 
 pub fn print_node(node: &Box<AstNode>, tokens: &Vec<Token>, depth: i32) {

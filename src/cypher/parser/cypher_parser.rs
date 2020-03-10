@@ -1,6 +1,6 @@
 use super::error::*;
 use super::super::lexer::{Token, TokenType};
-use super::parser::*;
+use super::*;
 use super::pattern_parser_delegate::*;
 use std::rc::Rc;
 use std::cell::{RefCell, RefMut};
