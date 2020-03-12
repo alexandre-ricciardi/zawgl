@@ -23,7 +23,8 @@ pub trait AstVisitor {
 }
 
 pub struct AstNode {
-    pub token_id: usize,
+    pub token_id: Option<usize>,
+    pub token_value: Option<String>,
     pub childs: Vec<Box<AstNode>>,
     pub ast_tag: Option<AstTag>,
     pub token_type: Option<TokenType>,
@@ -31,16 +32,16 @@ pub struct AstNode {
 
 impl AstNode {
     pub fn new_empty() -> Self {
-        AstNode::new(0)
+        AstNode {token_id: None, token_value: None, childs: Vec::new(), ast_tag: None, token_type: None}
     }
-    pub fn new(token_id: usize) -> Self {
-        AstNode {token_id: token_id, childs: Vec::new(), ast_tag: None, token_type: None}
+    pub fn new_token(token_id: usize, token_value: String, token_type: TokenType) -> Self {
+        AstNode {token_id: Some(token_id), token_value: Some(token_value), childs: Vec::new(), ast_tag: None, token_type: Some(token_type)}
     }
     pub fn new_tag(ast_tag: AstTag) -> Self {
-        AstNode {token_id: 0, childs: Vec::new(), ast_tag: Some(ast_tag), token_type: None}
+        AstNode {token_id: None, token_value: None, childs: Vec::new(), ast_tag: Some(ast_tag), token_type: None}
     }
     pub fn new_token_type(tok_type: TokenType) -> Self {
-        AstNode {token_id: 0, childs: Vec::new(), ast_tag: None, token_type: Some(tok_type)}
+        AstNode {token_id: None, token_value: None, childs: Vec::new(), ast_tag: None, token_type: Some(tok_type)}
     }
     pub fn accept_visitor(&self, visitor: &dyn AstVisitor) {
         visitor.visit(&self);
