@@ -105,6 +105,13 @@ impl Parser {
 }
 
 
+fn make_ast_token(parser: &Parser) -> Box<AstNode> {
+    let token_id = parser.index - 1;
+    let token = &parser.get_tokens()[token_id];
+    Box::new(AstNode::new_token(token_id, token.content.to_owned(), token.token_type ))
+}
+
+
 #[cfg(test)]
 mod test_parser {
     use super::*;

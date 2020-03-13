@@ -5,7 +5,7 @@ use super::super::lexer::{TokenType};
 fn enter_string_expr(parser: &mut Parser, mut parent_node: &mut Box<AstNode>) -> ParserResult<usize> {
     if parser.current_token_type_advance(TokenType::StringType) {
         let mut str_tag = Box::new(AstNode::new_token_type(TokenType::StringType));
-        let str_node = Box::new(AstNode::new(parser.index - 1));
+        let str_node = make_ast_token(&parser);
         str_tag.childs.push(str_node);
         parent_node.childs.push(str_tag);
         if parser.current_token_type_advance(TokenType::Plus) {
@@ -37,7 +37,7 @@ fn enter_prop_value(parser: &mut Parser, mut parent_node: &mut Box<AstNode>) -> 
 }
 
 fn enter_prop_name(parser: &mut Parser, mut parent_node: &mut Box<AstNode>) -> ParserResult<usize> {
-    let id_node = Box::new(AstNode::new(parser.index - 1));
+    let id_node = make_ast_token(&parser);
     parent_node.childs.push(id_node);
     Ok(parser.index)
 }

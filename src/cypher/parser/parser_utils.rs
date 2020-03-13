@@ -15,7 +15,7 @@ pub fn print_node(node: &Box<AstNode>, tokens: &Vec<Token>, depth: i32) {
             match &node.ast_tag {
                 Some(tag) => println!("|_>{:?}", tag),
                 None => {
-                    println!("|_>{}", tokens[node.token_id].content)
+                    println!("|_>{}", tokens[node.token_id.unwrap()].content)
                 }    
             }
         }

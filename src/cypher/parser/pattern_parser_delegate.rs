@@ -83,7 +83,7 @@ impl RelationshipFsm {
 
 fn enter_identifier(parser: &mut Parser, parent_node: &mut Box<AstNode>) -> ParserResult<usize> {
     if parser.current_token_type_advance(TokenType::Identifier) {
-        let id_node = Box::new(AstNode::new(parser.index - 1));
+        let id_node = make_ast_token(&parser);
         parent_node.childs.push(id_node);
         Ok(parser.index)
     } else {
