@@ -9,7 +9,8 @@ pub fn print_node(node: &Box<AstNode>, tokens: &Vec<Token>, depth: i32) {
     }
     match &node.token_type {
         Some(tok_type) => {
-            println!("|_>{:?}", tok_type)
+            let content = node.as_ref().token_value.as_ref();
+            println!("|_>{:?}:{}", tok_type, content.unwrap());
         },
         None => {
             match &node.ast_tag {

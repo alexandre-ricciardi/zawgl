@@ -40,9 +40,6 @@ impl AstNode {
     pub fn new_tag(ast_tag: AstTag) -> Self {
         AstNode {token_id: None, token_value: None, childs: Vec::new(), ast_tag: Some(ast_tag), token_type: None}
     }
-    pub fn new_token_type(tok_type: TokenType) -> Self {
-        AstNode {token_id: None, token_value: None, childs: Vec::new(), ast_tag: None, token_type: Some(tok_type)}
-    }
     pub fn accept_visitor(&self, visitor: &dyn AstVisitor) {
         visitor.visit(&self);
         for child in &self.childs {
