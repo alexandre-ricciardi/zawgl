@@ -123,10 +123,12 @@ fn enter_node_def(parser: &mut Parser, mut parent_node: &mut Box<AstNode>) -> Pa
 
 fn enter_rel_tags(parser: &mut Parser, parent_node: &mut Box<AstNode>) -> ParserResult<usize> {
     if parser.check(TokenType::Identifier) {
-        enter_identifier(parser, parent_node)?;
+        let mut label_tag = Box::new(AstNode::new_tag(AstTag::Label));
+        enter_identifier(parser, &mut label_tag)?;
         if parser.current_token_type_advance(TokenType::Pipe) {
             return enter_rel_tags(parser, parent_node);
         } else {
+            parent_node.childs.push(label_tag);
             return Ok(parser.index);
         }
     }
