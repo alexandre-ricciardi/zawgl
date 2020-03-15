@@ -1,7 +1,7 @@
 use super::*;
 use super::super::lexer::*;
 
-pub fn print_node(node: &Box<AstNode>, tokens: &Vec<Token>, depth: i32) {
+pub fn print_node(node: &Box<dyn Ast>, tokens: &Vec<Token>, depth: i32) {
     let mut ws = 0;
     while ws < depth {
         print!(" ");

@@ -5,13 +5,13 @@ use super::pattern_parser_delegate::*;
 use std::rc::Rc;
 use std::cell::{RefCell, RefMut};
 
-pub fn parse(parser: &mut Parser) -> ParserResult<Box<AstNode>> {
+pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
     if parser.get_tokens().len() > 0  {
         let tok = &parser.get_tokens()[0];
         match tok.token_type {
             TokenType::Create =>  {
                 parser.advance();
-                let mut create_node = make_ast_token(&parser);
+                let mut create_node = Box::new(AstTagNode::new_tag(AstTag::Create));
                 let res = parse_pattern(parser, &mut create_node);
                 if res.is_err() {
                     Err(res.err().unwrap())

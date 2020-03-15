@@ -9,6 +9,7 @@ use self::error::*;
 
 #[derive(Debug)]
 pub enum AstTag  {
+    Create,
     Node,
     Property,
     RelDirectedLR,
@@ -19,24 +20,26 @@ pub enum AstTag  {
 }
 
 pub trait AstVisitor {
-    type Result;
-    fn visit(&self, node: &AstNode) -> Self::Result;
+    fn enter_create(&mut self, node: &AstTagNode);
+    fn enter_node(&mut self, node: &AstTagNode);
+    fn enter_relationship(&mut self, node: &AstTagNode);
 }
 
-pub trait AstVisitable {
-    fn accept<V: AstVisitor>(&self, visitor: &mut V) -> V::Result;
+pub trait Ast {
+    fn append(&mut self, ast: Box<dyn Ast>);
+    fn accept(&self, visitor: &mut Box<dyn AstVisitor>);
 }
 
-pub struct AstNode {
+pub struct AstTokenNode {
     pub token_id: usize,
     pub token_value: String,
-    pub childs: Vec<Box<AstNode>>,
+    pub childs: Vec<Box<dyn Ast>>,
     pub token_type: TokenType,
 }
 
 pub struct AstTagNode {
     pub ast_tag: Option<AstTag>,
-    pub childs: Vec<Box<AstNode>>,
+    pub childs: Vec<Box<dyn Ast>>,
 }
 
 impl AstTagNode {
@@ -48,9 +51,43 @@ impl AstTagNode {
     }
 }
 
-impl AstNode {
+impl Ast for AstTagNode {
+    fn append(&mut self, ast: Box<dyn Ast>) {
+        self.childs.push(ast)    
+    }
+    fn accept(&self, visitor: &mut Box<dyn AstVisitor>) {
+        match self.ast_tag {
+            Some(ast_tag) => {
+                match ast_tag {
+                    AstTag::Create => {
+                        visitor.enter_create(&self);
+                    },
+                    AstTag::RelDirectedLR |
+                    AstTag::RelDirectedRL |
+                    AstTag::RelUndirected => {
+                        visitor.enter_relationship(&self);
+                    },
+                    _ => {}
+                }
+            },
+            None => {}
+        }
+        
+    }
+}
+
+impl AstTokenNode {
     pub fn new_token(token_id: usize, token_value: String, token_type: TokenType) -> Self {
-        AstNode {token_id: token_id, token_value: token_value, childs: Vec::new(), token_type: token_type}
+        AstTokenNode {token_id: token_id, token_value: token_value, childs: Vec::new(), token_type: token_type}
+    }
+}
+
+impl Ast for AstTokenNode {
+    fn append(&mut self, ast: Box<dyn Ast>) {
+        self.childs.push(ast)    
+    }
+    fn accept(&self, visitor: &mut Box<dyn AstVisitor>) {
+
     }
 }
 

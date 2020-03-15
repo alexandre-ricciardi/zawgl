@@ -13,29 +13,8 @@ pub fn process_query(query: &str) -> Option<Request> {
     }
 }
 
-impl AstVisitable for AstTagNode {
-    fn accept(&self, visitor: &dyn AstVisitor) -> Request {
-        visitor.visit(&self);
-        for child in &self.childs {
-            visitor.visit(&child.as_ref());
-        }        
-    }
-}
-
-struct CypherAstVisitor {
-
-}
-
-impl CypherAstVisitor {
-    fn new() -> Self {
-        CypherAstVisitor {}
-    }
-}
-
 impl AstVisitor for CypherAstVisitor {
-    fn visit(&self, node: &AstNode) {
-        
-    }
+    
 }
 
 fn build_pattern(nodes: &Vec<Box<parser::AstNode>>) -> Pattern {
