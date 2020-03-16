@@ -6,6 +6,7 @@ pub mod cypher_parser;
 
 use super::lexer::*;
 use self::error::*;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum AstTag  {
@@ -25,9 +26,10 @@ pub trait AstVisitor {
     fn enter_relationship(&mut self, node: &AstTagNode);
 }
 
-pub trait Ast {
+pub trait Ast : fmt::Display {
     fn append(&mut self, ast: Box<dyn Ast>);
-    fn accept(&self, visitor: &mut Box<dyn AstVisitor>);
+    fn accept(&self, visitor: &mut dyn AstVisitor);
+    fn get_childs(&self) -> &Vec<Box<dyn Ast>>;
 }
 
 pub struct AstTokenNode {
@@ -55,8 +57,11 @@ impl Ast for AstTagNode {
     fn append(&mut self, ast: Box<dyn Ast>) {
         self.childs.push(ast)    
     }
-    fn accept(&self, visitor: &mut Box<dyn AstVisitor>) {
-        match self.ast_tag {
+    fn get_childs(&self) -> &Vec<Box<dyn Ast>> {
+        &self.childs
+    }
+    fn accept(&self, visitor: &mut dyn AstVisitor) {
+        match self.ast_tag.as_ref() {
             Some(ast_tag) => {
                 match ast_tag {
                     AstTag::Create => {
@@ -86,8 +91,41 @@ impl Ast for AstTokenNode {
     fn append(&mut self, ast: Box<dyn Ast>) {
         self.childs.push(ast)    
     }
-    fn accept(&self, visitor: &mut Box<dyn AstVisitor>) {
+    fn get_childs(&self) -> &Vec<Box<dyn Ast>> {
+        &self.childs
+    }
+    fn accept(&self, visitor: &mut dyn AstVisitor) {
+        match self.token_type {
+            TokenType::StringType => {
 
+            },
+            _ => {}
+        }
+    }
+}
+
+impl fmt::Display for AstTokenNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}:{}", self.token_type, self.token_value)
+    }
+}
+
+impl fmt::Display for AstTagNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.ast_tag.as_ref() {
+            Some(tag) => {
+                write!(f, "{:?}", tag)
+            },
+            _ => write!(f, "")
+        }
+        
+    }
+}
+
+pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) {
+    ast.accept(visitor);
+    for child in ast.get_childs() {
+        walk_ast(visitor, &child);
     }
 }
 
@@ -145,10 +183,10 @@ impl Parser {
 }
 
 
-fn make_ast_token(parser: &Parser) -> Box<AstNode> {
+fn make_ast_token(parser: &Parser) -> Box<AstTokenNode> {
     let token_id = parser.index - 1;
     let token = &parser.get_tokens()[token_id];
-    Box::new(AstNode::new_token(token_id, token.content.to_owned(), token.token_type ))
+    Box::new(AstTokenNode::new_token(token_id, token.content.to_owned(), token.token_type ))
 }
 
 
