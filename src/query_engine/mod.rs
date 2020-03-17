@@ -17,14 +17,15 @@ pub fn process_query(query: &str) -> Option<Request> {
 
 struct CypherAstVisitor {
     request: Option<Request>,
-    curr_node: Option<Node>,
-    curr_relationship: Option<Relationship>,
+    curr_node: Option<usize>,
+    curr_directed_relationship: Option<usize>,
+    curr_both_ways_relationship: Option<(usize, usize)>,
     curr_relationship_ast_tag: Option<AstTag>
 }
 
 impl CypherAstVisitor {
     fn new() -> Self {
-        CypherAstVisitor { request: None, curr_node: None, curr_relationship: None, curr_relationship_ast_tag: None }
+        CypherAstVisitor { request: None, curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None, curr_relationship_ast_tag: None }
     }
 }
 
@@ -35,22 +36,34 @@ impl AstVisitor for CypherAstVisitor {
     fn enter_node(&mut self, node: &AstTagNode) {
         let prev_node = self.curr_node;
         self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node());
-        self.curr_relationship = self.request.as_mut().and_then(|req| {
-            self.curr_relationship_ast_tag.map(|ast_tag| {
-                match ast_tag {
-                    AstTag::RelDirectedLR => {
-                        req.pattern.add_relationship(prev_node.unwrap().id, self.curr_node.unwrap().id)
-                    }
-                }
-            })
-            
+        let source_target = prev_node.and_then(|p| self.curr_node.map(|c| (p, c)));
+        let tag = &self.curr_relationship_ast_tag;
+        let req = &mut self.request;
+        self.curr_directed_relationship = tag.as_ref().and_then(|ast_tag| {
+            match ast_tag {
+                AstTag::RelDirectedLR => {
+                    source_target.and_then(|st| req.as_mut().map(|req| req.pattern.add_relationship(st.0, st.1)))
+                },
+                AstTag::RelDirectedRL => {
+                    source_target.and_then(|st| req.as_mut().map(|req| req.pattern.add_relationship(st.1, st.0)))
+                },
+                _ => None
+            }
+        });
+        self.curr_both_ways_relationship = tag.as_ref().and_then(|ast_tag| {
+            match ast_tag {
+                AstTag::RelUndirected => {
+                    source_target.and_then(|st| req.as_mut().map(|req| (req.pattern.add_relationship(st.0, st.1), req.pattern.add_relationship(st.1, st.0))))
+                },
+                _ => None
+            }
         });
     }
     fn enter_relationship(&mut self, node: &AstTagNode) {
         self.curr_relationship_ast_tag = node.ast_tag;
     }
     fn enter_property(&mut self, node: &AstTagNode) {
-
+        
     }
 }
 

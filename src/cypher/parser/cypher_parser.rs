@@ -1,9 +1,7 @@
 use super::error::*;
-use super::super::lexer::{Token, TokenType};
+use super::super::lexer::{TokenType};
 use super::*;
 use super::pattern_parser_delegate::*;
-use std::rc::Rc;
-use std::cell::{RefCell, RefMut};
 
 pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
     if parser.get_tokens().len() > 0  {

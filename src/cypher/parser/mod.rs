@@ -8,7 +8,7 @@ use super::lexer::*;
 use self::error::*;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum AstTag  {
     Create,
     Node,
