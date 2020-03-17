@@ -1,5 +1,6 @@
 use super::graph::*;
 
+#[derive(Debug, PartialEq, Clone)]
 pub enum PropertyValue {
     PString(String),
     PInteger(i64),
@@ -13,6 +14,7 @@ pub enum Directive {
     DELETE
 }
 
+#[derive(PartialEq, Clone)]
 pub struct Property {
     name: String,
     value: PropertyValue,
@@ -33,20 +35,30 @@ impl Property {
     }
 }
 
+#[derive(PartialEq, Clone)]
 pub struct Node {
+    pub id: usize,
     pub properties: Vec<Property>,
     pub labels: Vec<String>
 }
 
+
 impl Node {
-    pub fn new() -> Self {
-        Node {properties: Vec::new(), labels: Vec::new()}
+    pub fn new(id: usize) -> Self {
+        Node {id: id, properties: Vec::new(), labels: Vec::new()}
     }
 }
-
+#[derive(PartialEq, Clone)]
 pub struct Relationship {
-    propeties: Vec<Property>,
-    labels: Vec<String>,
+    pub id: usize,
+    pub properties: Vec<Property>,
+    pub labels: Vec<String>,
+}
+
+impl Relationship {
+    pub fn new(id: usize) -> Self {
+        Relationship {id: id, properties: Vec::new(), labels: Vec::new()}
+    }
 }
 
 pub struct Pattern {
@@ -60,14 +72,18 @@ impl Pattern {
         Pattern {nodes: Vec::new(), relationships: Vec::new(), graph: Graph::new()}
     }
 
-    pub fn add_node(&mut self, node: Node) -> usize {
+    pub fn add_node(&mut self) -> Node {
+        let id = self.graph.add_node();
+        let mut node = Node::new(id);
         self.nodes.push(node);
-        self.graph.add_node()
+        node.clone()
     }
 
-    pub fn add_relationship(&mut self, rel: Relationship, source: usize, target: usize) -> usize {
+    pub fn add_relationship(&mut self, source: usize, target: usize) -> Relationship {
+        let id = self.graph.add_edge(source, target);
+        let mut rel = Relationship::new(id);
         self.relationships.push(rel);
-        self.graph.add_edge(source, target)
+        rel.clone()
     }
 }
 

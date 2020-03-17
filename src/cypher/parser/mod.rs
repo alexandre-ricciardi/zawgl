@@ -24,6 +24,7 @@ pub trait AstVisitor {
     fn enter_create(&mut self, node: &AstTagNode);
     fn enter_node(&mut self, node: &AstTagNode);
     fn enter_relationship(&mut self, node: &AstTagNode);
+    fn enter_property(&mut self, node: &AstTagNode);
 }
 
 pub trait Ast : fmt::Display {
@@ -72,6 +73,9 @@ impl Ast for AstTagNode {
                     AstTag::RelUndirected => {
                         visitor.enter_relationship(&self);
                     },
+                    AstTag::Property => {
+                        visitor.enter_property(&self);
+                    }
                     _ => {}
                 }
             },

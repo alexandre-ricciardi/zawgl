@@ -108,7 +108,9 @@ fn enter_labels(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) -> P
 
 fn enter_node_def(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) -> ParserResult<usize> {
     parser.require(TokenType::OpenParenthesis)?;
-    enter_identifier(parser, &mut parent_node)?;
+    let mut var_node = Box::new(AstTagNode::new_tag(AstTag::Variable));
+    enter_identifier(parser, &mut var_node)?;
+    parent_node.append(var_node);
     parser.require(TokenType::Colon)?;
     enter_labels(parser, &mut parent_node)?;
 
@@ -137,7 +139,9 @@ fn enter_rel_tags(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Par
 
 fn enter_rel_id(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) -> ParserResult<usize> {
     if parser.check(TokenType::Identifier) {
-        enter_identifier(parser, parent_node)?;
+        let mut var_node = Box::new(AstTagNode::new_tag(AstTag::Variable));        
+        enter_identifier(parser, &mut var_node)?;
+        parent_node.append(var_node);
         if parser.current_token_type_advance(TokenType::Colon) {
             Ok(enter_rel_tags(parser, parent_node)?)
         } else {
