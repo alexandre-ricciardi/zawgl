@@ -1,7 +1,7 @@
 use super::fsm::{FSM, RunnableFSM};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
-enum IdentifierState {
+pub enum IdentifierState {
         Initial,
         MatchIdentifier(usize),
 }
@@ -10,7 +10,7 @@ fn is_valid_id_char(c: char) -> bool {
     c.is_alphabetic() || c == '_'
 }
 
-pub fn make_identifier_fsm() -> Box<dyn RunnableFSM>  {
+pub fn make_identifier_fsm() -> Box<dyn RunnableFSM<IdentifierState>>  {
     let next_state = move|s, c: char| {
         let mut res = None;
         match s {
@@ -46,6 +46,6 @@ mod test_identifier_fsm {
     #[test]
     fn test_identifier() {
         let mut fsm = make_identifier_fsm();
-        assert_eq!(fsm.run("blabla:"), Some(6));
+        assert_eq!(fsm.run("blabla:"), Some((6, IdentifierState::MatchIdentifier(5))));
     }
 }

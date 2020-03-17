@@ -5,7 +5,8 @@ use std::error::Error;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TokenType {
-    Number,
+    Integer,
+    Float,
     Plus,
     Minus,
     Divide,
@@ -76,9 +77,9 @@ fn make_token(ttype: TokenType, beg: usize, end: usize, input: &str) -> Option<T
     input.get(beg..end).map(|tok_expr| Token {token_type: ttype, begin: beg, end: end, content: String::from(tok_expr)})
 }
 
-fn run_keyword_fsm(tok_type: TokenType, keyword: &'static str, input: &str, index:usize) -> Option<Token> {
+fn run_keyword_fsm(tok_type: TokenType, keyword: &'static str, input: &str, index: usize) -> Option<Token> {
     let mut kfsm = fsm::keyword_fsm::make_keyword_ignorecase_fsm(keyword);
-    input.get(index..).and_then(|rest| kfsm.run(&rest)).and_then(|size| input.get(index..index+size)).map(|tok_expr| Token::new(tok_type, index, index + tok_expr.len(), tok_expr))
+    input.get(index..).and_then(|rest| kfsm.run(&rest)).and_then(|size| input.get(index..index + size.0)).map(|tok_expr| Token::new(tok_type, index, index + tok_expr.len(), tok_expr))
 }
 
 #[derive(Debug, Clone)]
@@ -148,8 +149,13 @@ impl Lexer {
                 let mut number_fsm = fsm::number_fsm::make_number_fsm();
                 return match number_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                     Some(numlen) =>{
-                        self.lookahead = numlen;
-                        Ok(make_token(TokenType::Number, self.position, self.position + numlen, &self.input).unwrap())
+                        self.lookahead = numlen.0;
+                        match numlen.1 {
+                            fsm::number_fsm::NumberState::Integer => make_token(TokenType::Integer, self.position, self.position + numlen.0, &self.input).ok_or(LexerError::NotFound),
+                            fsm::number_fsm::NumberState::NumberWithFractionalPart => make_token(TokenType::Float, self.position, self.position + numlen.0, &self.input).ok_or(LexerError::NotFound),
+                            fsm::number_fsm::NumberState::NumberWithExponent => make_token(TokenType::Float, self.position, self.position + numlen.0, &self.input).ok_or(LexerError::NotFound),
+                            _ => Err(LexerError::WrongNumberFormat(self.position))
+                        }
                     } ,
                     None => Err(LexerError::WrongNumberFormat(self.position)),
                 };
@@ -166,16 +172,16 @@ impl Lexer {
             let mut string_fsm = fsm::string_fsm::make_string_fsm();
             match string_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(string_len) => {
-                    self.lookahead = string_len;
-                    return Ok(make_token(TokenType::StringType, self.position, self.position + string_len, &self.input).unwrap());
+                    self.lookahead = string_len.0;
+                    return Ok(make_token(TokenType::StringType, self.position, self.position + string_len.0, &self.input).unwrap());
                 },
                 None => {},
             }
             let mut identifier_fsm = fsm::identifier_fsm::make_identifier_fsm();
             return match identifier_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(idlen) => {
-                    self.lookahead = idlen;
-                    Ok(make_token(TokenType::Identifier, self.position, self.position + idlen, &self.input).unwrap())
+                    self.lookahead = idlen.0;
+                    Ok(make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).unwrap())
                 } ,
 
                 None => Err(LexerError::WrongIdentifierFormat(self.position)),

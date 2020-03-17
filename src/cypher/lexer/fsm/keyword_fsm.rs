@@ -1,7 +1,7 @@
 use super::fsm::{FSM, RunnableFSM};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
-enum KeywordState {
+pub enum KeywordState {
         Initial,
         MatchChar(usize),
         MatchKeyword,
@@ -12,7 +12,7 @@ fn check_equals_ignorecase(c: char, keyword: &'static str, i: usize) -> bool {
     !c.to_lowercase().find(|lc|keyword.chars().nth(i) == Some(*lc)).is_none()
 }
 
-pub fn make_keyword_ignorecase_fsm(keyword: &'static str) -> Box<dyn RunnableFSM>  {
+pub fn make_keyword_ignorecase_fsm(keyword: &'static str) -> Box<dyn RunnableFSM<KeywordState>>  {
     let next_state = move|s, c: char| {
         let mut res = None;
         match s {
@@ -60,15 +60,15 @@ mod test_keywords_fsm {
     #[test]
     fn test_keywords() {
         let mut fsm = make_keyword_ignorecase_fsm("true");
-        assert_eq!(fsm.run("true"), Some(4));
-        assert_eq!(fsm.run("true or false"), Some(4));
-        assert_eq!(fsm.run("true or anything"), Some(4));
+        assert_eq!(fsm.run("true"), Some((4, KeywordState::MatchKeyword)));
+        assert_eq!(fsm.run("true or false"), Some((4, KeywordState::MatchKeyword)));
+        assert_eq!(fsm.run("true or anything"), Some((4, KeywordState::MatchKeyword)));
         assert_eq!(fsm.run("false"), None);
         
     }
     #[test]
     fn test_par() {
-        assert_eq!(make_keyword_ignorecase_fsm("(").run("("), Some(1));
+        assert_eq!(make_keyword_ignorecase_fsm("(").run("("), Some((1, KeywordState::MatchKeyword)));
     }
     #[test]
     fn test_error_1() {
@@ -84,7 +84,7 @@ mod test_keywords_fsm {
     #[test]
     fn test_ignore_case() {
         let mut fsm = make_keyword_ignorecase_fsm("true");
-        assert_eq!(fsm.run("TRUE"), Some(4));
+        assert_eq!(fsm.run("TRUE"), Some((4, KeywordState::MatchKeyword)));
         assert_eq!(fsm.run("TruA"), None);
     }
 }

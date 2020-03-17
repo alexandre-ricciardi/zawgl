@@ -63,7 +63,13 @@ impl AstVisitor for CypherAstVisitor {
         self.curr_relationship_ast_tag = node.ast_tag;
     }
     fn enter_property(&mut self, node: &AstTagNode) {
+
+    }
+    fn enter_prop_value(&mut self, node: &AstTokenNode) {
         
+    }
+    fn enter_prop_key(&mut self, node: &AstTokenNode) {
+
     }
 }
 

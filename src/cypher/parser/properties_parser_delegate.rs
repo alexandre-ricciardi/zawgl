@@ -25,7 +25,7 @@ fn enter_prop_value(parser: &mut Parser, mut parent_node: &mut Box<dyn Ast>) -> 
         TokenType::False => {
             Err(ParserError::SyntaxError)
         }
-        TokenType::Number => {
+        TokenType::Float => {
             Err(ParserError::SyntaxError)
         },
         _ => {

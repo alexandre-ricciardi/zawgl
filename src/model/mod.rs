@@ -15,8 +15,8 @@ pub enum Directive {
 }
 
 pub struct Property {
-    name: String,
-    value: PropertyValue,
+    pub name: String,
+    pub value: PropertyValue,
 }
 
 impl Property {

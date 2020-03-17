@@ -1,7 +1,7 @@
 use super::fsm::{FSM, RunnableFSM};
 
-#[derive(PartialEq, Copy, Clone)]
-enum NumberState {
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum NumberState {
         Initial,
         Integer,
         BeginNumberWithFractionalPart,
@@ -12,7 +12,7 @@ enum NumberState {
         NoNextState
 }
 
-pub fn make_number_fsm() -> Box<dyn RunnableFSM>  {
+pub fn make_number_fsm() -> Box<dyn RunnableFSM<NumberState>>  {
     let next_state = |s, c: char| {
             let mut res = None;
             match s {
@@ -83,10 +83,10 @@ mod test_fsm {
     #[test]
     fn test_numbers() {
         let mut fsm = make_number_fsm();
-        assert_eq!(fsm.run("12.03"), Some(5));
-        assert_eq!(fsm.run("12.4e-03:"), Some(8));
-        assert_eq!(fsm.run("121111.02223"), Some(12));
-        assert_eq!(fsm.run("12.4333E03"), Some(10));
-        assert_eq!(fsm.run("12.4333E03XXXX"), Some(10));
+        assert_eq!(fsm.run("12.03"), Some((5, NumberState::NumberWithFractionalPart)));
+        assert_eq!(fsm.run("12.4e-03:"), Some((8, NumberState::NumberWithExponent)));
+        assert_eq!(fsm.run("121111.02223"), Some((12, NumberState::NumberWithFractionalPart)));
+        assert_eq!(fsm.run("12.4333E03"), Some((10, NumberState::NumberWithExponent)));
+        assert_eq!(fsm.run("12.4333E03XXXX"), Some((10, NumberState::NumberWithExponent)));
     }
 }

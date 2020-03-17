@@ -4,8 +4,8 @@ pub struct FSM<S, NS, AC> where S: PartialEq + Copy + Clone, NS: Fn(S, char) -> 
     next_state: NS,
 }
 
-pub trait RunnableFSM  {
-    fn run(&mut self, input: & str) -> Option<usize>;
+pub trait RunnableFSM<S>  {
+    fn run(&mut self, input: & str) -> Option<(usize, S)>;
 }
 
 impl <S, NS, AC> FSM<S, NS, AC> where S: PartialEq + Copy + Clone, NS: Fn(S, char) -> Option<S>, AC: Fn(S) -> bool {
@@ -15,9 +15,9 @@ impl <S, NS, AC> FSM<S, NS, AC> where S: PartialEq + Copy + Clone, NS: Fn(S, cha
     }
 }
 
-impl <S, NS, AC> RunnableFSM for  FSM<S, NS, AC> where S: PartialEq + Copy + Clone, NS: Fn(S, char) -> Option<S>, AC: Fn(S) -> bool {
+impl <S, NS, AC> RunnableFSM<S> for  FSM<S, NS, AC> where S: PartialEq + Copy + Clone, NS: Fn(S, char) -> Option<S>, AC: Fn(S) -> bool {
 
-    fn run(&mut self, input: & str) -> Option<usize> {
+    fn run(&mut self, input: & str) -> Option<(usize, S)> {
         let mut current_state = self.initial_state;
         let mut position = 0;
         for (i, c) in input.chars().enumerate() {
@@ -28,7 +28,7 @@ impl <S, NS, AC> RunnableFSM for  FSM<S, NS, AC> where S: PartialEq + Copy + Clo
                 },
                 None => {
                     if (self.accepting_states)(current_state) {
-                        return Some(position);
+                        return Some((position, current_state));
                     } else {
                         return None;
                     }
@@ -36,7 +36,7 @@ impl <S, NS, AC> RunnableFSM for  FSM<S, NS, AC> where S: PartialEq + Copy + Clo
             };
         }
         if (self.accepting_states)(current_state) {
-            return Some(position + 1);
+            return Some((position + 1, current_state));
         }
         return None;
     }

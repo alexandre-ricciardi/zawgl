@@ -1,7 +1,7 @@
 use super::fsm::{FSM, RunnableFSM};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
-enum StringState {
+pub enum StringState {
         Initial,
         MatchBeginSimpleQuote(usize),
         MatchString(usize),
@@ -12,7 +12,7 @@ fn is_valid_string_char(c: char) -> bool {
     c.is_alphanumeric() || c.is_whitespace()
 }
 
-pub fn make_string_fsm() -> Box<dyn RunnableFSM>  {
+pub fn make_string_fsm() -> Box<dyn RunnableFSM<StringState>>  {
     let next_state = move|s, c: char| {
         let mut res = None;
         match s {
@@ -56,11 +56,11 @@ mod test_identifier_fsm {
     #[test]
     fn test_string_fsm() {
         let mut fsm = make_string_fsm();
-        assert_eq!(fsm.run("'blabla' test"), Some(8));
+        assert_eq!(fsm.run("'blabla' test"), Some((8, StringState::MatchEndSimpleQuote(7))));
     }
     #[test]
     fn test_string_ws_fsm() {
         let mut fsm = make_string_fsm();
-        assert_eq!(fsm.run("'blab la' test"), Some(9));
+        assert_eq!(fsm.run("'blab la' test"), Some((9, StringState::MatchEndSimpleQuote(8))));
     }
 }

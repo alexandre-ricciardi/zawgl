@@ -25,6 +25,8 @@ pub trait AstVisitor {
     fn enter_node(&mut self, node: &AstTagNode);
     fn enter_relationship(&mut self, node: &AstTagNode);
     fn enter_property(&mut self, node: &AstTagNode);
+    fn enter_prop_value(&mut self, node: &AstTokenNode);
+    fn enter_prop_key(&mut self, node: &AstTokenNode);
 }
 
 pub trait Ast : fmt::Display {
@@ -101,7 +103,7 @@ impl Ast for AstTokenNode {
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         match self.token_type {
             TokenType::StringType => {
-
+                visitor.enter_prop_value(&self);
             },
             _ => {}
         }
