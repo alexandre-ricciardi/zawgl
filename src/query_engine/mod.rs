@@ -20,12 +20,19 @@ struct CypherAstVisitor {
     curr_node: Option<usize>,
     curr_directed_relationship: Option<usize>,
     curr_both_ways_relationship: Option<(usize, usize)>,
-    curr_relationship_ast_tag: Option<AstTag>
+    curr_relationship_ast_tag: Option<AstTag>,
+    curr_property_id: Option<usize>,
+    is_relationship: bool,
+    is_node: bool,
+    add_property: bool,
+    property_key: Option<&str>,
 }
 
 impl CypherAstVisitor {
     fn new() -> Self {
-        CypherAstVisitor { request: None, curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None, curr_relationship_ast_tag: None }
+        CypherAstVisitor { request: None, curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
+             curr_relationship_ast_tag: None, curr_property_id: None, is_node: false, is_relationship: false, add_property: false,
+            property_key: None }
     }
 }
 
@@ -34,6 +41,8 @@ impl AstVisitor for CypherAstVisitor {
         self.request = Some(Request::new(Directive::CREATE));
     }
     fn enter_node(&mut self, node: &AstTagNode) {
+        self.is_relationship = false;
+        self.is_node = true;
         let prev_node = self.curr_node;
         self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node());
         let source_target = prev_node.and_then(|p| self.curr_node.map(|c| (p, c)));
@@ -60,16 +69,38 @@ impl AstVisitor for CypherAstVisitor {
         });
     }
     fn enter_relationship(&mut self, node: &AstTagNode) {
+        self.is_relationship = true;
+        self.is_node = false;
         self.curr_relationship_ast_tag = node.ast_tag;
     }
     fn enter_property(&mut self, node: &AstTagNode) {
-
-    }
-    fn enter_prop_value(&mut self, node: &AstTokenNode) {
+        self.add_property = self.is_node || self.is_relationship;
+            if let Some(rel_id) = self.curr_directed_relationship {
+                self.curr_property_id = self.request.and_then(|req| {
+                    let rel = &mut req.pattern.get_relationship_ref(rel_id);
+                    let prop = Property::
+                })
+            }
+            
+        }
         
     }
-    fn enter_prop_key(&mut self, node: &AstTokenNode) {
+    fn enter_integer_value(&mut self, value: Option<i64>) {
 
+    }
+    fn enter_float_value(&mut self, value: Option<f64>) {
+
+    }
+    fn enter_string_value(&mut self, value: &str) {
+
+    }
+    fn enter_bool_value(&mut self, value: Option<bool>) {
+
+    }
+    fn enter_identifier(&mut self, key: &str) {
+        if self.add_property {
+
+        }
     }
 }
 

@@ -80,6 +80,14 @@ impl Pattern {
         self.relationships.push(rel);
         self.graph.add_edge(source, target)
     }
+
+    pub fn get_node_ref(&self, id: usize) -> &Node {
+        &self.nodes[id]
+    }
+
+    pub fn get_relationship_ref(&self, id: usize) -> &Relationship {
+        &self.relationships[id]
+    }
 }
 
 pub struct Request {

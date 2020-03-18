@@ -25,8 +25,11 @@ pub trait AstVisitor {
     fn enter_node(&mut self, node: &AstTagNode);
     fn enter_relationship(&mut self, node: &AstTagNode);
     fn enter_property(&mut self, node: &AstTagNode);
-    fn enter_prop_value(&mut self, node: &AstTokenNode);
-    fn enter_prop_key(&mut self, node: &AstTokenNode);
+    fn enter_integer_value(&mut self, value: Option<i64>);
+    fn enter_float_value(&mut self, value: Option<f64>);
+    fn enter_string_value(&mut self, value: &str);
+    fn enter_bool_value(&mut self, value: Option<bool>);
+    fn enter_identifier(&mut self, key: &str);
 }
 
 pub trait Ast : fmt::Display {
@@ -77,7 +80,7 @@ impl Ast for AstTagNode {
                     },
                     AstTag::Property => {
                         visitor.enter_property(&self);
-                    }
+                    },
                     _ => {}
                 }
             },
@@ -103,8 +106,22 @@ impl Ast for AstTokenNode {
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         match self.token_type {
             TokenType::StringType => {
-                visitor.enter_prop_value(&self);
+                visitor.enter_string_value(&self.token_value);
             },
+            TokenType::Float => {
+                let res = self.token_value.parse::<f64>().ok();
+                visitor.enter_float_value(res);
+            },
+            TokenType::Integer => {
+                let res = self.token_value.parse::<i64>().ok();
+                visitor.enter_integer_value(res);
+            },
+            TokenType::True |
+            TokenType::False => {
+                let res = self.token_value.parse::<bool>().ok();
+                visitor.enter_bool_value(res);
+            },
+            TokenType::Identifier => visitor.enter_identifier(&self.token_value),
             _ => {}
         }
     }
