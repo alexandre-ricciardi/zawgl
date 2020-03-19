@@ -15,27 +15,19 @@ pub enum Directive {
 }
 
 pub struct Property {
-    pub name: String,
-    pub value: PropertyValue,
+    pub name: Option<String>,
+    pub value: Option<PropertyValue>,
 }
 
 impl Property {
-    pub fn new_string(name: &str, value: &str) -> Self {
-        Property { name: name.to_owned(), value: PropertyValue::PString(value.to_owned()) }
-    }
-    pub fn new_float(name: &str, value: f64) -> Self {
-        Property { name: name.to_owned(), value: PropertyValue::PFloat(value) }
-    }
-    pub fn new_integer(name: &str, value: i64) -> Self {
-        Property { name: name.to_owned(), value: PropertyValue::PInteger(value) }
-    }
-    pub fn new_bool(name: &str, value: bool) -> Self {
-        Property { name: name.to_owned(), value: PropertyValue::PBool(value) }
-    }
+    pub fn new() -> Self {
+        Property { name: None, value: None }
+    } 
 }
 
 
 pub struct Node {
+    pub var: Option<String>,
     pub properties: Vec<Property>,
     pub labels: Vec<String>
 }
@@ -43,18 +35,19 @@ pub struct Node {
 
 impl Node {
     pub fn new() -> Self {
-        Node {properties: Vec::new(), labels: Vec::new()}
+        Node {var: None, properties: Vec::new(), labels: Vec::new()}
     }
 }
 
 pub struct Relationship {
+    pub var: Option<String>,
     pub properties: Vec<Property>,
     pub labels: Vec<String>,
 }
 
 impl Relationship {
     pub fn new() -> Self {
-        Relationship {properties: Vec::new(), labels: Vec::new()}
+        Relationship {var: None, properties: Vec::new(), labels: Vec::new()}
     }
 }
 
@@ -81,12 +74,12 @@ impl Pattern {
         self.graph.add_edge(source, target)
     }
 
-    pub fn get_node_ref(&self, id: usize) -> &Node {
-        &self.nodes[id]
+    pub fn get_node_ref(&mut self, id: usize) -> &mut Node {
+        &mut self.nodes[id]
     }
 
-    pub fn get_relationship_ref(&self, id: usize) -> &Relationship {
-        &self.relationships[id]
+    pub fn get_relationship_ref(&mut self, id: usize) -> &mut Relationship {
+        &mut self.relationships[id]
     }
 }
 
