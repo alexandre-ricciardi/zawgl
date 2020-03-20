@@ -229,7 +229,7 @@ impl AstVisitor for CypherAstVisitor {
             }
         }
     }
-    fn enter_string_value(&mut self, value: &str) {
+    fn enter_string_value(&mut self, value: Option<&str>) {
         if let Some(req) = &mut self.request {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
@@ -237,7 +237,7 @@ impl AstVisitor for CypherAstVisitor {
                         let rel = req.pattern.get_relationship_mut(rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
-                            prop.value = Some(PropertyValue::PString(String::from(value)));
+                            prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
                         }
                     }
                 },
@@ -246,7 +246,7 @@ impl AstVisitor for CypherAstVisitor {
                         let node = req.pattern.get_node_mut(node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.properties[prop_id];
-                            prop.value = Some(PropertyValue::PString(String::from(value)));
+                            prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
                         }
                     }
                 },
@@ -256,13 +256,13 @@ impl AstVisitor for CypherAstVisitor {
                             let rel = req.pattern.get_relationship_mut(rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.properties[prop_id];
-                                prop.value = Some(PropertyValue::PString(String::from(value)));
+                                prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
-                            prop.value = Some(PropertyValue::PString(String::from(value)));
+                            prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
                         }
                     }
                 },
@@ -427,12 +427,31 @@ mod test_query_engine {
     use super::*;
 
     #[test]
-    fn test_create() {
+    fn test_create_0() {
         let request = process_query("CREATE (n:Person)");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(0);
             assert_eq!(node.var, Some(String::from("n")));
             assert_eq!(node.labels[0], String::from("Person"));
+        } else {
+            assert!(false, "no request found");
+        }
+        
+    }
+
+    #[test]
+    fn test_create_1() {
+        let request = process_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
+        if let  Some(req) = request {
+            let node = req.pattern.get_node_ref(0);
+            assert_eq!(node.var, Some(String::from("n")));
+            assert_eq!(node.labels[0], String::from("Person"));
+            assert_eq!(node.labels[1], String::from("Parent"));
+            assert_eq!(node.properties[0].name, Some(String::from("test")));
+            assert_eq!(node.properties[0].value, Some(PropertyValue::PString(String::from("Hello"))));
+            assert_eq!(node.properties[1].name, Some(String::from("case")));
+            assert_eq!(node.properties[1].value, Some(PropertyValue::PFloat(4.99)));
+            
         } else {
             assert!(false, "no request found");
         }

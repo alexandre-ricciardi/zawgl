@@ -16,6 +16,40 @@ fn enter_string_expr(parser: &mut Parser, mut parent_node: &mut Box<dyn Ast>) ->
     }
 }
 
+fn enter_float_expr(parser: &mut Parser, mut parent_node: &mut Box<dyn Ast>) -> ParserResult<usize> {
+    if parser.current_token_type_advance(TokenType::Float) {
+        let float_node = make_ast_token(&parser);
+        parent_node.append(float_node);
+        Ok(parser.index)
+    } else {
+        Err(ParserError::SyntaxError)
+    }
+}
+
+fn enter_integer_expr(parser: &mut Parser, mut parent_node: &mut Box<dyn Ast>) -> ParserResult<usize> {
+    if parser.current_token_type_advance(TokenType::Integer) {
+        let int_node = make_ast_token(&parser);
+        parent_node.append(int_node);
+        Ok(parser.index)
+    } else {
+        Err(ParserError::SyntaxError)
+    }
+}
+
+fn enter_bool_expr(parser: &mut Parser, mut parent_node: &mut Box<dyn Ast>) -> ParserResult<usize> {
+    if parser.current_token_type_advance(TokenType::True) {
+        let bool_node = make_ast_token(&parser);
+        parent_node.append(bool_node);
+        Ok(parser.index)
+    } else if parser.current_token_type_advance(TokenType::False) {
+        let bool_node = make_ast_token(&parser);
+        parent_node.append(bool_node);
+        Ok(parser.index)
+    } else {
+        Err(ParserError::SyntaxError)
+    }
+}
+
 fn enter_prop_value(parser: &mut Parser, mut parent_node: &mut Box<dyn Ast>) -> ParserResult<usize> {
     match parser.get_current_token_type() {
         TokenType::StringType => {
@@ -23,10 +57,13 @@ fn enter_prop_value(parser: &mut Parser, mut parent_node: &mut Box<dyn Ast>) -> 
         },
         TokenType::True |
         TokenType::False => {
-            Err(ParserError::SyntaxError)
+            enter_bool_expr(parser, parent_node)
         }
         TokenType::Float => {
-            Err(ParserError::SyntaxError)
+            enter_float_expr(parser, parent_node)
+        },
+        TokenType::Integer => {
+            enter_integer_expr(parser, parent_node)
         },
         _ => {
             Err(ParserError::SyntaxError)

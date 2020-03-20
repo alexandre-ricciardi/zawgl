@@ -27,7 +27,7 @@ pub trait AstVisitor {
     fn enter_property(&mut self, node: &AstTagNode);
     fn enter_integer_value(&mut self, value: Option<i64>);
     fn enter_float_value(&mut self, value: Option<f64>);
-    fn enter_string_value(&mut self, value: &str);
+    fn enter_string_value(&mut self, value: Option<&str>);
     fn enter_bool_value(&mut self, value: Option<bool>);
     fn enter_identifier(&mut self, key: &str);
     fn enter_variable(&mut self);
@@ -117,7 +117,8 @@ impl Ast for AstTokenNode {
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         match self.token_type {
             TokenType::StringType => {
-                visitor.enter_string_value(&self.token_value);
+                let sval = self.token_value.get(1..self.token_value.len() -1);
+                visitor.enter_string_value(sval);
             },
             TokenType::Float => {
                 let res = self.token_value.parse::<f64>().ok();
@@ -258,6 +259,11 @@ mod test_parser {
     fn test_properties_node() {
         run("CREATE (n:Person { name: 'hello', value: 'world' })");
     }
+    #[test]
+    fn test_properties_node_1() {
+        run("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
+    }
+    
 
 }
 

@@ -97,7 +97,8 @@ fn enter_labels(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) -> P
         let mut label_tag = Box::new(AstTagNode::new_tag(AstTag::Label));
         enter_identifier(parser, &mut label_tag)?;
         if parser.current_token_type_advance(TokenType::Colon) {
-            return enter_labels(parser, &mut label_tag);
+            parent_node.append(label_tag);
+            return enter_labels(parser, &mut parent_node);
         } else {
             parent_node.append(label_tag);
             return Ok(parser.index);
@@ -128,6 +129,7 @@ fn enter_rel_tags(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Par
         let mut label_tag = Box::new(AstTagNode::new_tag(AstTag::Label));
         enter_identifier(parser, &mut label_tag)?;
         if parser.current_token_type_advance(TokenType::Pipe) {
+            parent_node.append(label_tag);
             return enter_rel_tags(parser, parent_node);
         } else {
             parent_node.append(label_tag);
