@@ -74,12 +74,20 @@ impl Pattern {
         self.graph.add_edge(source, target)
     }
 
-    pub fn get_node_ref(&mut self, id: usize) -> &mut Node {
+    pub fn get_node_mut(&mut self, id: usize) -> &mut Node {
         &mut self.nodes[id]
     }
 
-    pub fn get_relationship_ref(&mut self, id: usize) -> &mut Relationship {
+    pub fn get_relationship_mut(&mut self, id: usize) -> &mut Relationship {
         &mut self.relationships[id]
+    }
+
+    pub fn get_node_ref(&self, id: usize) -> &Node {
+        &self.nodes[id]
+    }
+
+    pub fn get_relationship_ref(&self, id: usize) -> &Relationship {
+        &self.relationships[id]
     }
 }
 

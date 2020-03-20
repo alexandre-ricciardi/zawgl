@@ -110,7 +110,7 @@ impl AstVisitor for CypherAstVisitor {
         if self.state == VisitorState::DirectedRelationshipProperty {
             if let Some(rel_id) = self.curr_directed_relationship {
                 self.curr_property_id = self.request.as_mut().map(|req| {
-                    let rel = req.pattern.get_relationship_ref(rel_id);
+                    let rel = req.pattern.get_relationship_mut(rel_id);
                     let pvec = &mut rel.properties;
                     pvec.push(Property::new());
                     rel.properties.len() - 1
@@ -123,11 +123,11 @@ impl AstVisitor for CypherAstVisitor {
                     let pattern = &mut req.pattern;
                     let mut sizes: (usize, usize) = (0, 0);
                     {
-                        let rel0 = pattern.get_relationship_ref(both_ways.0);
+                        let rel0 = pattern.get_relationship_mut(both_ways.0);
                         rel0.properties.push(Property::new());
                         sizes.0 = rel0.properties.len() - 1;
                     }
-                    let rel1 = pattern.get_relationship_ref(both_ways.1);
+                    let rel1 = pattern.get_relationship_mut(both_ways.1);
                     rel1.properties.push(Property::new());
                     sizes.1 = rel1.properties.len() - 1;
                     sizes
@@ -137,7 +137,7 @@ impl AstVisitor for CypherAstVisitor {
         if self.state == VisitorState::NodeProperty {
             if let Some(node_id) = self.curr_node {
                 self.curr_property_id = self.request.as_mut().map(|req| {
-                    let pnode = req.pattern.get_node_ref(node_id);
+                    let pnode = req.pattern.get_node_mut(node_id);
                     let pvec = &mut pnode.properties;
                     pvec.push(Property::new());
                     pnode.properties.len() - 1
@@ -152,7 +152,7 @@ impl AstVisitor for CypherAstVisitor {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
                     if let Some(rel_id) = self.curr_directed_relationship {
-                        let rel = req.pattern.get_relationship_ref(rel_id);
+                        let rel = req.pattern.get_relationship_mut(rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PInteger(v));
@@ -161,7 +161,7 @@ impl AstVisitor for CypherAstVisitor {
                 },
                 VisitorState::NodeProperty => {
                     if let Some(node_id) = self.curr_node {
-                        let node = req.pattern.get_node_ref(node_id);
+                        let node = req.pattern.get_node_mut(node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PInteger(v));
@@ -171,13 +171,13 @@ impl AstVisitor for CypherAstVisitor {
                 VisitorState::UnirectedRelationshipProperty => {
                     if let Some(rel_ids) = self.curr_both_ways_relationship {
                         {
-                            let rel = req.pattern.get_relationship_ref(rel_ids.0);
+                            let rel = req.pattern.get_relationship_mut(rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.properties[prop_id];
                                 prop.value = value.map(|v| PropertyValue::PInteger(v));
                             }
                         }
-                        let rel = req.pattern.get_relationship_ref(rel_ids.1);
+                        let rel = req.pattern.get_relationship_mut(rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PInteger(v));
@@ -193,7 +193,7 @@ impl AstVisitor for CypherAstVisitor {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
                     if let Some(rel_id) = self.curr_directed_relationship {
-                        let rel = req.pattern.get_relationship_ref(rel_id);
+                        let rel = req.pattern.get_relationship_mut(rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PFloat(v));
@@ -202,7 +202,7 @@ impl AstVisitor for CypherAstVisitor {
                 },
                 VisitorState::NodeProperty => {
                     if let Some(node_id) = self.curr_node {
-                        let node = req.pattern.get_node_ref(node_id);
+                        let node = req.pattern.get_node_mut(node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PFloat(v));
@@ -212,13 +212,13 @@ impl AstVisitor for CypherAstVisitor {
                 VisitorState::UnirectedRelationshipProperty => {
                     if let Some(rel_ids) = self.curr_both_ways_relationship {
                         {
-                            let rel = req.pattern.get_relationship_ref(rel_ids.0);
+                            let rel = req.pattern.get_relationship_mut(rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.properties[prop_id];
                                 prop.value = value.map(|v| PropertyValue::PFloat(v));
                             }
                         }
-                        let rel = req.pattern.get_relationship_ref(rel_ids.1);
+                        let rel = req.pattern.get_relationship_mut(rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PFloat(v));
@@ -234,7 +234,7 @@ impl AstVisitor for CypherAstVisitor {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
                     if let Some(rel_id) = self.curr_directed_relationship {
-                        let rel = req.pattern.get_relationship_ref(rel_id);
+                        let rel = req.pattern.get_relationship_mut(rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.value = Some(PropertyValue::PString(String::from(value)));
@@ -243,7 +243,7 @@ impl AstVisitor for CypherAstVisitor {
                 },
                 VisitorState::NodeProperty => {
                     if let Some(node_id) = self.curr_node {
-                        let node = req.pattern.get_node_ref(node_id);
+                        let node = req.pattern.get_node_mut(node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.properties[prop_id];
                             prop.value = Some(PropertyValue::PString(String::from(value)));
@@ -253,13 +253,13 @@ impl AstVisitor for CypherAstVisitor {
                 VisitorState::UnirectedRelationshipProperty => {
                     if let Some(rel_ids) = self.curr_both_ways_relationship {
                         {
-                            let rel = req.pattern.get_relationship_ref(rel_ids.0);
+                            let rel = req.pattern.get_relationship_mut(rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.properties[prop_id];
                                 prop.value = Some(PropertyValue::PString(String::from(value)));
                             }
                         }
-                        let rel = req.pattern.get_relationship_ref(rel_ids.1);
+                        let rel = req.pattern.get_relationship_mut(rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.value = Some(PropertyValue::PString(String::from(value)));
@@ -275,7 +275,7 @@ impl AstVisitor for CypherAstVisitor {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
                     if let Some(rel_id) = self.curr_directed_relationship {
-                        let rel = req.pattern.get_relationship_ref(rel_id);
+                        let rel = req.pattern.get_relationship_mut(rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PBool(v));
@@ -284,7 +284,7 @@ impl AstVisitor for CypherAstVisitor {
                 },
                 VisitorState::NodeProperty => {
                     if let Some(node_id) = self.curr_node {
-                        let node = req.pattern.get_node_ref(node_id);
+                        let node = req.pattern.get_node_mut(node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PBool(v));
@@ -294,13 +294,13 @@ impl AstVisitor for CypherAstVisitor {
                 VisitorState::UnirectedRelationshipProperty => {
                     if let Some(rel_ids) = self.curr_both_ways_relationship {
                         {
-                            let rel = req.pattern.get_relationship_ref(rel_ids.0);
+                            let rel = req.pattern.get_relationship_mut(rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.properties[prop_id];
                                 prop.value = value.map(|v| PropertyValue::PBool(v));
                             }
                         }
-                        let rel = req.pattern.get_relationship_ref(rel_ids.1);
+                        let rel = req.pattern.get_relationship_mut(rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.value = value.map(|v| PropertyValue::PBool(v));
@@ -326,7 +326,7 @@ impl AstVisitor for CypherAstVisitor {
             match self.state {
                 VisitorState::Node => {
                     if let Some(node_id) = self.curr_node {
-                        let node = req.pattern.get_node_ref(node_id);
+                        let node = req.pattern.get_node_mut(node_id);
                         match self.id_type {
                             Some(IdentifierType::Variable) => {
                                 node.var = Some(String::from(key));
@@ -341,7 +341,7 @@ impl AstVisitor for CypherAstVisitor {
                 VisitorState::RelationshipRL |
                 VisitorState::RelationshipLR => {
                     if let Some(rel_id) = self.curr_directed_relationship {
-                        let rel = req.pattern.get_relationship_ref(rel_id);
+                        let rel = req.pattern.get_relationship_mut(rel_id);
                         
                         match self.id_type {
                             Some(IdentifierType::Variable) => {
@@ -357,7 +357,7 @@ impl AstVisitor for CypherAstVisitor {
                 VisitorState::UndirectedRelationship => {
                     if let Some(rel_ids) = self.curr_both_ways_relationship {
                         {
-                            let rel = req.pattern.get_relationship_ref(rel_ids.0);
+                            let rel = req.pattern.get_relationship_mut(rel_ids.0);
                             match self.id_type {
                                 Some(IdentifierType::Variable) => {
                                     rel.var = Some(String::from(key));
@@ -368,7 +368,7 @@ impl AstVisitor for CypherAstVisitor {
                                 _ => {}
                             } 
                         }
-                        let rel = req.pattern.get_relationship_ref(rel_ids.1);
+                        let rel = req.pattern.get_relationship_mut(rel_ids.1);
                         match self.id_type {
                             Some(IdentifierType::Variable) => {
                                 rel.var = Some(String::from(key));
@@ -383,7 +383,7 @@ impl AstVisitor for CypherAstVisitor {
                 },
                 VisitorState::DirectedRelationshipProperty => {
                     if let Some(rel_id) = self.curr_directed_relationship {
-                        let rel = req.pattern.get_relationship_ref(rel_id);
+                        let rel = req.pattern.get_relationship_mut(rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.name = Some(String::from(key));
@@ -392,7 +392,7 @@ impl AstVisitor for CypherAstVisitor {
                 },
                 VisitorState::NodeProperty => {
                     if let Some(node_id) = self.curr_node {
-                        let node = req.pattern.get_node_ref(node_id);
+                        let node = req.pattern.get_node_mut(node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.properties[prop_id];
                             prop.name = Some(String::from(key));
@@ -402,13 +402,13 @@ impl AstVisitor for CypherAstVisitor {
                 VisitorState::UnirectedRelationshipProperty => {
                     if let Some(rel_ids) = self.curr_both_ways_relationship {
                         {
-                            let rel = req.pattern.get_relationship_ref(rel_ids.0);
+                            let rel = req.pattern.get_relationship_mut(rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.properties[prop_id];
                                 prop.name = Some(String::from(key));
                             }
                         }
-                        let rel = req.pattern.get_relationship_ref(rel_ids.1);
+                        let rel = req.pattern.get_relationship_mut(rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.properties[prop_id];
                             prop.name = Some(String::from(key));
@@ -428,7 +428,7 @@ mod test_query_engine {
 
     #[test]
     fn test_create() {
-        let request = &mut process_query("CREATE (n:Person)");
+        let request = process_query("CREATE (n:Person)");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(0);
             assert_eq!(node.var, Some(String::from("n")));
