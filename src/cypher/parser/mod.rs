@@ -30,6 +30,8 @@ pub trait AstVisitor {
     fn enter_string_value(&mut self, value: &str);
     fn enter_bool_value(&mut self, value: Option<bool>);
     fn enter_identifier(&mut self, key: &str);
+    fn enter_variable(&mut self);
+    fn enter_label(&mut self);
 }
 
 pub trait Ast : fmt::Display {
@@ -78,9 +80,18 @@ impl Ast for AstTagNode {
                     AstTag::RelUndirected => {
                         visitor.enter_relationship(&self);
                     },
+                    AstTag::Node => {
+                        visitor.enter_node(&self);
+                    },
                     AstTag::Property => {
                         visitor.enter_property(&self);
                     },
+                    AstTag::Variable => {
+                        visitor.enter_variable();
+                    },
+                    AstTag::Label => {
+                        visitor.enter_label();
+                    }
                     _ => {}
                 }
             },
