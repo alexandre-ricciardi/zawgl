@@ -89,6 +89,14 @@ impl Pattern {
     pub fn get_relationship_ref(&self, id: usize) -> &Relationship {
         &self.relationships[id]
     }
+
+    pub fn successors(&self, source: usize) -> Successors {
+        self.graph.successors(source)
+    }
+    
+    pub fn ancestors(&self, target: usize) -> Ancestors {
+        self.graph.ancestors(target)
+    }
 }
 
 pub struct Request {

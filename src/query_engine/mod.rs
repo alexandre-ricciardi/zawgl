@@ -457,4 +457,29 @@ mod test_query_engine {
         }
         
     }
+
+    #[test]
+    fn test_create_2() {
+        let request = process_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
+        if let  Some(req) = request {
+            let node = req.pattern.get_node_ref(0);
+            assert_eq!(node.var, Some(String::from("n")));
+            assert_eq!(node.labels[0], String::from("Person"));
+            let rel = req.pattern.get_relationship_ref(0);
+            assert_eq!(rel.var, Some(String::from("r")));
+            assert_eq!(rel.labels[0], String::from("FRIEND_OF"));
+            let p_id = req.pattern.successors(0).next();
+            if let Some(id) = p_id {
+                let p = req.pattern.get_node_ref(id);
+                assert_eq!(p.var, Some(String::from("p")));
+                assert_eq!(p.labels[0], String::from("Person"));
+            } else {
+                assert!(false);
+            }
+            
+        } else {
+            assert!(false, "no request found");
+        }
+        
+    }
 }
