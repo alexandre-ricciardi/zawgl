@@ -50,7 +50,7 @@ struct CypherAstVisitor {
 impl CypherAstVisitor {
     fn new() -> Self {
         CypherAstVisitor { request: None, curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
-            curr_property_id: None, state: VisitorState::Init,curr_both_ways_property_ids: None,
+            curr_property_id: None, state: VisitorState::Init, curr_both_ways_property_ids: None,
             curr_identifier: None, id_type: None }
     }
 }

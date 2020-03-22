@@ -3,6 +3,7 @@ mod graph;
 mod model;
 mod store;
 mod query_engine;
+mod conf;
 
 fn main() {
     let lexer = cypher::lexer::Lexer::new("true or false");
