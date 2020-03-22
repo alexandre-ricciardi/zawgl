@@ -11,6 +11,10 @@ impl NodesStore {
         NodeStore { node_records_file: f }
     }
     pub fn save(&mut self, node: NodeRecord) {
-
+        let mut pos = 0;
+        while pos < data.len() {
+            let bytes_written = buffer.write(&data[pos..])?;
+            pos += bytes_written;
+        }
     }
 }
