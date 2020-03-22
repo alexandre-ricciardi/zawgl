@@ -4,6 +4,12 @@ struct NodeRecord {
     next_prop_id: u32,
 }
 
+impl NodeRecord {
+    pub fn to_bytes() -> [u8; 9] {
+        
+    }
+}
+
 struct RelationshipRecord {
     in_use: bool,
     first_node: u32,
