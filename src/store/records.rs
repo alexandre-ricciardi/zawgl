@@ -11,10 +11,10 @@ impl NodeRecord {
 fn to_bytes(val: u32) -> [u8; 4] {
     let mut b: [u8; 4] = [0; 4];
     let be = val.to_be();
-    b[0] = ( ((0xFF000000 & be) >> 24)) as u8;
-    b[1] = ( ((0x00FF0000 & be) >> 16)) as u8;
-    b[2] = ( ((0x0000FF00 & be) >> 8)) as u8;
-    b[3] = (0x000000FF & be) as u8;
+    b[0] = (be >> 24) as u8;
+    b[1] = (be >> 16) as u8;
+    b[2] = (be >> 8) as u8;
+    b[3] = be as u8;
     b
 }
 
