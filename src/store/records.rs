@@ -1,11 +1,7 @@
 pub struct NodeRecord {
-    in_use: bool,
-    next_rel_id: u32,
-    next_prop_id: u32,
-}
-
-impl NodeRecord {
-    
+    pub in_use: bool,
+    pub next_rel_id: u32,
+    pub next_prop_id: u32,
 }
 
 fn to_bytes(val: u32) -> [u8; 4] {
@@ -24,7 +20,7 @@ fn from_bytes(b: &[u8]) -> u32 {
     u32::from_be(res)
 }
 
-fn nr_to_bytes(nr: NodeRecord) -> [u8; 9] {
+pub fn nr_to_bytes(nr: NodeRecord) -> [u8; 9] {
     let mut bytes: [u8; 9] = [0; 9];
     if nr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
@@ -34,14 +30,14 @@ fn nr_to_bytes(nr: NodeRecord) -> [u8; 9] {
     bytes
 }
 
-fn nr_from_bytes(bytes: [u8; 9]) -> NodeRecord {
+pub fn nr_from_bytes(bytes: [u8; 9]) -> NodeRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
     let rel_id = from_bytes(&bytes[1..]);
     let prop_id = from_bytes(&bytes[5..]);
     NodeRecord {in_use: in_use, next_rel_id: rel_id, next_prop_id: prop_id}
 }
 
-fn rr_to_bytes(rr: RelationshipRecord) -> [u8; 35] {
+pub fn rr_to_bytes(rr: RelationshipRecord) -> [u8; 35] {
     let mut bytes: [u8; 35] = [0; 35];
     if rr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
@@ -57,7 +53,7 @@ fn rr_to_bytes(rr: RelationshipRecord) -> [u8; 35] {
     bytes
 }
 
-fn rr_from_bytes(bytes: [u8; 35]) -> RelationshipRecord {
+pub fn rr_from_bytes(bytes: [u8; 35]) -> RelationshipRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
     let f_node = from_bytes(&bytes[1..]);
     let s_node = from_bytes(&bytes[5..]);
@@ -72,7 +68,7 @@ fn rr_from_bytes(bytes: [u8; 35]) -> RelationshipRecord {
         second_prev_rel_id: sp_rel, second_next_rel_id: sn_rel, next_prop_id: p}
 }
 
-struct RelationshipRecord {
+pub struct RelationshipRecord {
     in_use: bool,
     first_node: u32,
     second_node: u32,
