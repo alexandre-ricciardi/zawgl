@@ -35,10 +35,41 @@ fn nr_to_bytes(nr: NodeRecord) -> [u8; 9] {
 }
 
 fn nr_from_bytes(bytes: [u8; 9]) -> NodeRecord {
-    let in_use = bytes[0] & 0b00000001 > 0;
-    let rel_id = from_bytes(&bytes[1..5]);
-    let prop_id = from_bytes(&bytes[5..9]);
+    let in_use = bytes[0] & 0b0000_0001 > 0;
+    let rel_id = from_bytes(&bytes[1..]);
+    let prop_id = from_bytes(&bytes[5..]);
     NodeRecord {in_use: in_use, next_rel_id: rel_id, next_prop_id: prop_id}
+}
+
+fn rr_to_bytes(rr: RelationshipRecord) -> [u8; 35] {
+    let mut bytes: [u8; 35] = [0; 35];
+    if rr.in_use {
+        bytes[0] = bytes[0] | 0b00000001;
+    }
+    bytes[1..5].clone_from_slice(&to_bytes(rr.first_node));
+    bytes[5..9].clone_from_slice(&to_bytes(rr.second_node));
+    bytes[9..13].clone_from_slice(&to_bytes(rr.relationship_type));
+    bytes[13..17].clone_from_slice(&to_bytes(rr.first_prev_rel_id));
+    bytes[17..21].clone_from_slice(&to_bytes(rr.first_next_rel_id));
+    bytes[23..27].clone_from_slice(&to_bytes(rr.second_prev_rel_id));
+    bytes[27..31].clone_from_slice(&to_bytes(rr.second_next_rel_id));
+    bytes[31..35].clone_from_slice(&to_bytes(rr.next_prop_id));
+    bytes
+}
+
+fn rr_from_bytes(bytes: [u8; 35]) -> RelationshipRecord {
+    let in_use = bytes[0] & 0b0000_0001 > 0;
+    let f_node = from_bytes(&bytes[1..]);
+    let s_node = from_bytes(&bytes[5..]);
+    let rt = from_bytes(&bytes[9..]);
+    let fp_rel = from_bytes(&bytes[13..]);
+    let fn_rel = from_bytes(&bytes[17..]);
+    let sp_rel = from_bytes(&bytes[23..]);
+    let sn_rel = from_bytes(&bytes[27..]);
+    let p = from_bytes(&bytes[31..]);
+    RelationshipRecord {in_use: in_use, first_node: f_node, second_node: s_node,
+        relationship_type: rt, first_prev_rel_id: fp_rel, first_next_rel_id: fn_rel,
+        second_prev_rel_id: sp_rel, second_next_rel_id: sn_rel, next_prop_id: p}
 }
 
 struct RelationshipRecord {
@@ -70,5 +101,24 @@ mod test_records {
         assert_eq!(nr.in_use, true);
         assert_eq!(nr.next_rel_id, 32);
         assert_eq!(nr.next_prop_id, 100);
+    }
+
+    
+    #[test]
+    fn test_relationship_record() {
+        let val = RelationshipRecord {in_use: true, first_node: 2, second_node: 3,
+            first_prev_rel_id: 4, first_next_rel_id: 5, second_prev_rel_id: 6, second_next_rel_id: 7,
+            relationship_type: 33, next_prop_id: 100};
+        let bytes = rr_to_bytes(val);
+        let rr = rr_from_bytes(bytes);
+        assert_eq!(rr.in_use, true);
+        assert_eq!(rr.first_node, 2);
+        assert_eq!(rr.second_node, 3);
+        assert_eq!(rr.first_prev_rel_id, 4);
+        assert_eq!(rr.first_next_rel_id, 5);
+        assert_eq!(rr.second_prev_rel_id, 6);
+        assert_eq!(rr.second_next_rel_id, 7);
+        assert_eq!(rr.relationship_type, 33);
+        assert_eq!(rr.next_prop_id, 100);
     }
 }
