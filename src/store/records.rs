@@ -1,68 +1,77 @@
 pub struct NodeRecord {
     pub in_use: bool,
-    pub next_rel_id: u32,
-    pub next_prop_id: u32,
+    pub next_rel_id: u64,
+    pub next_prop_id: u64,
 }
 
-fn to_bytes(val: u32) -> [u8; 4] {
-    let mut b: [u8; 4] = [0; 4];
+fn to_bytes(val: u64) -> [u8; 8] {
+    let mut b: [u8; 8] = [0; 8];
     let be = val.to_be();
-    b[0] = (be >> 24) as u8;
-    b[1] = (be >> 16) as u8;
-    b[2] = (be >> 8) as u8;
-    b[3] = be as u8;
+    let mut shift = 58;
+    let mut index = 0;
+    while index < 8 {
+        b[index] = (be >> shift) as u8;
+        index += 1;
+        shift -= 8;
+    }
     b
 }
 
-fn from_bytes(b: &[u8]) -> u32 {
-    let mut res = 0u32;
-    res += (b[0] as u32) << 24 | (b[1] as u32) << 16 | (b[2] as u32) << 8 | (b[3] as u32) ;
-    u32::from_be(res)
+fn from_bytes(b: &[u8]) -> u64 {
+    let mut res = 0u64;
+    let mut shift = 58;
+    let mut index = 0;
+    while index < 8 {
+        res += (b[index] as u64) << shift;
+        shift -= 8;
+        index += 1;
+    }
+    u64::from_be(res)
 }
 
-pub fn nr_to_bytes(nr: NodeRecord) -> [u8; 9] {
-    let mut bytes: [u8; 9] = [0; 9];
+pub fn nr_to_bytes(nr: NodeRecord) -> [u8; 17] {
+    let mut bytes: [u8; 17] = [0; 17];
     if nr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
     }
-    bytes[1..5].clone_from_slice(&to_bytes(nr.next_rel_id));
-    bytes[5..9].clone_from_slice(&to_bytes(nr.next_prop_id));
+    bytes[1..9].clone_from_slice(&to_bytes(nr.next_rel_id));
+    bytes[9..17].clone_from_slice(&to_bytes(nr.next_prop_id));
     bytes
 }
 
-pub fn nr_from_bytes(bytes: [u8; 9]) -> NodeRecord {
+pub fn nr_from_bytes(bytes: [u8; 17]) -> NodeRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
     let rel_id = from_bytes(&bytes[1..]);
-    let prop_id = from_bytes(&bytes[5..]);
+    let prop_id = from_bytes(&bytes[9..]);
     NodeRecord {in_use: in_use, next_rel_id: rel_id, next_prop_id: prop_id}
 }
 
-pub fn rr_to_bytes(rr: RelationshipRecord) -> [u8; 35] {
-    let mut bytes: [u8; 35] = [0; 35];
+pub fn rr_to_bytes(rr: RelationshipRecord) -> [u8; 65] {
+    let mut bytes: [u8; 65] = [0; 65];
     if rr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
     }
-    bytes[1..5].clone_from_slice(&to_bytes(rr.first_node));
-    bytes[5..9].clone_from_slice(&to_bytes(rr.second_node));
-    bytes[9..13].clone_from_slice(&to_bytes(rr.relationship_type));
-    bytes[13..17].clone_from_slice(&to_bytes(rr.first_prev_rel_id));
-    bytes[17..21].clone_from_slice(&to_bytes(rr.first_next_rel_id));
-    bytes[23..27].clone_from_slice(&to_bytes(rr.second_prev_rel_id));
-    bytes[27..31].clone_from_slice(&to_bytes(rr.second_next_rel_id));
-    bytes[31..35].clone_from_slice(&to_bytes(rr.next_prop_id));
+    bytes[1..9].clone_from_slice(&to_bytes(rr.first_node));
+    bytes[9..17].clone_from_slice(&to_bytes(rr.second_node));
+    bytes[17..25].clone_from_slice(&to_bytes(rr.relationship_type));
+    bytes[25..33].clone_from_slice(&to_bytes(rr.first_prev_rel_id));
+    bytes[33..41].clone_from_slice(&to_bytes(rr.first_next_rel_id));
+    bytes[41..49].clone_from_slice(&to_bytes(rr.second_prev_rel_id));
+    bytes[49..57].clone_from_slice(&to_bytes(rr.second_next_rel_id));
+    bytes[57..65].clone_from_slice(&to_bytes(rr.next_prop_id));
     bytes
 }
 
-pub fn rr_from_bytes(bytes: [u8; 35]) -> RelationshipRecord {
+pub fn rr_from_bytes(bytes: [u8; 65]) -> RelationshipRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
     let f_node = from_bytes(&bytes[1..]);
-    let s_node = from_bytes(&bytes[5..]);
-    let rt = from_bytes(&bytes[9..]);
-    let fp_rel = from_bytes(&bytes[13..]);
-    let fn_rel = from_bytes(&bytes[17..]);
-    let sp_rel = from_bytes(&bytes[23..]);
-    let sn_rel = from_bytes(&bytes[27..]);
-    let p = from_bytes(&bytes[31..]);
+    let s_node = from_bytes(&bytes[9..]);
+    let rt = from_bytes(&bytes[17..]);
+    let fp_rel = from_bytes(&bytes[25..]);
+    let fn_rel = from_bytes(&bytes[33..]);
+    let sp_rel = from_bytes(&bytes[41..]);
+    let sn_rel = from_bytes(&bytes[49..]);
+    let p = from_bytes(&bytes[57..]);
     RelationshipRecord {in_use: in_use, first_node: f_node, second_node: s_node,
         relationship_type: rt, first_prev_rel_id: fp_rel, first_next_rel_id: fn_rel,
         second_prev_rel_id: sp_rel, second_next_rel_id: sn_rel, next_prop_id: p}
@@ -70,22 +79,22 @@ pub fn rr_from_bytes(bytes: [u8; 35]) -> RelationshipRecord {
 
 pub struct RelationshipRecord {
     in_use: bool,
-    first_node: u32,
-    second_node: u32,
-    relationship_type: u32,
-    first_prev_rel_id: u32,
-    first_next_rel_id: u32,
-    second_prev_rel_id: u32,
-    second_next_rel_id: u32,
-    next_prop_id: u32,
+    first_node: u64,
+    second_node: u64,
+    relationship_type: u64,
+    first_prev_rel_id: u64,
+    first_next_rel_id: u64,
+    second_prev_rel_id: u64,
+    second_next_rel_id: u64,
+    next_prop_id: u64,
 }
 
 #[cfg(test)]
 mod test_records {
     use super::*;
     #[test]
-    fn test_u32() {
-        let val = 0b1011_1010_1111_0001_1000_1010_1111_0001;
+    fn test_u64() {
+        let val = 977856654765u64;
         let bytes = to_bytes(val);
         assert_eq!(from_bytes(&bytes), val);
     }
