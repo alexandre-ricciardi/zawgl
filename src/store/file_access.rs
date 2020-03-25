@@ -46,7 +46,6 @@ impl FileAccess {
         match self._read_at(pos, data) {
             Err(msg) => {
                 error!("reading file {}: {}", self.file_name, msg);
-                println!("reading file {}: {}", self.file_name, msg);
             },
             _ => {}
         }

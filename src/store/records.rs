@@ -78,15 +78,15 @@ pub fn rr_from_bytes(bytes: [u8; 65]) -> RelationshipRecord {
 }
 
 pub struct RelationshipRecord {
-    in_use: bool,
-    first_node: u64,
-    second_node: u64,
-    relationship_type: u64,
-    first_prev_rel_id: u64,
-    first_next_rel_id: u64,
-    second_prev_rel_id: u64,
-    second_next_rel_id: u64,
-    next_prop_id: u64,
+    pub in_use: bool,
+    pub first_node: u64,
+    pub second_node: u64,
+    pub relationship_type: u64,
+    pub first_prev_rel_id: u64,
+    pub first_next_rel_id: u64,
+    pub second_prev_rel_id: u64,
+    pub second_next_rel_id: u64,
+    pub next_prop_id: u64,
 }
 
 #[cfg(test)]
