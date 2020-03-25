@@ -24,6 +24,13 @@ impl NodesStore {
         }
         Ok(())
     }
+    fn next_free_record_pos(&self) -> u64 {
+        if self.not_in_use_nodes.len() == 0 {
+            self.node_records_file.metadata()?.len() as u64
+        } else {
+            self.not_in_use_nodes[0]
+        }
+    }
     fn scan(&mut self) -> std::io::Result<()> {
         let len = self.node_records_file.metadata()?.len();
         let mut data = [0u8; 1];
@@ -31,8 +38,19 @@ impl NodesStore {
         while index < len {
             self.read_at(index * 17, &mut data)?;
             let in_use = data[0] & 0b0000_0001 > 0;
-            self.not_in_use_nodes.push(index * 17);
+            if !in_use {
+                self.not_in_use_nodes.push(index * 17);
+            }
             index += 17;
+        }
+        Ok(())
+    }
+    fn write_at(&mut self, pos: u64, data: &[u8]) -> std::io::Result<()> {
+        let mut written = 0;
+        self.node_records_file.seek(SeekFrom::Start(pos))?;
+        while written < data.len() {
+            let bytes_written = self.node_records_file.write(&data[written..])?;
+            written += bytes_written;
         }
         Ok(())
     }
