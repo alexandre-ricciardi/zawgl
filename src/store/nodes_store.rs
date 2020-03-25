@@ -1,76 +1,57 @@
-use std::fs::File;
-use std::io::prelude::*;
 use super::records::*;
-use std::io::SeekFrom;
+use super::file_access::*;
 
 pub struct NodesStore {
-    node_records_file: File,
-    not_in_use_nodes: Vec<u64>,
+    node_records_file: FileAccess,
+    not_in_use_nodes_pos: Vec<u64>,
 }
 
 impl NodesStore {
     pub fn new(file: &str) -> Self {
-        let mut f = File::create(file).expect("Cannot open the nodes store file");
-        let mut store = NodesStore { node_records_file: f, not_in_use_nodes: Vec::new()};
+        let mut store = NodesStore { node_records_file: FileAccess::new(file), not_in_use_nodes_pos: Vec::new()};
         store.scan();
         store
     }
-    pub fn save(&mut self, node: NodeRecord) -> std::io::Result<()> {
-        let mut pos = 0;
+    pub fn save(&mut self, node: NodeRecord) {
         let data = nr_to_bytes(node);
-        while pos < data.len() {
-            let bytes_written = self.node_records_file.write(&data[pos..])?;
-            pos += bytes_written;
-        }
-        Ok(())
+        self.node_records_file.write_at(self.next_free_record_pos(), &data);
     }
     fn next_free_record_pos(&self) -> u64 {
-        if self.not_in_use_nodes.len() == 0 {
-            self.node_records_file.metadata()?.len() as u64
+        if self.not_in_use_nodes_pos.len() == 0 {
+            self.node_records_file.get_file_len()
         } else {
-            self.not_in_use_nodes[0]
+            self.not_in_use_nodes_pos[0]
         }
     }
-    fn scan(&mut self) -> std::io::Result<()> {
-        let len = self.node_records_file.metadata()?.len();
+    fn scan(&mut self) {
+        let len = self.node_records_file.get_file_len();
         let mut data = [0u8; 1];
         let mut index = 0u64;
         while index < len {
-            self.read_at(index * 17, &mut data)?;
+            self.node_records_file.read_at(index, &mut data);
             let in_use = data[0] & 0b0000_0001 > 0;
             if !in_use {
-                self.not_in_use_nodes.push(index * 17);
+                self.not_in_use_nodes_pos.push(index);
             }
             index += 17;
         }
-        Ok(())
     }
-    fn write_at(&mut self, pos: u64, data: &[u8]) -> std::io::Result<()> {
-        let mut written = 0;
-        self.node_records_file.seek(SeekFrom::Start(pos))?;
-        while written < data.len() {
-            let bytes_written = self.node_records_file.write(&data[written..])?;
-            written += bytes_written;
-        }
-        Ok(())
-    }
-    fn read_at(&mut self, pos: u64 , mut data:&mut [u8]) -> std::io::Result<()> {
-        self.node_records_file.seek(SeekFrom::Start(pos))?;
-        self.node_records_file.read_exact(&mut data)?;
-        Ok(())
-    }
-    pub fn load(&mut self, node_id: u64) -> Option<NodeRecord> {
+    pub fn load(&mut self, node_id: u64) -> NodeRecord {
         let mut data = [0u8; 17];
-        let res = self.read_at(node_id * 17, &mut data);
-        res.ok().map(|_|nr_from_bytes(data))
+        self.node_records_file.read_at(node_id * 17, &mut data);
+        nr_from_bytes(data)
     }
 }
 
 #[cfg(test)]
 mod test_nodes_store {
     use super::*;
+    fn clean() {
+        std::fs::remove_file("C:\\Temp\\nodes.db");
+    }
     #[test]
     fn test_create_node_0() {
+        clean();
         let mut store = NodesStore::new("C:\\Temp\\nodes.db");
         let nr = NodeRecord {
             in_use: true,
@@ -78,11 +59,9 @@ mod test_nodes_store {
             next_prop_id: 89089807,
         };
         store.save(nr);
-        let load = store.load(0);
-        if let Some(r) = load {
-            assert_eq!(r.in_use, true);
-            assert_eq!(r.next_rel_id, 11287665);
-            assert_eq!(r.next_prop_id, 89089807);
-        }
+        let r = store.load(0);
+        assert_eq!(r.in_use, true);
+        assert_eq!(r.next_rel_id, 11287665);
+        assert_eq!(r.next_prop_id, 89089807);
     }
 }

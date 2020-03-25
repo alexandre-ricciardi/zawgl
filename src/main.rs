@@ -1,3 +1,4 @@
+extern crate log;
 mod cypher;
 mod graph;
 mod model;
