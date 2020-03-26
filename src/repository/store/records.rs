@@ -91,6 +91,8 @@ pub struct RelationshipRecord {
 
 pub struct PropertyRecord {
     pub in_use: bool,
+    pub key_inlined: bool,
+    pub full_inlined: bool,
     pub prop_type: u8,
     pub key_id: u64,
     pub prop_block: [u8; 24],
@@ -125,7 +127,13 @@ pub fn dr_from_bytes(bytes: [u8; 129]) -> DynamicStoreRecord {
 pub fn pr_to_bytes(pr: PropertyRecord) -> [u8; 42] {
     let mut bytes: [u8; 42] = [0; 42];
     if pr.in_use {
-        bytes[0] = bytes[0] | 0b00000001;
+        bytes[0] = bytes[0] | 0b0000_0001;
+    }
+    if pr.full_inlined {
+        bytes[0] = bytes[0] | 0b0000_0010;
+    }
+    if pr.key_inlined {
+        bytes[0] = bytes[0] | 0b0000_0100;
     }
     bytes[1] = pr.prop_type;
     bytes[2..10].copy_from_slice(&u64_to_bytes(pr.key_id));
@@ -136,6 +144,8 @@ pub fn pr_to_bytes(pr: PropertyRecord) -> [u8; 42] {
 
 pub fn pr_from_bytes(bytes: [u8; 42]) -> PropertyRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
+    let inlined = bytes[0] & 0b0000_0010 > 0;
+    let key_inlined = bytes[0] & 0b0000_0100 > 0;
     let ptype = bytes[1];
     let key = u64_from_bytes(&bytes[2..]);
     let mut block = [0u8; 24];
@@ -143,7 +153,7 @@ pub fn pr_from_bytes(bytes: [u8; 42]) -> PropertyRecord {
     let next = u64_from_bytes(&bytes[34..]);
     let mut data = [0u8; 24];
     data.copy_from_slice(&bytes[9..]);
-    PropertyRecord {in_use: in_use, prop_type: ptype, key_id: key, prop_block: block, next_prop_id: next}
+    PropertyRecord {in_use: in_use, full_inlined: inlined, key_inlined: key_inlined, prop_type: ptype, key_id: key, prop_block: block, next_prop_id: next}
 }
 
 

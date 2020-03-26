@@ -2,7 +2,7 @@ extern crate log;
 mod cypher;
 mod graph;
 mod model;
-mod store;
+mod repository;
 mod query_engine;
 mod conf;
 
