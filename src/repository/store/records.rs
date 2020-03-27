@@ -4,29 +4,14 @@ pub struct NodeRecord {
     pub next_prop_id: u64,
 }
 
-fn u64_to_bytes(val: u64) -> [u8; 8] {
-    let mut b: [u8; 8] = [0; 8];
-    let be = val.to_be();
-    let mut shift = 58;
-    let mut index = 0;
-    while index < 8 {
-        b[index] = (be >> shift) as u8;
-        index += 1;
-        shift -= 8;
-    }
-    b
+pub fn u64_to_bytes(val: u64) -> [u8; 8] {
+    val.to_be_bytes()
 }
 
-fn u64_from_bytes(b: &[u8]) -> u64 {
-    let mut res = 0u64;
-    let mut shift = 58;
-    let mut index = 0;
-    while index < 8 {
-        res += (b[index] as u64) << shift;
-        shift -= 8;
-        index += 1;
-    }
-    u64::from_be(res)
+pub fn u64_from_bytes(b: &[u8]) -> u64 {
+    let mut bytes = [0u8; std::mem::size_of::<u64>()];
+    bytes.copy_from_slice(b);
+    u64::from_be_bytes(bytes)
 }
 
 pub fn nr_to_bytes(nr: NodeRecord) -> [u8; 17] {
@@ -41,8 +26,8 @@ pub fn nr_to_bytes(nr: NodeRecord) -> [u8; 17] {
 
 pub fn nr_from_bytes(bytes: [u8; 17]) -> NodeRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
-    let rel_id = u64_from_bytes(&bytes[1..]);
-    let prop_id = u64_from_bytes(&bytes[9..]);
+    let rel_id = u64_from_bytes(&bytes[1..9]);
+    let prop_id = u64_from_bytes(&bytes[9..17]);
     NodeRecord {in_use: in_use, next_rel_id: rel_id, next_prop_id: prop_id}
 }
 
@@ -64,14 +49,14 @@ pub fn rr_to_bytes(rr: RelationshipRecord) -> [u8; 65] {
 
 pub fn rr_from_bytes(bytes: [u8; 65]) -> RelationshipRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
-    let f_node = u64_from_bytes(&bytes[1..]);
-    let s_node = u64_from_bytes(&bytes[9..]);
-    let rt = u64_from_bytes(&bytes[17..]);
-    let fp_rel = u64_from_bytes(&bytes[25..]);
-    let fn_rel = u64_from_bytes(&bytes[33..]);
-    let sp_rel = u64_from_bytes(&bytes[41..]);
-    let sn_rel = u64_from_bytes(&bytes[49..]);
-    let p = u64_from_bytes(&bytes[57..]);
+    let f_node = u64_from_bytes(&bytes[1..9]);
+    let s_node = u64_from_bytes(&bytes[9..17]);
+    let rt = u64_from_bytes(&bytes[17..25]);
+    let fp_rel = u64_from_bytes(&bytes[25..33]);
+    let fn_rel = u64_from_bytes(&bytes[33..41]);
+    let sp_rel = u64_from_bytes(&bytes[41..49]);
+    let sn_rel = u64_from_bytes(&bytes[49..57]);
+    let p = u64_from_bytes(&bytes[57..65]);
     RelationshipRecord {in_use: in_use, first_node: f_node, second_node: s_node,
         relationship_type: rt, first_prev_rel_id: fp_rel, first_next_rel_id: fn_rel,
         second_prev_rel_id: sp_rel, second_next_rel_id: sn_rel, next_prop_id: p}
@@ -93,6 +78,7 @@ pub struct PropertyRecord {
     pub in_use: bool,
     pub key_inlined: bool,
     pub full_inlined: bool,
+    pub has_next: bool,
     pub prop_type: u8,
     pub key_id: u64,
     pub prop_block: [u8; 24],
@@ -135,6 +121,9 @@ pub fn pr_to_bytes(pr: PropertyRecord) -> [u8; 42] {
     if pr.key_inlined {
         bytes[0] = bytes[0] | 0b0000_0100;
     }
+    if pr.has_next {
+        bytes[0] = bytes[0] | 0b0000_1000;
+    }
     bytes[1] = pr.prop_type;
     bytes[2..10].copy_from_slice(&u64_to_bytes(pr.key_id));
     bytes[10..34].copy_from_slice(&pr.prop_block);
@@ -146,14 +135,15 @@ pub fn pr_from_bytes(bytes: [u8; 42]) -> PropertyRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
     let inlined = bytes[0] & 0b0000_0010 > 0;
     let key_inlined = bytes[0] & 0b0000_0100 > 0;
+    let has_next = bytes[0] & 0b0000_1000 > 0;
     let ptype = bytes[1];
-    let key = u64_from_bytes(&bytes[2..]);
+    let key = u64_from_bytes(&bytes[2..10]);
     let mut block = [0u8; 24];
     block.copy_from_slice(&bytes[10..]);
-    let next = u64_from_bytes(&bytes[34..]);
+    let next = u64_from_bytes(&bytes[34..42]);
     let mut data = [0u8; 24];
     data.copy_from_slice(&bytes[9..]);
-    PropertyRecord {in_use: in_use, full_inlined: inlined, key_inlined: key_inlined, prop_type: ptype, key_id: key, prop_block: block, next_prop_id: next}
+    PropertyRecord {in_use: in_use, full_inlined: inlined, key_inlined: key_inlined, has_next: has_next, prop_type: ptype, key_id: key, prop_block: block, next_prop_id: next}
 }
 
 
@@ -172,8 +162,8 @@ mod test_records {
         let bytes = nr_to_bytes(val);
         let nr = nr_from_bytes(bytes);
         assert_eq!(nr.in_use, true);
-        assert_eq!(nr.next_rel_id, 32);
-        assert_eq!(nr.next_prop_id, 100);
+        assert_eq!(nr.next_rel_id, 32u64);
+        assert_eq!(nr.next_prop_id, 100u64);
     }
 
     
