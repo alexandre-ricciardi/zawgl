@@ -63,12 +63,12 @@ impl DynamicStore {
 #[cfg(test)]
 mod test_dyn_store {
     use super::*;
-    fn clean() {
-        std::fs::remove_file("C:\\Temp\\dyn.db");
+    fn clean(file: &str) {
+        std::fs::remove_file(file);
     }
     #[test]
     fn test_dyn_short() {
-        clean();
+        clean("C:\\Temp\\dyn.db");
         let mut ds = DynamicStore::new("C:\\Temp\\dyn.db");
         let short = b"qsdfqsdfqsdf";
         let id = ds.save_data(short);
@@ -79,8 +79,8 @@ mod test_dyn_store {
 
     #[test]
     fn test_dyn_long() {
-        clean();
-        let mut ds = DynamicStore::new("C:\\Temp\\dyn.db");
+        clean("C:\\Temp\\dyn_long.db");
+        let mut ds = DynamicStore::new("C:\\Temp\\dyn_long.db");
         let long = b"qsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnec
         qfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqsh
         dfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqel";
@@ -93,13 +93,13 @@ mod test_dyn_store {
         let mut high = low + rest;
         loop {
             assert_eq!(&data[low..high], &long[low..high], "bounds {} -> {}", low, high);
-            high += count * 32;
+            high = count * 32;
             if count > 0 {
                 count -= 1;
             } else {
                 break;
             }
-            low += count * 32;
+            low = count * 32;
         }
         
     }

@@ -24,12 +24,12 @@ impl RelationshipsStore {
 #[cfg(test)]
 mod test_relationship_store {
     use super::*;
-    fn clean() {
-        std::fs::remove_file("C:\\Temp\\relationships.db");
+    fn clean(file: &str) {
+        std::fs::remove_file(file);
     }
     #[test]
     fn test_create_relationship_0() {
-        clean();
+        clean("C:\\Temp\\relationships.db");
         let mut store = RelationshipsStore::new("C:\\Temp\\relationships.db");
         let rr = RelationshipRecord {
             in_use: true,
