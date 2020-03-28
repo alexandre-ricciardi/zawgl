@@ -10,8 +10,8 @@ impl NodesStore {
     pub fn new(file: &str) -> Self {
         NodesStore {node_records_store: Store::new(file, 17)}
     }
-    pub fn save(&mut self, node: NodeRecord) {
-        self.node_records_store.save(&nr_to_bytes(node));
+    pub fn save(&mut self, node: NodeRecord) -> u64 {
+        self.node_records_store.save(&nr_to_bytes(node))
     }
     pub fn load(&mut self, node_id: u64) -> NodeRecord {
         let mut data: [u8; 17] = [0; 17];

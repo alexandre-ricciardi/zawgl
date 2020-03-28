@@ -15,18 +15,20 @@ pub enum Directive {
 }
 
 pub struct Property {
+    pub id: Option<u64>,
     pub name: Option<String>,
     pub value: Option<PropertyValue>,
 }
 
 impl Property {
     pub fn new() -> Self {
-        Property { name: None, value: None }
+        Property { name: None, value: None, id: None }
     } 
 }
 
 
 pub struct Node {
+    pub id: Option<u64>,
     pub var: Option<String>,
     pub properties: Vec<Property>,
     pub labels: Vec<String>
@@ -35,11 +37,12 @@ pub struct Node {
 
 impl Node {
     pub fn new() -> Self {
-        Node {var: None, properties: Vec::new(), labels: Vec::new()}
+        Node {var: None, properties: Vec::new(), labels: Vec::new(), id:None}
     }
 }
 
 pub struct Relationship {
+    pub id: Option<u64>,
     pub var: Option<String>,
     pub properties: Vec<Property>,
     pub labels: Vec<String>,
@@ -47,7 +50,7 @@ pub struct Relationship {
 
 impl Relationship {
     pub fn new() -> Self {
-        Relationship {var: None, properties: Vec::new(), labels: Vec::new()}
+        Relationship {var: None, properties: Vec::new(), labels: Vec::new(), id: None}
     }
 }
 

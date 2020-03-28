@@ -13,9 +13,10 @@ impl Store {
         store.scan();
         store
     }
-    pub fn save(&mut self, data: &[u8]) {
+    pub fn save(&mut self, data: &[u8]) -> u64{
         let next_pos = self.next_free_record_pos();
         self.records_file.write_at(next_pos, &data);
+        next_pos / self.record_size
     }
     fn next_free_record_pos(&mut self) -> u64 {
         let last = self.not_in_use_records_pos.pop();

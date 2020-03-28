@@ -87,6 +87,7 @@ pub struct PropertyRecord {
 
 pub struct DynamicStoreRecord {
     pub in_use: bool,
+    pub has_next: bool,
     pub next: u64,
     pub data: [u8; 120]
 }
@@ -97,6 +98,9 @@ pub fn dr_to_bytes(dr: DynamicStoreRecord) -> [u8; 129] {
     if dr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
     }
+    if dr.has_next {
+        bytes[0] = bytes[0] | 0b0000_1000;
+    }
     bytes[1..9].clone_from_slice(&u64_to_bytes(dr.next));
     bytes[9..129].clone_from_slice(&dr.data);
     bytes
@@ -104,10 +108,11 @@ pub fn dr_to_bytes(dr: DynamicStoreRecord) -> [u8; 129] {
 
 pub fn dr_from_bytes(bytes: [u8; 129]) -> DynamicStoreRecord {
     let in_use = bytes[0] & 0b0000_0001 > 0;
-    let next = u64_from_bytes(&bytes[1..]);
+    let has_next = bytes[0] & 0b0000_1000 > 0;
+    let next = u64_from_bytes(&bytes[1..9]);
     let mut data = [0u8; 120];
-    data.copy_from_slice(&bytes[9..]);
-    DynamicStoreRecord {in_use: in_use, next: next, data: data}
+    data.copy_from_slice(&bytes[9..129]);
+    DynamicStoreRecord {in_use: in_use, has_next: has_next, next: next, data: data}
 }
 
 pub fn pr_to_bytes(pr: PropertyRecord) -> [u8; 42] {
