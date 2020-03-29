@@ -75,7 +75,6 @@ fn make_key_inlined_record(prop: &Property) -> Option<records::PropertyRecord> {
             prop.name.as_ref().and_then(|name| {
                 let mut block = [0u8; 24];
                 block.copy_from_slice(&name.clone().into_bytes());
-                
                     map_prop_type(prop).map(|ptype| 
                         records::PropertyRecord {
                             in_use: true,
@@ -114,11 +113,42 @@ impl PropertiesRespository {
                     }
                 }).map(|dr_id| {r.prop_block.copy_from_slice(&dr_id.to_be_bytes()); r})
             })).as_deref().map(|r| self.prop_store.save(r));
-            prop.id = prop_id;
+        prop.id = prop_id;
     }
-
 
     pub fn load(&mut self, prop_id: u64) {
+        let pr = self.prop_store.load(prop_id);
+        let mut prop = Property::new();
+        prop.id = Some(prop_id);
+        if pr.full_inlined {
+            let mut it = pr.prop_block.iter();
+            let key_end = it.position(|&c| c == b'\0').unwrap_or(pr.prop_block.len() + 1);
+            let mut key = Vec::with_capacity(key_end - 1);
+            key.copy_from_slice(&pr.prop_block[0..key_end -1]);
+            prop.name = String::from_utf8(key).ok();
+            if pr.prop_type == 0 {
+                let value_end = it.position(|&c| c == b'\0').unwrap_or(pr.prop_block.len());
+                let mut value = Vec::with_capacity(value_end - key_end);
+                value.copy_from_slice(&pr.prop_block[key_end..value_end]);
+                prop.value = String::from_utf8(value).ok().map(|v|PropertyValue::PString(v));
+            }
+            
+        } else if pr.key_inlined {
 
+        }
     }
+}
+
+fn extract_name(pr: &records::PropertyRecord) -> Option<String> {
+    let key_end = pr.prop_block.iter().position(|&c| c == b'\0').unwrap_or(pr.prop_block.len() + 1);
+    let mut key = Vec::with_capacity(key_end - 1);
+    key.copy_from_slice(&pr.prop_block[0..key_end -1]);
+    String::from_utf8(key).ok()
+}
+
+fn extract_value_string(pr: &records::PropertyRecord) -> Option<String> {
+    let key_end = pr.prop_block.iter().position(|&c| c == b'\0').unwrap_or(pr.prop_block.len() + 1);
+    let mut key = Vec::with_capacity(key_end - 1);
+    key.copy_from_slice(&pr.prop_block[0..key_end -1]);
+    String::from_utf8(key).ok()
 }
