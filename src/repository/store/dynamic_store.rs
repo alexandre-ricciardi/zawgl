@@ -9,7 +9,7 @@ impl DynamicStore {
     pub fn new(file: &str) -> Self {
         DynamicStore {dyn_records_store: Store::new(file, 129)}
     }
-    pub fn save(&mut self, dr: DynamicStoreRecord) -> u64 {
+    pub fn save(&mut self, dr: &DynamicStoreRecord) -> u64 {
         self.dyn_records_store.save(&dr_to_bytes(dr))
     }
     pub fn save_data(&mut self, data: &[u8]) -> u64 {
@@ -27,7 +27,7 @@ impl DynamicStore {
             };
             let len = end - count * 120;
             dr.data[0..len].copy_from_slice(&data[count * 120..end]);
-            next = self.save(dr);
+            next = self.save(&dr);
             end = count * 120;
             has_next = true;
             if count == 0 {

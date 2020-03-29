@@ -14,7 +14,7 @@ pub fn u64_from_bytes(b: &[u8]) -> u64 {
     u64::from_be_bytes(bytes)
 }
 
-pub fn nr_to_bytes(nr: NodeRecord) -> [u8; 17] {
+pub fn nr_to_bytes(nr: &NodeRecord) -> [u8; 17] {
     let mut bytes: [u8; 17] = [0; 17];
     if nr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
@@ -31,7 +31,7 @@ pub fn nr_from_bytes(bytes: [u8; 17]) -> NodeRecord {
     NodeRecord {in_use: in_use, next_rel_id: rel_id, next_prop_id: prop_id}
 }
 
-pub fn rr_to_bytes(rr: RelationshipRecord) -> [u8; 65] {
+pub fn rr_to_bytes(rr: &RelationshipRecord) -> [u8; 65] {
     let mut bytes: [u8; 65] = [0; 65];
     if rr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
@@ -93,7 +93,7 @@ pub struct DynamicStoreRecord {
 }
 
 
-pub fn dr_to_bytes(dr: DynamicStoreRecord) -> [u8; 129] {
+pub fn dr_to_bytes(dr: &DynamicStoreRecord) -> [u8; 129] {
     let mut bytes: [u8; 129] = [0; 129];
     if dr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
@@ -115,7 +115,7 @@ pub fn dr_from_bytes(bytes: [u8; 129]) -> DynamicStoreRecord {
     DynamicStoreRecord {in_use: in_use, has_next: has_next, next: next, data: data}
 }
 
-pub fn pr_to_bytes(pr: PropertyRecord) -> [u8; 42] {
+pub fn pr_to_bytes(pr: &PropertyRecord) -> [u8; 42] {
     let mut bytes: [u8; 42] = [0; 42];
     if pr.in_use {
         bytes[0] = bytes[0] | 0b0000_0001;
@@ -164,7 +164,7 @@ mod test_records {
     #[test]
     fn test_node_record() {
         let val = NodeRecord {in_use: true, next_prop_id: 100, next_rel_id: 32};
-        let bytes = nr_to_bytes(val);
+        let bytes = nr_to_bytes(&val);
         let nr = nr_from_bytes(bytes);
         assert_eq!(nr.in_use, true);
         assert_eq!(nr.next_rel_id, 32u64);
@@ -177,7 +177,7 @@ mod test_records {
         let val = RelationshipRecord {in_use: true, first_node: 2, second_node: 3,
             first_prev_rel_id: 4, first_next_rel_id: 5, second_prev_rel_id: 6, second_next_rel_id: 7,
             relationship_type: 33, next_prop_id: 100};
-        let bytes = rr_to_bytes(val);
+        let bytes = rr_to_bytes(&val);
         let rr = rr_from_bytes(bytes);
         assert_eq!(rr.in_use, true);
         assert_eq!(rr.first_node, 2);

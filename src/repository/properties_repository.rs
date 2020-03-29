@@ -95,29 +95,27 @@ fn make_key_inlined_record(prop: &Property) -> Option<records::PropertyRecord> {
     
 }
 
+
 impl PropertiesRespository {
     pub fn new(props_file: &str, dyn_file: &str) -> Self {
         PropertiesRespository {prop_store: properties_store::PropertiesStore::new(props_file), dyn_store: dynamic_store::DynamicStore::new(dyn_file)}
     }
 
-    // pub fn save(&mut self, prop: &mut Property) {
-    //     prop.id = make_full_inlined_record(prop)
-    //         .or(make_key_inlined_record(prop)
-    //         .map(|r| {
-
-    //             prop.value.map(|val| {
-    //                 match val {
-    //                     PropertyValue::PString(_) => 0,
-    //                     PropertyValue::PInteger(_) => 1,
-    //                     PropertyValue::PFloat(_) => 2,
-    //                     PropertyValue::PBool(_) => 3,
-    //                 }
-    //             })
-                
-    //             self.dyn_store.save(dr)
-    //         }))
-    //         .map(|r| self.prop_store.save(r));
-    // }
+    pub fn save(&mut self, prop: &mut Property) {
+        let prop_id = make_full_inlined_record(prop).as_mut()
+            .or(make_key_inlined_record(prop).as_mut()
+            .and_then(|r| {
+                prop.value.as_ref().map(|val| {
+                    match val {
+                        PropertyValue::PString(sval) => self.dyn_store.save_data(&sval.clone().into_bytes()),
+                        PropertyValue::PInteger(ival) => self.dyn_store.save_data(&ival.to_be_bytes()),
+                        PropertyValue::PFloat(fval) => self.dyn_store.save_data(&fval.to_be_bytes()),
+                        PropertyValue::PBool(bval) => self.dyn_store.save_data(&[*bval as u8]),
+                    }
+                }).map(|dr_id| {r.prop_block.copy_from_slice(&dr_id.to_be_bytes()); r})
+            })).as_deref().map(|r| self.prop_store.save(r));
+            prop.id = prop_id;
+    }
 
 
     pub fn load(&mut self, prop_id: u64) {
