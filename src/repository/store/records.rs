@@ -144,10 +144,8 @@ pub fn pr_from_bytes(bytes: [u8; 42]) -> PropertyRecord {
     let ptype = bytes[1];
     let key = u64_from_bytes(&bytes[2..10]);
     let mut block = [0u8; 24];
-    block.copy_from_slice(&bytes[10..]);
+    block.copy_from_slice(&bytes[10..34]);
     let next = u64_from_bytes(&bytes[34..42]);
-    let mut data = [0u8; 24];
-    data.copy_from_slice(&bytes[9..]);
     PropertyRecord {in_use: in_use, full_inlined: inlined, key_inlined: key_inlined, has_next: has_next, prop_type: ptype, key_id: key, prop_block: block, next_prop_id: next}
 }
 
