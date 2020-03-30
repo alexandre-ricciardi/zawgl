@@ -2,10 +2,10 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use log::error;
+use std::path::Path;
 
 pub struct FileAccess {
-    file: File,
-    file_name: String
+    file: File
 }
 
 impl FileAccess {
@@ -16,7 +16,7 @@ impl FileAccess {
             .create(true)
             .open(file)
             .expect("Cannot open file");
-        FileAccess {file: f, file_name: file.to_owned()}
+        FileAccess {file: f}
     }
     fn _write_at(&mut self, pos: u64, data: &[u8]) -> std::io::Result<()> {
         let mut written = 0;
@@ -37,7 +37,7 @@ impl FileAccess {
     pub fn write_at(&mut self, pos: u64, data: &[u8]) {
         match self._write_at(pos, data) {
             Err(msg) => {
-                error!("writing file {}", self.file_name);
+                error!("writing file");
             },
             _ => {}
         }
@@ -45,7 +45,7 @@ impl FileAccess {
     pub fn read_at(&mut self, pos: u64 , mut data:&mut [u8]) {
         match self._read_at(pos, data) {
             Err(msg) => {
-                error!("reading file {}: {}", self.file_name, msg);
+                error!("reading file {}", msg);
             },
             _ => {}
         }
@@ -53,7 +53,7 @@ impl FileAccess {
     pub fn get_file_len(&self) -> u64 {
         match self.file.metadata() {
             Err(msg) => {
-                error!("retrieving file size {}", self.file_name);
+                error!("retrieving file size");
                 0
             },
             Ok(md) => {md.len()}

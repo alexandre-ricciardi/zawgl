@@ -1,5 +1,6 @@
 use super::records::*;
 use super::store::*;
+use std::path::Path;
 
 pub struct DynamicStore {
     dyn_records_store: Store,

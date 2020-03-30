@@ -1,5 +1,6 @@
 use super::records::*;
 use super::file_access::*;
+use std::path::Path;
 
 pub struct Store {
     records_file: FileAccess,

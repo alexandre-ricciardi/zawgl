@@ -1,4 +1,6 @@
     db_dir = "C:\\Temp"
-    node_store = "nodes.db"
-    relationship_store = "relationships.db"
+    [stores]
+    nodes_store = "nodes.db"
+    relationships_store = "relationships.db"
     properties_store = "properties.db"
+    dynamic_store = "dyn.db"

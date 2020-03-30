@@ -1,5 +1,6 @@
 use super::records::*;
 use super::store::*;
+use std::path::Path;
 
 pub struct PropertiesStore {
     prop_records_store: Store,
