@@ -55,15 +55,37 @@ impl Relationship {
     }
 }
 
-pub struct Pattern {
-    nodes: Vec<Node>,
-    relationships: Vec<Relationship>,
-    graph: Graph,
+pub struct PropertyGraph {
+    pub nodes: Vec<Node>,
+    pub relationships: Vec<Relationship>,
+    pub graph: Graph,
 }
 
-impl Pattern {
+
+pub struct NodeIterator<'graph> {
+    graph: &'graph PropertyGraph,
+    current_node_index: Option<usize>,
+}
+
+impl <'graph> Iterator for NodeIterator<'graph> {
+    type Item = (NodeData, Node);
+
+    fn next(&mut self) -> Option<(NodeData, Node)> {
+        match self.current_node_index {
+            None => None,
+            Some(node_index) => {
+                let node = &self.graph.nodes[node_index];
+                let node_data = &self.graph.graph[node_index];
+                self.current_node_index = edge.next_outbound_edge;
+                Some(edge.target)
+            }
+        }
+    }
+}
+
+impl PropertyGraph {
     pub fn new() -> Self {
-        Pattern {nodes: Vec::new(), relationships: Vec::new(), graph: Graph::new()}
+        PropertyGraph {nodes: Vec::new(), relationships: Vec::new(), graph: Graph::new()}
     }
 
     pub fn add_node(&mut self) -> usize {
@@ -104,12 +126,12 @@ impl Pattern {
 }
 
 pub struct Request {
-    pub pattern: Pattern,
+    pub pattern: PropertyGraph,
     pub directive: Directive,
 }
 
 impl Request {
     pub fn new(directive: Directive) -> Self {
-        Request {pattern: Pattern::new(), directive: directive}
+        Request {pattern: PropertyGraph::new(), directive: directive}
     }
 }
