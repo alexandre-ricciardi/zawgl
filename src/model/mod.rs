@@ -68,16 +68,19 @@ pub struct NodeIterator<'graph> {
 }
 
 impl <'graph> Iterator for NodeIterator<'graph> {
-    type Item = (NodeData, Node);
-
-    fn next(&mut self) -> Option<(NodeData, Node)> {
+    type Item = (&'graph NodeData, &'graph Node);
+    fn next(&mut self) -> Option<(&'graph NodeData, &'graph Node)> {
         match self.current_node_index {
             None => None,
             Some(node_index) => {
                 let node = &self.graph.nodes[node_index];
-                let node_data = &self.graph.graph[node_index];
-                self.current_node_index = edge.next_outbound_edge;
-                Some(edge.target)
+                let node_data = self.graph.graph.get_node(node_index);
+                if node_index < self.graph.nodes.len() {
+                    self.current_node_index = Some(node_index + 1);
+                } else {
+                    self.current_node_index = None;
+                }
+                Some((node_data, node))
             }
         }
     }
@@ -122,6 +125,14 @@ impl PropertyGraph {
     
     pub fn ancestors(&self, target: usize) -> Ancestors {
         self.graph.ancestors(target)
+    }
+
+    pub fn nodes_iter(&self) -> NodeIterator {
+        NodeIterator {graph: self, current_node_index: Some(0)}
+    }
+
+    pub fn get_nodes(&self) -> &Vec<Node> {
+        &self.nodes
     }
 }
 

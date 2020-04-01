@@ -66,6 +66,13 @@ impl Graph {
         index
     }
 
+    pub fn get_node(&self, id: usize) -> &NodeData {
+        &self.nodes[id]
+    }
+    pub fn get_edge(&self, id: usize) -> &EdgeData {
+        &self.edges[id]
+    }
+
     pub fn add_edge(&mut self, source: usize, target: usize) -> usize {
         let index = self.edges.len();
         {

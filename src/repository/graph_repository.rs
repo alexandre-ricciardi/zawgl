@@ -18,6 +18,6 @@ impl GraphRepository {
     }
 
     pub fn save(pgraph: PropertyGraph) {
-        let node_list = pgraph.nodes.iter().map(|n|)
+        //let node_list = pgraph.nodes.iter().map(|n|)
     }
 }

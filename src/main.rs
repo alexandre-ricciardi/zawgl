@@ -5,6 +5,7 @@ mod model;
 mod repository;
 mod query_engine;
 mod conf;
+mod cache;
 
 fn main() {
     let lexer = cypher::lexer::Lexer::new("true or false");

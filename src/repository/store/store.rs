@@ -26,6 +26,21 @@ impl Store {
             None => self.records_file.get_file_len()
         }
     }
+    pub fn compute_next_free_records_ids(&self, n: usize) -> Vec<u64> {
+        let mut res = Vec::new();
+        let mut rest = n;
+        let mut size_not_used = self.not_in_use_records_pos.len();
+        while rest > 0 {
+            if index_not_used {
+                res.push(self.not_in_use_records_pos[index_not_used] / self.record_size);
+                index_not_used -= 1;
+            } else {
+                res.push(self.records_file.get_file_len() / self.record_size + (rest - 1) as u64 * self.record_size);
+            }
+            rest -= 1;
+        }
+        res
+    }
     fn scan(&mut self) {
         let len = self.records_file.get_file_len();
         let mut data = [0u8; 1];
