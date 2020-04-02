@@ -28,16 +28,17 @@ impl Store {
     }
     pub fn compute_next_free_records_ids(&self, n: usize) -> Vec<u64> {
         let mut res = Vec::new();
-        let mut rest = n;
-        let mut size_not_used = self.not_in_use_records_pos.len();
-        while rest > 0 {
-            if index_not_used {
-                res.push(self.not_in_use_records_pos[index_not_used] / self.record_size);
-                index_not_used -= 1;
+        let mut next = 0;
+        let size_not_used = self.not_in_use_records_pos.len();
+        let mut not_used_index = 0usize;
+        while next < n {
+            if not_used_index < size_not_used {
+                res.push(self.not_in_use_records_pos[not_used_index] / self.record_size);
+                not_used_index += 1;
             } else {
-                res.push(self.records_file.get_file_len() / self.record_size + (rest - 1) as u64 * self.record_size);
+                res.push(self.records_file.get_file_len() / self.record_size + next as u64);
             }
-            rest -= 1;
+            next += 1;
         }
         res
     }
