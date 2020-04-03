@@ -4,10 +4,10 @@ pub struct NodeData {
 }
 
 pub struct EdgeData {
-    source: usize,
-    target: usize,
-    next_outbound_edge: Option<usize>,
-    next_inbound_edge: Option<usize>,
+    pub source: usize,
+    pub target: usize,
+    pub next_outbound_edge: Option<usize>,
+    pub next_inbound_edge: Option<usize>,
 }
 
 pub struct Graph {
