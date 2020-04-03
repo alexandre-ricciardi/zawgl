@@ -134,6 +134,14 @@ impl PropertyGraph {
     pub fn get_nodes(&self) -> &Vec<Node> {
         &self.nodes
     }
+    
+    pub fn get_relationships(&self) -> &Vec<Relationship> {
+        &self.relationships
+    }
+
+    pub fn get_inner_graph(&self) -> &Graph {
+        &self.graph
+    }
 }
 
 pub struct Request {

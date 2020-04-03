@@ -1,3 +1,5 @@
+mod model;
+
 use super::model::*;
 use super::repository::store::records::*;
 pub struct GraphCache {

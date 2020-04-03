@@ -99,6 +99,10 @@ impl Graph {
         let first_inbound_edge = self.nodes[target].first_inbound_edge;
         Ancestors{ graph: self, current_edge_index: first_inbound_edge }
     }
+
+    pub fn get_nodes(&self) -> &Vec<NodeData> {
+        &self.nodes
+    }
 }
 
 #[cfg(test)]
