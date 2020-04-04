@@ -103,6 +103,9 @@ impl Graph {
     pub fn get_nodes(&self) -> &Vec<NodeData> {
         &self.nodes
     }
+    pub fn get_edges(&self) -> &Vec<EdgeData> {
+        &self.edges
+    }
 }
 
 #[cfg(test)]

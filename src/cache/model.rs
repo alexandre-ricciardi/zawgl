@@ -13,15 +13,17 @@ impl CachedNode {
     }
 }
 
+pub type CacheId = usize;
+pub type StoreId = u64;
 #[derive(Copy, Clone, PartialEq)]
-struct Ids {
-    db: Option<u64>,
-    local: Option<usize>,
+pub struct Ids {
+    store: Option<StoreId>,
+    cache: Option<CacheId>,
 }
 
 impl Ids {
     fn new() -> Self {
-        Ids {db: None, local: None}
+        Ids {store: None, cache: None}
     }
 }
 
@@ -47,72 +49,145 @@ impl CachedRelationship {
 pub struct CacheGraph {
     nodes: Vec<CachedNode>,
     relationships: Vec<CachedRelationship>,
-    map_db_to_cache_node_ids: HashMap<u64, usize>,
-    map_cache_to_db_node_ids: HashMap<usize, u64>,
+    map_store_to_cache_node_ids: HashMap<StoreId, CacheId>,
+    map_store_to_cache_raltionship_ids: HashMap<StoreId, CacheId>,
 }
 
 impl CacheGraph {
     pub fn new() -> Self {
-        CacheGraph{ nodes: Vec::new(), relationships: Vec::new() }
+        CacheGraph{ nodes: Vec::new(), relationships: Vec::new(), 
+            map_store_to_cache_node_ids: HashMap::new(),
+            map_store_to_cache_raltionship_ids: HashMap::new() }
     }
 
-    pub fn add_node(&mut self, node: &Node) -> usize {
+    pub fn add_node(&mut self, node: &Node) -> CacheId {
         let size = self.nodes.len();
         let mut cn = CachedNode::new();
-        cn.id.db = node.id;
-        cn.id.local = Some(size);
+        cn.id.store = node.id;
+        cn.id.cache = Some(size);
         self.nodes.push(cn);
         size
     }
 
-    fn get_node_from_db_id(&self, db_id: u64) -> &CachedNode {
-        &self.nodes[self.map_db_to_cache_node_ids[&db_id]]
+    pub fn get_node_ref(&self, cache_id: CacheId) -> &CachedNode {
+        &self.nodes[cache_id]
     }
 
-    pub fn add_relationship(&mut self, source: &mut CachedNode, target: &mut CachedNode) -> usize {
+    fn get_node_from_db_id(&self, db_id: u64) -> &CachedNode {
+        &self.nodes[self.map_store_to_cache_node_ids[&db_id]]
+    }
+
+    pub fn add_relationship(&mut self, source: Ids, target: Ids) -> CacheId {
         let index = self.relationships.len();
         {
             let mut cr = CachedRelationship::new();
-            cr.id.local = Some(index);
-            cr.first_node = source.id;
-            cr.second_node = target.id;
+            cr.id.cache = Some(index);
+            cr.first_node = source;
+            cr.second_node = target;
             self.relationships.push(cr);
         }
-
         index
+    }
+
+    pub fn get_relationship_ref(&self, cache_id: CacheId) -> &CachedRelationship {
+        &self.relationships[cache_id]
     }
 
     fn check_node_exists(&self, node: &Node) -> bool {
         if let Some(id) = node.id {
-            self.map_db_to_cache_node_ids.contains_key(&id)
+            self.map_store_to_cache_node_ids.contains_key(&id)
         } else {
             false
         }
     }
 
     pub fn add_graph(&mut self, graph: PropertyGraph) {
-        let mut node_ids = Vec::new();
+        let mut node_cache_ids = Vec::new();
         for node in graph.get_nodes() {
             if self.check_node_exists(&node) {
-                let existing_node_cache_id = node.id.and_then(|id|self.map_db_to_cache_node_ids.get(&id));
+                let existing_node_cache_id = node.id.and_then(|id|self.map_store_to_cache_node_ids.get(&id));
                 if let Some(id) = existing_node_cache_id {
-                    node_ids.push(*id);
+                    node_cache_ids.push(*id);
                 }
             } else {
                 let cache_id = self.add_node(&node);
-                node_ids.push(cache_id);
+                node_cache_ids.push(cache_id);
             }
         }
 
-        let mut count_rel = 0;
-        for rel in graph.get_relationships() {
-            let pgraph_edge = graph.get_inner_graph().get_edge(count_rel);
-            let source = &mut self.nodes[node_ids[pgraph_edge.source]];
-            let target = &mut self.nodes[node_ids[pgraph_edge.target]];
-            let rel_cache_id = self.add_relationship(source, target);
-            
-            count_rel += 1;
+        let mut rel_cache_ids = Vec::new();
+        for edge_data in graph.get_inner_graph().get_edges() {
+            let source_ids: Ids;
+            let target_ids: Ids;
+            {
+                let source = &self.nodes[node_cache_ids[edge_data.source]];
+                source_ids = source.id;
+            }
+            {
+                let target = &self.nodes[node_cache_ids[edge_data.target]];
+                target_ids = target.id;
+            }
+            let rel_cache_id = self.add_relationship(source_ids, target_ids);
+            rel_cache_ids.push(rel_cache_id);
         }
+
+        for node_id in 0..node_cache_ids.len() {
+            let mut outbound_edges = Vec::new();
+            for edge_id in graph.get_inner_graph().successors(node_id) {
+                outbound_edges.push(edge_id);
+            }
+            let mut prev_rel_id = Ids::new();
+            for outbound_edge_id in &outbound_edges {
+                let rel_cache_id = rel_cache_ids[*outbound_edge_id];
+                let cache_rel = &mut self.relationships[rel_cache_id];
+                cache_rel.first_prev_rel_id = prev_rel_id;
+                prev_rel_id = cache_rel.id;
+            }
+            outbound_edges.reverse();
+            let mut next_rel_id = Ids::new();
+            for outbound_edge_id in &outbound_edges {
+                let rel_cache_id = rel_cache_ids[*outbound_edge_id];
+                let cache_rel = &mut self.relationships[rel_cache_id];
+                cache_rel.first_next_rel_id = next_rel_id;
+                next_rel_id = cache_rel.id;
+            }
+            {
+                let node_cache_id = node_cache_ids[node_id];
+                let source_cache_node = &mut self.nodes[node_cache_id];
+                source_cache_node.next_rel_id = next_rel_id;
+            }
+        }
+    }
+
+}
+
+
+#[cfg(test)]
+mod test_cache_model {
+    use super::*;
+    #[test]
+    fn test_add_prop_graphs() {
+        let mut pgraph = PropertyGraph::new();
+        pgraph.add_node();
+        pgraph.add_node();
+        pgraph.add_node();
+        pgraph.add_node();
+
+        pgraph.add_relationship(0, 1);
+        pgraph.add_relationship(0, 2);
+        pgraph.add_relationship(1, 3);
+        pgraph.add_relationship(2, 3);
+
+        let mut cgraph = CacheGraph::new();
+        cgraph.add_graph(pgraph);
+
+        let n0 = cgraph.get_node_ref(0);
+        assert_eq!(n0.id.cache, Some(0));
+        assert_eq!(n0.next_rel_id.cache, Some(0));
+
+        let n1 = cgraph.get_node_ref(1);
+        assert_eq!(n0.id.cache, Some(1));
+        assert_eq!(n0.next_rel_id.cache, Some(0));
     }
 
 }
