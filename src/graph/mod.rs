@@ -1,13 +1,16 @@
+pub type NodeIndex = usize;
+pub type EdgeIndex = usize;
+
 pub struct NodeData {
-    first_outbound_edge: Option<usize>,
-    first_inbound_edge: Option<usize>,
+    first_outbound_edge: Option<EdgeIndex>,
+    first_inbound_edge: Option<EdgeIndex>,
 }
 
 pub struct EdgeData {
-    pub source: usize,
-    pub target: usize,
-    pub next_outbound_edge: Option<usize>,
-    pub next_inbound_edge: Option<usize>,
+    pub source: NodeIndex,
+    pub target: NodeIndex,
+    pub next_outbound_edge: Option<EdgeIndex>,
+    pub next_inbound_edge: Option<EdgeIndex>,
 }
 
 pub struct Graph {
@@ -17,18 +20,18 @@ pub struct Graph {
 
 pub struct Successors<'graph> {
     graph: &'graph Graph,
-    current_edge_index: Option<usize>,
+    current_edge_index: Option<EdgeIndex>,
 }
 
 pub struct Ancestors<'graph> {
     graph: &'graph Graph,
-    current_edge_index: Option<usize>,
+    current_edge_index: Option<EdgeIndex>,
 }
 
 impl <'graph> Iterator for Successors<'graph> {
     type Item = usize;
 
-    fn next(&mut self) -> Option<usize> {
+    fn next(&mut self) -> Option<NodeIndex> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
@@ -43,7 +46,7 @@ impl <'graph> Iterator for Successors<'graph> {
 impl <'graph> Iterator for Ancestors<'graph> {
     type Item = usize;
 
-    fn next(&mut self) -> Option<usize> {
+    fn next(&mut self) -> Option<NodeIndex> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
@@ -60,20 +63,20 @@ impl Graph {
         Graph{ nodes: Vec::new(), edges: Vec::new() }
     }
 
-    pub fn add_node(&mut self) -> usize {
+    pub fn add_node(&mut self) -> NodeIndex {
         let index = self.nodes.len();
         self.nodes.push(NodeData{first_outbound_edge: None, first_inbound_edge: None});
         index
     }
 
-    pub fn get_node(&self, id: usize) -> &NodeData {
+    pub fn get_node(&self, id: NodeIndex) -> &NodeData {
         &self.nodes[id]
     }
-    pub fn get_edge(&self, id: usize) -> &EdgeData {
+    pub fn get_edge(&self, id: EdgeIndex) -> &EdgeData {
         &self.edges[id]
     }
 
-    pub fn add_edge(&mut self, source: usize, target: usize) -> usize {
+    pub fn add_edge(&mut self, source: NodeIndex, target: NodeIndex) -> EdgeIndex {
         let index = self.edges.len();
         {
             let source_data = &self.nodes[source];
@@ -90,12 +93,12 @@ impl Graph {
         index
     }
 
-    pub fn successors(&self, source: usize) -> Successors {
+    pub fn successors(&self, source: NodeIndex) -> Successors {
         let first_outbound_edge = self.nodes[source].first_outbound_edge;
         Successors{ graph: self, current_edge_index: first_outbound_edge }
     }
     
-    pub fn ancestors(&self, target: usize) -> Ancestors {
+    pub fn ancestors(&self, target: NodeIndex) -> Ancestors {
         let first_inbound_edge = self.nodes[target].first_inbound_edge;
         Ancestors{ graph: self, current_edge_index: first_inbound_edge }
     }
@@ -122,18 +125,26 @@ mod test_graph {
         let e1 = graph.add_edge(n1, n2);
         let e2 = graph.add_edge(n0, n2);
 
-        let mut count = 0;
-        for e in graph.successors(n0) {
-            count += 1;
-        }
+        let ed0 = graph.get_edge(e0);
+        assert_eq!(ed0.source, n0);
+        assert_eq!(ed0.target, n1);
+        assert_eq!(ed0.next_outbound_edge, None);
+        
+        let nd0 = graph.get_node(n0);
+        assert_eq!(nd0.first_outbound_edge, Some(e2));
 
-        assert_eq!(count, 2);
+        let ed2 = graph.get_edge(e2);
+        assert_eq!(ed2.source, n0);
+        assert_eq!(ed2.target, n2);
+        assert_eq!(ed2.next_outbound_edge, Some(e0));
 
-        count = 0;
-        for e in graph.ancestors(n2) {
-            count += 1;
-        }
+        let targets: Vec<usize> = graph.successors(n0).collect();
+        assert_eq!(targets[0], n2);
+        assert_eq!(targets[1], n1);
+        assert_eq!(targets.len(), 2);
 
-        assert_eq!(count, 2);
+        let sources: Vec<usize> = graph.ancestors(n2).collect();
+        assert_eq!(sources.len(), 2);
+
     }
 }

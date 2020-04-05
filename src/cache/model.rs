@@ -133,7 +133,7 @@ impl CacheGraph {
 
         for node_id in 0..node_cache_ids.len() {
             let mut outbound_edges = Vec::new();
-            for edge_id in graph.get_inner_graph().successors(node_id) {
+            for node_id in graph.get_inner_graph().successors(node_id) {
                 outbound_edges.push(edge_id);
             }
             let mut prev_rel_id = Ids::new();
@@ -186,8 +186,8 @@ mod test_cache_model {
         assert_eq!(n0.next_rel_id.cache, Some(0));
 
         let n1 = cgraph.get_node_ref(1);
-        assert_eq!(n0.id.cache, Some(1));
-        assert_eq!(n0.next_rel_id.cache, Some(0));
+        assert_eq!(n1.id.cache, Some(1));
+        assert_eq!(n1.next_rel_id.cache, Some(0));
     }
 
 }
