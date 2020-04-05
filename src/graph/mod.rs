@@ -58,6 +58,49 @@ impl <'graph> Iterator for Ancestors<'graph> {
     }
 }
 
+pub struct OutDegrees<'graph> {
+    graph: &'graph Graph,
+    current_edge_index: Option<EdgeIndex>,
+}
+
+impl <'graph> Iterator for OutDegrees<'graph> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<EdgeIndex> {
+        match self.current_edge_index {
+            None => None,
+            Some(edge_index) => {
+                let edge = &self.graph.edges[edge_index];
+                let curr_edge_index = self.current_edge_index;
+                self.current_edge_index = edge.next_outbound_edge;
+                curr_edge_index
+            }
+        }
+    }
+}
+
+
+pub struct InDegrees<'graph> {
+    graph: &'graph Graph,
+    current_edge_index: Option<EdgeIndex>,
+}
+
+impl <'graph> Iterator for InDegrees<'graph> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<EdgeIndex> {
+        match self.current_edge_index {
+            None => None,
+            Some(edge_index) => {
+                let edge = &self.graph.edges[edge_index];
+                let curr_edge_index = self.current_edge_index;
+                self.current_edge_index = edge.next_inbound_edge;
+                curr_edge_index
+            }
+        }
+    }
+}
+
 impl Graph {
     pub fn new() -> Self {
         Graph{ nodes: Vec::new(), edges: Vec::new() }
@@ -101,6 +144,16 @@ impl Graph {
     pub fn ancestors(&self, target: NodeIndex) -> Ancestors {
         let first_inbound_edge = self.nodes[target].first_inbound_edge;
         Ancestors{ graph: self, current_edge_index: first_inbound_edge }
+    }
+    
+    pub fn out_degrees(&self, source: NodeIndex) -> OutDegrees {
+        let first_outbound_edge = self.nodes[source].first_outbound_edge;
+        OutDegrees{ graph: self, current_edge_index: first_outbound_edge }
+    }
+
+    pub fn in_degrees(&self, target: NodeIndex) -> InDegrees {
+        let first_inbound_edge = self.nodes[target].first_inbound_edge;
+        InDegrees{ graph: self, current_edge_index: first_inbound_edge }
     }
 
     pub fn get_nodes(&self) -> &Vec<NodeData> {
