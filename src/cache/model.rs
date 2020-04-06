@@ -151,10 +151,27 @@ impl CacheGraph {
                 cache_rel.first_next_rel_id = next_rel_id;
                 next_rel_id = cache_rel.id;
             }
+            let mut inbound_edges = Vec::new();
+            for edge_id in graph.get_inner_graph().in_degrees(node_id) {
+                inbound_edges.push(edge_id);
+            }
+            for inbound_edge_id in &inbound_edges {
+                let rel_cache_id = rel_cache_ids[*inbound_edge_id];
+                let cache_rel = &mut self.relationships[rel_cache_id];
+                cache_rel.second_prev_rel_id = prev_rel_id;
+                prev_rel_id = cache_rel.id;
+            }
+            inbound_edges.reverse();
+            for inbound_edge_id in &inbound_edges {
+                let rel_cache_id = rel_cache_ids[*inbound_edge_id];
+                let cache_rel = &mut self.relationships[rel_cache_id];
+                cache_rel.second_next_rel_id = next_rel_id;
+                next_rel_id = cache_rel.id;
+            }
             {
                 let node_cache_id = node_cache_ids[node_id];
-                let source_cache_node = &mut self.nodes[node_cache_id];
-                source_cache_node.next_rel_id = next_rel_id;
+                let current_cache_node = &mut self.nodes[node_cache_id];
+                current_cache_node.next_rel_id = next_rel_id;
             }
         }
     }
@@ -187,7 +204,17 @@ mod test_cache_model {
 
         let n1 = cgraph.get_node_ref(1);
         assert_eq!(n1.id.cache, Some(1));
-        assert_eq!(n1.next_rel_id.cache, Some(2));
+        assert_eq!(n1.next_rel_id.cache, Some(0));
+
+        let r0 = cgraph.get_relationship_ref(n0.next_rel_id.cache.unwrap());
+        assert_eq!(r0.first_node.cache, Some(0));
+        assert_eq!(r0.second_node.cache, Some(2));
+
+        let r1 = cgraph.get_relationship_ref(r0.first_next_rel_id.cache.unwrap());
+        assert_eq!(r1.first_node.cache, Some(0));
+        assert_eq!(r1.second_node.cache, Some(1));
+        assert_eq!(r1.first_next_rel_id.cache, None);
+        assert_eq!(r1.first_prev_rel_id.cache, Some(1));
     }
 
 }

@@ -3,7 +3,7 @@ use std;
 use std::fmt;
 use std::error::Error;
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenType {
     Integer,
     Float,
@@ -40,7 +40,7 @@ pub enum TokenType {
 
 
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub begin: usize,
