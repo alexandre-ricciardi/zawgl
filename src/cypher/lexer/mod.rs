@@ -117,7 +117,7 @@ impl Error for LexerError {
 }
 
 impl <'a> Lexer<'a> {
-    pub fn new(input: &str) -> Lexer {
+    pub fn new(input: &'a str) -> Lexer {
         Lexer {
             keywords: vec![(TokenType::True, "true"), (TokenType::False, "false"),
                             (TokenType::And, "and"), (TokenType::Or, "or"),

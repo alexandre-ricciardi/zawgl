@@ -22,7 +22,7 @@ pub struct Ids {
 }
 
 impl Ids {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Ids {store: None, cache: None}
     }
 }
@@ -49,15 +49,11 @@ impl CachedRelationship {
 pub struct CacheGraph {
     nodes: Vec<CachedNode>,
     relationships: Vec<CachedRelationship>,
-    map_store_to_cache_node_ids: HashMap<StoreId, CacheId>,
-    map_store_to_cache_raltionship_ids: HashMap<StoreId, CacheId>,
 }
 
 impl CacheGraph {
     pub fn new() -> Self {
-        CacheGraph{ nodes: Vec::new(), relationships: Vec::new(), 
-            map_store_to_cache_node_ids: HashMap::new(),
-            map_store_to_cache_raltionship_ids: HashMap::new() }
+        CacheGraph{nodes: Vec::new(), relationships: Vec::new()}
     }
 
     pub fn add_node(&mut self, node: &Node) -> CacheId {
@@ -73,10 +69,10 @@ impl CacheGraph {
         &self.nodes[cache_id]
     }
 
-    fn get_node_from_db_id(&self, db_id: u64) -> &CachedNode {
-        &self.nodes[self.map_store_to_cache_node_ids[&db_id]]
+    pub fn get_node_mut(&mut self, cache_id: CacheId) -> &mut CachedNode {
+        &mut self.nodes[cache_id]
     }
-
+    
     pub fn add_relationship(&mut self, source: Ids, target: Ids) -> CacheId {
         let index = self.relationships.len();
         {
@@ -92,88 +88,11 @@ impl CacheGraph {
     pub fn get_relationship_ref(&self, cache_id: CacheId) -> &CachedRelationship {
         &self.relationships[cache_id]
     }
-
-    fn check_node_exists(&self, node: &Node) -> bool {
-        if let Some(id) = node.id {
-            self.map_store_to_cache_node_ids.contains_key(&id)
-        } else {
-            false
-        }
+    pub fn get_relationship_mut(&mut self, cache_id: CacheId) -> &mut CachedRelationship {
+        &mut self.relationships[cache_id]
     }
-
-    pub fn add_graph(&mut self, graph: PropertyGraph) {
-        let mut node_cache_ids = Vec::new();
-        for node in graph.get_nodes() {
-            if self.check_node_exists(&node) {
-                let existing_node_cache_id = node.id.and_then(|id|self.map_store_to_cache_node_ids.get(&id));
-                if let Some(id) = existing_node_cache_id {
-                    node_cache_ids.push(*id);
-                }
-            } else {
-                let cache_id = self.add_node(&node);
-                node_cache_ids.push(cache_id);
-            }
-        }
-
-        let mut rel_cache_ids = Vec::new();
-        for edge_data in graph.get_inner_graph().get_edges() {
-            let source_ids: Ids;
-            let target_ids: Ids;
-            {
-                let source = &self.nodes[node_cache_ids[edge_data.source]];
-                source_ids = source.id;
-            }
-            {
-                let target = &self.nodes[node_cache_ids[edge_data.target]];
-                target_ids = target.id;
-            }
-            let rel_cache_id = self.add_relationship(source_ids, target_ids);
-            rel_cache_ids.push(rel_cache_id);
-        }
-
-        for node_id in 0..node_cache_ids.len() {
-            let mut outbound_edges = Vec::new();
-            for edge_id in graph.get_inner_graph().out_degrees(node_id) {
-                outbound_edges.push(edge_id);
-            }
-            let mut prev_rel_id = Ids::new();
-            for outbound_edge_id in &outbound_edges {
-                let rel_cache_id = rel_cache_ids[*outbound_edge_id];
-                let cache_rel = &mut self.relationships[rel_cache_id];
-                cache_rel.first_prev_rel_id = prev_rel_id;
-                prev_rel_id = cache_rel.id;
-            }
-            outbound_edges.reverse();
-            let mut next_rel_id = Ids::new();
-            for outbound_edge_id in &outbound_edges {
-                let rel_cache_id = rel_cache_ids[*outbound_edge_id];
-                let cache_rel = &mut self.relationships[rel_cache_id];
-                cache_rel.first_next_rel_id = next_rel_id;
-                next_rel_id = cache_rel.id;
-            }
-            let mut inbound_edges = Vec::new();
-            for edge_id in graph.get_inner_graph().in_degrees(node_id) {
-                inbound_edges.push(edge_id);
-            }
-            for inbound_edge_id in &inbound_edges {
-                let rel_cache_id = rel_cache_ids[*inbound_edge_id];
-                let cache_rel = &mut self.relationships[rel_cache_id];
-                cache_rel.second_prev_rel_id = prev_rel_id;
-                prev_rel_id = cache_rel.id;
-            }
-            inbound_edges.reverse();
-            for inbound_edge_id in &inbound_edges {
-                let rel_cache_id = rel_cache_ids[*inbound_edge_id];
-                let cache_rel = &mut self.relationships[rel_cache_id];
-                cache_rel.second_next_rel_id = next_rel_id;
-                next_rel_id = cache_rel.id;
-            }
-            {
-                let node_cache_id = node_cache_ids[node_id];
-                let current_cache_node = &mut self.nodes[node_cache_id];
-                current_cache_node.next_rel_id = next_rel_id;
-            }
-        }
+    pub fn add_graph(&mut self, graph: &PropertyGraph) {
+       
     }
 
 }
@@ -182,7 +101,6 @@ impl CacheGraph {
 #[cfg(test)]
 mod test_cache_model {
     use super::*;
-    #[test]
     fn test_add_prop_graphs() {
         let mut pgraph = PropertyGraph::new();
         pgraph.add_node();
@@ -196,7 +114,7 @@ mod test_cache_model {
         pgraph.add_relationship(2, 3);
 
         let mut cgraph = CacheGraph::new();
-        cgraph.add_graph(pgraph);
+        cgraph.add_graph(&pgraph);
 
         let n0 = cgraph.get_node_ref(0);
         assert_eq!(n0.id.cache, Some(0));

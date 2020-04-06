@@ -1,3 +1,3 @@
-pub mod store;
+mod store;
 mod properties_repository;
-mod graph_repository;
+pub mod graph_repository;
