@@ -9,7 +9,7 @@ pub struct CachedNode {
 
 impl CachedNode {
     pub fn new() -> Self {
-        CachedNode {id: Ids::new(), is_stored: false, next_rel_id: Ids::new()}
+        CachedNode {id: Ids::new_empty(), is_stored: false, next_rel_id: Ids::new_empty()}
     }
 }
 
@@ -22,8 +22,11 @@ pub struct Ids {
 }
 
 impl Ids {
-    pub fn new() -> Self {
+    pub fn new_empty() -> Self {
         Ids {store: None, cache: None}
+    }
+    pub fn new(s_id: StoreId, c_id: CacheId) -> Self {
+        Ids {store: Some(s_id), cache: Some(c_id)}
     }
 }
 
@@ -41,8 +44,8 @@ pub struct CachedRelationship {
 
 impl CachedRelationship {
     pub fn new() -> Self {
-        CachedRelationship {id: Ids::new(), is_stored: false, first_node: Ids::new(), second_node: Ids::new(), 
-        relationship_type: Ids::new(), first_prev_rel_id: Ids::new(), first_next_rel_id: Ids::new(), second_prev_rel_id: Ids::new(), second_next_rel_id: Ids::new()}
+        CachedRelationship {id: Ids::new_empty(), is_stored: false, first_node: Ids::new_empty(), second_node: Ids::new_empty(), 
+        relationship_type: Ids::new_empty(), first_prev_rel_id: Ids::new_empty(), first_next_rel_id: Ids::new_empty(), second_prev_rel_id: Ids::new_empty(), second_next_rel_id: Ids::new_empty()}
     }
 }
 

@@ -11,13 +11,16 @@ impl NodesStore {
     pub fn new(file: &str) -> Self {
         NodesStore {node_records_store: Store::new(file, 17)}
     }
-    pub fn save(&mut self, node: &NodeRecord) -> u64 {
-        self.node_records_store.save(&nr_to_bytes(&node))
+    pub fn save(&mut self, id: u64, node: &NodeRecord) -> u64 {
+        self.node_records_store.save(id, &nr_to_bytes(&node))
     }
     pub fn load(&mut self, node_id: u64) -> NodeRecord {
         let mut data: [u8; 17] = [0; 17];
         self.node_records_store.load(node_id, &mut data);
         nr_from_bytes(data)
+    }
+    pub fn gen_node_id(&mut self) -> u64 {
+        self.node_records_store.next_free_record_id()
     }
 }
 
@@ -36,7 +39,7 @@ mod test_nodes_store {
             next_rel_id: 11287665,
             next_prop_id: 89089807,
         };
-        store.save(&nr);
+        store.save(0, &nr);
         let r = store.load(0);
         assert_eq!(r.in_use, true);
         assert_eq!(r.next_rel_id, 11287665);

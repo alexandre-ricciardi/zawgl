@@ -11,7 +11,8 @@ impl PropertiesStore {
         PropertiesStore {prop_records_store: Store::new(file, 42)}
     }
     pub fn save(&mut self, pr: &PropertyRecord) -> u64 {
-        self.prop_records_store.save(&pr_to_bytes(pr))
+        let id = self.prop_records_store.next_free_record_id();
+        self.prop_records_store.save(id, &pr_to_bytes(pr))
     }
     pub fn load(&mut self, pr_id: u64) -> PropertyRecord {
         let mut data: [u8; 42] = [0; 42];

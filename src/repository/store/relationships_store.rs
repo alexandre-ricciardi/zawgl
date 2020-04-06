@@ -11,8 +11,8 @@ impl RelationshipsStore {
     pub fn new(file: &str) -> Self {
         RelationshipsStore {relationship_records_store: Store::new(file, 65)}
     }
-    pub fn save(&mut self, rel: &RelationshipRecord) -> u64 {
-        self.relationship_records_store.save(&rr_to_bytes(rel))
+    pub fn save(&mut self, id: u64, rel: &RelationshipRecord) -> u64 {
+        self.relationship_records_store.save(id, &rr_to_bytes(rel))
     }
     pub fn load(&mut self, rel_id: u64) -> RelationshipRecord {
         let mut data: [u8; 65] = [0; 65];
@@ -43,7 +43,7 @@ mod test_relationship_store {
             second_next_rel_id: 554978,
             next_prop_id: 8764564,
         };
-        store.save(&rr);
+        store.save(0, &rr);
         let r = store.load(0);
         assert_eq!(r.in_use, true);
         assert_eq!(r.first_node, 45465);

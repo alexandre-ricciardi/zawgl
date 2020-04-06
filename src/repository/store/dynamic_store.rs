@@ -11,7 +11,8 @@ impl DynamicStore {
         DynamicStore {dyn_records_store: Store::new(file, 129)}
     }
     pub fn save(&mut self, dr: &DynamicStoreRecord) -> u64 {
-        self.dyn_records_store.save(&dr_to_bytes(dr))
+        let id = self.dyn_records_store.next_free_record_id();
+        self.dyn_records_store.save(id, &dr_to_bytes(dr))
     }
     pub fn save_data(&mut self, data: &[u8]) -> u64 {
         let mut count = data.len() / 120;

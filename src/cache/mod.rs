@@ -65,7 +65,7 @@ impl Cache {
             for edge_id in graph.get_inner_graph().out_degrees(node_id) {
                 outbound_edges.push(edge_id);
             }
-            let mut prev_rel_id = Ids::new();
+            let mut prev_rel_id = Ids::new_empty();
             for outbound_edge_id in &outbound_edges {
                 let rel_cache_id = rel_cache_ids[*outbound_edge_id];
                 let cache_rel = self.model.get_relationship_mut(rel_cache_id);
@@ -73,7 +73,7 @@ impl Cache {
                 prev_rel_id = cache_rel.id;
             }
             outbound_edges.reverse();
-            let mut next_rel_id = Ids::new();
+            let mut next_rel_id = Ids::new_empty();
             for outbound_edge_id in &outbound_edges {
                 let rel_cache_id = rel_cache_ids[*outbound_edge_id];
                 let cache_rel = self.model.get_relationship_mut(rel_cache_id);
