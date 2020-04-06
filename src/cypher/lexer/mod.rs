@@ -41,32 +41,32 @@ pub enum TokenType {
 
 
 #[derive(Debug, PartialEq)]
-pub struct Token {
+pub struct Token<'a> {
     pub token_type: TokenType,
     pub begin: usize,
     pub end: usize,
-    pub content: String
+    pub content: &'a str
 }
 
-impl fmt::Display for Token {
+impl <'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(&format!("{}", self.content))
     }
 }
 
 
-impl Token {
+impl <'a> Token<'a> {
     pub fn new(ttype: TokenType, beg: usize, end: usize, token_expr: &str) -> Token {
-        Token {token_type: ttype, begin: beg, end: end, content: token_expr.to_owned()}
+        Token {token_type: ttype, begin: beg, end: end, content: token_expr}
     }
     pub fn size(&self) -> usize {
         self.end - self.begin
     }
 }
 
-pub struct Lexer {
+pub struct Lexer<'a> {
     keywords: Vec<(TokenType, &'static str)>,
-    input: String,
+    input: &'a str,
     position: usize,
     line: usize,
     column: usize,
@@ -74,10 +74,10 @@ pub struct Lexer {
 }
 
 fn make_token(ttype: TokenType, beg: usize, end: usize, input: &str) -> Option<Token> {
-    input.get(beg..end).map(|tok_expr| Token {token_type: ttype, begin: beg, end: end, content: String::from(tok_expr)})
+    input.get(beg..end).map(|tok_expr| Token {token_type: ttype, begin: beg, end: end, content: tok_expr})
 }
 
-fn run_keyword_fsm(tok_type: TokenType, keyword: &'static str, input: &str, index: usize) -> Option<Token> {
+fn run_keyword_fsm<'a>(tok_type: TokenType, keyword: &'static str, input: &'a str, index: usize) -> Option<Token<'a>> {
     let mut kfsm = fsm::keyword_fsm::make_keyword_ignorecase_fsm(keyword);
     input.get(index..).and_then(|rest| kfsm.run(&rest)).and_then(|size| input.get(index..index + size.0)).map(|tok_expr| Token::new(tok_type, index, index + tok_expr.len(), tok_expr))
 }
@@ -116,7 +116,7 @@ impl Error for LexerError {
     }
 }
 
-impl Lexer {
+impl <'a> Lexer<'a> {
     pub fn new(input: &str) -> Lexer {
         Lexer {
             keywords: vec![(TokenType::True, "true"), (TokenType::False, "false"),
@@ -132,9 +132,9 @@ impl Lexer {
                             (TokenType::UndirectedRel, "{"), (TokenType::Create, "create"),
                             (TokenType::Comma, ","),
                             (TokenType::Pipe, "|"), (TokenType::Minus, "-")],
-            input: input.to_owned(), position: 0, line: 0, column: 0, lookahead: 0}
+            input: input, position: 0, line: 0, column: 0, lookahead: 0}
     }
-    pub  fn  next_token(&mut self) -> LexerResult<Token> {
+    pub  fn  next_token(&mut self) -> LexerResult<Token<'a>> {
         
         self.position = self.position + self.lookahead;
         if self.position >= self.input.len() {
@@ -173,7 +173,7 @@ impl Lexer {
             match string_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(string_len) => {
                     self.lookahead = string_len.0;
-                    return Ok(make_token(TokenType::StringType, self.position, self.position + string_len.0, &self.input).unwrap());
+                    return make_token(TokenType::StringType, self.position, self.position + string_len.0, &self.input).ok_or(LexerError::NotFound);
                 },
                 None => {},
             }
@@ -181,7 +181,7 @@ impl Lexer {
             return match identifier_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(idlen) => {
                     self.lookahead = idlen.0;
-                    Ok(make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).unwrap())
+                    make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
                 } ,
 
                 None => Err(LexerError::WrongIdentifierFormat(self.position)),
@@ -194,7 +194,7 @@ impl Lexer {
         self.position < self.input.len() - 1
     }
 
-    pub fn get_tokens(&mut self) -> LexerResult<Vec<Token>> {
+    pub fn get_tokens(&mut self) -> LexerResult<Vec<Token<'a>>> {
         let mut res = Vec::new();
         while self.has_next() {
             let token = self.next_token()?;

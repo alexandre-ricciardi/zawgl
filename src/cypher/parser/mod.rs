@@ -164,12 +164,12 @@ pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) {
     }
 }
 
-pub struct Parser  {
-    tokens: Vec<Token>,
+pub struct Parser<'a>  {
+    tokens: Vec<Token<'a>>,
     pub index: usize,
 }
 
-impl Parser {
+impl <'a> Parser<'a> {
     pub fn new(tokens: Vec<Token>) -> Parser {
         Parser {tokens : tokens, index: 0}
     }
