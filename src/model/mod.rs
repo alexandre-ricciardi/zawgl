@@ -135,8 +135,8 @@ impl PropertyGraph {
         &self.nodes
     }
     
-    pub fn get_relationships(&self) -> &Vec<Relationship> {
-        &self.relationships
+    pub fn get_relationships_and_edges(&self) -> Vec<(&Relationship, &EdgeData)> {
+        self.relationships.iter().zip(self.graph.get_edges()).collect::<Vec<(&Relationship, &EdgeData)>>()
     }
 
     pub fn get_inner_graph(&self) -> &Graph {

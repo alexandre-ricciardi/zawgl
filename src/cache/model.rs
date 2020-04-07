@@ -17,8 +17,8 @@ pub type CacheId = usize;
 pub type StoreId = u64;
 #[derive(Copy, Clone, PartialEq)]
 pub struct Ids {
-    store: Option<StoreId>,
-    cache: Option<CacheId>,
+    pub store: Option<StoreId>,
+    pub cache: Option<CacheId>,
 }
 
 impl Ids {
@@ -59,10 +59,10 @@ impl CacheGraph {
         CacheGraph{nodes: Vec::new(), relationships: Vec::new()}
     }
 
-    pub fn add_node(&mut self, node: &Node) -> CacheId {
+    pub fn add_node(&mut self, store_id: Option<StoreId>) -> CacheId {
         let size = self.nodes.len();
         let mut cn = CachedNode::new();
-        cn.id.store = node.id;
+        cn.id.store = store_id;
         cn.id.cache = Some(size);
         self.nodes.push(cn);
         size
@@ -76,10 +76,11 @@ impl CacheGraph {
         &mut self.nodes[cache_id]
     }
     
-    pub fn add_relationship(&mut self, source: Ids, target: Ids) -> CacheId {
+    pub fn add_relationship(&mut self, source: Ids, target: Ids, store_id: Option<StoreId>) -> CacheId {
         let index = self.relationships.len();
         {
             let mut cr = CachedRelationship::new();
+            cr.id.store = store_id;
             cr.id.cache = Some(index);
             cr.first_node = source;
             cr.second_node = target;
