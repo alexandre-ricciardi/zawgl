@@ -21,6 +21,10 @@ impl GraphRepository {
         self.nodes_store.gen_node_id()
     }
 
+    pub fn gen_relationship_id(&mut self) -> u64 {
+        self.relationships_store.gen_relationship_id()
+    }
+
     pub fn reserve_relationship_ids(&mut self, n: u64) -> Vec<u64> {
         Vec::new()
     }

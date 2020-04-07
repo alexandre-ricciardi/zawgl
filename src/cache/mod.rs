@@ -67,7 +67,7 @@ impl Cache {
                 self.map_store_to_cache_relationship_ids.insert(id, rel_cache_id);
                 rel_cache_ids.push(rel_cache_id);
             } else {
-                let rel_store_id = self.repository.gen_node_id();
+                let rel_store_id = self.repository.gen_relationship_id();
                 let rel_cache_id = self.model.add_relationship( source_ids, target_ids, Some(rel_store_id));
                 self.map_store_to_cache_relationship_ids.insert(rel_store_id, rel_cache_id);
                 rel_cache_ids.push(rel_cache_id);
@@ -125,7 +125,7 @@ impl Cache {
     }
 
     pub fn sync_to_disk() {
-
+        
     }
 }
 

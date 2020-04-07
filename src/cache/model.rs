@@ -95,9 +95,6 @@ impl CacheGraph {
     pub fn get_relationship_mut(&mut self, cache_id: CacheId) -> &mut CachedRelationship {
         &mut self.relationships[cache_id]
     }
-    pub fn add_graph(&mut self, graph: &PropertyGraph) {
-       
-    }
 
 }
 
@@ -106,37 +103,6 @@ impl CacheGraph {
 mod test_cache_model {
     use super::*;
     fn test_add_prop_graphs() {
-        let mut pgraph = PropertyGraph::new();
-        pgraph.add_node();
-        pgraph.add_node();
-        pgraph.add_node();
-        pgraph.add_node();
-
-        pgraph.add_relationship(0, 1);
-        pgraph.add_relationship(0, 2);
-        pgraph.add_relationship(1, 3);
-        pgraph.add_relationship(2, 3);
-
-        let mut cgraph = CacheGraph::new();
-        cgraph.add_graph(&pgraph);
-
-        let n0 = cgraph.get_node_ref(0);
-        assert_eq!(n0.id.cache, Some(0));
-        assert_eq!(n0.next_rel_id.cache, Some(1));
-
-        let n1 = cgraph.get_node_ref(1);
-        assert_eq!(n1.id.cache, Some(1));
-        assert_eq!(n1.next_rel_id.cache, Some(0));
-
-        let r0 = cgraph.get_relationship_ref(n0.next_rel_id.cache.unwrap());
-        assert_eq!(r0.first_node.cache, Some(0));
-        assert_eq!(r0.second_node.cache, Some(2));
-
-        let r1 = cgraph.get_relationship_ref(r0.first_next_rel_id.cache.unwrap());
-        assert_eq!(r1.first_node.cache, Some(0));
-        assert_eq!(r1.second_node.cache, Some(1));
-        assert_eq!(r1.first_next_rel_id.cache, None);
-        assert_eq!(r1.first_prev_rel_id.cache, Some(1));
     }
 
 }
