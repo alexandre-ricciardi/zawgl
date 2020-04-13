@@ -1,5 +1,6 @@
 use super::super::model::*;
 use std::collections::HashMap;
+use super::super::graph::container::GraphTrait;
 
 pub struct CachedNode {
     pub id: Ids,
@@ -68,13 +69,6 @@ impl CacheGraph {
         size
     }
 
-    pub fn get_node_ref(&self, cache_id: CacheId) -> &CachedNode {
-        &self.nodes[cache_id]
-    }
-
-    pub fn get_node_mut(&mut self, cache_id: CacheId) -> &mut CachedNode {
-        &mut self.nodes[cache_id]
-    }
     
     pub fn add_relationship(&mut self, source: Ids, target: Ids, store_id: Option<StoreId>) -> CacheId {
         let index = self.relationships.len();
@@ -89,13 +83,26 @@ impl CacheGraph {
         index
     }
 
-    pub fn get_relationship_ref(&self, cache_id: CacheId) -> &CachedRelationship {
-        &self.relationships[cache_id]
-    }
-    pub fn get_relationship_mut(&mut self, cache_id: CacheId) -> &mut CachedRelationship {
-        &mut self.relationships[cache_id]
+
+}
+
+impl GraphTrait<CachedNode, CachedRelationship> for CacheGraph {
+
+    fn get_node_ref(&self, cache_id: CacheId) -> &CachedNode {
+        &self.nodes[cache_id]
     }
 
+    fn get_node_mut(&mut self, cache_id: CacheId) -> &mut CachedNode {
+        &mut self.nodes[cache_id]
+    }
+
+    fn get_relationship_ref(&self, cache_id: CacheId) -> &CachedRelationship {
+        &self.relationships[cache_id]
+    }
+
+    fn get_relationship_mut(&mut self, cache_id: CacheId) -> &mut CachedRelationship {
+        &mut self.relationships[cache_id]
+    }
 }
 
 

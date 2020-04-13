@@ -1,6 +1,7 @@
 use super::cypher::*;
 use super::model::*;
 use super::cypher::parser::*;
+use super::graph::container::GraphTrait;
 
 pub fn process_query(query: &str) -> Option<Request> {
     let mut lexer = lexer::Lexer::new(query);
@@ -65,7 +66,8 @@ impl AstVisitor for CypherAstVisitor {
         match self.state {
             VisitorState::DirectiveCreate |
             VisitorState::DirectiveMatch => {
-                self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node());
+                let node = Node::new();
+                self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node(node));
             },
             _ => {}
         }    
@@ -74,17 +76,18 @@ impl AstVisitor for CypherAstVisitor {
     fn enter_relationship(&mut self, node: &AstTagNode) {
         
         let prev_node = self.curr_node;
-        self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node());
+        let pnode = Node::new();
+        self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node(pnode));
         let source_target = prev_node.and_then(|p| self.curr_node.map(|c| (p, c)));
         self.curr_directed_relationship = node.ast_tag.and_then(|ast_tag| {
             match ast_tag {
                 AstTag::RelDirectedLR => {
                     self.state = VisitorState::RelationshipLR;
-                    source_target.and_then(|st| self.request.as_mut().map(|req| req.pattern.add_relationship(st.0, st.1)))
+                    source_target.and_then(|st| self.request.as_mut().map(|req| req.pattern.add_relationship(Relationship::new(), st.0, st.1)))
                 },
                 AstTag::RelDirectedRL => {
                     self.state = VisitorState::RelationshipRL;
-                    source_target.and_then(|st| self.request.as_mut().map(|req| req.pattern.add_relationship(st.1, st.0)))
+                    source_target.and_then(|st| self.request.as_mut().map(|req| req.pattern.add_relationship(Relationship::new(), st.1, st.0)))
                 },
                 _ => None
             }
@@ -93,7 +96,7 @@ impl AstVisitor for CypherAstVisitor {
             match ast_tag {
                 AstTag::RelUndirected => {
                     self.state = VisitorState::UndirectedRelationship;
-                    source_target.and_then(|st| self.request.as_mut().map(|req| (req.pattern.add_relationship(st.0, st.1), req.pattern.add_relationship(st.1, st.0))))
+                    source_target.and_then(|st| self.request.as_mut().map(|req| (req.pattern.add_relationship(Relationship::new(), st.0, st.1), req.pattern.add_relationship(Relationship::new(), st.1, st.0))))
                 },
                 _ => None
             }
@@ -468,7 +471,7 @@ mod test_query_engine {
             let rel = req.pattern.get_relationship_ref(0);
             assert_eq!(rel.var, Some(String::from("r")));
             assert_eq!(rel.labels[0], String::from("FRIEND_OF"));
-            let p_id = req.pattern.successors(0).next();
+            let p_id = req.pattern.get_inner_graph().successors(0).next();
             if let Some(id) = p_id {
                 let p = req.pattern.get_node_ref(id);
                 assert_eq!(p.var, Some(String::from("p")));

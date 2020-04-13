@@ -3,6 +3,7 @@ mod model;
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
+use graph::container::GraphTrait;
 use std::collections::HashMap;
 
 pub struct Cache {
@@ -76,7 +77,7 @@ impl Cache {
 
         for node_id in 0..node_cache_ids.len() {
             let mut outbound_edges = Vec::new();
-            for edge_id in graph.get_inner_graph().out_degrees(node_id) {
+            for edge_id in graph.get_inner_graph().out_edges(node_id) {
                 outbound_edges.push(edge_id);
             }
             let mut prev_rel_id = Ids::new_empty();
@@ -95,7 +96,7 @@ impl Cache {
                 next_rel_id = cache_rel.id;
             }
             let mut inbound_edges = Vec::new();
-            for edge_id in graph.get_inner_graph().in_degrees(node_id) {
+            for edge_id in graph.get_inner_graph().in_edges(node_id) {
                 inbound_edges.push(edge_id);
             }
             for inbound_edge_id in &inbound_edges {
@@ -138,15 +139,15 @@ mod test_cache {
     #[test]
     fn test_add_prop_graphs() {
         let mut pgraph = PropertyGraph::new();
-        pgraph.add_node();
-        pgraph.add_node();
-        pgraph.add_node();
-        pgraph.add_node();
+        pgraph.add_node(Node::new());
+        pgraph.add_node(Node::new());
+        pgraph.add_node(Node::new());
+        pgraph.add_node(Node::new());
 
-        pgraph.add_relationship(0, 1);
-        pgraph.add_relationship(0, 2);
-        pgraph.add_relationship(1, 3);
-        pgraph.add_relationship(2, 3);
+        pgraph.add_relationship(Relationship::new(), 0, 1);
+        pgraph.add_relationship(Relationship::new(), 0, 2);
+        pgraph.add_relationship(Relationship::new(), 1, 3);
+        pgraph.add_relationship(Relationship::new(), 2, 3);
         let ctx = init::InitContext {
             conf: Conf {
                 db_dir: String::from("C:\\Temp"),

@@ -60,12 +60,12 @@ impl <'graph> Iterator for Ancestors<'graph> {
     }
 }
 
-pub struct OutDegrees<'graph> {
+pub struct OutEdges<'graph> {
     graph: &'graph Graph,
     current_edge_index: Option<EdgeIndex>,
 }
 
-impl <'graph> Iterator for OutDegrees<'graph> {
+impl <'graph> Iterator for OutEdges<'graph> {
     type Item = usize;
 
     fn next(&mut self) -> Option<EdgeIndex> {
@@ -82,12 +82,12 @@ impl <'graph> Iterator for OutDegrees<'graph> {
 }
 
 
-pub struct InDegrees<'graph> {
+pub struct InEdges<'graph> {
     graph: &'graph Graph,
     current_edge_index: Option<EdgeIndex>,
 }
 
-impl <'graph> Iterator for InDegrees<'graph> {
+impl <'graph> Iterator for InEdges<'graph> {
     type Item = usize;
 
     fn next(&mut self) -> Option<EdgeIndex> {
@@ -148,14 +148,14 @@ impl Graph {
         Ancestors{ graph: self, current_edge_index: first_inbound_edge }
     }
     
-    pub fn out_degrees(&self, source: NodeIndex) -> OutDegrees {
+    pub fn out_edges(&self, source: NodeIndex) -> OutEdges {
         let first_outbound_edge = self.nodes[source].first_outbound_edge;
-        OutDegrees{ graph: self, current_edge_index: first_outbound_edge }
+        OutEdges{ graph: self, current_edge_index: first_outbound_edge }
     }
 
-    pub fn in_degrees(&self, target: NodeIndex) -> InDegrees {
+    pub fn in_edges(&self, target: NodeIndex) -> InEdges {
         let first_inbound_edge = self.nodes[target].first_inbound_edge;
-        InDegrees{ graph: self, current_edge_index: first_inbound_edge }
+        InEdges{ graph: self, current_edge_index: first_inbound_edge }
     }
 
     pub fn get_nodes(&self) -> &Vec<NodeData> {
