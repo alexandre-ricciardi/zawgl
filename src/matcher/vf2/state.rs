@@ -24,7 +24,9 @@ impl <'g0, 'g1, V0: Eq, V1: Eq, R0: Eq, R1: Eq> State<'g0, 'g1, V0, V1, R0, R1> 
     }
 
     fn feasible(&self, v_new: NodeIndex, w_new: NodeIndex) -> bool {
-        if v_new != w_new {
+        let v = self.graph_0.get_node_ref(v_new);
+        let w = self.graph_1.get_node_ref(w_new);
+        if v != w {
             false
         } else {
 
