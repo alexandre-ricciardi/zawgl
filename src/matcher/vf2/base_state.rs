@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use super::super::super::graph::container::GraphTrait;
 use super::super::super::graph::{NodeIndex};
 
-pub struct BaseState<'g0, 'g1, V0: Eq + std::hash::Hash, V1: Eq + std::hash::Hash, R0, R1> {
+pub struct BaseState<'g0, 'g1> {
     term_in_count: usize,
     term_out_count: usize,
     term_both_count: usize,
@@ -10,12 +10,12 @@ pub struct BaseState<'g0, 'g1, V0: Eq + std::hash::Hash, V1: Eq + std::hash::Has
     core_map: HashMap<NodeIndex, NodeIndex>,
     in_map: HashMap<NodeIndex, usize>,
     out_map: HashMap<NodeIndex, usize>,
-    graph_0: &'g0 dyn GraphTrait<V0, R0>,
-    graph_1: &'g1 dyn GraphTrait<V1, R1>,
+    graph_0: &'g0 dyn GraphTrait,
+    graph_1: &'g1 dyn GraphTrait,
 
 }
 
-impl <'g0, 'g1, V0: Eq + std::hash::Hash, V1: Eq + std::hash::Hash, R0, R1> BaseState<'g0, 'g1, V0, V1, R0, R1> {
+impl <'g0, 'g1> BaseState<'g0, 'g1> {
     pub fn push(&mut self, v0: NodeIndex, v1: NodeIndex) {  
         self.core_count += 1;
         self.core_map.insert(v0, v1);
@@ -118,8 +118,7 @@ impl <'g0, 'g1, V0: Eq + std::hash::Hash, V1: Eq + std::hash::Hash, R0, R1> Base
 
     pub fn term_in_vertex(&self, v0: NodeIndex) -> bool {
         let has_in_count = self.in_map.get(&v0).map(|count| *count > 0);
-        let has_not_core = self.core_map.get(&v0).map(|v1| *v1 == 0);
-        has_in_count.and_then(|has_in| has_not_core.map(|no_core| has_in && no_core)) == Some(true)
+        has_in_count.map(|has_in| has_in && !self.core_map.contains_key(&v0)) == Some(true)
     }
     
     pub fn term_out(&self) -> bool {
@@ -128,8 +127,7 @@ impl <'g0, 'g1, V0: Eq + std::hash::Hash, V1: Eq + std::hash::Hash, R0, R1> Base
 
     pub fn term_out_vertex(&self, v0: NodeIndex) -> bool {
         let has_out_count = self.out_map.get(&v0).map(|count| *count > 0);
-        let has_not_core = self.core_map.get(&v0).map(|v1| *v1 == 0);
-        has_out_count.and_then(|has_out| has_not_core.map(|no_core| has_out && no_core)) == Some(true)
+        has_out_count.map(|has_out| has_out && self.core_map.contains_key(&v0)) == Some(true)
     }
     
     pub fn term_both(&self) -> bool {
@@ -137,11 +135,46 @@ impl <'g0, 'g1, V0: Eq + std::hash::Hash, V1: Eq + std::hash::Hash, R0, R1> Base
     }
     
     pub fn term_both_vertex(&self, v0: NodeIndex) -> bool {
-        let has_out_count = self.in_map.get(&v0).map(|count| *count > 0); 
+        let has_in_count = self.in_map.get(&v0).map(|count| *count > 0); 
         let has_out_count = self.out_map.get(&v0).map(|count| *count > 0);
-        let has_not_core = self.core_map.get(&v0).map(|v1| *v1 == 0);
-        has_out_count.and_then(|has_out| has_not_core.map(|no_core| has_out && no_core)) == Some(true)
+        has_in_count.and_then(|has_in|has_out_count.map(|has_out| self.core_map.contains_key(&v0) && has_in && has_out)) == Some(true)
     }
-    
+
+    pub fn in_core(&self, v0: NodeIndex) -> bool
+    {
+        self.core_map.contains_key(&v0)
+    }
+
+    pub fn count(&self) -> usize {
+        self.core_count
+    }
+
+    pub fn core(&self, v0: NodeIndex) -> Option<NodeIndex> {
+        self.core_map.get(&v0).map(|v1| *v1)
+    }
+
+    pub fn get_map(&self) ->  &HashMap<NodeIndex, NodeIndex> {
+        &self.core_map
+    }
+
+    pub fn in_depth(&self, v0: NodeIndex) -> usize {
+        if let Some(count) = self.in_map.get(&v0) {
+            *count
+        } else {
+            0
+        }
+    }
+
+    pub fn out_depth(&self, v0: NodeIndex) -> usize {
+        if let Some(count) = self.out_map.get(&v0) {
+            *count
+        } else {
+            0
+        }
+    }
+
+    pub fn term_set(&self) -> (usize, usize, usize) {
+        (self.term_in_count, self.term_out_count, self.term_both_count)
+    }
 }
 

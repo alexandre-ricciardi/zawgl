@@ -6,11 +6,14 @@ pub struct GraphContainer<NODE, RELATIONSHIP> {
     graph: Graph,
 }
 
-pub trait GraphTrait<NODE, RELATIONSHIP> {
+pub trait GraphContainerTrait<NODE, RELATIONSHIP> {
     fn get_node_mut(&mut self, id: usize) -> &mut NODE;
     fn get_relationship_mut(&mut self, id: usize) -> &mut RELATIONSHIP;
     fn get_node_ref(&self, id: usize) -> &NODE;
     fn get_relationship_ref(&self, id: usize) -> &RELATIONSHIP;
+}
+
+pub trait GraphTrait {
     fn out_edges(&self, source: &NodeIndex) -> OutEdges;
     fn in_edges(&self, target: &NodeIndex) -> InEdges;
     fn get_source_index(&self, edge_index: &EdgeIndex) -> NodeIndex;
@@ -18,7 +21,7 @@ pub trait GraphTrait<NODE, RELATIONSHIP> {
 
 }
 
-impl <NODE, RELATIONSHIP> GraphTrait<NODE, RELATIONSHIP> for GraphContainer<NODE, RELATIONSHIP> {
+impl <NODE, RELATIONSHIP> GraphContainerTrait<NODE, RELATIONSHIP> for GraphContainer<NODE, RELATIONSHIP> {
 
     fn get_node_mut(&mut self, id: usize) -> &mut NODE {
         &mut self.nodes[id]
@@ -36,7 +39,9 @@ impl <NODE, RELATIONSHIP> GraphTrait<NODE, RELATIONSHIP> for GraphContainer<NODE
         &self.relationships[id]
     }
 
-    
+}
+
+impl <NODE, RELATIONSHIP> GraphTrait for GraphContainer<NODE, RELATIONSHIP> {
     fn out_edges(&self, source: &NodeIndex) -> OutEdges {
         self.get_inner_graph().out_edges(*source)
     }
@@ -51,7 +56,6 @@ impl <NODE, RELATIONSHIP> GraphTrait<NODE, RELATIONSHIP> for GraphContainer<NODE
         self.get_inner_graph().get_edges()[*edge_index].target
 
     }
-
 }
 
 impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
@@ -63,7 +67,7 @@ impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
         self.graph.add_node()
     }
 
-    pub fn add_relationship(&mut self, rel: RELATIONSHIP, source: usize, target: usize) -> usize {
+    pub fn add_relationship(&mut self, rel: RELATIONSHIP, source: usize, target: usize) -> EdgeIndex {
         self.relationships.push(rel);
         self.graph.add_edge(source, target)
     }

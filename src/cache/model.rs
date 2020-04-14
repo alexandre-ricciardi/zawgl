@@ -1,6 +1,6 @@
 use super::super::model::*;
 use std::collections::HashMap;
-use super::super::graph::container::GraphTrait;
+use super::super::graph::container::{GraphTrait, GraphContainerTrait};
 
 pub struct CachedNode {
     pub id: Ids,
@@ -86,7 +86,7 @@ impl CacheGraph {
 
 }
 
-impl GraphTrait<CachedNode, CachedRelationship> for CacheGraph {
+impl GraphContainerTrait<CachedNode, CachedRelationship> for CacheGraph {
 
     fn get_node_ref(&self, cache_id: CacheId) -> &CachedNode {
         &self.nodes[cache_id]
