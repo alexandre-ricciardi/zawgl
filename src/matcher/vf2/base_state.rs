@@ -1,22 +1,29 @@
 use std::collections::HashMap;
-use super::super::super::graph::container::GraphTrait;
+use super::super::super::graph::traits::GraphTrait;
 use super::super::super::graph::{NodeIndex};
 
-pub struct BaseState<'g0, 'g1> {
+pub struct BaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, OutIt0: Iterator<Item=EID0>, InIt0: Iterator<Item=EID0>,
+    Graph1, OutIt1: Iterator<Item=EID1>, InIt1: Iterator<Item=EID1>> 
+    where NID0: std::hash::Hash + Eq, NID1: std::hash::Hash + Eq,
+    EID0: std::hash::Hash + Eq, EID1: std::hash::Hash + Eq, 
+    Graph0: GraphTrait<NID0, EID0, OutIt0, InIt0>, Graph1: GraphTrait<NID0, EID0, OutIt1, InIt1> {
     term_in_count: usize,
     term_out_count: usize,
     term_both_count: usize,
     core_count: usize,
-    core_map: HashMap<NodeIndex, NodeIndex>,
-    in_map: HashMap<NodeIndex, usize>,
-    out_map: HashMap<NodeIndex, usize>,
-    graph_0: &'g0 dyn GraphTrait,
-    graph_1: &'g1 dyn GraphTrait,
+    core_map: HashMap<NID0, NID1>,
+    in_map: HashMap<NID0, usize>,
+    out_map: HashMap<NID0, usize>,
+    graph_0: &'g0 Graph0,
+    graph_1: &'g1 Graph1,
 
 }
 
-impl <'g0, 'g1> BaseState<'g0, 'g1> {
-    pub fn push(&mut self, v0: NodeIndex, v1: NodeIndex) {  
+impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, OutIt0, InIt0, Graph1, OutIt1, InIt1> BaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, OutIt0, InIt0, Graph1, OutIt1, InIt1> 
+    where NID0: std::hash::Hash + Eq, NID1: std::hash::Hash + Eq,
+    EID0: std::hash::Hash + Eq, EID1: std::hash::Hash + Eq, 
+    Graph0: GraphTrait<NID0, EID0, OutIt0, InIt0>, Graph1: GraphTrait<NID0, EID0, OutIt1, InIt1> {
+    pub fn push(&mut self, v0: NID0, v1: NID1) {  
         self.core_count += 1;
         self.core_map.insert(v0, v1);
         if !self.in_map.contains_key(&v0) {

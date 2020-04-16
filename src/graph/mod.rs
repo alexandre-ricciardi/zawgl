@@ -1,3 +1,4 @@
+pub mod traits;
 pub mod container;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
@@ -141,22 +142,22 @@ impl Graph {
         EdgeIndex(index)
     }
 
-    pub fn successors(&self, source: NodeIndex) -> Successors {
+    pub fn successors(&self, source: &NodeIndex) -> Successors {
         let first_outbound_edge = self.nodes[source.0].first_outbound_edge;
         Successors{ graph: self, current_edge_index: first_outbound_edge }
     }
     
-    pub fn ancestors(&self, target: NodeIndex) -> Ancestors {
+    pub fn ancestors(&self, target: &NodeIndex) -> Ancestors {
         let first_inbound_edge = self.nodes[target.0].first_inbound_edge;
         Ancestors{ graph: self, current_edge_index: first_inbound_edge }
     }
     
-    pub fn out_edges(&self, source: NodeIndex) -> OutEdges {
+    pub fn out_edges(&self, source: &NodeIndex) -> OutEdges {
         let first_outbound_edge = self.nodes[source.0].first_outbound_edge;
         OutEdges{ graph: self, current_edge_index: first_outbound_edge }
     }
 
-    pub fn in_edges(&self, target: NodeIndex) -> InEdges {
+    pub fn in_edges(&self, target: &NodeIndex) -> InEdges {
         let first_inbound_edge = self.nodes[target.0].first_inbound_edge;
         InEdges{ graph: self, current_edge_index: first_inbound_edge }
     }
@@ -196,12 +197,12 @@ mod test_graph {
         assert_eq!(ed2.target, n2);
         assert_eq!(ed2.next_outbound_edge, Some(e0));
 
-        let targets = graph.successors(n0).collect::<Vec<NodeIndex>>();
+        let targets = graph.successors(&n0).collect::<Vec<NodeIndex>>();
         assert_eq!(targets[0], n2);
         assert_eq!(targets[1], n1);
         assert_eq!(targets.len(), 2);
 
-        let sources = graph.ancestors(n2).collect::<Vec<NodeIndex>>();
+        let sources = graph.ancestors(&n2).collect::<Vec<NodeIndex>>();
         assert_eq!(sources.len(), 2);
 
     }
