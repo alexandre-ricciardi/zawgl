@@ -1,6 +1,7 @@
 use super::super::model::*;
 use std::collections::HashMap;
 use super::super::graph::container::{GraphTrait, GraphContainerTrait};
+use super::super::graph::*;
 
 pub struct CachedNode {
     pub id: Ids,
@@ -14,12 +15,13 @@ impl CachedNode {
     }
 }
 
-pub type CacheId = usize;
+pub type NodeCacheId = NodeIndex;
+pub type RelationshipCacheId = EdgeIndex;
 pub type StoreId = u64;
 #[derive(Copy, Clone, PartialEq)]
-pub struct Ids {
+pub struct NodeIds {
     pub store: Option<StoreId>,
-    pub cache: Option<CacheId>,
+    pub cache: Option<NodeCacheId>,
 }
 
 impl Ids {

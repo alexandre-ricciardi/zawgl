@@ -1,7 +1,8 @@
 use super::cypher::*;
 use super::model::*;
 use super::cypher::parser::*;
-use super::graph::container::GraphTrait;
+use super::graph::container::{GraphTrait, GraphContainerTrait};
+use super::graph::*;
 
 pub fn process_query(query: &str) -> Option<Request> {
     let mut lexer = lexer::Lexer::new(query);
@@ -38,9 +39,9 @@ enum IdentifierType {
 
 struct CypherAstVisitor {
     request: Option<Request>,
-    curr_node: Option<usize>,
-    curr_directed_relationship: Option<usize>,
-    curr_both_ways_relationship: Option<(usize, usize)>,
+    curr_node: Option<NodeIndex>,
+    curr_directed_relationship: Option<EdgeIndex>,
+    curr_both_ways_relationship: Option<(EdgeIndex, EdgeIndex)>,
     curr_property_id: Option<usize>,
     curr_both_ways_property_ids: Option<(usize, usize)>,
     curr_identifier: Option<String>,
@@ -433,7 +434,7 @@ mod test_query_engine {
     fn test_create_0() {
         let request = process_query("CREATE (n:Person)");
         if let  Some(req) = request {
-            let node = req.pattern.get_node_ref(0);
+            let node = req.pattern.get_node_ref(NodeIndex(0));
             assert_eq!(node.var, Some(String::from("n")));
             assert_eq!(node.labels[0], String::from("Person"));
         } else {
@@ -446,7 +447,7 @@ mod test_query_engine {
     fn test_create_1() {
         let request = process_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
         if let  Some(req) = request {
-            let node = req.pattern.get_node_ref(0);
+            let node = req.pattern.get_node_ref(NodeIndex(0));
             assert_eq!(node.var, Some(String::from("n")));
             assert_eq!(node.labels[0], String::from("Person"));
             assert_eq!(node.labels[1], String::from("Parent"));
@@ -465,13 +466,13 @@ mod test_query_engine {
     fn test_create_2() {
         let request = process_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
         if let  Some(req) = request {
-            let node = req.pattern.get_node_ref(0);
+            let node = req.pattern.get_node_ref(NodeIndex(0));
             assert_eq!(node.var, Some(String::from("n")));
             assert_eq!(node.labels[0], String::from("Person"));
-            let rel = req.pattern.get_relationship_ref(0);
+            let rel = req.pattern.get_relationship_ref(EdgeIndex(0));
             assert_eq!(rel.var, Some(String::from("r")));
             assert_eq!(rel.labels[0], String::from("FRIEND_OF"));
-            let p_id = req.pattern.get_inner_graph().successors(0).next();
+            let p_id = req.pattern.get_inner_graph().successors(NodeIndex(0)).next();
             if let Some(id) = p_id {
                 let p = req.pattern.get_node_ref(id);
                 assert_eq!(p.var, Some(String::from("p")));

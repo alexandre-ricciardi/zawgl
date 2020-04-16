@@ -3,7 +3,7 @@ mod model;
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
-use graph::container::GraphTrait;
+use graph::container::GraphContainerTrait;
 use std::collections::HashMap;
 
 pub struct Cache {
