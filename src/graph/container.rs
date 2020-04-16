@@ -8,41 +8,41 @@ pub struct GraphContainer<NODE, RELATIONSHIP> {
 }
 
 
-impl <'graph, NODE, RELATIONSHIP> GraphContainerTrait<NodeIndex, EdgeIndex, OutEdges<'graph>, InEdges<'graph>, NODE, RELATIONSHIP> for GraphContainer<NODE, RELATIONSHIP> {
+impl <'g, NODE, RELATIONSHIP> GraphContainerTrait<'g, NodeIndex, EdgeIndex, NODE, RELATIONSHIP> for GraphContainer<NODE, RELATIONSHIP> {
 
     fn get_node_mut(&mut self, id: &NodeIndex) -> &mut NODE {
-        &mut self.nodes[id.0]
+        &mut self.nodes[id.get_index()]
     }
 
     fn get_relationship_mut(&mut self, id: &EdgeIndex) -> &mut RELATIONSHIP {
-        &mut self.relationships[id.0]
+        &mut self.relationships[id.get_index()]
     }
 
     fn get_node_ref(&self, id: &NodeIndex) -> &NODE {
-        &self.nodes[id.0]
+        &self.nodes[id.get_index()]
     }
 
     fn get_relationship_ref(&self, id: &EdgeIndex) -> &RELATIONSHIP {
-        &self.relationships[id.0]
+        &self.relationships[id.get_index()]
     }
 
 }
 
-impl <'graph, NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex, OutEdges<'graph>, InEdges<'graph>> for GraphContainer<NODE, RELATIONSHIP> {
-    
-    fn out_edges(&self, source: &NodeIndex) -> OutEdges {
+impl <'g, NODE, RELATIONSHIP> GraphTrait<'g, NodeIndex, EdgeIndex> for GraphContainer<NODE, RELATIONSHIP> {
+    type OutIt = OutEdges<'g>;
+    type InIt = InEdges<'g>;
+    fn out_edges(&'g self, source: &NodeIndex) -> OutEdges {
         self.get_inner_graph().out_edges(source)
     }
 
-    fn in_edges(&self, target: &NodeIndex) -> InEdges {
+    fn in_edges(&'g self, target: &NodeIndex) -> Self::InIt {
         self.get_inner_graph().in_edges(target)
     }
-    fn get_source_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
-        self.get_inner_graph().get_edges()[edge_index.0].source
+    fn get_source_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
+        &self.get_inner_graph().get_edges()[edge_index.get_index()].source
     }
-    fn get_target_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
-        self.get_inner_graph().get_edges()[edge_index.0].target
-
+    fn get_target_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
+        &self.get_inner_graph().get_edges()[edge_index.get_index()].target
     }
 }
 
@@ -64,8 +64,8 @@ impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
         &self.graph
     }
 
-    pub fn get_relationships_and_edges(&self) -> Vec<(&RELATIONSHIP, &EdgeData)> {
-        self.relationships.iter().zip(self.graph.get_edges()).collect::<Vec<(&RELATIONSHIP, &EdgeData)>>()
+    pub fn get_relationships_and_edges(&self) -> Vec<(&RELATIONSHIP, &EdgeData<NodeIndex, EdgeIndex>)> {
+        self.relationships.iter().zip(self.graph.get_edges()).collect::<Vec<(&RELATIONSHIP, &EdgeData<NodeIndex, EdgeIndex>)>>()
     }
     pub fn get_nodes(&self) -> &Vec<NODE> {
         &self.nodes

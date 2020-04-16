@@ -1,36 +1,66 @@
 pub mod traits;
 pub mod container;
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
-pub struct EdgeIndex(pub usize);
+use self::traits::*;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
-pub struct NodeIndex(pub usize);
-
-pub struct NodeData {
-    first_outbound_edge: Option<EdgeIndex>,
-    first_inbound_edge: Option<EdgeIndex>,
+pub struct EdgeIndex {
+    index: usize,
 }
 
-pub struct EdgeData {
-    pub source: NodeIndex,
-    pub target: NodeIndex,
-    pub next_outbound_edge: Option<EdgeIndex>,
-    pub next_inbound_edge: Option<EdgeIndex>,
+impl EdgeIndex {
+    pub fn new(index: usize) -> Self {
+        EdgeIndex {index: index}
+    }
+}
+
+impl traits::MemGraphId for EdgeIndex {
+    fn get_index(&self) -> usize {
+        self.index
+    }
+}
+
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
+pub struct NodeIndex {
+    index: usize,
+}
+
+impl NodeIndex {
+    pub fn new(index: usize) -> Self {
+        NodeIndex {index: index}
+    }
+}
+
+impl traits::MemGraphId for NodeIndex {
+    fn get_index(&self) -> usize {
+        self.index
+    }
+}
+
+pub struct NodeData<EID: MemGraphId> {
+    first_outbound_edge: Option<EID>,
+    first_inbound_edge: Option<EID>,
+}
+
+pub struct EdgeData<NID: MemGraphId, EID: MemGraphId> {
+    pub source: NID,
+    pub target: NID,
+    pub next_outbound_edge: Option<EID>,
+    pub next_inbound_edge: Option<EID>,
 }
 
 pub struct Graph {
-    nodes: Vec<NodeData>,
-    edges: Vec<EdgeData>,
+    nodes: Vec<NodeData<EdgeIndex>>,
+    edges: Vec<EdgeData<NodeIndex, EdgeIndex>>,
 }
 
-pub struct Successors<'graph> {
-    graph: &'graph Graph,
+pub struct Successors<'g> {
+    graph: &'g Graph,
     current_edge_index: Option<EdgeIndex>,
 }
 
-pub struct Ancestors<'graph> {
-    graph: &'graph Graph,
+pub struct Ancestors<'g> {
+    graph: &'g Graph,
     current_edge_index: Option<EdgeIndex>,
 }
 
@@ -41,7 +71,7 @@ impl <'graph> Iterator for Successors<'graph> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.graph.edges[edge_index.0];
+                let edge = &self.graph.edges[edge_index.get_index()];
                 self.current_edge_index = edge.next_outbound_edge;
                 Some(edge.target)
             }
@@ -56,7 +86,7 @@ impl <'graph> Iterator for Ancestors<'graph> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.graph.edges[edge_index.0];
+                let edge = &self.graph.edges[edge_index.get_index()];
                 self.current_edge_index = edge.next_inbound_edge;
                 Some(edge.source)
             }
@@ -64,19 +94,19 @@ impl <'graph> Iterator for Ancestors<'graph> {
     }
 }
 
-pub struct OutEdges<'graph> {
-    graph: &'graph Graph,
+pub struct OutEdges<'g> {
+    graph: &'g Graph,
     current_edge_index: Option<EdgeIndex>,
 }
 
-impl <'graph> Iterator for OutEdges<'graph> {
+impl <'g> Iterator for OutEdges<'g> {
     type Item = EdgeIndex;
 
     fn next(&mut self) -> Option<EdgeIndex> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.graph.edges[edge_index.0];
+                let edge = &self.graph.edges[edge_index.get_index()];
                 let curr_edge_index = self.current_edge_index;
                 self.current_edge_index = edge.next_outbound_edge;
                 curr_edge_index
@@ -86,19 +116,19 @@ impl <'graph> Iterator for OutEdges<'graph> {
 }
 
 
-pub struct InEdges<'graph> {
-    graph: &'graph Graph,
+pub struct InEdges<'g> {
+    graph: &'g Graph,
     current_edge_index: Option<EdgeIndex>,
 }
 
 impl <'graph> Iterator for InEdges<'graph> {
     type Item = EdgeIndex;
 
-    fn next(&mut self) -> Option<EdgeIndex> {
+    fn next(&mut self) -> Option<Self::Item> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.graph.edges[edge_index.0];
+                let edge = &self.graph.edges[edge_index.get_index()];
                 let curr_edge_index = self.current_edge_index;
                 self.current_edge_index = edge.next_inbound_edge;
                 curr_edge_index
@@ -107,6 +137,27 @@ impl <'graph> Iterator for InEdges<'graph> {
     }
 }
 
+impl <'g> GraphTrait<'g, NodeIndex, EdgeIndex> for Graph {
+    type OutIt = OutEdges<'g>;
+    type InIt = InEdges<'g>;
+    fn out_edges(&self, source: &NodeIndex) -> OutEdges {
+        let first_outbound_edge = self.nodes[source.get_index()].first_outbound_edge;
+        OutEdges{ graph: self, current_edge_index: first_outbound_edge }
+    }
+
+    fn in_edges(&self, target: &NodeIndex) -> InEdges {
+        let first_inbound_edge = self.nodes[target.get_index()].first_inbound_edge;
+        InEdges{ graph: self, current_edge_index: first_inbound_edge }
+    }
+
+    fn get_source_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
+        &self.edges[edge_index.get_index()].source
+    }
+    fn get_target_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
+        &self.edges[edge_index.get_index()].target
+
+    }
+}
 impl Graph {
     pub fn new() -> Self {
         Graph{ nodes: Vec::new(), edges: Vec::new() }
@@ -114,58 +165,48 @@ impl Graph {
 
     pub fn add_node(&mut self) -> NodeIndex {
         let index = self.nodes.len();
-        self.nodes.push(NodeData{first_outbound_edge: None, first_inbound_edge: None});
-        NodeIndex(index)
+        self.nodes.push(NodeData::<EdgeIndex>{first_outbound_edge: None, first_inbound_edge: None});
+        NodeIndex::new(index)
     }
 
-    pub fn get_node(&self, id: NodeIndex) -> &NodeData {
-        &self.nodes[id.0]
+    pub fn get_node(&self, id: NodeIndex) -> &NodeData<EdgeIndex> {
+        &self.nodes[id.get_index()]
     }
-    pub fn get_edge(&self, id: EdgeIndex) -> &EdgeData {
-        &self.edges[id.0]
+    pub fn get_edge(&self, id: EdgeIndex) -> &EdgeData<NodeIndex, EdgeIndex> {
+        &self.edges[id.get_index()]
     }
 
     pub fn add_edge(&mut self, source: NodeIndex, target: NodeIndex) -> EdgeIndex {
         let index = self.edges.len();
         {
-            let source_data = &self.nodes[source.0];
-            let target_data = &self.nodes[target.0];
+            let source_data = &self.nodes[source.get_index()];
+            let target_data = &self.nodes[target.get_index()];
             self.edges.push(EdgeData{source: source, target: target,
                  next_inbound_edge: target_data.first_inbound_edge, 
                  next_outbound_edge: source_data.first_outbound_edge});
         }
         
-        let ms = &mut self.nodes[source.0];
-        ms.first_outbound_edge = Some(EdgeIndex(index));
-        let mt = &mut self.nodes[target.0];
-        mt.first_inbound_edge = Some(EdgeIndex(index));
-        EdgeIndex(index)
+        let ms = &mut self.nodes[source.get_index()];
+        ms.first_outbound_edge = Some(EdgeIndex::new(index));
+        let mt = &mut self.nodes[target.get_index()];
+        mt.first_inbound_edge = Some(EdgeIndex::new(index));
+        EdgeIndex::new(index)
     }
 
     pub fn successors(&self, source: &NodeIndex) -> Successors {
-        let first_outbound_edge = self.nodes[source.0].first_outbound_edge;
+        let first_outbound_edge = self.nodes[source.get_index()].first_outbound_edge;
         Successors{ graph: self, current_edge_index: first_outbound_edge }
     }
     
     pub fn ancestors(&self, target: &NodeIndex) -> Ancestors {
-        let first_inbound_edge = self.nodes[target.0].first_inbound_edge;
+        let first_inbound_edge = self.nodes[target.get_index()].first_inbound_edge;
         Ancestors{ graph: self, current_edge_index: first_inbound_edge }
     }
     
-    pub fn out_edges(&self, source: &NodeIndex) -> OutEdges {
-        let first_outbound_edge = self.nodes[source.0].first_outbound_edge;
-        OutEdges{ graph: self, current_edge_index: first_outbound_edge }
-    }
-
-    pub fn in_edges(&self, target: &NodeIndex) -> InEdges {
-        let first_inbound_edge = self.nodes[target.0].first_inbound_edge;
-        InEdges{ graph: self, current_edge_index: first_inbound_edge }
-    }
-
-    pub fn get_nodes(&self) -> &Vec<NodeData> {
+    pub fn get_nodes(&self) -> &Vec<NodeData<EdgeIndex>> {
         &self.nodes
     }
-    pub fn get_edges(&self) -> &Vec<EdgeData> {
+    pub fn get_edges(&self) -> &Vec<EdgeData<NodeIndex, EdgeIndex>> {
         &self.edges
     }
 }
