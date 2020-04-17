@@ -8,8 +8,8 @@ pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphTrait<'g0, NID0, EID0> + GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: GraphTrait<'g1, NID1, EID1> + GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+    Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
+    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
     state_0: BaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1>,
     state_1: BaseState<'g1, 'g0, NID1, NID0, EID1, EID0, Graph1, Graph0>,
@@ -32,8 +32,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphTrait<'g0, NID0, EID0> + GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: GraphTrait<'g1, NID1, EID1> + GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+    Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
+    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
     pub fn push(&mut self, v0: &NID0, v1: &NID1) {
         self.state_0.push(v0, v1);
