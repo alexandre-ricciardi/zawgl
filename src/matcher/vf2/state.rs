@@ -57,27 +57,57 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             let term_out0_count = 0;
             let rest0_count = 0;
 
-            //let mut edge_set = HashSet::new();
+            let mut edge_set = HashSet::new();
             for edge_index in self.graph_0.in_edges(&v_new) {
                 let ancestor_index = self.graph_0.get_source_index(&edge_index);
                 if self.state_0.in_core(&ancestor_index) || v_new == *ancestor_index {
-                    let mut w = Some(w_new);
+                    let mut w_ancestor;
                     if *ancestor_index != v_new {
-                        w = self.state_0.core(ancestor_index);
-                        let e0 = self.graph_0.get_relationship_ref(&edge_index);
-                        for edges_1_index in self.graph_1.out_edges(&w.unwrap()) {
-                            let e1 = self.graph_1.get_relationship_ref(&edges_1_index);
-                            if (self.edge_comp)(e0, e1) {
-                                
-                            }
+                        if let Some(w) = self.state_0.core(ancestor_index) {
+                            w_ancestor = w;
                         }
-
                     }
+                    
+                    let e0 = self.graph_0.get_relationship_ref(&edge_index);
+
+                    for edge_1_index in self.graph_1.out_edges(&w_ancestor) {
+                        let w_target = self.graph_1.get_target_index(&edge_1_index);
+                        let e1 = self.graph_1.get_relationship_ref(&edge_1_index);
+                        if *w_target == w_ancestor && (self.edge_comp)(e0, e1) && !edge_set.contains(&edge_1_index) {
+                            edge_set.insert(edge_1_index);
                             
+                        }
+                    }
+
                 }
             }
 
             true
         }
+    }
+}
+
+struct EquivalentEdgeExists<'g, NID, EID, N, R, Graph> 
+    where NID: std::hash::Hash + Eq + MemGraphId + Copy, EID: std::hash::Hash + Eq + MemGraphId + Copy,
+    N: std::hash::Hash + Eq, R: std::hash::Hash + Eq, 
+    Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R> {
+    edge_set: HashSet<NID>,
+    graph: &'g Graph
+}
+
+impl <'g, NID, EID, N, R, Graph> EquivalentEdgeExists<'g, NID, EID, N, R, Graph> 
+    where NID: std::hash::Hash + Eq + MemGraphId + Copy, EID: std::hash::Hash + Eq + MemGraphId + Copy,
+    N: std::hash::Hash + Eq, R: std::hash::Hash + Eq, 
+    Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R> {
+    fn edge_exists(&self, &ancestor: &NID) -> bool {
+        for edge_index in self.graph.out_edges(ancestor) {
+            let ancestor_target = self.graph.get_target_index(&edge_index);
+            let r = self.graph.get_relationship_ref(&edge_index);
+            if *w_target == w_ancestor && (self.edge_comp)(e0, e1) && !edge_set.contains(&edge_1_index) {
+                edge_set.insert(edge_1_index);
+                return true;
+            }
+        }
+        return  false;
     }
 }

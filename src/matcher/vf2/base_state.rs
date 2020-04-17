@@ -17,7 +17,6 @@ pub struct BaseState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: MemGrap
     graph_1: &'g1 Graph1,
     phantom_e_0: PhantomData<EID0>,
     phantom_e_1: PhantomData<EID1>,
-
 }
 
 impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> BaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> 
