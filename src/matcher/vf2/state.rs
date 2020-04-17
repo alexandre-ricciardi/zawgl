@@ -57,28 +57,22 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             let term_out0_count = 0;
             let rest0_count = 0;
 
-            let mut edge_set = HashSet::new();
+            let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
             for edge_index in self.graph_0.in_edges(&v_new) {
                 let ancestor_index = self.graph_0.get_source_index(&edge_index);
                 if self.state_0.in_core(&ancestor_index) || v_new == *ancestor_index {
-                    let mut w_ancestor;
+                    let mut w_source = w_new;
                     if *ancestor_index != v_new {
-                        if let Some(w) = self.state_0.core(ancestor_index) {
-                            w_ancestor = w;
+                        if let Some(ws) = self.state_0.core(ancestor_index) {
+                            w_source = ws;
                         }
                     }
                     
-                    let e0 = self.graph_0.get_relationship_ref(&edge_index);
+                    let r0 = self.graph_0.get_relationship_ref(&edge_index);
 
-                    for edge_1_index in self.graph_1.out_edges(&w_ancestor) {
-                        let w_target = self.graph_1.get_target_index(&edge_1_index);
-                        let e1 = self.graph_1.get_relationship_ref(&edge_1_index);
-                        if *w_target == w_ancestor && (self.edge_comp)(e0, e1) && !edge_set.contains(&edge_1_index) {
-                            edge_set.insert(edge_1_index);
-                            
-                        }
+                    if !edge_predicate.edge_exists(&w_source, &w_new, r0) {
+                        return false;
                     }
-
                 }
             }
 
@@ -87,24 +81,36 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     }
 }
 
-struct EquivalentEdgeExists<'g, NID, EID, N, R, Graph> 
-    where NID: std::hash::Hash + Eq + MemGraphId + Copy, EID: std::hash::Hash + Eq + MemGraphId + Copy,
-    N: std::hash::Hash + Eq, R: std::hash::Hash + Eq, 
-    Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R> {
-    edge_set: HashSet<NID>,
-    graph: &'g Graph
+struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
+    where  NID: MemGraphId, EID: MemGraphId,
+    Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R>,
+    ECOMP: Fn(&R, &RCOMP) -> bool {
+    matched_edge_set: HashSet<EID>,
+    graph: &'g Graph,
+    phantom_v: PhantomData<NID>,
+    phantom_e: PhantomData<EID>,
+    phantom_n: PhantomData<N>,
+    phantom_r_0: PhantomData<R>,
+    phantom_r_1: PhantomData<RCOMP>,
+    edge_comp: ECOMP,
 }
 
-impl <'g, NID, EID, N, R, Graph> EquivalentEdgeExists<'g, NID, EID, N, R, Graph> 
-    where NID: std::hash::Hash + Eq + MemGraphId + Copy, EID: std::hash::Hash + Eq + MemGraphId + Copy,
-    N: std::hash::Hash + Eq, R: std::hash::Hash + Eq, 
-    Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R> {
-    fn edge_exists(&self, &ancestor: &NID) -> bool {
-        for edge_index in self.graph.out_edges(ancestor) {
-            let ancestor_target = self.graph.get_target_index(&edge_index);
-            let r = self.graph.get_relationship_ref(&edge_index);
-            if *w_target == w_ancestor && (self.edge_comp)(e0, e1) && !edge_set.contains(&edge_1_index) {
-                edge_set.insert(edge_1_index);
+impl <'g, 'a, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
+    where  NID: MemGraphId + PartialEq, EID: MemGraphId + std::hash::Hash + Eq,
+    Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R>,
+    ECOMP: Fn(&R, &RCOMP) -> bool {
+
+    fn new(g: &'g Graph, ecomp: ECOMP) -> Self {
+        EquivalentEdgePredicate {graph: g, matched_edge_set: HashSet::new(), edge_comp: ecomp,
+        phantom_e: PhantomData, phantom_n: PhantomData, phantom_v: PhantomData, phantom_r_0: PhantomData, phantom_r_1: PhantomData}
+    }
+
+    fn edge_exists(&mut self, source: &NID, target: &NID, rcomp: &RCOMP) -> bool {
+        for out_edge_index in self.graph.out_edges(source) {
+            let curr_target = self.graph.get_target_index(&out_edge_index);
+            let r = self.graph.get_relationship_ref(&out_edge_index);
+            if *curr_target == *target && !self.matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r, rcomp) {
+                self.matched_edge_set.insert(out_edge_index);
                 return true;
             }
         }
