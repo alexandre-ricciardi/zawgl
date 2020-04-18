@@ -47,37 +47,116 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
     }
 
-    fn feasible(&self, v_new: NID0, w_new: NID1) -> bool {
+    fn feasible(&mut self, v_new: NID0, w_new: NID1) -> bool {
         let v = self.graph_0.get_node_ref(&v_new);
         let w = self.graph_1.get_node_ref(&w_new);
         if !(self.vertex_comp)(v, w) {
             false
         } else {
-            let term_in0_count = 0;
-            let term_out0_count = 0;
-            let rest0_count = 0;
+            let mut term_in0_count = 0;
+            let mut term_out0_count = 0;
+            let mut rest0_count = 0;
 
-            let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
-            for edge_index in self.graph_0.in_edges(&v_new) {
-                let ancestor_index = self.graph_0.get_source_index(&edge_index);
-                if self.state_0.in_core(&ancestor_index) || v_new == *ancestor_index {
-                    let mut w_source = w_new;
-                    if *ancestor_index != v_new {
-                        if let Some(ws) = self.state_0.core(ancestor_index) {
-                            w_source = ws;
-                        }
+            {
+                let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
+                for edge_index in self.graph_0.in_edges(&v_new) {
+                    let source_index = self.graph_0.get_source_index(&edge_index);
+                    if !self.inc_counters_match_edge_0(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, &v_new, source_index, &w_new, &edge_index, |&w_source, &w_new, r0| edge_predicate.edge_exists(&w_source, &w_new, r0)) {
+                        return false;
                     }
-                    
-                    let r0 = self.graph_0.get_relationship_ref(&edge_index);
-
-                    if !edge_predicate.edge_exists(&w_source, &w_new, r0) {
+                }
+            }
+            {
+                let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
+                for edge_index in self.graph_0.out_edges(&v_new) {
+                    let target_index = self.graph_0.get_target_index(&edge_index);
+                    if !self.inc_counters_match_edge_0(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, &v_new, target_index, &w_new, &edge_index, |&w_source, &w_new, r0| edge_predicate.edge_exists(&w_source, &w_new, r0)) {
                         return false;
                     }
                 }
             }
 
-            true
+
+            let mut term_in1_count = 0;
+            let mut term_out1_count = 0;
+            let mut rest1_count = 0;
+
+            {
+                let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_0, |r0, r1| (self.edge_comp)(r0, r1));
+                for edge_index in self.graph_1.in_edges(&w_new) {
+                    let source_index = self.graph_1.get_source_index(&edge_index);
+                    if !self.inc_counters_match_edge_1(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, &w_new, source_index, &v_new, &edge_index, |&v_source, &v_new, r1| edge_predicate.edge_exists(&v_source, &v_new, r1)) {
+                        return false;
+                    }
+                }
+            }
+            {
+                let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_0, |r0, r1| (self.edge_comp)(r0, r1));
+                for edge_index in self.graph_1.out_edges(&w_new) {
+                    let target_index = self.graph_1.get_target_index(&edge_index);
+                    if !self.inc_counters_match_edge_1(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, &w_new, target_index, &v_new, &edge_index, |&v_source, &v_new, r1| edge_predicate.edge_exists(&v_source, &v_new, r1)) {
+                        return false;
+                    }
+                }
+            }
+            term_in0_count <= term_in1_count && term_out0_count <= term_in1_count && rest0_count <= rest1_count
         }
+    }
+
+    fn inc_counters_match_edge_0<PREDICATE>(&self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NID0, v_adj: &NID0, w_new: &NID1, edge_index: &EID0, mut edge_predicate: PREDICATE) -> bool where PREDICATE: FnMut(&NID1, &NID1, &R0) -> bool {
+        if self.state_0.in_core(v_adj) || v_new == v_adj {
+            let mut w_source = *w_new;
+            if *v_adj != *v_new {
+                if let Some(ws) = self.state_0.core(v_adj) {
+                    w_source = ws;
+                }
+            }
+            
+            let r0 = self.graph_0.get_relationship_ref(&edge_index);
+
+            if !edge_predicate(&w_source, &w_new, r0) {
+                return false;
+            }
+        } else {
+            if self.state_0.in_depth(v_adj) > 0 {
+                *term_in += 1;
+            }
+            if self.state_0.out_depth(v_adj) > 0 {
+                *term_out += 1;
+            }
+            if self.state_0.in_depth(v_adj) == 0 && self.state_0.out_depth(v_adj) == 0 {
+                *rest += 1;
+            }
+        }
+        return true;
+    }
+
+    fn inc_counters_match_edge_1<PREDICATE>(&self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1, v_new: &NID0, edge_index: &EID1, mut edge_predicate: PREDICATE) -> bool where PREDICATE: FnMut(&NID0, &NID0, &R1) -> bool {
+        if self.state_1.in_core(w_adj) || w_new == w_adj {
+            let mut v_source = *v_new;
+            if *w_adj != *w_new {
+                if let Some(vs) = self.state_1.core(w_adj) {
+                    v_source = vs;
+                }
+            }
+            
+            let r0 = self.graph_1.get_relationship_ref(&edge_index);
+
+            if !edge_predicate(&v_source, &v_new, r0) {
+                return false;
+            }
+        } else {
+            if self.state_1.in_depth(w_adj) > 0 {
+                *term_in += 1;
+            }
+            if self.state_1.out_depth(w_adj) > 0 {
+                *term_out += 1;
+            }
+            if self.state_1.in_depth(w_adj) == 0 && self.state_1.out_depth(w_adj) == 0 {
+                *rest += 1;
+            }
+        }
+        return true;
     }
 }
 
@@ -96,7 +175,7 @@ struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP>
 }
 
 impl <'g, 'a, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
-    where  NID: MemGraphId + PartialEq, EID: MemGraphId + std::hash::Hash + Eq,
+    where  NID: MemGraphId + Eq, EID: MemGraphId + std::hash::Hash + Eq,
     Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
 
