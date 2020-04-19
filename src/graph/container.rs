@@ -44,6 +44,9 @@ impl <'g, NODE, RELATIONSHIP> GraphTrait<'g, NodeIndex, EdgeIndex> for GraphCont
     fn get_target_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
         &self.get_inner_graph().get_edges()[edge_index.get_index()].target
     }
+    fn get_nodes_len(&self) -> usize {
+        self.nodes.len()
+    }
 }
 
 impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {

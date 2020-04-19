@@ -158,6 +158,39 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
         return true;
     }
+
+    fn possible_candidate_0(&self, v0: &NID0) -> bool {
+        if self.state_0.term_both() && self.state_1.term_both() {
+            self.state_0.term_both_vertex(v0)
+        } else if self.state_0.term_out() && self.state_1.term_out() {
+            self.state_0.term_out_vertex(v0)
+        } else if self.state_0.term_in() && self.state_1.term_in() {
+            self.state_0.term_in_vertex(v0)
+        } else {
+            !self.state_0.in_core(v0)
+        }
+    }
+
+    fn possible_candidate_1(&self, v1: &NID1) -> bool {
+        if self.state_0.term_both() && self.state_1.term_both() {
+            self.state_1.term_both_vertex(v1)
+        } else if self.state_0.term_out() && self.state_1.term_out() {
+            self.state_1.term_out_vertex(v1)
+        } else if self.state_0.term_in() && self.state_1.term_in() {
+            self.state_1.term_in_vertex(v1)
+        } else {
+            !self.state_1.in_core(v1)
+        }
+    }
+
+    fn success(&self) -> bool {
+        self.state_0.count() == self.graph_0.get_nodes_len()
+    }
+    fn valid(&self) -> bool {
+        let term_set_0 = self.state_0.term_set();
+        let term_set_1 = self.state_1.term_set();
+        term_set_0.0 <= term_set_1.0 && term_set_0.1 <= term_set_1.1 && term_set_0.2 <= term_set_1.2
+    }
 }
 
 struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 

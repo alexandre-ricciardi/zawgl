@@ -123,28 +123,28 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> BaseState<'g0, 'g1, NID0
         self.core_count < self.term_in_count
     }
 
-    pub fn term_in_vertex(&self, v0: NID0) -> bool {
-        let has_in_count = self.in_map.get(&v0).map(|count| *count > 0);
-        has_in_count.map(|has_in| has_in && !self.core_map.contains_key(&v0)) == Some(true)
+    pub fn term_in_vertex(&self, v0: &NID0) -> bool {
+        let has_in_count = self.in_map.get(v0).map(|count| *count > 0);
+        has_in_count.map(|has_in| has_in && !self.core_map.contains_key(v0)) == Some(true)
     }
     
     pub fn term_out(&self) -> bool {
         self.core_count < self.term_out_count
     }
 
-    pub fn term_out_vertex(&self, v0: NID0) -> bool {
-        let has_out_count = self.out_map.get(&v0).map(|count| *count > 0);
-        has_out_count.map(|has_out| has_out && self.core_map.contains_key(&v0)) == Some(true)
+    pub fn term_out_vertex(&self, v0: &NID0) -> bool {
+        let has_out_count = self.out_map.get(v0).map(|count| *count > 0);
+        has_out_count.map(|has_out| has_out && self.core_map.contains_key(v0)) == Some(true)
     }
     
     pub fn term_both(&self) -> bool {
         self.core_count < self.term_both_count
     }
     
-    pub fn term_both_vertex(&self, v0: NID0) -> bool {
-        let has_in_count = self.in_map.get(&v0).map(|count| *count > 0); 
-        let has_out_count = self.out_map.get(&v0).map(|count| *count > 0);
-        has_in_count.and_then(|has_in|has_out_count.map(|has_out| self.core_map.contains_key(&v0) && has_in && has_out)) == Some(true)
+    pub fn term_both_vertex(&self, v0: &NID0) -> bool {
+        let has_in_count = self.in_map.get(v0).map(|count| *count > 0); 
+        let has_out_count = self.out_map.get(v0).map(|count| *count > 0);
+        has_in_count.and_then(|has_in|has_out_count.map(|has_out| self.core_map.contains_key(v0) && has_in && has_out)) == Some(true)
     }
 
     pub fn in_core(&self, v0: &NID0) -> bool

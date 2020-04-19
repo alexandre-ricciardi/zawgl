@@ -155,7 +155,10 @@ impl <'g> GraphTrait<'g, NodeIndex, EdgeIndex> for Graph {
     }
     fn get_target_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
         &self.edges[edge_index.get_index()].target
+    }
 
+    fn get_nodes_len(&self) -> usize {
+        self.nodes.len()
     }
 }
 impl Graph {

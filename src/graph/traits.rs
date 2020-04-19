@@ -9,6 +9,7 @@ pub trait GraphTrait<'g, NodeId: MemGraphId, EdgeId: MemGraphId> {
     fn in_edges(&'g self, target: &NodeId) -> Self::InIt;
     fn get_source_index(&self, edge_index: &EdgeId) -> &NodeId;
     fn get_target_index(&self, edge_index: &EdgeId) -> &NodeId;
+    fn get_nodes_len(&self) -> usize;
 }
 
 
