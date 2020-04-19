@@ -85,7 +85,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_0, |r0, r1| (self.edge_comp)(r0, r1));
                 for edge_index in self.graph_1.in_edges(&w_new) {
                     let source_index = self.graph_1.get_source_index(&edge_index);
-                    if !self.inc_counters_match_edge_1(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, &w_new, source_index, &v_new, &edge_index, |&v_source, &v_new, r1| edge_predicate.edge_exists(&v_source, &v_new, r1)) {
+                    if !self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, &w_new, source_index, &v_new, &edge_index, |&v_source, &v_new, r1| edge_predicate.edge_exists(&v_source, &v_new, r1)) {
                         return false;
                     }
                 }
@@ -94,12 +94,12 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_0, |r0, r1| (self.edge_comp)(r0, r1));
                 for edge_index in self.graph_1.out_edges(&w_new) {
                     let target_index = self.graph_1.get_target_index(&edge_index);
-                    if !self.inc_counters_match_edge_1(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, &w_new, target_index, &v_new, &edge_index, |&v_source, &v_new, r1| edge_predicate.edge_exists(&v_source, &v_new, r1)) {
+                    if !self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, &w_new, target_index, &v_new, &edge_index, |&v_source, &v_new, r1| edge_predicate.edge_exists(&v_source, &v_new, r1)) {
                         return false;
                     }
                 }
             }
-            term_in0_count <= term_in1_count && term_out0_count <= term_in1_count && rest0_count <= rest1_count
+            term_in0_count <= term_in1_count && term_out0_count <= term_out1_count && rest0_count <= rest1_count
         }
     }
 
@@ -162,7 +162,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
 struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
     where  NID: MemGraphId, EID: MemGraphId,
-    Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R>,
+    Graph: GraphContainerTrait<'g, NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
     matched_edge_set: HashSet<EID>,
     graph: &'g Graph,
@@ -176,7 +176,7 @@ struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP>
 
 impl <'g, 'a, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
     where  NID: MemGraphId + Eq, EID: MemGraphId + std::hash::Hash + Eq,
-    Graph: GraphTrait<'g, NID, EID> + GraphContainerTrait<'g, NID, EID, N, R>,
+    Graph: GraphContainerTrait<'g, NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
 
     fn new(g: &'g Graph, ecomp: ECOMP) -> Self {
