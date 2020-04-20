@@ -157,8 +157,12 @@ impl <'g> GraphTrait<'g, NodeIndex, EdgeIndex> for Graph {
         &self.edges[edge_index.get_index()].target
     }
 
-    fn get_nodes_len(&self) -> usize {
+    fn nodes_len(&self) -> usize {
         self.nodes.len()
+    }
+
+    fn get_nodes_ids(&self) -> Vec<NodeIndex> {
+        (0..self.nodes_len()).map(NodeIndex::new).collect()
     }
 }
 impl Graph {

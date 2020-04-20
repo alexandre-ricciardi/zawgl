@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 use std::collections::HashSet;
+use std::collections::HashMap;
 use super::base_state::BaseState;
 use super::super::super::graph::traits::*;
 
@@ -47,7 +48,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
     }
 
-    fn feasible(&mut self, v_new: NID0, w_new: NID1) -> bool {
+    pub fn feasible(&mut self, v_new: &NID0, w_new: &NID1) -> bool {
         let v = self.graph_0.get_node_ref(&v_new);
         let w = self.graph_1.get_node_ref(&w_new);
         if !(self.vertex_comp)(v, w) {
@@ -159,7 +160,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         return true;
     }
 
-    fn possible_candidate_0(&self, v0: &NID0) -> bool {
+    pub fn possible_candidate_0(&self, v0: &NID0) -> bool {
         if self.state_0.term_both() && self.state_1.term_both() {
             self.state_0.term_both_vertex(v0)
         } else if self.state_0.term_out() && self.state_1.term_out() {
@@ -171,7 +172,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
     }
 
-    fn possible_candidate_1(&self, v1: &NID1) -> bool {
+    pub fn possible_candidate_1(&self, v1: &NID1) -> bool {
         if self.state_0.term_both() && self.state_1.term_both() {
             self.state_1.term_both_vertex(v1)
         } else if self.state_0.term_out() && self.state_1.term_out() {
@@ -183,13 +184,19 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
     }
 
-    fn success(&self) -> bool {
-        self.state_0.count() == self.graph_0.get_nodes_len()
+    pub fn success(&self) -> bool {
+        self.state_0.count() == self.graph_0.nodes_len()
     }
-    fn valid(&self) -> bool {
+
+    pub fn valid(&self) -> bool {
         let term_set_0 = self.state_0.term_set();
         let term_set_1 = self.state_1.term_set();
         term_set_0.0 <= term_set_1.0 && term_set_0.1 <= term_set_1.1 && term_set_0.2 <= term_set_1.2
+    }
+
+    pub fn call_back(&self, callback:  impl Fn(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool) -> bool
+    {
+        callback(self.state_0.get_map(), self.state_1.get_map())
     }
 }
 
