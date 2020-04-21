@@ -108,32 +108,32 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
     }
 
-    fn sort_nodes<'g, NID, EID, N, R, Graph>(graph: &'g Graph) -> Vec<NID> 
-    where NID: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID: std::hash::Hash + Eq + MemGraphId + Copy,
-    N: std::hash::Hash + Eq, R: std::hash::Hash + Eq,
-    Graph: GraphContainerTrait<'g, NID, EID, N, R> {
-        let mut res = graph.get_nodes_ids();
-        res.sort_by(|a, b| (graph.in_degree(b) + graph.out_degree(b)).cmp(&(graph.in_degree(a) + graph.out_degree(a))));
-        res
-    }
+fn sort_nodes<'g, NID, EID, N, R, Graph>(graph: &'g Graph) -> Vec<NID> 
+where NID: std::hash::Hash + Eq + MemGraphId + Copy,
+EID: std::hash::Hash + Eq + MemGraphId + Copy,
+N: std::hash::Hash + Eq, R: std::hash::Hash + Eq,
+Graph: GraphContainerTrait<'g, NID, EID, N, R> {
+    let mut res = graph.get_nodes_ids();
+    res.sort_by(|a, b| (graph.in_degree(b) + graph.out_degree(b)).cmp(&(graph.in_degree(a) + graph.out_degree(a))));
+    res
+}
 
-    pub fn sub_graph_isomorphism<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
-    (graph_0: &'g0 Graph0, graph_1: &'g1 Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> bool
-    where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
-    N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
-    VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: Fn(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
-        if graph_0.nodes_len() > graph_1.nodes_len() {
-            false
-        } else if graph_0.edges_len() > graph_1.edges_len() {
-            false
-        } else {
-            let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
-            matcher.process()
-        }
+pub fn sub_graph_isomorphism<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
+(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> bool
+where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
+EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
+N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
+N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
+Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
+Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
+CALLBACK: Fn(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
+    if graph_0.nodes_len() > graph_1.nodes_len() {
+        false
+    } else if graph_0.edges_len() > graph_1.edges_len() {
+        false
+    } else {
+        let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
+        matcher.process()
     }
+}
