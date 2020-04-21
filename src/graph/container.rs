@@ -47,8 +47,17 @@ impl <'g, NODE, RELATIONSHIP> GraphTrait<'g, NodeIndex, EdgeIndex> for GraphCont
     fn nodes_len(&self) -> usize {
         self.nodes.len()
     }
+    fn edges_len(&self) -> usize {
+        self.relationships.len()
+    }
     fn get_nodes_ids(&self) -> Vec<NodeIndex> {
         (0..self.nodes_len()).map(NodeIndex::new).collect()
+    }
+    fn in_degree(&self, node: &NodeIndex) -> usize {
+        self.in_edges(node).count()
+    }
+    fn out_degree(&self, node: &NodeIndex) -> usize {
+        self.out_edges(node).count()
     }
 }
 

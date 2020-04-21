@@ -161,8 +161,19 @@ impl <'g> GraphTrait<'g, NodeIndex, EdgeIndex> for Graph {
         self.nodes.len()
     }
 
+    fn edges_len(&self) -> usize {
+        self.edges.len()
+    }
+
     fn get_nodes_ids(&self) -> Vec<NodeIndex> {
         (0..self.nodes_len()).map(NodeIndex::new).collect()
+    }
+    
+    fn in_degree(&self, node: &NodeIndex) -> usize {
+        self.in_edges(node).count()
+    }
+    fn out_degree(&self, node: &NodeIndex) -> usize {
+        self.out_edges(node).count()
     }
 }
 impl Graph {

@@ -10,7 +10,10 @@ pub trait GraphTrait<'g, NodeId: MemGraphId, EdgeId: MemGraphId> {
     fn get_source_index(&self, edge_index: &EdgeId) -> &NodeId;
     fn get_target_index(&self, edge_index: &EdgeId) -> &NodeId;
     fn nodes_len(&self) -> usize;
+    fn edges_len(&self) -> usize;
     fn get_nodes_ids(&self) -> Vec<NodeId>;
+    fn in_degree(&self, node: &NodeId) -> usize;
+    fn out_degree(&self, node: &NodeId) -> usize;
 }
 
 
