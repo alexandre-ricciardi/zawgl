@@ -6,6 +6,7 @@ mod repository;
 mod query_engine;
 mod conf;
 mod matcher;
+mod cache;
 
 fn main() {
     

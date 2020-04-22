@@ -36,7 +36,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: Fn(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool {
 
-        fn new(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
+        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
             Matcher {
                 graph_0: graph_0,
                 graph_1: graph_1,
