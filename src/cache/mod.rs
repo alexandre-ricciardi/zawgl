@@ -6,14 +6,23 @@ use self::model::*;
 use std::collections::HashMap;
 use super::matcher::vf2::*;
 
+
+
 pub struct Cache {
-    model: GraphProxy<Node, Relationship>,
     repository: GraphRepository,
+}
+
+fn extract_nodes_labels(pattern: &PropertyGraph) -> Vec<String> {
+    let mut res = Vec::new();
+    for node in pattern.get_nodes() {
+        node.labels.iter().for_each(|l| res.push(l.to_owned()));
+    }
+    res
 }
 
 impl Cache {
     pub fn new(ctx: &init::InitContext) -> Self {
-        Cache{ model: GraphProxy::new(ctx), repository: GraphRepository::new(ctx)}
+        Cache{repository: GraphRepository::new(ctx)}
     }
 
     ///compute item ids
@@ -33,9 +42,13 @@ impl Cache {
 
     }
 
-    pub fn match_pattern(pattern: &PropertyGraph) {
+    pub fn match_pattern(&mut self, pattern: &PropertyGraph) {
+        let mut graph_proxy = GraphProxy::new(&self.repository, extract_nodes_labels(pattern));
+        
         //sub_graph_isomorphism();
     }
+
+   
 
     pub fn retrieve_graph() {
 

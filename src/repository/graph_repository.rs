@@ -29,6 +29,10 @@ impl GraphRepository {
         Vec::new()
     }
 
+    pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> Vec<u64> {
+        Vec::new()
+    }
+
     pub fn save(pgraph: PropertyGraph) {
         //let node_list = pgraph.nodes.iter().map(|n|)
     }
