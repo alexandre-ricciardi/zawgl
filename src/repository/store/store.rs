@@ -1,6 +1,5 @@
 
-use super::file_access::*;
-#[feature(map_first_last)]
+use super::super::file::file_access::*;
 use std::collections::BTreeSet;
 
 pub struct Store {

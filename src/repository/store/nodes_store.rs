@@ -1,7 +1,5 @@
 use super::records::*;
-use super::file_access::*;
 use super::store::*;
-use std::path::Path;
 
 pub struct NodesStore {
     node_records_store: Store,
