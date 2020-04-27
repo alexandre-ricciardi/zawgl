@@ -1,17 +1,9 @@
+use super::super::byte_utils::*;
+
 pub struct NodeRecord {
     pub in_use: bool,
     pub next_rel_id: u64,
     pub next_prop_id: u64,
-}
-
-pub fn u64_to_bytes(val: u64) -> [u8; 8] {
-    val.to_be_bytes()
-}
-
-pub fn u64_from_bytes(b: &[u8]) -> u64 {
-    let mut bytes = [0u8; std::mem::size_of::<u64>()];
-    bytes.copy_from_slice(b);
-    u64::from_be_bytes(bytes)
 }
 
 pub fn nr_to_bytes(nr: &NodeRecord) -> [u8; 17] {

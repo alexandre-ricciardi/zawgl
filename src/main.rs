@@ -1,3 +1,4 @@
+#![feature(trace_macros)]
 extern crate log;
 mod cypher;
 mod graph;
