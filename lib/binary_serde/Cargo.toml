@@ -9,3 +9,4 @@ proc-macro = true
 [dependencies]
 syn = "1.0.18"
 quote = "1.0.3"
+orange_db_binary_serde_traits =  { path = "../binary_serde_traits" }

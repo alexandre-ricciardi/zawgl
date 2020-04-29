@@ -1,0 +1,4 @@
+[package]
+name = "orange_db_binary_serde_traits"
+version = "0.1.0"
+authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "lib/binary_serde_traits",
     "lib/binary_serde",
     "lib/orange_db_kernel",
     "orange_db",

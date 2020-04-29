@@ -24,15 +24,22 @@ dependencies = [
 name = "orange_db_binary_serde"
 version = "0.1.0"
 dependencies = [
+ "orange_db_binary_serde_traits 0.1.0",
  "quote 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "orange_db_binary_serde_traits"
+version = "0.1.0"
 
 [[package]]
 name = "orange_db_kernel"
 version = "0.1.0"
 dependencies = [
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orange_db_binary_serde 0.1.0",
+ "orange_db_binary_serde_traits 0.1.0",
  "serde 1.0.105 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

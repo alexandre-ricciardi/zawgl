@@ -10,4 +10,5 @@ name = "orange_db_kernel"
 log = "0.4"
 toml = "0.5"
 serde = { version = "1.0.105", features = ["derive"] }
-
+orange_db_binary_serde =  { path = "../binary_serde" }
+orange_db_binary_serde_traits =  { path = "../binary_serde_traits" }
