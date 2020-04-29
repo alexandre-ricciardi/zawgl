@@ -17,7 +17,6 @@ macro_rules! to_bytes_impl {
 fn deser_and_inc(bytes: &[u8], offset: usize) -> u64 {
     let upper_bound = inc_offset(offset);
     let res = u64_from_bytes(&bytes[offset..upper_bound]);
-    offset += upper_bound;
     res
 }
 
@@ -48,9 +47,4 @@ fn to_bytes(bnr: &BNodeRecord) -> [u8; 64] {
     let mut bytes = [0u8; 64];
     to_bytes_impl![bytes, bnr.ptr_0, bnr.slot_0];
     bytes
-}
-
-fn from_bytes(bytes: [u8; 64]) -> BNodeRecord {
-    let mut offset = 0;
-    
 }

@@ -1,0 +1,11 @@
+[package]
+name = "orange_db_binary_serde"
+version = "0.1.0"
+authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0.18"
+quote = "1.0.3"

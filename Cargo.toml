@@ -1,12 +1,6 @@
-[package]
-name = "orange-db"
-version = "0.1.0"
-authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]
-
-[dependencies]
-log = "0.4"
-toml = "0.5"
-serde = { version = "1.0.105", features = ["derive"] }
-
-[profile.dev]
-opt-level = 0
+[workspace]
+members = [
+    "lib/binary_serde",
+    "lib/orange_db_kernel",
+    "orange_db",
+]

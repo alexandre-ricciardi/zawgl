@@ -1,7 +1,4 @@
-extern crate serde;
-extern crate toml;
-
-use self::serde::{Deserialize};
+use serde::{Deserialize};
 use std::path;
 use std::fs;
 use std::io::Read;
@@ -50,7 +47,7 @@ mod test_conf {
     use super::*;
     #[test]
     fn test_load_conf() {
-        let cfg = load_conf(".\\dist");
+        let cfg = load_conf("..\\..\\dist");
         assert_eq!(cfg.db_dir, "C:\\Temp");
         assert_eq!(cfg.stores.nodes_store, "nodes.db");
         assert_eq!(cfg.stores.properties_store, "properties.db");
