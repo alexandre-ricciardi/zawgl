@@ -1,14 +1,14 @@
 [package]
-name = "orange_db_kernel"
+name = "orange_db_core"
 version = "0.1.0"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]
 
 [lib]
-name = "orange_db_kernel"
+name = "orange_db_core"
 
 [dependencies]
 log = "0.4"
 toml = "0.5"
 serde = { version = "1.0.105", features = ["derive"] }
-orange_db_binary_serde =  { path = "../binary_serde" }
-orange_db_binary_serde_traits =  { path = "../binary_serde_traits" }
+orange_db_binary_serde_derive =  { path = "../binary-serde-derive" }
+orange_db_binary_serde_traits =  { path = "../binary-serde-traits" }

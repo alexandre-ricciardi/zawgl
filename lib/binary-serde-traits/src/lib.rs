@@ -3,6 +3,5 @@ pub trait BinarySer {
 }
 
 pub trait BinaryDeser {
-    type Item;
-    fn deser(bytes: &Vec<u8>) -> Self::Item;
+    fn deser(bytes: &Vec<u8>) -> Self;
 }

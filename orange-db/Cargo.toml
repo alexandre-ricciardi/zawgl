@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]
 
 [dependencies]
-orange_db_kernel = { path = "../lib/orange_db_kernel" }
+orange_db_core = { path = "../lib/orange-db-core" }
