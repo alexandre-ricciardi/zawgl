@@ -1,7 +1,7 @@
-use super::super::byte_utils::*;
 use orange_db_binary_serde_traits::BinarySer;
 use orange_db_binary_serde_traits::BinaryDeser;
 
+use super::super::io::file_access::FileAccess;
 
 pub struct BNode {
 
@@ -19,6 +19,22 @@ pub struct BNodeRecord {
     pub next: u64,
 }
 
+
+pub struct BTreeIndex {
+    file_access: FileAccess,
+}
+
+impl BTreeIndex {
+    pub fn new(file: &str) -> Self {
+        BTreeIndex{file_access: FileAccess::new(file)}
+    }
+
+    pub fn search(&mut self, value: u64) -> Option<BNodeRecord> {
+        let mut data = [0u8; 64];
+        self.file_access.read_at(0, &mut  data);
+        Some(BNodeRecord::deser(&data.to_vec()))
+    }
+}
 
 #[cfg(test)]
 mod test_b_tree {

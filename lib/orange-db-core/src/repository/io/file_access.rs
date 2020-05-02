@@ -2,7 +2,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use log::error;
-use std::path::Path;
 
 pub struct FileAccess {
     file: File
@@ -10,7 +9,7 @@ pub struct FileAccess {
 
 impl FileAccess {
     pub fn new(file: &str) -> Self {
-        let mut f = std::fs::OpenOptions::new()
+        let f = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
