@@ -11,8 +11,8 @@ pub fn nr_to_bytes(nr: &NodeRecord) -> [u8; 17] {
     if nr.in_use {
         bytes[0] = bytes[0] | 0b00000001;
     }
-    bytes[1..9].clone_from_slice(&u64_to_bytes(nr.next_rel_id));
-    bytes[9..17].clone_from_slice(&u64_to_bytes(nr.next_prop_id));
+    bytes[1..9].copy_from_slice(&u64_to_bytes(nr.next_rel_id));
+    bytes[9..17].copy_from_slice(&u64_to_bytes(nr.next_prop_id));
     bytes
 }
 

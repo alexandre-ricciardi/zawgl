@@ -23,26 +23,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "orange_db_binary_serde_derive"
+name = "orange_db_binary_derive"
 version = "0.1.0"
 dependencies = [
- "orange_db_binary_serde_traits",
  "proc-macro2",
  "quote",
  "syn",
 ]
 
 [[package]]
-name = "orange_db_binary_serde_traits"
-version = "0.1.0"
-
-[[package]]
 name = "orange_db_core"
 version = "0.1.0"
 dependencies = [
  "log",
- "orange_db_binary_serde_derive",
- "orange_db_binary_serde_traits",
+ "orange_db_binary_derive",
  "serde",
  "toml",
 ]

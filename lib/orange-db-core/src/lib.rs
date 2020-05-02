@@ -2,8 +2,7 @@ extern crate log;
 extern crate serde;
 extern crate toml;
 #[macro_use]
-extern crate orange_db_binary_serde_derive;
-extern crate orange_db_binary_serde_traits;
+extern crate orange_db_binary_derive;
 
 pub mod cypher;
 pub mod graph;
