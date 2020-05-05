@@ -41,7 +41,7 @@ impl FileAccess {
             _ => {}
         }
     }
-    pub fn read_at(&mut self, pos: u64 , mut data:&mut [u8]) {
+    pub fn read_at(&mut self, pos: u64 , mut data: &mut [u8]) {
         match self._read_at(pos, data) {
             Err(msg) => {
                 error!("reading file {}", msg);
