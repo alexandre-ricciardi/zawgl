@@ -1,4 +1,5 @@
 mod byte_utils;
+mod pager;
 mod index;
 mod store;
 mod io;
