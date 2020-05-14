@@ -16,8 +16,7 @@ pub struct Pager {
 
 impl Pager {
     pub fn new(file: &str, record_size: u64) -> Self {
-        let mut store = Pager { records_file: FileAccess::new(file), record_size: record_size};
-        store
+        Pager { records_file: FileAccess::new(file), record_size: record_size}
     }
     pub fn save(&mut self, id: PageId, data: &[u8]) -> PagerResult {
         let pos = id * self.record_size;

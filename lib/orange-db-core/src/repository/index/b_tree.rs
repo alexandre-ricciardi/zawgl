@@ -61,7 +61,7 @@ impl BNodeRecord {
         (self.header & 0x00FF) as usize
     }
     fn is_full(&self) -> bool {
-        self.len() == 2 * NB_ITEM + 1
+        self.len() == 2 * NB_ITEM
     }
 }
 
@@ -69,6 +69,8 @@ pub struct BTreeIndex {
     pager: Pager,
     tree_depth: u32,
 }
+
+pub type BTreeResult = std::result::Result<BNodeRecord, Option<BNodeRecord>>;
 
 impl BTreeIndex {
     pub fn new(file: &str, tree_depth: u32) -> Self {
@@ -79,21 +81,21 @@ impl BTreeIndex {
         depth == self.tree_depth
     }
 
-    fn tree_search(&mut self, value: u64, node: &BNodeRecord, depth: u32) -> Option<BNodeRecord> {
+    fn tree_search(&mut self, value: u64, node: &BNodeRecord, depth: u32) -> BTreeResult {
         if self.is_leaf_node(depth) {
-            Some(*node)
+            Ok(*node)
         } else {
             let res = node.keys.binary_search(&value);
             match res {
                 Ok(found) => {
                     let mut data = [0u8; BLOCK_SIZE];
-                    self.pager.load(node.ptrs[found+1], &mut data).ok()?;
+                    self.pager.load(node.ptrs[found+1], &mut data).or_else(|_| Err(None))?;
                     let child = BNodeRecord::from_bytes(data);
                     self.tree_search(value, &child, depth+1)
                 },
                 Err(not_found) => {
                     let mut data = [0u8; BLOCK_SIZE];
-                    self.pager.load(node.ptrs[not_found], &mut data).ok()?;
+                    self.pager.load(node.ptrs[not_found], &mut data).or_else(|_| Err(None))?;
                     let child = BNodeRecord::from_bytes(data);
                     self.tree_search(value, &child, depth+1)
                 }
@@ -101,14 +103,18 @@ impl BTreeIndex {
         }
     }
 
-    pub fn search(&mut self, value: u64) -> Option<BNodeRecord> {
+    pub fn search(&mut self, value: u64) -> BTreeResult {
         if self.pager.is_empty() {
-            None
+            Err(None)
         } else {
             let mut data = [0u8; BLOCK_SIZE];
-            self.pager.load(0, &mut  data).ok()?;
+            self.pager.load(0, &mut  data).or_else(|_| Err(None))?;
             self.tree_search(value, &BNodeRecord::from_bytes(data), 0)
         }
+    }
+
+    pub fn insert(&mut self, value: u64, data_ptr: u64) {
+
     }
 }
 
