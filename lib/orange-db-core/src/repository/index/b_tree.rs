@@ -32,12 +32,12 @@ impl BNodeRecord {
         bytes[index] = self.header;
         index += 1;
         for key in self.keys.iter() {
-            bytes[index..index+8].copy_from_slice(&key.to_be_bytes());
-            index += 8;
+            bytes[index..index+SLOT_SIZE].copy_from_slice(&key.to_be_bytes());
+            index += SLOT_SIZE;
         }
         for ptr in self.ptrs.iter() {
-            bytes[index..index+8].copy_from_slice(&ptr.to_be_bytes());
-            index += 8;
+            bytes[index..index+SLOT_SIZE].copy_from_slice(&ptr.to_be_bytes());
+            index += SLOT_SIZE;
         }
         bytes
     }
@@ -61,7 +61,10 @@ impl BNodeRecord {
         (self.header & 0x00FF) as usize
     }
     fn is_full(&self) -> bool {
-        self.len() == 2 * NB_ITEM
+        self.len() >= 2 * NB_ITEM
+    }
+    fn is_leaf(&self) -> bool {
+        (self.header & 0b1000_0000) == 1
     }
 }
 
@@ -89,9 +92,13 @@ impl BTreeIndex {
             match res {
                 Ok(found) => {
                     let mut data = [0u8; BLOCK_SIZE];
-                    self.pager.load(node.ptrs[found+1], &mut data).or_else(|_| Err(None))?;
+                    self.pager.load(node.ptrs[found], &mut data).or_else(|_| Err(None))?;
                     let child = BNodeRecord::from_bytes(data);
-                    self.tree_search(value, &child, depth+1)
+                    if child.is_leaf() {
+                        Ok(child)
+                    } else {
+                        self.tree_search(value, &child, depth+1)
+                    }
                 },
                 Err(not_found) => {
                     let mut data = [0u8; BLOCK_SIZE];
