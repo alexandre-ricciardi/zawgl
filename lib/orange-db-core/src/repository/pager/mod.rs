@@ -70,7 +70,9 @@ impl <'a> Page<'a> {
     }
 
     fn set_list_free_page_record_ids(&self, freelist: Vec<PageRecordId>) {
-        
+        for prid in freelist {
+            
+        }
     }
 }
 
@@ -96,14 +98,8 @@ impl Pager {
             Err(PagerError::FileOverflow)
         } else {
             let location_in_page = location.1 * self.record_size + PAGE_HEADER_SIZE;
-            if let Some(page) = self.page_cache.get(&location.0) {
-                page[location_in_page..location_in_page + self.record_size].copy_from_slice(data);
-            } else {
-                let mut page_data = [0u8; PAGE_SIZE];
-                self.records_file.read_at(page_begin_pos, &mut page_data);
-                page_data[location_in_page..location_in_page + self.record_size].copy_from_slice(data);
-                self.page_cache.insert(location.0, page_data);
-            }
+            let page = self.load_page(&location.0);
+            page.data[location_in_page..location_in_page + self.record_size].copy_from_slice(data);
             Ok(location.0)
         }
     }
@@ -114,18 +110,24 @@ impl Pager {
             Err(PagerError::FileOverflow)
         } else {
             let location_in_page = location.1 * self.record_size;
-            if let Some(page) = self.page_cache.get(&location.0) {
-                data.copy_from_slice(&page[location_in_page..location_in_page + self.record_size]);
-            } else {
-                let mut page_data = [0u8; PAGE_SIZE];
-                self.records_file.read_at(page_begin_pos, &mut page_data);
-                data.copy_from_slice(&page_data[location_in_page..location_in_page + self.record_size]);
-                self.page_cache.insert(location.0, page_data);
-            }
+            let page = self.load_page(&location.0);
+            data.copy_from_slice(&page.data[location_in_page..location_in_page + self.record_size]);
             Ok(location.0)
         }
     }
+    
+    fn load_page(&mut self, pid: &PageId) -> Page {
+        if !self.page_cache.contains_key(pid) {
+            let mut page_data = [0u8; PAGE_SIZE];
+            let page_begin_pos = *pid * PAGE_SIZE as u64;
+            self.records_file.read_at(page_begin_pos, &mut page_data);
+            self.page_cache.insert(*pid, page_data);
+        }
+        Page::new(&mut self.page_cache.get(pid).unwrap(), self.record_size)
+    }
+
     pub fn append(&mut self, data: &[u8]) -> PagerResult {
+
         let next_pid = self.records_file.get_file_len() / self.record_size;
         self.save(next_pid, data)
     }
