@@ -7,16 +7,23 @@ pub struct BNode {
 }
 
 
-const NB_SLOT: usize = 66;
-const SLOT_SIZE: usize = std::mem::size_of::<u64>();
-const NB_ITEM: usize = 2 * NB_SLOT + 1;
-const BLOCK_SIZE: usize = NB_ITEM * SLOT_SIZE + 1;
+const NB_CELL: usize = 66;
+const PTR_SIZE: usize = std::mem::size_of::<u64>();
+const KEY_SIZE: usize = 40;
+const CELL_SIZE: usize = KEY_SIZE + std::mem::size_of::<u64>();
+const BLOCK_SIZE: usize = CELL_SIZE * NB_CELL + PTR_SIZE;
+
+#[derive(Copy, Clone)]
+pub struct Cell {
+    pub key: [u8; KEY_SIZE],
+    pub ptr: u64,
+}
 
 #[derive(Copy, Clone)]
 pub struct BNodeRecord {
     pub header: u8,
-    pub keys: [u64; NB_SLOT],
-    pub ptrs: [u64; NB_SLOT + 1],
+    pub cells: [Cell; NB_CELL],
+    pub ptr: u64,
 }
 
 impl BNodeRecord {
@@ -31,6 +38,7 @@ impl BNodeRecord {
         let mut index = 0;
         bytes[index] = self.header;
         index += 1;
+
         for key in self.keys.iter() {
             bytes[index..index+SLOT_SIZE].copy_from_slice(&key.to_be_bytes());
             index += SLOT_SIZE;
