@@ -2,8 +2,6 @@ use super::io::file_access::*;
 use std::collections::HashMap;
 
 pub type PageId = u64;
-pub type RecordId = u64;
-pub type PageRecordId = usize;
 
 #[derive(Debug, Clone)]
 pub enum PagerError {
@@ -12,7 +10,7 @@ pub enum PagerError {
 
 pub type PagerResult = std::result::Result<PageId, PagerError>;
 
-const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: usize = 4096;
 
 struct HeaderPage {
     data: [u8; PAGE_SIZE],
@@ -35,7 +33,7 @@ impl  HeaderPage {
 }
 
 pub struct Page<'a> {
-    data: &'a mut [u8; PAGE_SIZE],
+    pub data: &'a mut [u8; PAGE_SIZE],
 }
 
 impl <'a> Page<'a> {
@@ -53,7 +51,7 @@ pub struct Pager {
 
 
 fn load_or_create_header_page(io: &mut FileAccess) -> HeaderPage {
-    let header_page_data = [0u8; PAGE_SIZE];
+    let mut header_page_data = [0u8; PAGE_SIZE];
     if io.get_file_len() == 0 {
         io.write_at(0, &header_page_data);
     } else {
@@ -64,7 +62,7 @@ fn load_or_create_header_page(io: &mut FileAccess) -> HeaderPage {
 
 impl Pager {
     pub fn new(file: &str) -> Self {
-        let file_io = FileAccess::new(file);
+        let mut file_io = FileAccess::new(file);
         let header_page = load_or_create_header_page(&mut file_io);
         Pager { records_file: file_io, page_cache: HashMap::new(), nb_pages: 0u64, header_page: header_page}
     }
@@ -81,19 +79,19 @@ impl Pager {
             let page_data = self.read_page_data(pid);
             self.page_cache.insert(*pid, page_data);
         }
-        Page::new(&mut self.page_cache.get(pid).unwrap())
+        Page::new(self.page_cache.get_mut(pid).unwrap())
     }
 
     pub fn append(&mut self) -> Page {
         let next_pid = self.header_page.get_page_count() + 1;
         self.header_page.set_page_count(next_pid);
-        let mut page_data = [0u8; PAGE_SIZE];
+        let page_data = [0u8; PAGE_SIZE];
         self.page_cache.insert(next_pid, page_data);
-        Page::new(&mut self.page_cache.get(&next_pid).unwrap())
+        Page::new(self.page_cache.get_mut(&next_pid).unwrap())
     }
     
     pub fn sync(&mut self) {
-        let pids = self.page_cache.keys().cloned().collect::<Vec<PageId>>();
+        let mut pids = self.page_cache.keys().cloned().collect::<Vec<PageId>>();
         pids.sort();
         for pid in pids {
             let pos = pid * PAGE_SIZE as u64;
