@@ -49,6 +49,18 @@ const HEADER_SIZE: usize = HEADER_FLAGS + NEXT_FREE_SLOT_PAGE_PTR_SIZE + MULTI_P
 
 const MULTI_PAGE_RECORD_FLAG: u8 = 0b1000_0000;
 
+struct SliceBounds {
+    begin: usize,
+    end: usize,
+}
+
+struct PageBounds {
+    header_flags: SliceBounds,
+    next_free_slot_page_ptr: SliceBounds,
+    multi_page_recode_ptr: SliceBounds,
+    payload: SliceBounds,
+}
+
 fn compute_freelist_len(record_size: usize) -> usize {
     (PAGE_SIZE - HEADER_SIZE) / record_size
 }
@@ -87,12 +99,18 @@ impl RecordsManager {
         }
     }
 
-    fn load_multi_page<'p, 'v: 'p>(&mut self, pages: &'v mut Vec<&Page>, current_page: &'p Page) {
+    fn load_multi_page(&mut self, mut data: &mut [u8], current_page: &Page, page_count: usize) {
         if current_page.has_multi_page_record() {
             let next_page_ptr = current_page.get_multi_page_ptr();
             let mut next_page = self.pager.load_page(&next_page_ptr);
-            pages.push(&next_page);
-            //self.load_multi_page(pages, &next_page);
+            let page_header_size = compute_header_size(self.record_size);
+            let page_payload_size = compute_payload_size(self.record_size);
+            data[page_count*page_payload_size..(page_count+1)*page_payload_size].copy_from_slice(&next_page.data[page_header_size..]);
+            self.load_multi_page(data, &next_page, page_count + 1);
+        } else {
+            let page_header_size = compute_header_size(self.record_size);
+            let page_payload_size = compute_payload_size(self.record_size);
+            data[page_count*page_payload_size..(page_count+1)*page_payload_size].copy_from_slice(&next_page.data[page_header_size..]);
         }
     }
 
