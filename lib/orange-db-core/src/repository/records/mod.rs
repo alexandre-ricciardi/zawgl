@@ -87,12 +87,23 @@ impl RecordsManager {
         }
     }
 
+    fn load_multi_page<'p, 'v: 'p>(&mut self, pages: &'v mut Vec<&Page>, current_page: &'p Page) {
+        if current_page.has_multi_page_record() {
+            let next_page_ptr = current_page.get_multi_page_ptr();
+            let mut next_page = self.pager.load_page(&next_page_ptr);
+            pages.push(&next_page);
+            //self.load_multi_page(pages, &next_page);
+        }
+    }
+
     pub fn load(&mut self, id: RecordId, mut data: &mut [u8]) {
         let location = self.compute_location(id);
         if location.is_multi_pages_record {
             let mut pages = Vec::new();
             let first_page = self.pager.load_page(&location.page_id);
             pages.push(first_page);
+            
+            
 
         }
         let page = self.pager.load_page(&location.0);
