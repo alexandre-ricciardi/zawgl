@@ -174,9 +174,9 @@ impl RecordsManager {
 
     pub fn load(&mut self, id: RecordId, data: &mut [u8]) {
         let location = self.compute_location(id);
-        let mut page_count = 0;
-        let mut has_next_page = true;
         if location.is_multi_pages_record {
+            let mut page_count = 0;
+            let mut has_next_page = true;
             while has_next_page {
                 let rpage = RecordPageWrapper::new(self.pager.load_page(&location.page_id), self.page_map);
                 let payload = rpage.get_slice_ref(&self.page_map.payload);
