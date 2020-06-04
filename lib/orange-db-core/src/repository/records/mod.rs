@@ -7,6 +7,7 @@ struct RecordLocation {
     page_id: PageId,
     record_id_in_page: PageRecordId,
     page_record_address: usize,
+    payload_record_address: usize,
     nb_pages_per_record: usize,
     is_multi_pages_record: bool,
 }
@@ -18,12 +19,12 @@ pub struct RecordsManager {
 }
 
 struct RecordPageWrapper<'a> {
-    page: &'a Page<'a>,
+    page: Page<'a>,
     page_map: PageMap,
 }
 
 impl <'a> RecordPageWrapper<'a> {
-    fn new(page: &'a Page, page_map: PageMap) -> Self {
+    fn new(page: Page<'a>, page_map: PageMap) -> Self {
         RecordPageWrapper{page: page, page_map: page_map}
     }
     fn has_multi_page_record(&self) -> bool {
@@ -46,6 +47,17 @@ impl <'a> RecordPageWrapper<'a> {
         let mut bytes = [0u8; FREE_LIST_LEN_SIZE];
         bytes.copy_from_slice(self.get_slice_ref(&self.page_map.free_list_len));
         u16::from_be_bytes(bytes) as usize
+    }
+    fn get_page_free_list(&self) -> Vec<PageRecordId> {
+        let mut res = Vec::new();
+        let free_list_slice = self.get_slice_ref(&self.page_map.free_list);
+        for count in 0..self.get_free_list_len() {
+            let offset = count * FREE_LIST_PTR_SIZE;
+            let mut bytes = [0u8; FREE_LIST_PTR_SIZE];
+            bytes.copy_from_slice(&free_list_slice[offset..offset+FREE_LIST_PTR_SIZE]);
+            res.push(u32::from_be_bytes(bytes) as usize);
+        }
+        res
     }
 }
 
@@ -70,6 +82,9 @@ impl Bounds {
     }
     fn size(&self) -> usize {
         self.end - self.begin
+    }
+    fn shift(&self, size: usize) -> Self {
+        Bounds{begin: self.end, end: self.end + size}
     }
 }
 
@@ -99,10 +114,10 @@ fn compute_payload_size(record_size: usize) -> usize {
 fn compute_page_map(record_size: usize) -> PageMap {
     let free_list_size = compute_freelist_size(record_size);
     let header_flags_bounds = Bounds::new(0, HEADER_FLAGS);
-    let next_free_slot_page_ptr_bounds = Bounds::new(header_flags_bounds.end, header_flags_bounds.end + NEXT_FREE_SLOT_PAGE_PTR_SIZE);
-    let multi_page_recode_ptr_bounds = Bounds::new(next_free_slot_page_ptr_bounds.end, next_free_slot_page_ptr_bounds.end + MULTI_PAGE_RECORD_PTR_SIZE);
-    let free_list_len = Bounds::new(multi_page_recode_ptr_bounds.end, multi_page_recode_ptr_bounds.end + FREE_LIST_LEN_SIZE);
-    let free_list_bounds = Bounds::new(free_list_len.end, free_list_len.end + free_list_size);
+    let next_free_slot_page_ptr_bounds = header_flags_bounds.shift(NEXT_FREE_SLOT_PAGE_PTR_SIZE);
+    let multi_page_recode_ptr_bounds = next_free_slot_page_ptr_bounds.shift(MULTI_PAGE_RECORD_PTR_SIZE);
+    let free_list_len = multi_page_recode_ptr_bounds.shift(FREE_LIST_LEN_SIZE);
+    let free_list_bounds = free_list_len.shift(free_list_size);
     let payload_bounds = Bounds::new(free_list_bounds.end, PAGE_SIZE);
     PageMap{
         header_flags: header_flags_bounds,
@@ -111,6 +126,14 @@ fn compute_page_map(record_size: usize) -> PageMap {
         free_list_len: free_list_len,
         free_list: free_list_bounds,
         payload: payload_bounds,
+    }
+}
+
+fn append_payload(data: &mut [u8], payload: &[u8]) {
+    if payload.len() > data.len() {
+        data.copy_from_slice(&payload[..data.len()]);
+    } else {
+        data[..payload.len()].copy_from_slice(&payload)
     }
 }
 
@@ -133,6 +156,7 @@ impl RecordsManager {
                 page_id: 1 + (nb_pages_per_record as u64 * record_id),
                 record_id_in_page: 0,
                 page_record_address: self.page_map.payload.begin,
+                payload_record_address: 0,
                 nb_pages_per_record: nb_pages_per_record,
                 is_multi_pages_record: true}
         } else {
@@ -141,36 +165,29 @@ impl RecordsManager {
                 page_id: 1 + (record_id / nb_records_per_page as u64),
                 record_id_in_page: page_record_id,
                 page_record_address: self.page_map.payload.begin + self.record_size * page_record_id,
+                payload_record_address: self.record_size * page_record_id,
                 nb_pages_per_record: 0,
                 is_multi_pages_record: false
             }
         }
     }
 
-    fn append_page_data(&self, mut data: &mut [u8], page: &Page) {
-        let mut len = self.page_map.payload.size();
-        if len > data.len() {
-            len = data.len();
-        }
-        data[..len].copy_from_slice(&page.data[self.page_map.payload.begin..]);
-    }
-
-    fn load_multi_page(&mut self, mut data: &mut [u8], current_page: &Page, page_count: usize) {
-        self.append_page_data(&mut data[page_count*self.page_map.payload.size()..], &current_page);
-        if current_page.has_multi_page_record() {
-            let next_page_ptr = current_page.get_multi_page_ptr();
-            let mut next_page = self.pager.load_page(&next_page_ptr);
-            self.load_multi_page(data, &next_page, page_count + 1);
-        }
-    }
-
-    pub fn load(&mut self, id: RecordId, mut data: &mut [u8]) {
+    pub fn load(&mut self, id: RecordId, data: &mut [u8]) {
         let location = self.compute_location(id);
-        let first_page = self.pager.load_page(&location.page_id);
+        let mut page_count = 0;
+        let mut has_next_page = true;
         if location.is_multi_pages_record {
-            self.load_multi_page(data, &first_page, 0);
+            while has_next_page {
+                let rpage = RecordPageWrapper::new(self.pager.load_page(&location.page_id), self.page_map);
+                let payload = rpage.get_slice_ref(&self.page_map.payload);
+                append_payload(&mut data[page_count*self.page_map.payload.size()..], payload);
+                page_count += 1;
+                has_next_page = rpage.has_multi_page_record();
+            }
         } else {
-            data.copy_from_slice(&first_page.data[location.page_record_address..location.page_record_address + self.record_size]);
+            let rpage = RecordPageWrapper::new(self.pager.load_page(&location.page_id), self.page_map);
+            let payload = rpage.get_slice_ref(&self.page_map.payload);
+            data.copy_from_slice(&payload[location.payload_record_address..location.payload_record_address+self.record_size]);
         }
     }
 
@@ -178,24 +195,11 @@ impl RecordsManager {
         0
     }
 
-    fn get_page_free_list(&self, page: &Page) -> Vec<PageRecordId> {
-        let mut res = Vec::new();
-        let page_wrapper = RecordPageWrapper::new(page, self.page_map);
-        let free_list_slice = page_wrapper.get_slice_ref(&self.page_map.free_list);
-        for count in 0..page_wrapper.get_free_list_len() {
-            let offset = count * FREE_LIST_PTR_SIZE;
-            let mut bytes: [u8; FREE_LIST_PTR_SIZE];
-            bytes.copy_from_slice(&free_list_slice[offset..offset+FREE_LIST_PTR_SIZE]);
-            res.push(u32::from_be_bytes(bytes));
-        }
-        res
-    }
-
     pub fn delete(&mut self, id: RecordId) {
         let loc = self.compute_location(id);
         let first_page = self.pager.load_page(&loc.page_id);
         if loc.is_multi_pages_record {
-            self.delete_multi_page_record(&first_page);
+            //self.delete_multi_page_record(&first_page);
         } else {
             
         }
