@@ -72,7 +72,7 @@ impl Pager {
     pub fn get_header_page_mut(&mut self) -> &mut HeaderPage {
         &mut self.header_page
     }
-
+    
     fn read_page_data(&mut self, pid: &PageId) -> [u8; PAGE_SIZE] {
         let mut page_data = [0u8; PAGE_SIZE];
         let page_begin_pos = *pid * PAGE_SIZE as u64;

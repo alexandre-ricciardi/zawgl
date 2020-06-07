@@ -247,6 +247,7 @@ impl RecordsManager {
     }
 
     pub fn append(&mut self, data: &[u8]) -> RecordId {
+        
         0
     }
 
