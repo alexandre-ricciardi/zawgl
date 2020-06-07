@@ -11,9 +11,10 @@ pub enum PagerError {
 pub type PagerResult = std::result::Result<PageId, PagerError>;
 
 pub const PAGE_SIZE: usize = 4096;
+pub const PAGE_COUNTER: usize = 8;
 
-struct HeaderPage {
-    data: [u8; PAGE_SIZE],
+pub struct HeaderPage {
+    pub data: [u8; PAGE_SIZE],
 }
 
 impl  HeaderPage {
@@ -22,8 +23,8 @@ impl  HeaderPage {
     }
 
     fn get_page_count(&self) -> u64 {
-        let mut bytes = [0u8; 8];
-        bytes.copy_from_slice(&self.data[..8]);
+        let mut bytes = [0u8; PAGE_COUNTER];
+        bytes.copy_from_slice(&self.data[..PAGE_COUNTER]);
         u64::from_be_bytes(bytes)
     }
 
@@ -33,12 +34,13 @@ impl  HeaderPage {
 }
 
 pub struct Page<'a> {
+    pub header_page: &'a mut HeaderPage,
     pub data: &'a mut [u8; PAGE_SIZE],
 }
 
 impl <'a> Page<'a> {
-    fn new(data: &'a mut [u8; PAGE_SIZE]) -> Self {
-        Page{data: data}
+    fn new(header_page: &'a mut HeaderPage, data: &'a mut [u8; PAGE_SIZE]) -> Self {
+        Page{header_page: header_page, data: data}
     }
 }
 
@@ -67,6 +69,10 @@ impl Pager {
         Pager { records_file: file_io, page_cache: HashMap::new(), nb_pages: 0u64, header_page: header_page}
     }
 
+    pub fn get_header_page_mut(&mut self) -> &mut HeaderPage {
+        &mut self.header_page
+    }
+
     fn read_page_data(&mut self, pid: &PageId) -> [u8; PAGE_SIZE] {
         let mut page_data = [0u8; PAGE_SIZE];
         let page_begin_pos = *pid * PAGE_SIZE as u64;
@@ -79,7 +85,7 @@ impl Pager {
             let page_data = self.read_page_data(pid);
             self.page_cache.insert(*pid, page_data);
         }
-        Page::new(self.page_cache.get_mut(pid).unwrap())
+        Page::new(&mut self.header_page,self.page_cache.get_mut(pid).unwrap())
     }
 
     pub fn append(&mut self) -> Page {
@@ -87,10 +93,11 @@ impl Pager {
         self.header_page.set_page_count(next_pid);
         let page_data = [0u8; PAGE_SIZE];
         self.page_cache.insert(next_pid, page_data);
-        Page::new(self.page_cache.get_mut(&next_pid).unwrap())
+        Page::new(&mut self.header_page, self.page_cache.get_mut(&next_pid).unwrap())
     }
     
     pub fn sync(&mut self) {
+        self.records_file.write_at(0, &self.header_page.data);
         let mut pids = self.page_cache.keys().cloned().collect::<Vec<PageId>>();
         pids.sort();
         for pid in pids {
