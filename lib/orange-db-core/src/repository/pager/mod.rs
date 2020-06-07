@@ -34,13 +34,14 @@ impl  HeaderPage {
 }
 
 pub struct Page<'a> {
+    pub id: PageId,
     pub header_page: &'a mut HeaderPage,
     pub data: &'a mut [u8; PAGE_SIZE],
 }
 
 impl <'a> Page<'a> {
-    fn new(header_page: &'a mut HeaderPage, data: &'a mut [u8; PAGE_SIZE]) -> Self {
-        Page{header_page: header_page, data: data}
+    fn new(id: PageId, header_page: &'a mut HeaderPage, data: &'a mut [u8; PAGE_SIZE]) -> Self {
+        Page{id: id, header_page: header_page, data: data}
     }
 }
 
@@ -85,7 +86,7 @@ impl Pager {
             let page_data = self.read_page_data(pid);
             self.page_cache.insert(*pid, page_data);
         }
-        Page::new(&mut self.header_page,self.page_cache.get_mut(pid).unwrap())
+        Page::new(*pid, &mut self.header_page,self.page_cache.get_mut(pid).unwrap())
     }
 
     pub fn append(&mut self) -> Page {
@@ -93,7 +94,7 @@ impl Pager {
         self.header_page.set_page_count(next_pid);
         let page_data = [0u8; PAGE_SIZE];
         self.page_cache.insert(next_pid, page_data);
-        Page::new(&mut self.header_page, self.page_cache.get_mut(&next_pid).unwrap())
+        Page::new(next_pid, &mut self.header_page, self.page_cache.get_mut(&next_pid).unwrap())
     }
     
     pub fn sync(&mut self) {
