@@ -74,19 +74,19 @@ impl Pager {
         &mut self.header_page
     }
     
-    fn read_page_data(&mut self, pid: &PageId) -> [u8; PAGE_SIZE] {
+    fn read_page_data(&mut self, pid: PageId) -> [u8; PAGE_SIZE] {
         let mut page_data = [0u8; PAGE_SIZE];
-        let page_begin_pos = *pid * PAGE_SIZE as u64;
+        let page_begin_pos = pid * PAGE_SIZE as u64;
         self.records_file.read_at(page_begin_pos, &mut page_data);
         page_data
     }
 
-    pub fn load_page(&mut self, pid: &PageId) -> Page {
-        if !self.page_cache.contains_key(pid) {
+    pub fn load_page(&mut self, pid: PageId) -> Page {
+        if !self.page_cache.contains_key(&pid) {
             let page_data = self.read_page_data(pid);
-            self.page_cache.insert(*pid, page_data);
+            self.page_cache.insert(pid, page_data);
         }
-        Page::new(*pid, &mut self.header_page,self.page_cache.get_mut(pid).unwrap())
+        Page::new(pid, &mut self.header_page,self.page_cache.get_mut(&pid).unwrap())
     }
 
     pub fn append(&mut self) -> Page {
