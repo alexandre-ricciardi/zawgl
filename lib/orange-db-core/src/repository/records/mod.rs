@@ -64,12 +64,6 @@ impl <'a> RecordPageWrapper<'a> {
     fn has_next_page_record(&self) -> bool {
         self.page.data[0] & MULTI_PAGE_RECORD_FLAG == 1
     }
-    fn is_free_page(&self) -> bool {
-        self.page.data[0] & IS_FREE_PAGE_FLAG == 1
-    }
-    fn set_free_page(&mut self) {
-        self.page.data[0] = self.page.data[0] & !IS_FREE_PAGE_FLAG;
-    }
     fn set_page_in_use(&mut self) {
         self.page.data[0] = self.page.data[0] | IS_FREE_PAGE_FLAG;
     }
@@ -183,6 +177,7 @@ struct PageMap {
     free_list: Bounds,
     payload: Bounds,
     nb_pages_per_record: usize,
+    nb_records_per_page: usize,
     is_multi_page_record: bool,
     header_page_free_list_ptr: Bounds,
 }
@@ -214,6 +209,7 @@ fn compute_page_map(record_size: usize) -> PageMap {
         free_list: free_list_bounds,
         free_list_capacity: free_list_capacity,
         nb_pages_per_record: nb_pages_per_record,
+        nb_records_per_page: PAGE_SIZE / record_size,
         is_multi_page_record: nb_pages_per_record == 0,
         payload: payload_bounds,
         header_page_free_list_ptr: header_page_free_list_ptr_bounds,
@@ -289,22 +285,24 @@ impl RecordsManager {
     }
 
     pub fn append(&mut self, data: &[u8]) -> RecordId {
-        let free_list_capacity = self.page_map.free_list_capacity;
         let record_size = self.record_size;
         let nb_pages_per_record = self.page_map.nb_pages_per_record;
+        let nb_records_per_page = self.page_map.nb_records_per_page;
         let is_multi_page_record = self.page_map.is_multi_page_record;
         let payload_bounds = self.page_map.payload;
         let first_free_page_ptr = {
             self.get_header_page_wrapper().get_header_first_free_page_ptr()
         };
-        let mut first = true;
+        let mut record_id = 0;
         if first_free_page_ptr == 0 {
             if is_multi_page_record {
+                let mut first = true;
                 for page_count in 0..nb_pages_per_record {
                     let new_page = self.pager.append();
                     let mut wrapper = RecordPageWrapper::new(new_page, self.page_map);
                     if first {
                         let first_page_id = wrapper.get_id();
+                        record_id = first_page_id / nb_pages_per_record as u64;
                         wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(first_page_id);
                         first = false;
                     }
@@ -317,6 +315,7 @@ impl RecordsManager {
                 let page_id = wrapper.get_id();
                 wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(page_id);
                 let page_record_id = wrapper.pop_free_list_item();
+                record_id = (page_record_id * nb_records_per_page + page_record_id) as u64;
                 wrapper.get_slice_mut(payload_bounds.sub(page_record_id * self.record_size, self.record_size)).copy_from_slice(&data);
             }
         } else {
@@ -324,12 +323,18 @@ impl RecordsManager {
                 let mut wrapper = self.load_page_wrapper(first_free_page_ptr);
                 let next_free_page_ptr = wrapper.get_free_next_page_ptr();
                 wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(next_free_page_ptr);
+                let mut first = true;
                 for page_count in 0..nb_pages_per_record {
+                    if first {
+                        record_id = wrapper.get_id() / nb_pages_per_record as u64;
+                        first = false;
+                    }
                     copy_buffer_to_payload(wrapper.get_slice_mut(payload_bounds), &data[page_count*payload_bounds.len()..]);
                 }
             } else {
                 let mut wrapper = self.load_page_wrapper(first_free_page_ptr);
                 let page_record_id = wrapper.pop_free_list_item();
+                record_id = (page_record_id * nb_records_per_page + page_record_id) as u64;
                 wrapper.get_slice_mut(payload_bounds.sub(page_record_id * record_size, record_size)).copy_from_slice(&data);
                 if wrapper.is_page_free_list_empty() {
                     let next_free_page_ptr = wrapper.get_free_next_page_ptr();
@@ -337,7 +342,7 @@ impl RecordsManager {
                 }
             }
         }
-        0
+        record_id
     }
 
     fn make_page_wrapper<'a>(&self, page: Page<'a>) -> RecordPageWrapper<'a> {
@@ -358,13 +363,8 @@ impl RecordsManager {
         let loc = self.compute_location(id);
         let mut rpage = self.load_page_wrapper(loc.page_id);
         let mut append_page_to_free_list = true;
-        if loc.is_multi_pages_record {
-            rpage.set_free_page();
-        } else {
-            if rpage.get_free_list_len() == free_list_capacity {
-                rpage.set_free_page();
-            } else {
-                //do not append page to free list more than once
+        if !loc.is_multi_pages_record {
+            if rpage.get_free_list_len() != free_list_capacity {
                 append_page_to_free_list = false;
             }
             rpage.append_free_list_item(loc.record_id_in_page);
