@@ -10,7 +10,8 @@ const PTR_SIZE: usize = 8;
 const KEY_SIZE: usize = 40;
 const CELL_SIZE: usize = KEY_SIZE + PTR_SIZE;
 const RECORD_SIZE: usize = CELL_SIZE * NB_CELL + PTR_SIZE;
-
+const OVERFLOW_CELL_PTR_SIZE: usize = 4;
+const OVERFLOW_KEY_SIZE: usize = CELL_SIZE - OVERFLOW_CELL_PTR_SIZE;
 #[derive(Copy, Clone)]
 pub struct Cell {
     pub key: [u8; KEY_SIZE],
@@ -28,13 +29,26 @@ impl Cell {
         bytes
     }
     fn from_bytes(bytes: &[u8]) -> Self {
-        let key = [0u8; KEY_SIZE];
+        let mut key = [0u8; KEY_SIZE];
         key.copy_from_slice(&bytes[..KEY_SIZE]);
-        let buf = [0u8; PTR_SIZE];
+        let mut buf = [0u8; PTR_SIZE];
         buf.copy_from_slice(&bytes[KEY_SIZE..]);
         let ptr = u64::from_be_bytes(buf);
         Cell{key: key, ptr: ptr}
     }
+}
+
+#[derive(Copy, Clone)]
+pub struct KeyOverflowCell {
+    pub key: [u8; OVERFLOW_KEY_SIZE],
+    pub ptr: u32,
+}
+
+#[derive(Copy, Clone)]
+pub struct OverflowNodeRecord {
+    pub header: u8,
+    pub cells: [KeyOverflowCell; NB_CELL],
+    pub ptr: u64,
 }
 
 #[derive(Copy, Clone)]
@@ -51,8 +65,8 @@ impl BNodeRecord {
     fn get_key_value(&self, n: usize) -> String {
         String::from_utf8(self.cells[n].key.to_vec()).unwrap()
     }
-    fn get_keys_string(&self) -> [String; NB_CELL] {
-        let keys = [String::new(); NB_CELL];
+    fn get_keys_string(&self) -> Vec<String> {
+        let mut keys = Vec::new();
         for cell_id in 0..self.cells.len() {
             keys[cell_id] = String::from_utf8(self.cells[cell_id].key.to_vec()).unwrap();
         }
@@ -74,12 +88,12 @@ impl BNodeRecord {
         let mut index = 0;
         let header = bytes[index];
         index += 1;
-        let cells = [Cell::new(); NB_CELL];
+        let mut cells = [Cell::new(); NB_CELL];
         for cell_id in 0..cells.len() {
             cells[cell_id] = Cell::from_bytes(&bytes[index..index+CELL_SIZE]);
             index += CELL_SIZE;
         }
-        let buf = [0u8; PTR_SIZE];
+        let mut buf = [0u8; PTR_SIZE];
         buf.copy_from_slice(&bytes[index..]);
         let ptr = u64::from_be_bytes(buf);
         BNodeRecord{header: header, cells: cells, ptr: ptr}

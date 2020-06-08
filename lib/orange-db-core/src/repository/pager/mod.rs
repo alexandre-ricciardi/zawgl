@@ -22,7 +22,7 @@ impl  HeaderPage {
         HeaderPage{data: data}
     }
 
-    fn get_page_count(&self) -> u64 {
+    pub fn get_page_count(&self) -> u64 {
         let mut bytes = [0u8; PAGE_COUNTER];
         bytes.copy_from_slice(&self.data[..PAGE_COUNTER]);
         u64::from_be_bytes(bytes)
@@ -73,6 +73,10 @@ impl Pager {
     pub fn get_header_page_mut(&mut self) -> &mut HeaderPage {
         &mut self.header_page
     }
+
+    pub fn get_header_page_ref(&self) -> &HeaderPage {
+        &self.header_page
+    }
     
     fn read_page_data(&mut self, pid: PageId) -> [u8; PAGE_SIZE] {
         let mut page_data = [0u8; PAGE_SIZE];
@@ -86,7 +90,7 @@ impl Pager {
             let page_data = self.read_page_data(pid);
             self.page_cache.insert(pid, page_data);
         }
-        Page::new(pid, &mut self.header_page,self.page_cache.get_mut(&pid).unwrap())
+        Page::new(pid, &mut self.header_page, self.page_cache.get_mut(&pid).unwrap())
     }
 
     pub fn append(&mut self) -> Page {

@@ -29,7 +29,7 @@ impl <'a> HeaderPageWrapper<'a> {
     fn new(header_page: &'a mut HeaderPage, page_map: PageMap) -> Self {
         HeaderPageWrapper{header_page: header_page, page_map: page_map}
     }
-    
+
     fn get_header_slice_ref(&self, bounds: Bounds) -> &[u8] {
         &self.header_page.data[bounds.begin..bounds.end]
     }
@@ -83,7 +83,7 @@ impl <'a> RecordPageWrapper<'a> {
         &mut self.page.data[bounds.begin..bounds.end]
     }
     fn get_free_list_len(&self) -> usize {
-        let mut bytes = [0u8; FREE_LIST_LEN_SIZE];
+        let mut bytes = [0u8; FREE_LIST_LEN_COUNTER_SIZE];
         bytes.copy_from_slice(self.get_slice_ref(self.page_map.free_list_len));
         u32::from_be_bytes(bytes) as usize
     }
@@ -133,7 +133,7 @@ impl <'a> RecordPageWrapper<'a> {
 }
 
 const FREE_LIST_PTR_SIZE: usize = 4;
-const FREE_LIST_LEN_SIZE: usize = 4;
+const FREE_LIST_LEN_COUNTER_SIZE: usize = 4;
 const NEXT_PAGE_PTR: usize = 8;
 const NEXT_FREE_PAGE_PTR: usize = 8;
 const HEADER_FLAGS: usize = 1; 
@@ -182,6 +182,10 @@ struct PageMap {
     header_page_free_list_ptr: Bounds,
 }
 
+fn compute_unused_page_size(record_size: usize) -> usize {
+    (PAGE_SIZE - HEADER_SIZE) % record_size
+}
+
 fn compute_freelist_len(record_size: usize) -> usize {
     (PAGE_SIZE - HEADER_SIZE) / record_size
 }
@@ -193,11 +197,17 @@ fn compute_nb_pages_per_record(record_size: usize, page_payload_size: usize) -> 
 }
 
 fn compute_page_map(record_size: usize) -> PageMap {
-    let free_list_capacity = compute_freelist_len(record_size);
-    let free_list_size = compute_freelist_size(free_list_capacity);
+    let unused_space = compute_unused_page_size(record_size);
+    let mut free_list_capacity = compute_freelist_len(record_size);
+    let mut free_list_size = compute_freelist_size(free_list_capacity);
+    //TODO handle all cases
+    if free_list_size + FREE_LIST_LEN_COUNTER_SIZE > unused_space {
+        free_list_capacity -= 1;
+        free_list_size = compute_freelist_size(free_list_capacity);
+    }
     let header_flags_bounds = Bounds::new(0, HEADER_FLAGS);
     let next_free_page_ptr_bounds = header_flags_bounds.shift(NEXT_FREE_PAGE_PTR);
-    let free_list_len = next_free_page_ptr_bounds.shift(FREE_LIST_LEN_SIZE);
+    let free_list_len = next_free_page_ptr_bounds.shift(FREE_LIST_LEN_COUNTER_SIZE);
     let free_list_bounds = free_list_len.shift(free_list_size);
     let payload_bounds = Bounds::new(free_list_bounds.end, PAGE_SIZE);
     let header_page_free_list_ptr_bounds = Bounds::new(PAGE_COUNTER, PAGE_COUNTER + FIRST_FREE_PAGE_PTR);
@@ -290,9 +300,7 @@ impl RecordsManager {
         let nb_records_per_page = self.page_map.nb_records_per_page;
         let is_multi_page_record = self.page_map.is_multi_page_record;
         let payload_bounds = self.page_map.payload;
-        let first_free_page_ptr = {
-            self.get_header_page_wrapper().get_header_first_free_page_ptr()
-        };
+        let first_free_page_ptr = self.get_header_page_wrapper().get_header_first_free_page_ptr();
         let mut record_id = 0;
         if first_free_page_ptr == 0 {
             if is_multi_page_record {
@@ -378,5 +386,9 @@ impl RecordsManager {
             rpage.set_free_next_page_ptr(first_free_page_ptr);
             rpage.get_header_page_wrapper().set_header_first_free_page_ptr(loc.page_id);
         }
+    }
+
+    pub fn is_empty(&mut self) -> bool {
+        self.get_header_page_wrapper().header_page.get_page_count() == 0
     }
 }
