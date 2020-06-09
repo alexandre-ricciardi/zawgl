@@ -8,54 +8,71 @@ pub struct BNode {
 const NB_CELL: usize = 66;
 const PTR_SIZE: usize = 8;
 const KEY_SIZE: usize = 40;
-const CELL_SIZE: usize = KEY_SIZE + PTR_SIZE;
+const CELL_HEADER_SIZE: usize = 1;
+const CELL_SIZE: usize = KEY_SIZE + PTR_SIZE + CELL_HEADER_SIZE + OVERFLOW_CELL_PTR_SIZE;
 const RECORD_SIZE: usize = CELL_SIZE * NB_CELL + PTR_SIZE;
 const OVERFLOW_CELL_PTR_SIZE: usize = 4;
 const OVERFLOW_KEY_SIZE: usize = CELL_SIZE - OVERFLOW_CELL_PTR_SIZE;
+
+const HAS_OVERFLOW: u8 = 0b1000_0000;
+
 #[derive(Copy, Clone)]
-pub struct Cell {
-    pub key: [u8; KEY_SIZE],
-    pub ptr: u64,
+struct Cell {
+    header: u8,
+    ptr: u64,
+    overflow_cell_ptr: u32,
+    key: [u8; KEY_SIZE],
 }
 
 impl Cell {
     fn new() -> Self {
-        Cell{key: [0u8; KEY_SIZE], ptr: 0}
+        Cell{header: 0, key: [0u8; KEY_SIZE], ptr: 0, overflow_cell_ptr: 0}
     }
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
-        bytes[..KEY_SIZE].copy_from_slice(&self.key);
+        bytes[0] = self.header;
+        bytes[CELL_HEADER_SIZE..CELL_HEADER_SIZE+PTR_SIZE].copy_from_slice(&self.ptr.to_be_bytes());
+        bytes[CELL_HEADER_SIZE+PTR_SIZE..CELL_HEADER_SIZE+PTR_SIZE+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
         bytes[KEY_SIZE..].copy_from_slice(&self.ptr.to_be_bytes());
         bytes
     }
     fn from_bytes(bytes: &[u8]) -> Self {
-        let mut key = [0u8; KEY_SIZE];
-        key.copy_from_slice(&bytes[..KEY_SIZE]);
+        let mut offset = CELL_HEADER_SIZE;
         let mut buf = [0u8; PTR_SIZE];
-        buf.copy_from_slice(&bytes[KEY_SIZE..]);
+        buf.copy_from_slice(&bytes[offset..offset+PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
-        Cell{key: key, ptr: ptr}
+        offset += PTR_SIZE;
+        let mut overflow_cell_ptr_buf = [0u8; OVERFLOW_CELL_PTR_SIZE];
+        overflow_cell_ptr_buf.copy_from_slice(&bytes[offset..offset+OVERFLOW_CELL_PTR_SIZE]);
+        let overflow_cell_ptr = u32::from_be_bytes(overflow_cell_ptr_buf);
+        offset += OVERFLOW_CELL_PTR_SIZE;
+        let mut key = [0u8; KEY_SIZE];
+        key.copy_from_slice(&bytes[offset..offset+KEY_SIZE]);
+        Cell{header: bytes[0],
+            ptr: ptr,
+            overflow_cell_ptr: overflow_cell_ptr,
+            key: key,}
     }
 }
 
 #[derive(Copy, Clone)]
-pub struct KeyOverflowCell {
-    pub key: [u8; OVERFLOW_KEY_SIZE],
-    pub ptr: u32,
+struct KeyOverflowCell {
+    ptr: u32,
+    key: [u8; OVERFLOW_KEY_SIZE],
 }
 
 #[derive(Copy, Clone)]
-pub struct OverflowNodeRecord {
-    pub header: u8,
-    pub cells: [KeyOverflowCell; NB_CELL],
-    pub ptr: u64,
+struct OverflowNodeRecord {
+    header: u8,
+    cells: [KeyOverflowCell; NB_CELL],
+    ptr: u64,
 }
 
 #[derive(Copy, Clone)]
-pub struct BNodeRecord {
-    pub header: u8,
-    pub cells: [Cell; NB_CELL],
-    pub ptr: u64,
+struct BNodeRecord {
+    header: u8,
+    cells: [Cell; NB_CELL],
+    ptr: u64,
 }
 
 impl BNodeRecord {
