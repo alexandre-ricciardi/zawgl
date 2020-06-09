@@ -1,10 +1,5 @@
 use super::super::records::*;
 
-pub struct BNode {
-
-}
-
-
 const NB_CELL: usize = 66;
 const PTR_SIZE: usize = 8;
 const KEY_SIZE: usize = 40;
@@ -14,7 +9,7 @@ const RECORD_SIZE: usize = CELL_SIZE * NB_CELL + PTR_SIZE;
 const OVERFLOW_CELL_PTR_SIZE: usize = 4;
 const OVERFLOW_KEY_SIZE: usize = CELL_SIZE - OVERFLOW_CELL_PTR_SIZE;
 
-const HAS_OVERFLOW: u8 = 0b1000_0000;
+const HAS_OVERFLOW_FLAG: u8 = 0b1000_0000;
 
 #[derive(Copy, Clone)]
 struct Cell {
@@ -27,6 +22,12 @@ struct Cell {
 impl Cell {
     fn new() -> Self {
         Cell{header: 0, key: [0u8; KEY_SIZE], ptr: 0, overflow_cell_ptr: 0}
+    }
+    fn has_overflow(&self) -> bool {
+        self.header & HAS_OVERFLOW_FLAG == 1
+    }
+    fn set_has_overflow(&mut self) {
+        self.header = self.header | HAS_OVERFLOW_FLAG;
     }
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
@@ -123,56 +124,48 @@ impl BNodeRecord {
     }
 }
 
+pub type DataPtr = u64;
 pub struct BTreeIndex {
     records_manager: RecordsManager,
-    tree_depth: u32,
 }
 
-pub type BTreeResult = std::result::Result<BNodeRecord, Option<BNodeRecord>>;
+
 
 impl BTreeIndex {
-    pub fn new(file: &str, tree_depth: u32) -> Self {
-        BTreeIndex{records_manager: RecordsManager::new(file, RECORD_SIZE), tree_depth: tree_depth}
+    pub fn new(file: &str) -> Self {
+        BTreeIndex{records_manager: RecordsManager::new(file, RECORD_SIZE)}
     }
 
-    fn is_leaf_node(&self, depth: u32) -> bool {
-        depth == self.tree_depth
-    }
-
-    fn tree_search(&mut self, value: &str, node: &BNodeRecord, depth: u32) -> BTreeResult {
-        if self.is_leaf_node(depth) {
-            Ok(*node)
-        } else {
-            let keys = node.get_keys_string();
-            let res = keys.binary_search(&String::from(value));
-            match res {
-                Ok(found) => {
+    fn tree_search(&mut self, value: &str, node: &BNodeRecord, depth: u32) -> Option<(BNodeRecord, DataPtr)> {
+        let keys = node.get_keys_string();
+        let res = keys.binary_search(&String::from(value));
+        match res {
+            Ok(found) => {
+                if node.is_leaf() {
+                    Some((*node, node.get_ptr_value(found)))
+                } else {
                     let mut data = [0u8; RECORD_SIZE];
                     self.records_manager.load(node.get_ptr_value(found), &mut data);
                     let child = BNodeRecord::from_bytes(data);
-                    if child.is_leaf() {
-                        Ok(child)
-                    } else {
-                        self.tree_search(value, &child, depth+1)
-                    }
-                },
-                Err(not_found) => {
-                    let mut data = [0u8; RECORD_SIZE];
-                    self.records_manager.load(node.get_ptr_value(not_found), &mut data);
-                    let child = BNodeRecord::from_bytes(data);
                     self.tree_search(value, &child, depth+1)
                 }
+            },
+            Err(not_found) => {
+                let mut data = [0u8; RECORD_SIZE];
+                self.records_manager.load(node.get_ptr_value(not_found), &mut data);
+                let child = BNodeRecord::from_bytes(data);
+                self.tree_search(value, &child, depth+1)
             }
         }
     }
 
-    pub fn search(&mut self, value: &str) -> BTreeResult {
+    pub fn search(&mut self, value: &str) -> Option<DataPtr> {
         if self.records_manager.is_empty() {
-            Err(None)
+            None
         } else {
             let mut data = [0u8; RECORD_SIZE];
             self.records_manager.load(0, &mut  data);
-            self.tree_search(value, &BNodeRecord::from_bytes(data), 0)
+            self.tree_search(value, &BNodeRecord::from_bytes(data), 0).map(|res|res.1)
         }
     }
 
