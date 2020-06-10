@@ -10,18 +10,17 @@ const OVERFLOW_CELL_PTR_SIZE: usize = 4;
 const OVERFLOW_KEY_SIZE: usize = CELL_SIZE - OVERFLOW_CELL_PTR_SIZE;
 
 const HAS_OVERFLOW_FLAG: u8 = 0b1000_0000;
-
-#[derive(Copy, Clone)]
-struct Cell {
+const IS_LEAF_FLAG: u8 = 0b1000_0000;
+struct CellRecord {
     header: u8,
-    ptr: u64,
+    node_ptr: u64,
     overflow_cell_ptr: u32,
     key: [u8; KEY_SIZE],
 }
 
-impl Cell {
+impl CellRecord {
     fn new() -> Self {
-        Cell{header: 0, key: [0u8; KEY_SIZE], ptr: 0, overflow_cell_ptr: 0}
+        CellRecord{header: 0, key: [0u8; KEY_SIZE], node_ptr: 0, overflow_cell_ptr: 0}
     }
     fn has_overflow(&self) -> bool {
         self.header & HAS_OVERFLOW_FLAG == 1
@@ -32,9 +31,9 @@ impl Cell {
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
         bytes[0] = self.header;
-        bytes[CELL_HEADER_SIZE..CELL_HEADER_SIZE+PTR_SIZE].copy_from_slice(&self.ptr.to_be_bytes());
+        bytes[CELL_HEADER_SIZE..CELL_HEADER_SIZE+PTR_SIZE].copy_from_slice(&self.node_ptr.to_be_bytes());
         bytes[CELL_HEADER_SIZE+PTR_SIZE..CELL_HEADER_SIZE+PTR_SIZE+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
-        bytes[KEY_SIZE..].copy_from_slice(&self.ptr.to_be_bytes());
+        bytes[KEY_SIZE..].copy_from_slice(&self.node_ptr.to_be_bytes());
         bytes
     }
     fn from_bytes(bytes: &[u8]) -> Self {
@@ -49,37 +48,33 @@ impl Cell {
         offset += OVERFLOW_CELL_PTR_SIZE;
         let mut key = [0u8; KEY_SIZE];
         key.copy_from_slice(&bytes[offset..offset+KEY_SIZE]);
-        Cell{header: bytes[0],
-            ptr: ptr,
+        CellRecord{header: bytes[0],
+            node_ptr: ptr,
             overflow_cell_ptr: overflow_cell_ptr,
-            key: key,}
+            key: key}
     }
 }
 
-#[derive(Copy, Clone)]
 struct KeyOverflowCell {
     ptr: u32,
     key: [u8; OVERFLOW_KEY_SIZE],
 }
 
-#[derive(Copy, Clone)]
 struct OverflowNodeRecord {
     header: u8,
     cells: [KeyOverflowCell; NB_CELL],
     ptr: u64,
 }
 
-#[derive(Copy, Clone)]
-struct BNodeRecord<'a> {
+struct BNodeRecord {
     header: u8,
-    cells: [Cell; NB_CELL],
+    cells: Vec<CellRecord>,
     ptr: u64,
-    parent: Option<&'a BNodeRecord<'a>>
 }
 
-impl <'a> BNodeRecord<'a> {
+impl BNodeRecord {
     fn get_ptr_value(&self, n: usize) -> u64 {
-        self.cells[n].ptr
+        self.cells[n].node_ptr
     }
     fn get_key_value(&self, n: usize) -> String {
         String::from_utf8(self.cells[n].key.to_vec()).unwrap()
@@ -107,15 +102,15 @@ impl <'a> BNodeRecord<'a> {
         let mut index = 0;
         let header = bytes[index];
         index += 1;
-        let mut cells = [Cell::new(); NB_CELL];
+        let mut cells = [CellRecord::new(); NB_CELL];
         for cell_id in 0..cells.len() {
-            cells[cell_id] = Cell::from_bytes(&bytes[index..index+CELL_SIZE]);
+            cells[cell_id] = CellRecord::from_bytes(&bytes[index..index+CELL_SIZE]);
             index += CELL_SIZE;
         }
         let mut buf = [0u8; PTR_SIZE];
         buf.copy_from_slice(&bytes[index..]);
         let ptr = u64::from_be_bytes(buf);
-        BNodeRecord{header: header, cells: cells, ptr: ptr, parent: None}
+        BNodeRecord{header: header, cells: cells, ptr: ptr}
     }
     fn len(&self) -> usize {
         (self.header & 0x00FF) as usize
@@ -125,64 +120,31 @@ impl <'a> BNodeRecord<'a> {
     }
 }
 
-pub type DataPtr = u64;
-pub struct BTreeIndex {
+pub type NodeId = u64;
+
+pub struct Cell {
+    key: String,
+    node_ptr: NodeId,
+}
+
+pub struct BTreeNode {
+    cells: Vec<Cell>,
+    node_ptr: NodeId,
+}
+
+
+pub struct BTreeNodeStore {
     records_manager: RecordsManager,
 }
 
-
-
-impl BTreeIndex {
+impl BTreeNodeStore {
     pub fn new(file: &str) -> Self {
-        BTreeIndex{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE)}
+        BTreeNodeStore{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE)}
     }
 
-    fn tree_search(&mut self, value: &str, node: &BNodeRecord, depth: u32) -> Option<DataPtr> {
-        let keys = node.get_keys_string();
-        let res = keys.binary_search(&String::from(value));
-        match res {
-            Ok(found) => {
-                if node.is_leaf() {
-                    Some(node.get_ptr_value(found))
-                } else {
-                    let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-                    self.records_manager.load(node.get_ptr_value(found), &mut data);
-                    let child = BNodeRecord::from_bytes(data);
-                    self.tree_search(value, &child, depth+1)
-                }
-            },
-            Err(not_found) => {
-                if node.is_leaf() {
-                    None
-                } else {
-                    let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-                    self.records_manager.load(node.get_ptr_value(not_found), &mut data);
-                    let child = BNodeRecord::from_bytes(data);
-                    self.tree_search(value, &child, depth+1)
-                }
-            }
-        }
-    }
-
-    pub fn search(&mut self, value: &str) -> Option<DataPtr> {
-        if self.records_manager.is_empty() {
-            None
-        } else {
-            let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-            self.records_manager.load(0, &mut  data);
-            self.tree_search(value, &BNodeRecord::from_bytes(data), 0)
-        }
-    }
-
-    pub fn insert(&mut self, value: u64, data_ptr: u64) {
-
-    }
-}
-
-#[cfg(test)]
-mod test_b_tree {
-    use super::*;
-    #[test]
-    fn test_ser() {
+    pub fn retrieve_node(&mut self, nid: NodeId) -> BTreeNode {
+        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+        self.records_manager.load(nid, &mut data);
+        let node = BNodeRecord::from_bytes(data);
     }
 }

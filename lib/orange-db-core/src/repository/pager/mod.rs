@@ -29,7 +29,7 @@ impl  HeaderPage {
     }
 
     fn set_page_count(&mut self, count: u64) {
-        self.data[..8].copy_from_slice(&count.to_be_bytes());
+        self.data[..PAGE_COUNTER].copy_from_slice(&count.to_be_bytes());
     }
 }
 
