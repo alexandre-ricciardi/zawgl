@@ -182,17 +182,21 @@ struct PageMap {
     header_page_free_list_ptr: Bounds,
 }
 
-fn compute_unused_page_size(record_size: usize) -> usize {
+const fn max_nb_records(record_size: usize) -> usize {
+    (PAGE_SIZE - HEADER_SIZE) / record_size
+}
+
+const fn compute_unused_page_size(record_size: usize) -> usize {
     (PAGE_SIZE - HEADER_SIZE) % record_size
 }
 
-fn compute_freelist_len(record_size: usize) -> usize {
+const fn compute_freelist_len(record_size: usize) -> usize {
     (PAGE_SIZE - HEADER_SIZE) / record_size
 }
-fn compute_freelist_size(free_list_capacity: usize) -> usize {
+const fn compute_freelist_size(free_list_capacity: usize) -> usize {
     FREE_LIST_PTR_SIZE * free_list_capacity
 }
-fn compute_nb_pages_per_record(record_size: usize, page_payload_size: usize) -> usize {
+const fn compute_nb_pages_per_record(record_size: usize, page_payload_size: usize) -> usize {
     record_size / page_payload_size
 }
 
@@ -201,10 +205,6 @@ fn compute_page_map(record_size: usize) -> PageMap {
     let mut free_list_capacity = compute_freelist_len(record_size);
     let mut free_list_size = compute_freelist_size(free_list_capacity);
     //TODO handle all cases
-    if free_list_size + FREE_LIST_LEN_COUNTER_SIZE > unused_space {
-        free_list_capacity -= 1;
-        free_list_size = compute_freelist_size(free_list_capacity);
-    }
     let header_flags_bounds = Bounds::new(0, HEADER_FLAGS);
     let next_free_page_ptr_bounds = header_flags_bounds.shift(NEXT_FREE_PAGE_PTR);
     let free_list_len = next_free_page_ptr_bounds.shift(FREE_LIST_LEN_COUNTER_SIZE);
@@ -386,6 +386,10 @@ impl RecordsManager {
             rpage.set_free_next_page_ptr(first_free_page_ptr);
             rpage.get_header_page_wrapper().set_header_first_free_page_ptr(loc.page_id);
         }
+    }
+
+    pub fn get_payload_len(&self) -> usize {
+        self.page_map.payload.len()
     }
 
     pub fn is_empty(&mut self) -> bool {
