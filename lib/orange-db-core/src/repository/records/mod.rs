@@ -1,3 +1,5 @@
+use super::super::config::*;
+
 use super::pager::*;
 
 pub type RecordId = u64;
@@ -15,6 +17,7 @@ struct RecordLocation {
 pub struct RecordsManager {
     pager: Pager,
     record_size: usize,
+    nb_records_per_page: usize,
     page_map: PageMap,
 }
 
@@ -83,7 +86,7 @@ impl <'a> RecordPageWrapper<'a> {
         &mut self.page.data[bounds.begin..bounds.end]
     }
     fn get_free_list_len(&self) -> usize {
-        let mut bytes = [0u8; FREE_LIST_LEN_COUNTER_SIZE];
+        let mut bytes = [0u8; FREE_LIST_ITEM_COUNTER_SIZE];
         bytes.copy_from_slice(self.get_slice_ref(self.page_map.free_list_len));
         u32::from_be_bytes(bytes) as usize
     }
@@ -132,17 +135,8 @@ impl <'a> RecordPageWrapper<'a> {
     }
 }
 
-const FREE_LIST_PTR_SIZE: usize = 4;
-const FREE_LIST_LEN_COUNTER_SIZE: usize = 4;
-const NEXT_PAGE_PTR: usize = 8;
-const NEXT_FREE_PAGE_PTR: usize = 8;
-const HEADER_FLAGS: usize = 1; 
-const HEADER_SIZE: usize = HEADER_FLAGS + NEXT_FREE_PAGE_PTR + NEXT_PAGE_PTR;
-
 const MULTI_PAGE_RECORD_FLAG: u8 = 0b1000_0000;
 const IS_FREE_PAGE_FLAG: u8 = 0b0100_0000;
-
-const FIRST_FREE_PAGE_PTR: usize = 8;
 
 #[derive(Debug, Copy, Clone)]
 struct Bounds {
@@ -190,9 +184,6 @@ const fn compute_unused_page_size(record_size: usize) -> usize {
     (PAGE_SIZE - HEADER_SIZE) % record_size
 }
 
-const fn compute_freelist_len(record_size: usize) -> usize {
-    (PAGE_SIZE - HEADER_SIZE) / record_size
-}
 const fn compute_freelist_size(free_list_capacity: usize) -> usize {
     FREE_LIST_PTR_SIZE * free_list_capacity
 }
@@ -200,14 +191,12 @@ const fn compute_nb_pages_per_record(record_size: usize, page_payload_size: usiz
     record_size / page_payload_size
 }
 
-fn compute_page_map(record_size: usize) -> PageMap {
-    let unused_space = compute_unused_page_size(record_size);
-    let mut free_list_capacity = compute_freelist_len(record_size);
-    let mut free_list_size = compute_freelist_size(free_list_capacity);
+fn compute_page_map(record_size: usize, nb_records_per_page: usize) -> PageMap {
+    let free_list_size = compute_freelist_size(nb_records_per_page);
     //TODO handle all cases
     let header_flags_bounds = Bounds::new(0, HEADER_FLAGS);
     let next_free_page_ptr_bounds = header_flags_bounds.shift(NEXT_FREE_PAGE_PTR);
-    let free_list_len = next_free_page_ptr_bounds.shift(FREE_LIST_LEN_COUNTER_SIZE);
+    let free_list_len = next_free_page_ptr_bounds.shift(FREE_LIST_ITEM_COUNTER_SIZE);
     let free_list_bounds = free_list_len.shift(free_list_size);
     let payload_bounds = Bounds::new(free_list_bounds.end, PAGE_SIZE);
     let header_page_free_list_ptr_bounds = Bounds::new(PAGE_COUNTER, PAGE_COUNTER + FIRST_FREE_PAGE_PTR);
@@ -217,7 +206,7 @@ fn compute_page_map(record_size: usize) -> PageMap {
         next_free_page_ptr: next_free_page_ptr_bounds,
         free_list_len: free_list_len,
         free_list: free_list_bounds,
-        free_list_capacity: free_list_capacity,
+        free_list_capacity: nb_records_per_page,
         nb_pages_per_record: nb_pages_per_record,
         nb_records_per_page: PAGE_SIZE / record_size,
         is_multi_page_record: nb_pages_per_record == 0,
@@ -243,8 +232,8 @@ fn copy_buffer_to_payload(payload: &mut [u8], data: &[u8]) {
 }
 
 impl RecordsManager {
-    pub fn new(file: &str, rsize: usize) -> Self {
-        RecordsManager{pager: Pager::new(file), record_size: rsize, page_map: compute_page_map(rsize)}
+    pub fn new(file: &str, record_size: usize, nb_records_per_page: usize) -> Self {
+        RecordsManager{pager: Pager::new(file), record_size: record_size, nb_records_per_page: nb_records_per_page, page_map: compute_page_map(record_size, nb_records_per_page)}
     }
 
     fn compute_location(&self, record_id: u64) -> RecordLocation {

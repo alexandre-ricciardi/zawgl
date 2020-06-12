@@ -1,14 +1,5 @@
+use super::super::super::config::*;
 use super::super::records::*;
-
-const NB_CELL: usize = 66;
-const PTR_SIZE: usize = 8;
-const KEY_SIZE: usize = 40;
-const CELL_HEADER_SIZE: usize = 1;
-const ACTIVE_CELLS_COUNTER: usize = 4;
-const CELL_SIZE: usize = KEY_SIZE + PTR_SIZE + CELL_HEADER_SIZE + OVERFLOW_CELL_PTR_SIZE + ACTIVE_CELLS_COUNTER;
-const BTREE_NODE_RECORD_SIZE: usize = CELL_SIZE * NB_CELL + PTR_SIZE;
-const OVERFLOW_CELL_PTR_SIZE: usize = 4;
-const OVERFLOW_KEY_SIZE: usize = CELL_SIZE - OVERFLOW_CELL_PTR_SIZE;
 
 const HAS_OVERFLOW_FLAG: u8 = 0b1000_0000;
 const IS_LEAF_FLAG: u8 = 0b1000_0000;

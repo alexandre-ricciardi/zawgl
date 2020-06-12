@@ -4,6 +4,7 @@ extern crate toml;
 #[macro_use]
 extern crate orange_db_binary_derive;
 
+pub mod config;
 pub mod cypher;
 pub mod graph;
 pub mod model;

@@ -1,3 +1,4 @@
+use super::super::config::*;
 use super::io::file_access::*;
 use std::collections::HashMap;
 
@@ -9,9 +10,6 @@ pub enum PagerError {
 }
 
 pub type PagerResult = std::result::Result<PageId, PagerError>;
-
-pub const PAGE_SIZE: usize = 4096;
-pub const PAGE_COUNTER: usize = 8;
 
 pub struct HeaderPage {
     pub data: [u8; PAGE_SIZE],

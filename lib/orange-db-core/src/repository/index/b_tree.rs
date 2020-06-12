@@ -1,13 +1,5 @@
+use super::super::super::config::*;
 use super::super::records::*;
-
-const NB_CELL: usize = 66;
-const PTR_SIZE: usize = 8;
-const KEY_SIZE: usize = 40;
-const CELL_HEADER_SIZE: usize = 1;
-const CELL_SIZE: usize = KEY_SIZE + PTR_SIZE + CELL_HEADER_SIZE + OVERFLOW_CELL_PTR_SIZE;
-const BTREE_NODE_RECORD_SIZE: usize = CELL_SIZE * NB_CELL + PTR_SIZE;
-const OVERFLOW_CELL_PTR_SIZE: usize = 4;
-const OVERFLOW_KEY_SIZE: usize = CELL_SIZE - OVERFLOW_CELL_PTR_SIZE;
 
 const HAS_OVERFLOW_FLAG: u8 = 0b1000_0000;
 
@@ -32,17 +24,17 @@ impl Cell {
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
         bytes[0] = self.header;
-        bytes[CELL_HEADER_SIZE..CELL_HEADER_SIZE+PTR_SIZE].copy_from_slice(&self.ptr.to_be_bytes());
-        bytes[CELL_HEADER_SIZE+PTR_SIZE..CELL_HEADER_SIZE+PTR_SIZE+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
+        bytes[CELL_HEADER_SIZE..CELL_HEADER_SIZE+NODE_PTR_SIZE].copy_from_slice(&self.ptr.to_be_bytes());
+        bytes[CELL_HEADER_SIZE+NODE_PTR_SIZE..CELL_HEADER_SIZE+NODE_PTR_SIZE+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
         bytes[KEY_SIZE..].copy_from_slice(&self.ptr.to_be_bytes());
         bytes
     }
     fn from_bytes(bytes: &[u8]) -> Self {
         let mut offset = CELL_HEADER_SIZE;
-        let mut buf = [0u8; PTR_SIZE];
-        buf.copy_from_slice(&bytes[offset..offset+PTR_SIZE]);
+        let mut buf = [0u8; NODE_PTR_SIZE];
+        buf.copy_from_slice(&bytes[offset..offset+NODE_PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
-        offset += PTR_SIZE;
+        offset += NODE_PTR_SIZE;
         let mut overflow_cell_ptr_buf = [0u8; OVERFLOW_CELL_PTR_SIZE];
         overflow_cell_ptr_buf.copy_from_slice(&bytes[offset..offset+OVERFLOW_CELL_PTR_SIZE]);
         let overflow_cell_ptr = u32::from_be_bytes(overflow_cell_ptr_buf);
@@ -112,7 +104,7 @@ impl <'a> BNodeRecord<'a> {
             cells[cell_id] = Cell::from_bytes(&bytes[index..index+CELL_SIZE]);
             index += CELL_SIZE;
         }
-        let mut buf = [0u8; PTR_SIZE];
+        let mut buf = [0u8; NODE_PTR_SIZE];
         buf.copy_from_slice(&bytes[index..]);
         let ptr = u64::from_be_bytes(buf);
         BNodeRecord{header: header, cells: cells, ptr: ptr, parent: None}
@@ -134,7 +126,7 @@ pub struct BTreeIndex {
 
 impl BTreeIndex {
     pub fn new(file: &str) -> Self {
-        BTreeIndex{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE)}
+        BTreeIndex{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE)}
     }
 
     fn tree_search(&mut self, value: &str, node: &BNodeRecord, depth: u32) -> Option<DataPtr> {
