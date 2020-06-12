@@ -23,17 +23,17 @@ impl CellRecord {
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
         bytes[0] = self.header;
-        bytes[CELL_HEADER_SIZE..CELL_HEADER_SIZE+PTR_SIZE].copy_from_slice(&self.node_ptr.to_be_bytes());
-        bytes[CELL_HEADER_SIZE+PTR_SIZE..CELL_HEADER_SIZE+PTR_SIZE+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
+        bytes[CELL_HEADER_SIZE..CELL_HEADER_SIZE+NODE_PTR_SIZE].copy_from_slice(&self.node_ptr.to_be_bytes());
+        bytes[CELL_HEADER_SIZE+NODE_PTR_SIZE..CELL_HEADER_SIZE+NODE_PTR_SIZE+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
         bytes[KEY_SIZE..].copy_from_slice(&self.node_ptr.to_be_bytes());
         bytes
     }
     fn from_bytes(bytes: &[u8]) -> Self {
         let mut offset = CELL_HEADER_SIZE;
-        let mut buf = [0u8; PTR_SIZE];
-        buf.copy_from_slice(&bytes[offset..offset+PTR_SIZE]);
+        let mut buf = [0u8; NODE_PTR_SIZE];
+        buf.copy_from_slice(&bytes[offset..offset+NODE_PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
-        offset += PTR_SIZE;
+        offset += NODE_PTR_SIZE;
         let mut overflow_cell_ptr_buf = [0u8; OVERFLOW_CELL_PTR_SIZE];
         overflow_cell_ptr_buf.copy_from_slice(&bytes[offset..offset+OVERFLOW_CELL_PTR_SIZE]);
         let overflow_cell_ptr = u32::from_be_bytes(overflow_cell_ptr_buf);
@@ -90,8 +90,8 @@ impl BNodeRecord {
         let header = bytes[index];
         index += 1;
 
-        let mut buf = [0u8; PTR_SIZE];
-        buf.copy_from_slice(&bytes[index..index+PTR_SIZE]);
+        let mut buf = [0u8; NODE_PTR_SIZE];
+        buf.copy_from_slice(&bytes[index..index+NODE_PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
 
         let mut active_cells_buf = [0u8; ACTIVE_CELLS_COUNTER];
@@ -109,7 +109,7 @@ impl BNodeRecord {
     fn is_leaf(&self) -> bool {
         (self.header & IS_LEAF_FLAG) == 1
     }
-    fn set_leaf(&self) {
+    fn set_leaf(&mut self) {
         self.header = self.header | IS_LEAF_FLAG;
     }
 }
@@ -136,7 +136,7 @@ pub struct BTreeNodeStore {
 
 impl BTreeNodeStore {
     pub fn new(file: &str) -> Self {
-        BTreeNodeStore{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE)}
+        BTreeNodeStore{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD)}
     }
 
     // fn load_overflow_cell(&mut self, node_ptr: NodeId, cell_id: CellId) -> OverflowCell {

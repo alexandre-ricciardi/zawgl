@@ -62,6 +62,22 @@ fn compute_nb_pages_per_record(record_size: usize) -> usize {
     }
 }
 
+fn compute_page_free_space_size(record_size: usize, nb_records_per_page: usize, nb_pages_per_records: usize) -> usize {
+    let page_payload_size = PAGE_SIZE - HEADER_SIZE;
+    if nb_pages_per_records > 0 {
+        (nb_pages_per_records * page_payload_size) % record_size 
+    } else {
+        let free_list_size = compute_freelist_size(nb_records_per_page);
+        (page_payload_size - free_list_size) % record_size
+    }
+}
+
+fn compute_page_payload_size(nb_records_per_page: usize) -> usize {
+    let page_payload_size = PAGE_SIZE - HEADER_SIZE;
+    let free_list_size = compute_freelist_size(nb_records_per_page);
+    page_payload_size - free_list_size
+}
+
 fn generate_config() -> Result<()> {
     let mut config = std::fs::File::create("src/config.rs")?;
     writeln!(config, "///PAGING")?;
@@ -77,7 +93,11 @@ fn generate_config() -> Result<()> {
     writeln!(config, "pub const HEADER_FLAGS: usize = {};", HEADER_FLAGS)?;
     writeln!(config, "pub const HEADER_SIZE: usize = {};", HEADER_SIZE)?;
 
+    let nb_records_per_page = compute_nb_records_per_page(BTREE_NODE_RECORD_SIZE);
+    let nb_pages_per_record = compute_nb_pages_per_record(BTREE_NODE_RECORD_SIZE);
     writeln!(config, "///BTREE")?;
+    writeln!(config, "///PAGE PAYLOAD SIZE {} BYTES", compute_page_payload_size(nb_records_per_page))?;
+    writeln!(config, "///UNUSED SPACE {} BYTES", compute_page_free_space_size(BTREE_NODE_RECORD_SIZE, nb_records_per_page, nb_pages_per_record))?;
     writeln!(config, "pub const NB_CELL: usize = {};", NB_CELL)?;
     writeln!(config, "pub const NODE_PTR_SIZE: usize = {};", NODE_PTR_SIZE)?;
     writeln!(config, "pub const KEY_SIZE: usize = {};", KEY_SIZE)?;
@@ -87,8 +107,8 @@ fn generate_config() -> Result<()> {
     writeln!(config, "pub const BTREE_NODE_RECORD_SIZE: usize = {};", BTREE_NODE_RECORD_SIZE)?;
     writeln!(config, "pub const OVERFLOW_CELL_PTR_SIZE: usize = {};", OVERFLOW_CELL_PTR_SIZE)?;
     writeln!(config, "pub const OVERFLOW_KEY_SIZE: usize = {};", OVERFLOW_KEY_SIZE)?;
-    writeln!(config, "pub const BTREE_NB_RECORDS_PER_PAGE: usize = {};", compute_nb_records_per_page(BTREE_NODE_RECORD_SIZE))?;
-    writeln!(config, "pub const BTREE_NB_PAGES_PER_RECORD: usize = {};", compute_nb_pages_per_record(BTREE_NODE_RECORD_SIZE))?;
+    writeln!(config, "pub const BTREE_NB_RECORDS_PER_PAGE: usize = {};", nb_records_per_page)?;
+    writeln!(config, "pub const BTREE_NB_PAGES_PER_RECORD: usize = {};", nb_pages_per_record)?;
     Ok(())
 }
 

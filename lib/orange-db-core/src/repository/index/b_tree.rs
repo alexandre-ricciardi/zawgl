@@ -126,7 +126,7 @@ pub struct BTreeIndex {
 
 impl BTreeIndex {
     pub fn new(file: &str) -> Self {
-        BTreeIndex{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE)}
+        BTreeIndex{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD)}
     }
 
     fn tree_search(&mut self, value: &str, node: &BNodeRecord, depth: u32) -> Option<DataPtr> {

@@ -10,6 +10,8 @@ pub const NEXT_FREE_PAGE_PTR: usize = 8;
 pub const HEADER_FLAGS: usize = 1;
 pub const HEADER_SIZE: usize = 21;
 ///BTREE
+///PAGE PAYLOAD SIZE 4071 BYTES
+///UNUSED SPACE 37 BYTES
 pub const NB_CELL: usize = 66;
 pub const NODE_PTR_SIZE: usize = 8;
 pub const KEY_SIZE: usize = 44;
