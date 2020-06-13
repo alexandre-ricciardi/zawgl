@@ -46,7 +46,6 @@ impl CellRecord {
             key: key}
     }
 }
-
 struct OverflowNodeRecord {
     header: u8,
     cells: [Cell; NB_CELL],
@@ -112,21 +111,23 @@ impl BNodeRecord {
     fn set_leaf(&mut self) {
         self.header = self.header | IS_LEAF_FLAG;
     }
+    fn new() -> Self {
+        BNodeRecord{header: 0, cells: Vec::new(), ptr: 0}
+    }
 }
 
 pub type NodeId = u64;
 pub type CellId = u32;
 
 pub struct Cell {
-    id: CellId,
-    key: String,
-    node_ptr: NodeId,
+    pub key: String,
+    pub node_ptr: NodeId,
 }
 
 pub struct BTreeNode {
-    id: NodeId,
-    cells: Vec<Cell>,
-    node_ptr: NodeId,
+    pub id: NodeId,
+    pub cells: Vec<Cell>,
+    pub node_ptr: NodeId,
 }
 
 
@@ -134,34 +135,55 @@ pub struct BTreeNodeStore {
     records_manager: RecordsManager,
 }
 
+fn append_key(vkey: &mut Vec<u8>, key_buf: &[u8]) {
+    let mut it = key_buf.iter();
+    let str_end = it.position(|&c| c == b'\0').unwrap_or(key_buf.len());
+    let mut vstring = Vec::with_capacity(str_end);
+    vstring.extend_from_slice(&key_buf[0..str_end]);
+}
+
 impl BTreeNodeStore {
     pub fn new(file: &str) -> Self {
         BTreeNodeStore{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD)}
     }
 
-    // fn load_overflow_cell(&mut self, node_ptr: NodeId, cell_id: CellId) -> OverflowCell {
-    //     let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-    //     self.records_manager.load(nid, &mut data);
+    fn load_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> NodeId {
+        let mut curr_node_id = cell_record.node_ptr;
+        let mut curr_overflow_cell_id = cell_record.overflow_cell_ptr;
+        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+        let mut has_overflow = cell_record.has_overflow();
+        let mut load_node = true;
+        let mut curr_node = BNodeRecord::new();
+        while has_overflow {
+            if load_node {
+                self.records_manager.load(curr_node_id, &mut data);
+                curr_node = BNodeRecord::from_bytes(data);
+            }
+            let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
+            has_overflow = overflow_cell.has_overflow();
+            append_key(vkey, &overflow_cell.key);
+            curr_node_id = overflow_cell.node_ptr;
+            curr_overflow_cell_id = overflow_cell.overflow_cell_ptr;
+            load_node = curr_node_id != overflow_cell.node_ptr;
+        }
+        curr_node_id
+    }
 
-    // }
+    fn retrieve_cell(&mut self, cell_record: &CellRecord) -> Cell {
+        let mut vkey = Vec::new();
+        append_key(&mut vkey, &cell_record.key);
+        let node_id = self.load_overflow_cells(&cell_record, &mut vkey);
+        Cell{key: String::from_utf8(vkey).unwrap(), node_ptr: node_id}
+    }
 
-    // fn retrieve_cell(&mut self, cell_record: &CellRecord) -> Cell {
-    //     let mut it = cell_record.key.iter();
-    //     let str_end = it.position(|&c| c == b'\0').unwrap_or(cell_record.key.len());
-    //     let mut vstring = Vec::with_capacity(str_end);
-    //     vstring.extend_from_slice(&cell_record.key[0..str_end]);
-    //     // if cell_record.has_overflow() {
-            
-    //     // }
-    // }
-
-    // pub fn retrieve_node(&mut self, nid: NodeId) -> BTreeNode {
-    //     let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-    //     self.records_manager.load(nid, &mut data);
-    //     let node = BNodeRecord::from_bytes(data);
-    //     let cells = Vec::new();
-    //     for cell_record in &node.cells {
-
-    //     }
-    // }
+    pub fn retrieve_node(&mut self, nid: NodeId) -> BTreeNode {
+        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+        self.records_manager.load(nid, &mut data);
+        let node = BNodeRecord::from_bytes(data);
+        let mut cells = Vec::new();
+        for cell_record in &node.cells {
+            cells.push(self.retrieve_cell(&cell_record));
+        }
+        BTreeNode{id: nid, node_ptr: node.ptr, cells: cells}
+    }
 }

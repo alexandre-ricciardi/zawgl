@@ -27,7 +27,7 @@ impl FileAccess {
         self.file.sync_all()?;
         Ok(())
     }
-    fn _read_at(&mut self, pos: u64 , mut data:&mut [u8]) -> std::io::Result<()> {
+    fn _read_at(&mut self, pos: u64 , mut data: &mut [u8]) -> std::io::Result<()> {
         self.file.seek(SeekFrom::Start(pos))?;
         self.file.read_exact(&mut data)?;
         Ok(())
@@ -41,7 +41,7 @@ impl FileAccess {
             _ => {}
         }
     }
-    pub fn read_at(&mut self, pos: u64 , mut data: &mut [u8]) {
+    pub fn read_at(&mut self, pos: u64 , data: &mut [u8]) {
         match self._read_at(pos, data) {
             Err(msg) => {
                 error!("reading file {}", msg);
