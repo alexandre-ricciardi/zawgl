@@ -18,9 +18,10 @@ const NB_CELL: usize = 66;
 const NODE_PTR_SIZE: usize = 8;
 const KEY_SIZE: usize = 44;
 const CELL_HEADER_SIZE: usize = 1;
-const ACTIVE_CELLS_COUNTER: usize = 4;
-const CELL_SIZE: usize = KEY_SIZE + NODE_PTR_SIZE + CELL_HEADER_SIZE + OVERFLOW_CELL_PTR_SIZE + ACTIVE_CELLS_COUNTER;
-const BTREE_NODE_RECORD_SIZE: usize = CELL_SIZE * NB_CELL + NODE_PTR_SIZE;
+const FREE_CELLS_COUNTER: usize = 4;
+const FREE_CELLS_PTR_SIZE: usize = 4;
+const CELL_SIZE: usize = KEY_SIZE + NODE_PTR_SIZE + CELL_HEADER_SIZE + OVERFLOW_CELL_PTR_SIZE;
+const BTREE_NODE_RECORD_SIZE: usize = CELL_SIZE * NB_CELL + NODE_PTR_SIZE + FREE_CELLS_COUNTER + NB_CELL * FREE_CELLS_PTR_SIZE;
 const OVERFLOW_CELL_PTR_SIZE: usize = 4;
 const OVERFLOW_KEY_SIZE: usize = CELL_SIZE - OVERFLOW_CELL_PTR_SIZE;
 
@@ -102,7 +103,8 @@ fn generate_config() -> Result<()> {
     writeln!(config, "pub const NODE_PTR_SIZE: usize = {};", NODE_PTR_SIZE)?;
     writeln!(config, "pub const KEY_SIZE: usize = {};", KEY_SIZE)?;
     writeln!(config, "pub const CELL_HEADER_SIZE: usize = {};", CELL_HEADER_SIZE)?;
-    writeln!(config, "pub const ACTIVE_CELLS_COUNTER: usize = {};", ACTIVE_CELLS_COUNTER)?;
+    writeln!(config, "pub const FREE_CELLS_COUNTER: usize = {};", FREE_CELLS_COUNTER)?;
+    writeln!(config, "pub const FREE_CELLS_PTR_SIZE: usize = {};", FREE_CELLS_PTR_SIZE)?;
     writeln!(config, "pub const CELL_SIZE: usize = {};", CELL_SIZE)?;
     writeln!(config, "pub const BTREE_NODE_RECORD_SIZE: usize = {};", BTREE_NODE_RECORD_SIZE)?;
     writeln!(config, "pub const OVERFLOW_CELL_PTR_SIZE: usize = {};", OVERFLOW_CELL_PTR_SIZE)?;

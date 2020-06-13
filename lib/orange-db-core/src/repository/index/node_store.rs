@@ -2,7 +2,10 @@ use super::super::super::config::*;
 use super::super::records::*;
 
 const HAS_OVERFLOW_FLAG: u8 = 0b1000_0000;
+const IS_ACTIVE: u8 = 0b0100_0000;
 const IS_LEAF_FLAG: u8 = 0b1000_0000;
+
+#[derive(Copy, Clone)]
 struct CellRecord {
     header: u8,
     node_ptr: u64,
@@ -19,6 +22,12 @@ impl CellRecord {
     }
     fn set_has_overflow(&mut self) {
         self.header = self.header | HAS_OVERFLOW_FLAG;
+    }
+    fn is_active(&self) -> bool {
+        self.header & IS_ACTIVE == 1
+    }
+    fn set_is_active(&mut self) {
+        self.header = self.header | IS_ACTIVE;
     }
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
@@ -40,7 +49,8 @@ impl CellRecord {
         offset += OVERFLOW_CELL_PTR_SIZE;
         let mut key = [0u8; KEY_SIZE];
         key.copy_from_slice(&bytes[offset..offset+KEY_SIZE]);
-        CellRecord{header: bytes[0],
+        CellRecord{
+            header: bytes[0],
             node_ptr: ptr,
             overflow_cell_ptr: overflow_cell_ptr,
             key: key}
@@ -54,7 +64,7 @@ struct OverflowNodeRecord {
 
 struct BNodeRecord {
     header: u8,
-    cells: Vec<CellRecord>,
+    cells: [CellRecord; NB_CELL],
     ptr: u64,
 }
 
@@ -93,15 +103,23 @@ impl BNodeRecord {
         buf.copy_from_slice(&bytes[index..index+NODE_PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
 
-        let mut active_cells_buf = [0u8; ACTIVE_CELLS_COUNTER];
-        active_cells_buf.copy_from_slice(&bytes[index..index+ACTIVE_CELLS_COUNTER]);
-        index += ACTIVE_CELLS_COUNTER;
-        let nb_active_cells = u32::from_be_bytes(active_cells_buf);
+        let mut free_cells_buf = [0u8; FREE_CELLS_COUNTER];
+        free_cells_buf.copy_from_slice(&bytes[index..index+FREE_CELLS_COUNTER]);
+        index += FREE_CELLS_COUNTER;
+        let nb_free_cells = u32::from_be_bytes(free_cells_buf);
+        let mut free_cells_ids = Vec::new();
+        for id in 0..nb_free_cells {
+            let mut free_cell_ptr_buf = [0u8; FREE_CELLS_PTR_SIZE];
+            free_cell_ptr_buf.copy_from_slice(&bytes[index..index+FREE_CELLS_PTR_SIZE]);
+            free_cells_ids.push(u32::from_be_bytes(free_cell_ptr_buf));
+            index += FREE_CELLS_PTR_SIZE;
+        }
 
-        let mut cells = Vec::new();
-        for cell_id in 0..nb_active_cells {
-            cells.push(CellRecord::from_bytes(&bytes[index..index+CELL_SIZE]));
-            index += CELL_SIZE;
+
+        let mut cells = [CellRecord::new(); NB_CELL];
+        for cell_id in free_cells_ids {
+            let offset = index + cell_id as usize * CELL_SIZE;
+            cells[cell_id as usize] = CellRecord::from_bytes(&bytes[offset..offset+CELL_SIZE]);
         }
         BNodeRecord{header: header, cells: cells, ptr: ptr}
     }
@@ -112,7 +130,7 @@ impl BNodeRecord {
         self.header = self.header | IS_LEAF_FLAG;
     }
     fn new() -> Self {
-        BNodeRecord{header: 0, cells: Vec::new(), ptr: 0}
+        BNodeRecord{header: 0, cells: [CellRecord::new(); NB_CELL], ptr: 0}
     }
 }
 
@@ -128,8 +146,18 @@ pub struct BTreeNode {
     pub id: NodeId,
     pub cells: Vec<Cell>,
     pub node_ptr: NodeId,
+    pub is_leaf: bool,
 }
 
+impl BTreeNode {
+    pub fn get_keys(&self) -> Vec<String> {
+        let mut res = Vec::new();
+        for cell in &self.cells {
+            res.push(cell.key.to_owned());
+        }
+        res
+    }
+}
 
 pub struct BTreeNodeStore {
     records_manager: RecordsManager,
@@ -147,7 +175,7 @@ impl BTreeNodeStore {
         BTreeNodeStore{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD)}
     }
 
-    fn load_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> NodeId {
+    fn load_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> Option<NodeId> {
         let mut curr_node_id = cell_record.node_ptr;
         let mut curr_overflow_cell_id = cell_record.overflow_cell_ptr;
         let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
@@ -156,7 +184,7 @@ impl BTreeNodeStore {
         let mut curr_node = BNodeRecord::new();
         while has_overflow {
             if load_node {
-                self.records_manager.load(curr_node_id, &mut data);
+                self.records_manager.load(curr_node_id, &mut data).ok()?;
                 curr_node = BNodeRecord::from_bytes(data);
             }
             let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
@@ -166,24 +194,31 @@ impl BTreeNodeStore {
             curr_overflow_cell_id = overflow_cell.overflow_cell_ptr;
             load_node = curr_node_id != overflow_cell.node_ptr;
         }
-        curr_node_id
+        Some(curr_node_id)
     }
 
-    fn retrieve_cell(&mut self, cell_record: &CellRecord) -> Cell {
+    fn retrieve_cell(&mut self, cell_record: &CellRecord) -> Option<Cell> {
         let mut vkey = Vec::new();
         append_key(&mut vkey, &cell_record.key);
         let node_id = self.load_overflow_cells(&cell_record, &mut vkey);
-        Cell{key: String::from_utf8(vkey).unwrap(), node_ptr: node_id}
+        node_id.map(|id| Cell{key: String::from_utf8(vkey).unwrap(), node_ptr: id})
     }
 
-    pub fn retrieve_node(&mut self, nid: NodeId) -> BTreeNode {
+    pub fn retrieve_node(&mut self, nid: NodeId) -> Option<BTreeNode> {
         let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-        self.records_manager.load(nid, &mut data);
+        self.records_manager.load(nid, &mut data).ok()?;
         let node = BNodeRecord::from_bytes(data);
         let mut cells = Vec::new();
-        for cell_record in &node.cells {
-            cells.push(self.retrieve_cell(&cell_record));
+        for cell_record_id in 0..node.cells.len() {
+            let cell_record = &node.cells[cell_record_id];
+            if cell_record.is_active() {
+                cells.push(self.retrieve_cell(cell_record)?);
+            }
         }
-        BTreeNode{id: nid, node_ptr: node.ptr, cells: cells}
+        Some(BTreeNode{id: nid, node_ptr: node.ptr, cells: cells, is_leaf: node.is_leaf()})
+    }
+
+    pub fn is_empty(&mut self) -> bool {
+        self.records_manager.is_empty()
     }
 }

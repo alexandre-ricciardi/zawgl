@@ -11,15 +11,16 @@ pub const HEADER_FLAGS: usize = 1;
 pub const HEADER_SIZE: usize = 21;
 ///BTREE
 ///PAGE PAYLOAD SIZE 4071 BYTES
-///UNUSED SPACE 37 BYTES
+///UNUSED SPACE 33 BYTES
 pub const NB_CELL: usize = 66;
 pub const NODE_PTR_SIZE: usize = 8;
 pub const KEY_SIZE: usize = 44;
 pub const CELL_HEADER_SIZE: usize = 1;
-pub const ACTIVE_CELLS_COUNTER: usize = 4;
-pub const CELL_SIZE: usize = 61;
-pub const BTREE_NODE_RECORD_SIZE: usize = 4034;
+pub const FREE_CELLS_COUNTER: usize = 4;
+pub const FREE_CELLS_PTR_SIZE: usize = 4;
+pub const CELL_SIZE: usize = 57;
+pub const BTREE_NODE_RECORD_SIZE: usize = 4038;
 pub const OVERFLOW_CELL_PTR_SIZE: usize = 4;
-pub const OVERFLOW_KEY_SIZE: usize = 57;
+pub const OVERFLOW_KEY_SIZE: usize = 53;
 pub const BTREE_NB_RECORDS_PER_PAGE: usize = 1;
 pub const BTREE_NB_PAGES_PER_RECORD: usize = 0;

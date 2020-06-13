@@ -83,12 +83,17 @@ impl Pager {
         page_data
     }
 
-    pub fn load_page(&mut self, pid: PageId) -> Page {
-        if !self.page_cache.contains_key(&pid) {
-            let page_data = self.read_page_data(pid);
-            self.page_cache.insert(pid, page_data);
+    pub fn load_page(&mut self, pid: PageId) -> Option<Page> {
+        if self.header_page.get_page_count() >= pid {
+            if !self.page_cache.contains_key(&pid) {
+                let page_data = self.read_page_data(pid);
+                self.page_cache.insert(pid, page_data);
+            }
+            Some(Page::new(pid, &mut self.header_page, self.page_cache.get_mut(&pid).unwrap()))
+        } else {
+            None
         }
-        Page::new(pid, &mut self.header_page, self.page_cache.get_mut(&pid).unwrap())
+        
     }
 
     pub fn append(&mut self) -> Page {
