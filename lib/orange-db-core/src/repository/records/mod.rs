@@ -114,10 +114,9 @@ impl <'a> RecordPageWrapper<'a> {
     }
     fn init_page_free_list(&mut self) {
         let free_list_len = self.get_free_list_len();
-        let mut free_list_slice = self.get_slice_mut(self.page_map.free_list);
+        let free_list_slice = self.get_slice_mut(self.page_map.free_list);
         for count in 0..free_list_len {
             let offset = count * FREE_LIST_PTR_SIZE;
-            let mut bytes = [0u8; FREE_LIST_PTR_SIZE];
             free_list_slice[offset..offset+FREE_LIST_PTR_SIZE].copy_from_slice(&count.to_be_bytes());
         }
     }

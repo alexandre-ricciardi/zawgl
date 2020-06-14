@@ -64,6 +64,7 @@ struct OverflowNodeRecord {
 
 struct BNodeRecord {
     header: u8,
+    next_free_cells_node_ptr: u64,
     cells: [CellRecord; NB_CELL],
     ptr: u64,
 }
@@ -103,25 +104,17 @@ impl BNodeRecord {
         buf.copy_from_slice(&bytes[index..index+NODE_PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
 
-        let mut free_cells_buf = [0u8; FREE_CELLS_COUNTER];
-        free_cells_buf.copy_from_slice(&bytes[index..index+FREE_CELLS_COUNTER]);
-        index += FREE_CELLS_COUNTER;
-        let nb_free_cells = u32::from_be_bytes(free_cells_buf);
-        let mut free_cells_ids = Vec::new();
-        for id in 0..nb_free_cells {
-            let mut free_cell_ptr_buf = [0u8; FREE_CELLS_PTR_SIZE];
-            free_cell_ptr_buf.copy_from_slice(&bytes[index..index+FREE_CELLS_PTR_SIZE]);
-            free_cells_ids.push(u32::from_be_bytes(free_cell_ptr_buf));
-            index += FREE_CELLS_PTR_SIZE;
-        }
-
+        let mut free_cells_buf = [0u8; FREE_CELLS_NEXT_NODE_PTR_SIZE];
+        free_cells_buf.copy_from_slice(&bytes[index..index+FREE_CELLS_NEXT_NODE_PTR_SIZE]);
+        index += FREE_CELLS_NEXT_NODE_PTR_SIZE;
+        let next_free_cells_node_ptr = u64::from_be_bytes(free_cells_buf);
 
         let mut cells = [CellRecord::new(); NB_CELL];
-        for cell_id in free_cells_ids {
-            let offset = index + cell_id as usize * CELL_SIZE;
-            cells[cell_id as usize] = CellRecord::from_bytes(&bytes[offset..offset+CELL_SIZE]);
+        for cell_id in 0..NB_CELL {
+            let offset = index + cell_id * CELL_SIZE;
+            cells[cell_id] = CellRecord::from_bytes(&bytes[offset..offset+CELL_SIZE]);
         }
-        BNodeRecord{header: header, cells: cells, ptr: ptr}
+        BNodeRecord{header: header, next_free_cells_node_ptr: next_free_cells_node_ptr, cells: cells, ptr: ptr}
     }
     fn is_leaf(&self) -> bool {
         (self.header & IS_LEAF_FLAG) == 1
@@ -130,7 +123,7 @@ impl BNodeRecord {
         self.header = self.header | IS_LEAF_FLAG;
     }
     fn new() -> Self {
-        BNodeRecord{header: 0, cells: [CellRecord::new(); NB_CELL], ptr: 0}
+        BNodeRecord{header: 0, next_free_cells_node_ptr: 0, cells: [CellRecord::new(); NB_CELL], ptr: 0}
     }
 }
 
@@ -142,11 +135,24 @@ pub struct Cell {
     pub node_ptr: NodeId,
 }
 
+impl Cell {
+    pub fn new(key: &str, ptr: NodeId) -> Self {
+        Cell{key: String::from(key), node_ptr: ptr}
+    }
+
+}
+
 pub struct BTreeNode {
     pub id: NodeId,
     pub cells: Vec<Cell>,
     pub node_ptr: NodeId,
     pub is_leaf: bool,
+}
+
+impl BTreeNode {
+    pub fn is_full(&self) -> bool {
+        self.cells.len() == NB_CELL
+    }
 }
 
 impl BTreeNode {

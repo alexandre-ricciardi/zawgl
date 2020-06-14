@@ -92,7 +92,6 @@ impl Ast for AstTagNode {
                     AstTag::Label => {
                         visitor.enter_label();
                     }
-                    _ => {}
                 }
             },
             None => {}
