@@ -13,13 +13,13 @@ impl BTreeIndex {
         BTreeIndex{node_store: BTreeNodeStore::new(file)}
     }
 
-    fn tree_search(&mut self, value: &str, node: &BTreeNode, depth: u32) -> Option<DataPtr> {
+    fn tree_search(&mut self, value: &str, node: &BTreeNode, depth: u32) -> Option<Vec<DataPtr>> {
         let keys = node.get_keys();
         let res = keys.binary_search(&String::from(value));
         match res {
             Ok(found) => {
                 if node.is_leaf {
-                    Some(node.cells[found].node_ptr)
+                    Some(node.cells[found].data_ptrs.clone())
                 } else {
                     let child = self.node_store.retrieve_node(node.cells[found].node_ptr)?;
                     self.tree_search(value, &child, depth+1)
@@ -36,7 +36,7 @@ impl BTreeIndex {
         }
     }
 
-    pub fn search(&mut self, value: &str) -> Option<DataPtr> {
+    pub fn search(&mut self, value: &str) -> Option<Vec<DataPtr>> {
         let root = self.node_store.retrieve_node(0);
         root.and_then(|node| self.tree_search(value, &node, 0))
     }
@@ -77,6 +77,11 @@ impl BTreeIndex {
     pub fn insert(&mut self, value: u64, data_ptr: u64) {
         
     }
+
+    pub fn delete(&mut self, value: u64) {
+
+    }
+
 }
 
 #[cfg(test)]

@@ -2,8 +2,9 @@ use super::super::super::config::*;
 use super::super::records::*;
 
 const HAS_OVERFLOW_FLAG: u8 = 0b1000_0000;
-const IS_ACTIVE: u8 = 0b0100_0000;
 const IS_LEAF_FLAG: u8 = 0b1000_0000;
+const IS_ACTIVE_FLAG: u8 = 0b0100_0000;
+const IS_LIST_PTR_FLAG: u8 = 0b0010_0000;
 
 #[derive(Copy, Clone)]
 struct CellRecord {
@@ -24,10 +25,17 @@ impl CellRecord {
         self.header = self.header | HAS_OVERFLOW_FLAG;
     }
     fn is_active(&self) -> bool {
-        self.header & IS_ACTIVE == 1
+        self.header & IS_ACTIVE_FLAG == 1
     }
     fn set_is_active(&mut self) {
-        self.header = self.header | IS_ACTIVE;
+        self.header = self.header | IS_ACTIVE_FLAG;
+    }
+    
+    fn is_list_ptr(&self) -> bool {
+        self.header & IS_LIST_PTR_FLAG == 1
+    }
+    fn set_is_list_ptr(&mut self) {
+        self.header = self.header | IS_LIST_PTR_FLAG;
     }
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
@@ -133,11 +141,13 @@ pub type CellId = u32;
 pub struct Cell {
     pub key: String,
     pub node_ptr: NodeId,
+    pub is_active: bool,
+    pub data_ptrs: Vec<NodeId>,
 }
 
 impl Cell {
     pub fn new(key: &str, ptr: NodeId) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr}
+        Cell{key: String::from(key), node_ptr: ptr, is_active: false, data_ptrs: Vec::new()}
     }
 
 }
@@ -153,13 +163,13 @@ impl BTreeNode {
     pub fn is_full(&self) -> bool {
         self.cells.len() == NB_CELL
     }
-}
 
-impl BTreeNode {
     pub fn get_keys(&self) -> Vec<String> {
         let mut res = Vec::new();
         for cell in &self.cells {
-            res.push(cell.key.to_owned());
+            if cell.is_active {
+                res.push(cell.key.to_owned());
+            }
         }
         res
     }
@@ -172,8 +182,19 @@ pub struct BTreeNodeStore {
 fn append_key(vkey: &mut Vec<u8>, key_buf: &[u8]) {
     let mut it = key_buf.iter();
     let str_end = it.position(|&c| c == b'\0').unwrap_or(key_buf.len());
-    let mut vstring = Vec::with_capacity(str_end);
-    vstring.extend_from_slice(&key_buf[0..str_end]);
+    vkey.extend_from_slice(&key_buf[0..str_end]);
+}
+
+fn append_list_ptr(ptrs: &mut Vec<u64>, buf: &[u8]) {
+    let mut counter_buf = [0u8; 2];
+    counter_buf.copy_from_slice(&buf[..2]);
+    let counter = u16::from_be_bytes(counter_buf);
+    for ptr_index in 0..counter {
+        let offset = 2 + ptr_index as usize * 8 ;
+        let mut ptr_buf = [0u8; 8];
+        ptr_buf.copy_from_slice(&buf[offset..offset+8]);
+        ptrs.push(u64::from_be_bytes(ptr_buf));
+    }
 }
 
 impl BTreeNodeStore {
@@ -181,13 +202,14 @@ impl BTreeNodeStore {
         BTreeNodeStore{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD)}
     }
 
-    fn load_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> Option<NodeId> {
+    fn load_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> Option<(NodeId, Vec<NodeId>)> {
         let mut curr_node_id = cell_record.node_ptr;
         let mut curr_overflow_cell_id = cell_record.overflow_cell_ptr;
         let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
         let mut has_overflow = cell_record.has_overflow();
         let mut load_node = true;
         let mut curr_node = BNodeRecord::new();
+        let mut ptrs = Vec::new();
         while has_overflow {
             if load_node {
                 self.records_manager.load(curr_node_id, &mut data).ok()?;
@@ -195,19 +217,23 @@ impl BTreeNodeStore {
             }
             let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
             has_overflow = overflow_cell.has_overflow();
-            append_key(vkey, &overflow_cell.key);
+            if overflow_cell.is_list_ptr() {
+                append_list_ptr(&mut ptrs, &overflow_cell.key);
+            } else {
+                append_key(vkey, &overflow_cell.key);
+            }
             curr_node_id = overflow_cell.node_ptr;
             curr_overflow_cell_id = overflow_cell.overflow_cell_ptr;
             load_node = curr_node_id != overflow_cell.node_ptr;
         }
-        Some(curr_node_id)
+        Some((curr_node_id, ptrs))
     }
 
     fn retrieve_cell(&mut self, cell_record: &CellRecord) -> Option<Cell> {
         let mut vkey = Vec::new();
         append_key(&mut vkey, &cell_record.key);
         let node_id = self.load_overflow_cells(&cell_record, &mut vkey);
-        node_id.map(|id| Cell{key: String::from_utf8(vkey).unwrap(), node_ptr: id})
+        node_id.map(|res| Cell{key: String::from_utf8(vkey).unwrap(), node_ptr: res.0, is_active: cell_record.is_active(), data_ptrs: res.1})
     }
 
     pub fn retrieve_node(&mut self, nid: NodeId) -> Option<BTreeNode> {
