@@ -1,10 +1,12 @@
 use super::super::super::config::*;
 use super::super::records::*;
 
-const HAS_OVERFLOW_FLAG: u8 = 0b1000_0000;
-const IS_LEAF_FLAG: u8 = 0b1000_0000;
-const IS_ACTIVE_FLAG: u8 = 0b0100_0000;
-const IS_LIST_PTR_FLAG: u8 = 0b0010_0000;
+const HAS_OVERFLOW_CELL_FLAG: u8 = 0b1000_0000;
+const IS_ACTIVE_CELL_FLAG: u8 = 0b0100_0000;
+const IS_LIST_PTR_CELL_FLAG: u8 = 0b0010_0000;
+
+const IS_LEAF_NODE_FLAG: u8 = 0b1000_0000;
+const HAS_NEXT_NODE_FLAG: u8 = 0b0100_0000;
 
 #[derive(Copy, Clone)]
 struct CellRecord {
@@ -19,23 +21,23 @@ impl CellRecord {
         CellRecord{header: 0, key: [0u8; KEY_SIZE], node_ptr: 0, overflow_cell_ptr: 0}
     }
     fn has_overflow(&self) -> bool {
-        self.header & HAS_OVERFLOW_FLAG == 1
+        self.header & HAS_OVERFLOW_CELL_FLAG == 1
     }
     fn set_has_overflow(&mut self) {
-        self.header = self.header | HAS_OVERFLOW_FLAG;
+        self.header = self.header | HAS_OVERFLOW_CELL_FLAG;
     }
     fn is_active(&self) -> bool {
-        self.header & IS_ACTIVE_FLAG == 1
+        self.header & IS_ACTIVE_CELL_FLAG == 1
     }
     fn set_is_active(&mut self) {
-        self.header = self.header | IS_ACTIVE_FLAG;
+        self.header = self.header | IS_ACTIVE_CELL_FLAG;
     }
     
     fn is_list_ptr(&self) -> bool {
-        self.header & IS_LIST_PTR_FLAG == 1
+        self.header & IS_LIST_PTR_CELL_FLAG == 1
     }
     fn set_is_list_ptr(&mut self) {
-        self.header = self.header | IS_LIST_PTR_FLAG;
+        self.header = self.header | IS_LIST_PTR_CELL_FLAG;
     }
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
@@ -64,11 +66,6 @@ impl CellRecord {
             key: key}
     }
 }
-struct OverflowNodeRecord {
-    header: u8,
-    cells: [Cell; NB_CELL],
-    ptr: u64,
-}
 
 struct BNodeRecord {
     header: u8,
@@ -96,11 +93,14 @@ impl BNodeRecord {
         let mut index = 0;
         bytes[index] = self.header;
         index += 1;
+        bytes[index..index+NODE_PTR_SIZE].copy_from_slice(&self.ptr.to_be_bytes());
+        index += NODE_PTR_SIZE;
+        bytes[index..index+FREE_CELLS_NEXT_NODE_PTR_SIZE].copy_from_slice(&self.next_free_cells_node_ptr.to_be_bytes());
+        index += FREE_CELLS_NEXT_NODE_PTR_SIZE;
         for cell_id in 0..self.cells.len() {
             bytes[index..index+CELL_SIZE].copy_from_slice(&self.cells[cell_id].to_bytes());
             index += CELL_SIZE;
         }
-        bytes[index..].copy_from_slice(&self.ptr.to_be_bytes());
         bytes
     }
     fn from_bytes(bytes: [u8; BTREE_NODE_RECORD_SIZE]) -> Self {
@@ -125,10 +125,16 @@ impl BNodeRecord {
         BNodeRecord{header: header, next_free_cells_node_ptr: next_free_cells_node_ptr, cells: cells, ptr: ptr}
     }
     fn is_leaf(&self) -> bool {
-        (self.header & IS_LEAF_FLAG) == 1
+        (self.header & IS_LEAF_NODE_FLAG) == 1
     }
     fn set_leaf(&mut self) {
-        self.header = self.header | IS_LEAF_FLAG;
+        self.header = self.header | IS_LEAF_NODE_FLAG;
+    }
+    fn has_next_node(&self) -> bool {
+        (self.header & HAS_NEXT_NODE_FLAG) == 1
+    }
+    fn set_has_next_node(&mut self) {
+        self.header = self.header | HAS_NEXT_NODE_FLAG;
     }
     fn new() -> Self {
         BNodeRecord{header: 0, next_free_cells_node_ptr: 0, cells: [CellRecord::new(); NB_CELL], ptr: 0}
@@ -153,13 +159,17 @@ impl Cell {
 }
 
 pub struct BTreeNode {
-    pub id: NodeId,
+    pub id: Option<NodeId>,
     pub cells: Vec<Cell>,
-    pub node_ptr: NodeId,
+    pub node_ptr: Option<NodeId>,
     pub is_leaf: bool,
 }
 
 impl BTreeNode {
+    pub fn new(is_leaf: bool) -> Self {
+        BTreeNode{id: None, cells: Vec::new(), node_ptr: None, is_leaf: is_leaf}
+    }
+
     pub fn is_full(&self) -> bool {
         self.cells.len() == NB_CELL
     }
@@ -247,7 +257,19 @@ impl BTreeNodeStore {
                 cells.push(self.retrieve_cell(cell_record)?);
             }
         }
-        Some(BTreeNode{id: nid, node_ptr: node.ptr, cells: cells, is_leaf: node.is_leaf()})
+        let next_node_ptr = {
+            if node.has_next_node() {
+                Some(node.ptr)
+            } else {
+                None
+            }
+        };
+        Some(BTreeNode{id: Some(nid), node_ptr: next_node_ptr, cells: cells, is_leaf: node.is_leaf()})
+    }
+
+    pub fn append_node(&mut self, node: &BTreeNode) -> Option<NodeId> {
+        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+        Some(self.records_manager.append(&data).ok()?)
     }
 
     pub fn is_empty(&mut self) -> bool {

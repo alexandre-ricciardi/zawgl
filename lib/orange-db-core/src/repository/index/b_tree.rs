@@ -41,8 +41,22 @@ impl BTreeIndex {
         root.and_then(|node| self.tree_search(value, &node, 0))
     }
 
-    fn split_leaf_node(&mut self, node: &mut BTreeNode) {
-        
+    fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode, split_index: usize) -> Option<BTreeNode> {
+        let next = node.node_ptr.and_then(|id| self.node_store.retrieve_node(id))?;
+        let mut new = BTreeNode::new(true);
+        let new_id = self.node_store.append_node(&new);
+        node.node_ptr = new_id;
+        new.node_ptr = next.id;
+        let mut new_node_cells = Vec::new();
+        while node.cells.len() > split_index {
+            if let Some(cell) = node.cells.pop() {
+                new_node_cells.push(cell);
+            }
+        }
+        new_node_cells.push(Cell::new(value, data_ptr));
+        new_node_cells.reverse();
+        new.cells = new_node_cells;
+        Some(new)
     }
 
     fn insert_or_update_key(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode) -> Option<NodeId> {
@@ -51,8 +65,8 @@ impl BTreeIndex {
         match res {
             Ok(found) => {
                 if node.is_leaf {
-                    node.cells[found].node_ptr = data_ptr;
-                    Some(node.id)
+                    node.cells[found].data_ptrs.push(data_ptr);
+                    node.id
                 } else {
                     let mut child = self.node_store.retrieve_node(node.cells[found].node_ptr)?;
                     self.insert_or_update_key(value, data_ptr, &mut child)
@@ -61,11 +75,11 @@ impl BTreeIndex {
             Err(not_found) => {
                 if node.is_leaf {
                     if node.is_full() {
-
+                        
                     } else {
                         node.cells.insert(not_found, Cell::new(value, data_ptr));
                     }
-                    Some(node.id)
+                    node.id
                 } else {
                     let mut child = self.node_store.retrieve_node(node.cells[not_found].node_ptr)?;
                     self.insert_or_update_key(value, data_ptr, &mut child)
