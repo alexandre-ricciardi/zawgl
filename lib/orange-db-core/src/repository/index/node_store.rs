@@ -144,18 +144,42 @@ impl BNodeRecord {
 pub type NodeId = u64;
 pub type CellId = u32;
 
+struct CellChangeContext {
+    added_data_ptrs: Vec<NodeId>,
+    removed_data_ptrs: Vec<NodeId>,
+}
+
+impl CellChangeContext {
+    fn new() -> Self {
+        CellChangeContext{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new()}
+    }
+}
+
 pub struct Cell {
     pub key: String,
     pub node_ptr: NodeId,
     pub is_active: bool,
-    pub data_ptrs: Vec<NodeId>,
+    data_ptrs: Vec<NodeId>,
+    cell_change_ctx: CellChangeContext,
 }
 
 impl Cell {
-    pub fn new(key: &str, ptr: NodeId) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active: false, data_ptrs: Vec::new()}
+    pub fn new_ptr(key: &str, ptr: NodeId) -> Self {
+        Cell{key: String::from(key), node_ptr: ptr, is_active: true, data_ptrs: Vec::new(), cell_change_ctx: CellChangeContext::new()}
     }
-
+    pub fn new_leaf(key: &str, data_ptr: NodeId) -> Self {
+        Cell{key: String::from(key), node_ptr: 0, is_active: true, data_ptrs: vec![data_ptr], cell_change_ctx: CellChangeContext::new()}
+    }
+    fn new(key: &str, ptr: NodeId, data_ptrs: Vec<NodeId>, is_active: bool) -> Self {
+        Cell{key: String::from(key), node_ptr: ptr, is_active: is_active, data_ptrs: data_ptrs, cell_change_ctx: CellChangeContext::new()}
+    }
+    pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
+        self.cell_change_ctx.added_data_ptrs.push(data_ptr);
+        self.data_ptrs.push(data_ptr);
+    }
+    pub fn get_data_ptrs_ref(&self) -> &Vec<NodeId> {
+        &self.data_ptrs
+    }
 }
 
 pub struct BTreeNode {
@@ -243,7 +267,7 @@ impl BTreeNodeStore {
         let mut vkey = Vec::new();
         append_key(&mut vkey, &cell_record.key);
         let node_id = self.load_overflow_cells(&cell_record, &mut vkey);
-        node_id.map(|res| Cell{key: String::from_utf8(vkey).unwrap(), node_ptr: res.0, is_active: cell_record.is_active(), data_ptrs: res.1})
+        node_id.map(|res| Cell::new(&String::from_utf8(vkey).unwrap(), res.0, res.1, cell_record.is_active()))
     }
 
     pub fn retrieve_node(&mut self, nid: NodeId) -> Option<BTreeNode> {

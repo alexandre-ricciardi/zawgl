@@ -19,7 +19,7 @@ impl BTreeIndex {
         match res {
             Ok(found) => {
                 if node.is_leaf {
-                    Some(node.cells[found].data_ptrs.clone())
+                    Some(node.cells[found].get_data_ptrs_ref().clone())
                 } else {
                     let child = self.node_store.retrieve_node(node.cells[found].node_ptr)?;
                     self.tree_search(value, &child, depth+1)
@@ -53,36 +53,45 @@ impl BTreeIndex {
                 new_node_cells.push(cell);
             }
         }
-        new_node_cells.push(Cell::new(value, data_ptr));
+        new_node_cells.push(Cell::new_leaf(value, data_ptr));
         new_node_cells.reverse();
         new.cells = new_node_cells;
         Some(new)
     }
 
-    fn insert_or_update_key(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode) -> Option<NodeId> {
+    fn split_interior_node(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode, split_index: usize) -> Option<BTreeNode> {
+
+    }
+
+    fn insert_or_update_key_ptrs(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode) -> Option<BTreeNode> {
         let keys = node.get_keys();
         let res = keys.binary_search(&String::from(value));
         match res {
             Ok(found) => {
                 if node.is_leaf {
-                    node.cells[found].data_ptrs.push(data_ptr);
-                    node.id
+                    node.cells[found].append_data_ptr(data_ptr);
+                    None
                 } else {
                     let mut child = self.node_store.retrieve_node(node.cells[found].node_ptr)?;
-                    self.insert_or_update_key(value, data_ptr, &mut child)
+                    self.insert_or_update_key_ptrs(value, data_ptr, &mut child)
                 }
             },
             Err(not_found) => {
                 if node.is_leaf {
                     if node.is_full() {
-                        
+                        self.split_leaf_node(value, data_ptr, node, not_found)
                     } else {
-                        node.cells.insert(not_found, Cell::new(value, data_ptr));
+                        node.cells.insert(not_found, Cell::new_leaf(value, data_ptr));
+                        None
                     }
-                    node.id
                 } else {
                     let mut child = self.node_store.retrieve_node(node.cells[not_found].node_ptr)?;
-                    self.insert_or_update_key(value, data_ptr, &mut child)
+                    let split_node = self.insert_or_update_key_ptrs(value, data_ptr, &mut child)?;
+                    if child.is_full() {
+                        self.split_interior_node(value, data_ptr, node, not_found)
+                    } else {
+                        None
+                    }
                 }
             }
         }
