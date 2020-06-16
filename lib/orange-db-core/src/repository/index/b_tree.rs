@@ -13,24 +13,24 @@ impl BTreeIndex {
         BTreeIndex{node_store: BTreeNodeStore::new(file)}
     }
 
-    fn tree_search(&mut self, value: &str, node: &BTreeNode, depth: u32) -> Option<Vec<DataPtr>> {
+    fn tree_search(&mut self, value: &str, node: &BTreeNode) -> Option<Vec<DataPtr>> {
         let keys = node.get_keys();
         let res = keys.binary_search(&String::from(value));
         match res {
             Ok(found) => {
                 if node.is_leaf {
-                    Some(node.cells[found].get_data_ptrs_ref().clone())
+                    Some(node.get_cell_ref(found).get_data_ptrs_ref().clone())
                 } else {
-                    let child = self.node_store.retrieve_node(node.cells[found].node_ptr)?;
-                    self.tree_search(value, &child, depth+1)
+                    let child = node.get_cell_ref(found).node_ptr.and_then(|id|self.node_store.retrieve_node(id))?;
+                    self.tree_search(value, &child)
                 }
             },
             Err(not_found) => {
                 if node.is_leaf {
                     None
                 } else {
-                    let child = self.node_store.retrieve_node(node.cells[not_found].node_ptr)?;
-                    self.tree_search(value, &child, depth+1)
+                    let child = node.get_cell_ref(not_found).node_ptr.and_then(|id|self.node_store.retrieve_node(id))?;
+                    self.tree_search(value, &child)
                 }
             }
         }
@@ -38,29 +38,40 @@ impl BTreeIndex {
 
     pub fn search(&mut self, value: &str) -> Option<Vec<DataPtr>> {
         let root = self.node_store.retrieve_node(0);
-        root.and_then(|node| self.tree_search(value, &node, 0))
+        root.and_then(|node| self.tree_search(value, &node))
     }
 
-    fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode, split_index: usize) -> Option<BTreeNode> {
+    fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode, new_cell_index: usize) -> Option<BTreeNode> {
         let next = node.node_ptr.and_then(|id| self.node_store.retrieve_node(id))?;
-        let mut new = BTreeNode::new(true);
-        let new_id = self.node_store.append_node(&new);
-        node.node_ptr = new_id;
-        new.node_ptr = next.id;
+        node.insert_cell(new_cell_index, Cell::new_leaf(value, data_ptr));
+        let split = node.get_cells_ref().len() / 2;
         let mut new_node_cells = Vec::new();
-        while node.cells.len() > split_index {
-            if let Some(cell) = node.cells.pop() {
+        while node.get_cells_ref().len() > split {
+            if let Some(cell) = node.pop_cell() {
                 new_node_cells.push(cell);
             }
         }
-        new_node_cells.push(Cell::new_leaf(value, data_ptr));
         new_node_cells.reverse();
-        new.cells = new_node_cells;
+        let mut new = BTreeNode::new(true, new_node_cells);
+        let new_id = self.node_store.append_node(&new);
+        node.node_ptr = new_id;
+        new.node_ptr = next.id;
         Some(new)
     }
 
-    fn split_interior_node(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode, split_index: usize) -> Option<BTreeNode> {
-
+    fn split_interior_node(&mut self, new_key: &str, new_node_ptr: Option<NodeId>, parent_node: &mut BTreeNode, new_cell_index: usize) -> Option<BTreeNode> {
+        parent_node.insert_cell(new_cell_index, Cell::new_ptr(new_key, new_node_ptr));
+        let split = parent_node.get_cells_ref().len() / 2;
+        let mut new_node_cells = Vec::new();
+        while parent_node.get_cells_ref().len() > split {
+            if let Some(cell) = parent_node.pop_cell() {
+                new_node_cells.push(cell);
+            }
+        }
+        new_node_cells.reverse();
+        let new = BTreeNode::new(false, new_node_cells);
+        let new_id = self.node_store.append_node(&new);
+        Some(new)
     }
 
     fn insert_or_update_key_ptrs(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode) -> Option<BTreeNode> {
@@ -69,10 +80,10 @@ impl BTreeIndex {
         match res {
             Ok(found) => {
                 if node.is_leaf {
-                    node.cells[found].append_data_ptr(data_ptr);
+                    node.get_cell_mut(found).append_data_ptr(data_ptr);
                     None
                 } else {
-                    let mut child = self.node_store.retrieve_node(node.cells[found].node_ptr)?;
+                    let mut child = node.get_cell_ref(found).node_ptr.and_then(|id| self.node_store.retrieve_node(id))?;
                     self.insert_or_update_key_ptrs(value, data_ptr, &mut child)
                 }
             },
@@ -81,17 +92,26 @@ impl BTreeIndex {
                     if node.is_full() {
                         self.split_leaf_node(value, data_ptr, node, not_found)
                     } else {
-                        node.cells.insert(not_found, Cell::new_leaf(value, data_ptr));
+                        node.insert_cell(not_found, Cell::new_leaf(value, data_ptr));
                         None
                     }
                 } else {
-                    let mut child = self.node_store.retrieve_node(node.cells[not_found].node_ptr)?;
+                    let mut child = node.get_cell_ref(not_found).node_ptr.and_then(|id|self.node_store.retrieve_node(id))?;
                     let split_node = self.insert_or_update_key_ptrs(value, data_ptr, &mut child)?;
-                    if child.is_full() {
-                        self.split_interior_node(value, data_ptr, node, not_found)
-                    } else {
-                        None
+                    let first_cell = split_node.get_cell_ref(0);
+                    let first_split_cell_key_search = keys.binary_search(&first_cell.key);
+                    match first_split_cell_key_search {
+                        Err(not_found) => {
+                            if child.is_full() {
+                                self.split_interior_node(&first_cell.key, split_node.id, node, not_found)
+                            } else {
+                                node.insert_cell(not_found, Cell::new_ptr(&first_cell.key, split_node.id));
+                                None
+                            }
+                        },
+                        _ => {None}
                     }
+                    
                 }
             }
         }
