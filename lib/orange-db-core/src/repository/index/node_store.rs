@@ -42,9 +42,12 @@ impl CellRecord {
     fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
         bytes[0] = self.header;
-        bytes[CELL_HEADER_SIZE..CELL_HEADER_SIZE+NODE_PTR_SIZE].copy_from_slice(&self.node_ptr.to_be_bytes());
-        bytes[CELL_HEADER_SIZE+NODE_PTR_SIZE..CELL_HEADER_SIZE+NODE_PTR_SIZE+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
-        bytes[KEY_SIZE..].copy_from_slice(&self.node_ptr.to_be_bytes());
+        let mut offset = CELL_HEADER_SIZE;
+        bytes[offset..offset+NODE_PTR_SIZE].copy_from_slice(&self.node_ptr.to_be_bytes());
+        offset += NODE_PTR_SIZE;
+        bytes[offset..offset+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
+        offset += OVERFLOW_CELL_PTR_SIZE;
+        bytes[offset..offset+KEY_SIZE].copy_from_slice(&self.node_ptr.to_be_bytes());
         bytes
     }
     fn from_bytes(bytes: &[u8]) -> Self {
@@ -147,11 +150,12 @@ pub type CellId = u32;
 struct CellChangeState {
     added_data_ptrs: Vec<NodeId>,
     removed_data_ptrs: Vec<NodeId>,
+    is_new_instance: bool,
 }
 
 impl CellChangeState {
-    fn new() -> Self {
-        CellChangeState{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new()}
+    fn new(new: bool) -> Self {
+        CellChangeState{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new(), is_new_instance: new}
     }
 }
 
@@ -165,13 +169,13 @@ pub struct Cell {
 
 impl Cell {
     pub fn new_ptr(key: &str, ptr: Option<NodeId>) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active: true, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new()}
+        Cell{key: String::from(key), node_ptr: ptr, is_active: true, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new(true)}
     }
     pub fn new_leaf(key: &str, data_ptr: NodeId) -> Self {
-        Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new()}
+        Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true)}
     }
     fn new(key: &str, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>, is_active: bool) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active: is_active, data_ptrs: data_ptrs, cell_change_state: CellChangeState::new()}
+        Cell{key: String::from(key), node_ptr: ptr, is_active: is_active, data_ptrs: data_ptrs, cell_change_state: CellChangeState::new(false)}
     }
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
         self.cell_change_state.added_data_ptrs.push(data_ptr);
@@ -345,7 +349,6 @@ impl BTreeNodeStore {
                     Cell::new(&String::from_utf8(vkey).unwrap(), None, ptrs, cell_record.is_active())
                 }
             }
-            
         })
     }
 
@@ -370,7 +373,29 @@ impl BTreeNodeStore {
         Some(BTreeNode::new_with_id(Some(nid), next_node_ptr, node.is_leaf(), cells))
     }
 
+    fn create_node(&mut self, node: &mut BTreeNode) {
+        let mut node_record = BNodeRecord::new();
+        if node.is_leaf() {
+            node_record.set_leaf();
+        }
+        if let Some(next_id) = node.node_ptr {
+            node_record.set_has_next_node();
+            node_record.ptr = next_id;
+        }
+        if node.cells.len() < NB_CELL {
+            let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+            self.records_manager.load(0, &mut data);
+            let first_node = BNodeRecord::from_bytes(data);
+            node_record.next_free_cells_node_ptr = first_node.next_free_cells_node_ptr;
+            // need create node id first_node.next_free_cells_node_ptr = 0;
+        }
+
+    }
+
     pub fn save(&mut self, node: &mut BTreeNode) {
+        if node.node_change_state.is_new_instance {
+
+        }
         let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
         Some(self.records_manager.append(&data).ok()?)
     }

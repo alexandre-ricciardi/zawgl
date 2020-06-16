@@ -53,9 +53,9 @@ impl BTreeIndex {
         }
         new_node_cells.reverse();
         let mut new = BTreeNode::new(true, new_node_cells);
+        new.set_node_ptr(next.get_id());
         self.node_store.save(&mut new);
         node.set_node_ptr(new.get_id());
-        new.set_node_ptr(next.get_id());
         Some(new)
     }
 
