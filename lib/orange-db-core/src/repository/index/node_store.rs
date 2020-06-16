@@ -144,54 +144,76 @@ impl BNodeRecord {
 pub type NodeId = u64;
 pub type CellId = u32;
 
-struct CellChangeContext {
+struct CellChangeState {
     added_data_ptrs: Vec<NodeId>,
     removed_data_ptrs: Vec<NodeId>,
 }
 
-impl CellChangeContext {
+impl CellChangeState {
     fn new() -> Self {
-        CellChangeContext{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new()}
+        CellChangeState{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new()}
     }
 }
 
 pub struct Cell {
-    pub key: String,
-    pub node_ptr: Option<NodeId>,
-    pub is_active: bool,
+    key: String,
+    node_ptr: Option<NodeId>,
+    is_active: bool,
     data_ptrs: Vec<NodeId>,
-    cell_change_ctx: CellChangeContext,
+    cell_change_state: CellChangeState,
 }
 
 impl Cell {
     pub fn new_ptr(key: &str, ptr: Option<NodeId>) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active: true, data_ptrs: Vec::new(), cell_change_ctx: CellChangeContext::new()}
+        Cell{key: String::from(key), node_ptr: ptr, is_active: true, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new()}
     }
     pub fn new_leaf(key: &str, data_ptr: NodeId) -> Self {
-        Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_ctx: CellChangeContext::new()}
+        Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new()}
     }
     fn new(key: &str, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>, is_active: bool) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active: is_active, data_ptrs: data_ptrs, cell_change_ctx: CellChangeContext::new()}
+        Cell{key: String::from(key), node_ptr: ptr, is_active: is_active, data_ptrs: data_ptrs, cell_change_state: CellChangeState::new()}
     }
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
-        self.cell_change_ctx.added_data_ptrs.push(data_ptr);
+        self.cell_change_state.added_data_ptrs.push(data_ptr);
         self.data_ptrs.push(data_ptr);
     }
     pub fn get_data_ptrs_ref(&self) -> &Vec<NodeId> {
         &self.data_ptrs
     }
+    pub fn get_node_ptr(&self) -> Option<NodeId> {
+        self.node_ptr
+    }
+    pub fn get_key(&self) -> &String {
+        &self.key
+    }
+}
+
+struct NodeChangeState {
+    node_ptr_changed: bool,
+    is_new_instance: bool,
+}
+
+impl NodeChangeState {
+    fn new(is_new_instance: bool) -> Self {
+        NodeChangeState{node_ptr_changed: false, is_new_instance: is_new_instance}
+    }
 }
 
 pub struct BTreeNode {
-    pub id: Option<NodeId>,
+    id: Option<NodeId>,
     cells: Vec<Cell>,
-    pub node_ptr: Option<NodeId>,
-    pub is_leaf: bool,
+    node_ptr: Option<NodeId>,
+    is_leaf: bool,
+    node_change_state: NodeChangeState,
 }
 
 impl BTreeNode {
     pub fn new(is_leaf: bool, cells: Vec<Cell>) -> Self {
-        BTreeNode{id: None, cells: cells, node_ptr: None, is_leaf: is_leaf}
+        BTreeNode{id: None, cells: cells, node_ptr: None, is_leaf: is_leaf, node_change_state: NodeChangeState::new(true)}
+    }
+
+    fn new_with_id(id: Option<NodeId>, node_ptr: Option<NodeId>, is_leaf: bool, cells: Vec<Cell>) -> Self {
+        BTreeNode{id: id, cells: cells, node_ptr: node_ptr, is_leaf: is_leaf, node_change_state: NodeChangeState::new(false)}
     }
 
     pub fn is_full(&self) -> bool {
@@ -228,6 +250,21 @@ impl BTreeNode {
         &mut self.cells[index]
     }
 
+    pub fn is_leaf(&self) -> bool {
+        self.is_leaf
+    }
+
+    pub fn get_id(&self) -> Option<NodeId> {
+        self.id
+    }
+
+    pub fn get_node_ptr(&self) -> Option<NodeId> {
+        self.node_ptr
+    }
+
+    pub fn set_node_ptr(&mut self, id: Option<NodeId>) {
+        self.node_ptr = id;
+    }
 }
 
 pub struct BTreeNodeStore {
@@ -330,10 +367,10 @@ impl BTreeNodeStore {
                 None
             }
         };
-        Some(BTreeNode{id: Some(nid), node_ptr: next_node_ptr, cells: cells, is_leaf: node.is_leaf()})
+        Some(BTreeNode::new_with_id(Some(nid), next_node_ptr, node.is_leaf(), cells))
     }
 
-    pub fn append_node(&mut self, node: &BTreeNode) -> Option<NodeId> {
+    pub fn save(&mut self, node: &mut BTreeNode) {
         let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
         Some(self.records_manager.append(&data).ok()?)
     }
