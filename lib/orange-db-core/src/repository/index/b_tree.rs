@@ -1,5 +1,5 @@
-use super::super::super::config::*;
 use super::node_store::*;
+use super::model::*;
 
 pub type DataPtr = u64;
 pub struct BTreeIndex {

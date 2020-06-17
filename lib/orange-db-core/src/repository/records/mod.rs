@@ -316,7 +316,7 @@ impl RecordsManager {
         Ok(())
     }
 
-    pub fn append(&mut self, data: &[u8]) -> RecordsManagerResult<RecordId> {
+    pub fn create(&mut self, data: &[u8]) -> RecordsManagerResult<RecordId> {
         let record_size = self.record_size;
         let nb_pages_per_record = self.page_map.nb_pages_per_record;
         let nb_records_per_page = self.page_map.nb_records_per_page;
