@@ -1,3 +1,3 @@
 mod model;
-mod node_store;
+mod store;
 pub mod b_tree;

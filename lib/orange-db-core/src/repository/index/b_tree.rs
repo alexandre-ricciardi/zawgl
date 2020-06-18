@@ -1,4 +1,4 @@
-use super::node_store::*;
+use super::store::*;
 use super::model::*;
 
 pub type DataPtr = u64;
@@ -54,8 +54,9 @@ impl BTreeIndex {
         new_node_cells.reverse();
         let mut new = BTreeNode::new(true, new_node_cells);
         new.set_node_ptr(next.get_id());
-        self.node_store.save(&mut new);
+        self.node_store.create(&mut new)?;
         node.set_node_ptr(new.get_id());
+        self.node_store.save(node)?;
         Some(new)
     }
 
@@ -70,7 +71,7 @@ impl BTreeIndex {
         }
         new_node_cells.reverse();
         let new = BTreeNode::new(false, new_node_cells);
-        self.node_store.save(&mut new);
+        self.node_store.create(&mut new);
         Some(new)
     }
 
