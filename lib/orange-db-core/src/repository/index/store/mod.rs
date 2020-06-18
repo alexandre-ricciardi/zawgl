@@ -239,7 +239,7 @@ impl BTreeNodeStore {
     }
 
     pub fn save(&mut self, node: &mut BTreeNode) -> Option<()> {
-
+        let id = node.get_id()?;
         let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
         Some(self.records_manager.create(&data).ok()?)
     }

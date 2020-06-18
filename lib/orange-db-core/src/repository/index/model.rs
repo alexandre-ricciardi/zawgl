@@ -123,6 +123,7 @@ impl BTreeNode {
     }
 
     pub fn set_node_ptr(&mut self, id: Option<NodeId>) {
+        self.node_change_state.node_ptr_changed = true;
         self.node_ptr = id;
     }
 }
