@@ -107,7 +107,14 @@ impl BTreeNodeStore {
         Some(BTreeNode::new_with_id(Some(nid), next_node_ptr, node.is_leaf(), cells))
     }
 
-    fn create_overflow_cells(&mut self, reverse_cell_records: &[CellRecord]) -> Option<()> {
+    fn update_overflow_cells(&mut self, reverse_cell_records: &mut [CellRecord]) -> Option<()> {
+        for cell in reverse_cell_records {
+
+        }
+        Some(())
+    }
+
+    fn create_overflow_cells(&mut self, reverse_cell_records: &mut [CellRecord]) -> Option<()> {
         let mut root_node_record = self.load_root_node_record()?;
         let mut curr_free_cells_node_record = self.load_node_record(root_node_record.next_free_cells_node_ptr)?;
         let mut reverse_cell_id = 0;
@@ -118,7 +125,7 @@ impl BTreeNodeStore {
         loop {
             let free_cell = curr_free_cells_node_record.cells[curr_cell_id];
             if !free_cell.is_active() {
-                let cell = &reverse_cell_records[reverse_cell_id];
+                let mut cell = &mut reverse_cell_records[reverse_cell_id];
                 cell.overflow_cell_ptr = prev_cell_ptr;
                 cell.node_ptr = curr_node_ptr;
                 curr_free_cells_node_record.cells[curr_cell_id] = *cell;
@@ -158,12 +165,12 @@ impl BTreeNodeStore {
     }
 
     fn create_cell(&mut self, node_record: &BNodeRecord, cell: &Cell) -> Option<()> {
-        let cell_records = Vec::new();
-        let key_vec = cell.get_key().into_bytes();
+        let mut cell_records = Vec::new();
+        let key_vec = cell.get_key().clone().into_bytes();
         
         let mut offset = 0;
         while offset < key_vec.len() {
-            let cell_record = CellRecord::new();
+            let mut cell_record = CellRecord::new();
             cell_record.set_is_active();
             if offset + KEY_SIZE > key_vec.len() {
                 cell_record.key.copy_from_slice(&key_vec[offset..key_vec.len()]);
@@ -196,13 +203,13 @@ impl BTreeNodeStore {
             }
             
         }
-
-        if cell_records.len() > 1 {
+        let nb_records = cell_records.len();
+        if nb_records > 1 {
             cell_records.reverse();
-            for index in 1..cell_records.len() {
+            for index in 1..nb_records {
                 cell_records[index].set_has_overflow();
             }
-            self.create_overflow_cells(&cell_records[..cell_records.len()-1])?;
+            self.create_overflow_cells(&mut cell_records[..nb_records-1])?;
         }
         Some(())
     }
@@ -238,10 +245,84 @@ impl BTreeNodeStore {
         Some(())
     }
 
+    fn load_cell_records(&mut self, root_cell_record: &CellRecord) -> Option<Vec<CellRecord>> {
+        let mut cells = Vec::new();
+        cells.push(*root_cell_record);
+        let mut curr_node_id = root_cell_record.node_ptr;
+        let mut curr_overflow_cell_id = root_cell_record.overflow_cell_ptr;
+        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+        let mut has_overflow = root_cell_record.has_overflow();
+        let mut load_node = true;
+        let mut curr_node = BNodeRecord::new();
+        while has_overflow {
+            if load_node {
+                self.records_manager.load(curr_node_id, &mut data).ok()?;
+                curr_node = BNodeRecord::from_bytes(data);
+            }
+            let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
+            has_overflow = overflow_cell.has_overflow();
+            curr_node_id = overflow_cell.node_ptr;
+            curr_overflow_cell_id = overflow_cell.overflow_cell_ptr;
+            load_node = curr_node_id != overflow_cell.node_ptr;
+            cells.push(*overflow_cell);
+        }
+        Some(cells)
+    }
+
+    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>) -> Option<()> {
+        let cell_records = self.load_cell_records(root_cell_record)?;
+        let mut list_ptr_cells = Vec::new();
+        let mut prev_cell_record = CellRecord::new();
+        for cell_record in &cell_records {
+            if cell_record.is_list_ptr() {
+                list_ptr_cells.push(*cell_record);
+            } else {
+                prev_cell_record = *cell_record;
+            }
+        }
+        
+        list_ptr_cells.reverse();
+
+        let mut cells_to_create = Vec::new();
+        let mut cells_to_update = Vec::new();
+        let mut data_ptr_offset = 2;
+        let mut data_ptr_count: u16 = 0;
+        for data_ptr in data_ptrs {
+            let to_create;
+            let mut list_ptr_cell = {
+                if let Some(cell) = list_ptr_cells.pop() {
+                    to_create = false;
+                    cell
+                } else {
+                    to_create = true;
+                    let mut new_cell = CellRecord::new();
+                    new_cell.set_is_active();
+                    new_cell.set_is_list_ptr();
+                    new_cell
+                }
+            };
+            list_ptr_cell.key[data_ptr_offset..data_ptr_offset+8].copy_from_slice(&data_ptr.to_be_bytes());
+            data_ptr_offset += NODE_PTR_SIZE;
+            data_ptr_count += 1;
+            if data_ptr_offset > KEY_SIZE {
+                list_ptr_cell.key.copy_from_slice(&data_ptr_count.to_be_bytes());
+                if to_create {
+                    cells_to_create.push(list_ptr_cell);
+                } else {
+                    cells_to_update.push(list_ptr_cell);
+                }
+                data_ptr_offset = 2;
+                data_ptr_count = 0;
+            }
+        }
+
+        self.create_overflow_cells(&mut cells_to_create);
+        Some(())
+    }
+
     pub fn save(&mut self, node: &mut BTreeNode) -> Option<()> {
         let id = node.get_id()?;
-        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-        Some(self.records_manager.create(&data).ok()?)
+        Some(())
     }
 
     pub fn is_empty(&mut self) -> bool {

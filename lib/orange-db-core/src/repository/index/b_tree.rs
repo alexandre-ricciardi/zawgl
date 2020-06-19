@@ -70,7 +70,7 @@ impl BTreeIndex {
             }
         }
         new_node_cells.reverse();
-        let new = BTreeNode::new(false, new_node_cells);
+        let mut new = BTreeNode::new(false, new_node_cells);
         self.node_store.create(&mut new);
         Some(new)
     }
