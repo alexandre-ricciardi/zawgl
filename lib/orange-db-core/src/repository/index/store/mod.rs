@@ -315,8 +315,17 @@ impl BTreeNodeStore {
                 data_ptr_count = 0;
             }
         }
+        self.update_overflow_cells(&mut cells_to_update)?;
+        self.create_overflow_cells(&mut cells_to_create)?;
 
-        self.create_overflow_cells(&mut cells_to_create);
+        //disable unused cells
+        if list_ptr_cells.len() > 0 {
+            for cell in &mut list_ptr_cells {
+                cell.set_inactive();
+            }
+            self.update_overflow_cells(&mut list_ptr_cells)?;
+        }
+
         Some(())
     }
 
@@ -327,5 +336,24 @@ impl BTreeNodeStore {
 
     pub fn is_empty(&mut self) -> bool {
         self.records_manager.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod test_btree_node_store {
+    use super::*;
+    #[test]
+    fn test_create() {
+        assert!(std::fs::remove_file("C:\\Temp\\test_btree_node_store_create.db").ok().is_some());
+        let mut store = BTreeNodeStore::new("C:\\Temp\\test_btree_node_store_create.db");
+        let mut cells = Vec::new();
+        cells.push(Cell::new_ptr("blabla1", Some(1)));
+        cells.push(Cell::new_ptr("blabla2", Some(2)));
+        cells.push(Cell::new_ptr("blabla3", Some(3)));
+        cells.push(Cell::new_ptr("blabla4", Some(4)));
+        cells.push(Cell::new_ptr("blabla5", Some(5)));
+        cells.push(Cell::new_ptr("blabla6", Some(6)));
+        let mut node = BTreeNode::new(false, cells);
+        store.create(&mut node);
     }
 }

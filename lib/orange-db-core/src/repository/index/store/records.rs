@@ -32,6 +32,10 @@ impl CellRecord {
         self.header = self.header | IS_ACTIVE_CELL_FLAG;
     }
     
+    pub fn set_inactive(&mut self) {
+        self.header = self.header & !IS_ACTIVE_CELL_FLAG;
+    }
+
     pub fn is_list_ptr(&self) -> bool {
         self.header & IS_LIST_PTR_CELL_FLAG == 1
     }
