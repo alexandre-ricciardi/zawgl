@@ -142,7 +142,7 @@ impl BTreeNodeStore {
         }
     }
 
-    fn create_overflow_cells(&mut self, reverse_cell_records: &mut [CellRecord]) -> Option<()> {
+    fn create_overflow_cells(&mut self, reverse_cell_records: &mut [CellRecord]) -> Option<(u32, u64)> {
 
         let mut free_cells_node_record = self.load_or_create_free_cells_overflow_node()?;
         let mut reverse_cell_id = 0;
@@ -150,17 +150,24 @@ impl BTreeNodeStore {
         let mut prev_cell_ptr = 0;
         let mut prev_node_ptr = free_cells_node_record.0;
 
+        let mut is_not_ending_cell = false;
         //loop to store all overflow cells
         loop {
             let free_cell = free_cells_node_record.1.cells[curr_cell_id];
             if !free_cell.is_active() {
                 let mut cell = &mut reverse_cell_records[reverse_cell_id];
-                cell.overflow_cell_ptr = prev_cell_ptr;
-                cell.node_ptr = prev_node_ptr;
+                //ending cell stores the node pointer for interior nodes
+                if is_not_ending_cell {
+                    cell.overflow_cell_ptr = prev_cell_ptr;
+                    cell.node_ptr = prev_node_ptr;
+                } else {
+                    is_not_ending_cell = true;
+                }
                 free_cells_node_record.1.cells[curr_cell_id] = *cell;
                 
                 reverse_cell_id += 1;
                 if reverse_cell_id >= reverse_cell_records.len() {
+                    self.save_node_record(free_cells_node_record.0, &free_cells_node_record.1)?;
                     break;
                 }
             }
@@ -174,7 +181,7 @@ impl BTreeNodeStore {
 
             }
         }
-        Some(())
+        Some((curr_cell_id as u32, prev_node_ptr))
     }
 
     fn create_cell(&mut self, cell: &Cell) -> Option<Vec<CellRecord>> {
@@ -189,8 +196,6 @@ impl BTreeNodeStore {
                 let len = key_vec.len() - offset;
                 cell_record.key[..len].copy_from_slice(&key_vec[offset..key_vec.len()]);
                 cell_record.key[len] = b'\0';
-            } else if offset + KEY_SIZE == key_vec.len() {
-                cell_record.key.copy_from_slice(&key_vec[offset..offset+KEY_SIZE]);
             } else {
                 cell_record.key.copy_from_slice(&key_vec[offset..offset+KEY_SIZE]);
             }
@@ -224,14 +229,20 @@ impl BTreeNodeStore {
             for index in 1..nb_records {
                 cell_records[index].set_has_overflow();
             }
-            self.create_overflow_cells(&mut cell_records[..nb_records-1])?;
+            let last_cell_record = cell_records.first_mut()?;
+            last_cell_record.node_ptr = cell.get_node_ptr()?;
+
+            let ptrs = self.create_overflow_cells(&mut cell_records[..nb_records-1])?;
             cell_records.reverse();
+            let main_cell_record = cell_records.first_mut()?;
+            main_cell_record.node_ptr = ptrs.1;
+            main_cell_record.overflow_cell_ptr = ptrs.0;
+
         }
 
         if let (Some(last_cell_record), Some(node_ptr)) = (cell_records.last_mut(), cell.get_node_ptr()) {
             last_cell_record.node_ptr = node_ptr;
         }
-        
 
         Some(cell_records)
     }
@@ -384,6 +395,8 @@ mod test_btree_node_store {
     #[test]
     fn test_create() {
         let file = "C:\\Temp\\test_btree_node_store_create.db";
+        let long_key = "blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
+        blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6";
         std::fs::remove_file(file);
         let mut store = BTreeNodeStore::new(file);
         let mut cells = Vec::new();
@@ -392,8 +405,7 @@ mod test_btree_node_store {
         cells.push(Cell::new_ptr("blabla3", Some(3)));
         cells.push(Cell::new_ptr("blabla4", Some(4)));
         cells.push(Cell::new_ptr("blabla5", Some(5)));
-        cells.push(Cell::new_ptr("blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
-        blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6", Some(6)));
+        cells.push(Cell::new_ptr(long_key, Some(6)));
         let mut node = BTreeNode::new(false, cells);
         node.set_node_ptr(Some(42));
         store.create(&mut node);
@@ -409,8 +421,7 @@ mod test_btree_node_store {
             assert_eq!(cell.get_node_ptr(), Some(4));
 
             let long_key_cell = loaded.get_cell_ref(5);
-            assert_eq!(long_key_cell.get_key(), &String::from("blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
-            blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6"));
+            assert_eq!(long_key_cell.get_key(), &String::from(long_key));
             assert_eq!(long_key_cell.get_node_ptr(), Some(6));
 
         } else {

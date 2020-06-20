@@ -10,7 +10,7 @@
             "name": "(Windows) Launchv test",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/orange_db_core-4ba4d649faa2db71.exe",
+            "program": "${workspaceFolder}/target/debug/orange_db_core-75d37117b9186629.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
