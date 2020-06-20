@@ -87,9 +87,7 @@ impl BTreeNodeStore {
     }
 
     pub fn retrieve_node(&mut self, nid: NodeId) -> Option<BTreeNode> {
-        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-        self.records_manager.load(nid, &mut data).ok()?;
-        let node = BNodeRecord::from_bytes(data);
+        let node = self.load_node_record(nid)?;
         let mut cells = Vec::new();
         for cell_record_id in 0..node.cells.len() {
             let cell_record = &node.cells[cell_record_id];
@@ -164,7 +162,7 @@ impl BTreeNodeStore {
         Some(())
     }
 
-    fn create_cell(&mut self, node_record: &BNodeRecord, cell: &Cell) -> Option<()> {
+    fn create_cell(&mut self, cell: &Cell) -> Option<Vec<CellRecord>> {
         let mut cell_records = Vec::new();
         let key_vec = cell.get_key().clone().into_bytes();
         
@@ -186,7 +184,7 @@ impl BTreeNodeStore {
             cell_records.push(cell_record);
         }
         
-        if node_record.is_leaf() {
+        if cell.get_data_ptrs_ref().len() > 0 {
             let mut data_ptr_offset = 2;
             let mut cell_record = CellRecord::new();
             let mut data_ptr_count: u16 = 0;
@@ -204,6 +202,7 @@ impl BTreeNodeStore {
             }
             
         }
+
         let nb_records = cell_records.len();
         if nb_records > 1 {
             cell_records.reverse();
@@ -211,8 +210,15 @@ impl BTreeNodeStore {
                 cell_records[index].set_has_overflow();
             }
             self.create_overflow_cells(&mut cell_records[..nb_records-1])?;
+            cell_records.reverse();
         }
-        Some(())
+
+        if let (Some(last_cell_record), Some(node_ptr)) = (cell_records.last_mut(), cell.get_node_ptr()) {
+            last_cell_record.node_ptr = node_ptr;
+        }
+        
+
+        Some(cell_records)
     }
 
     fn load_root_node_record(&mut self) -> Option<BNodeRecord> {
@@ -243,8 +249,11 @@ impl BTreeNodeStore {
             node_record.ptr = next_id;
         }
         
+        let mut cell_id = 0;
         for cell in node.get_cells_ref() {
-            self.create_cell(&node_record, cell)?;
+            let cell_records = self.create_cell(cell)?;
+            node_record.cells[cell_id] = *cell_records.first()?;
+            cell_id += 1;
         }
         let id = self.create_node_record(&node_record)?;
         node.set_id(id);
@@ -368,8 +377,9 @@ mod test_btree_node_store {
     use super::*;
     #[test]
     fn test_create() {
-        std::fs::remove_file("C:\\Temp\\test_btree_node_store_create.db");
-        let mut store = BTreeNodeStore::new("C:\\Temp\\test_btree_node_store_create.db");
+        let file = "C:\\Temp\\test_btree_node_store_create.db";
+        std::fs::remove_file(file);
+        let mut store = BTreeNodeStore::new(file);
         let mut cells = Vec::new();
         cells.push(Cell::new_ptr("blabla1", Some(1)));
         cells.push(Cell::new_ptr("blabla2", Some(2)));
@@ -378,7 +388,21 @@ mod test_btree_node_store {
         cells.push(Cell::new_ptr("blabla5", Some(5)));
         cells.push(Cell::new_ptr("blabla6", Some(6)));
         let mut node = BTreeNode::new(false, cells);
+        node.set_node_ptr(Some(42));
         store.create(&mut node);
         store.sync();
+
+        let mut load_store = BTreeNodeStore::new(file);
+        let load =  node.get_id().and_then(|id| load_store.retrieve_node(id));
+
+        if let Some(loaded) = &load {
+            assert_eq!(loaded.get_node_ptr(), Some(42));
+            let cell = loaded.get_cell_ref(3);
+            assert_eq!(cell.get_key(), &String::from("blabla4"));
+            assert_eq!(cell.get_node_ptr(), Some(4));
+        } else {
+            assert!(false);
+        }
+
     }
 }

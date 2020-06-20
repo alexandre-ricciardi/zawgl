@@ -52,7 +52,7 @@ impl <'a> HeaderPageWrapper<'a> {
         u64::from_be_bytes(bytes)
     }
     fn set_header_first_free_page_ptr(&mut self, id: u64) {
-        let bounds = self.page_map.free_list_len;
+        let bounds = self.page_map.header_page_free_list_ptr;
         self.get_header_slice_mut(bounds).copy_from_slice(&id.to_be_bytes());
     }
 }
@@ -113,17 +113,25 @@ impl <'a> RecordPageWrapper<'a> {
         res
     }
     fn init_page_free_list(&mut self) {
-        let free_list_len = self.get_free_list_len();
+        let free_list_len = self.page_map.nb_records_per_page;
+        self.set_free_list_len(free_list_len);
         let free_list_slice = self.get_slice_mut(self.page_map.free_list);
         for count in 0..free_list_len {
             let offset = count * FREE_LIST_PTR_SIZE;
-            free_list_slice[offset..offset+FREE_LIST_PTR_SIZE].copy_from_slice(&count.to_be_bytes());
+            let free_list_ptr = count as u32;
+            free_list_slice[offset..offset+FREE_LIST_PTR_SIZE].copy_from_slice(&free_list_ptr.to_be_bytes());
         }
     }
-    fn pop_free_list_item(&mut self) -> PageRecordId {
+    fn pop_free_list_item(&mut self) -> Option<PageRecordId> {
         let free_list_len = self.get_free_list_len();
-        self.set_free_list_len(free_list_len - 1);
-        free_list_len - 1
+        if free_list_len > 0 {
+            let res = self.get_page_free_list().pop();
+            self.set_free_list_len(free_list_len - 1);
+            res
+        } else {
+            None
+        }
+        
     }
     fn append_free_list_item(&mut self, page_record_id: PageRecordId) {
         let mut free_records = self.get_page_free_list();
@@ -206,7 +214,6 @@ fn compute_page_map(record_size: usize, nb_records_per_page: usize, nb_pages_per
     let free_list_bounds = free_list_len.shift(free_list_size);
     let payload_bounds = Bounds::new(free_list_bounds.end, PAGE_SIZE);
     let header_page_free_list_ptr_bounds = Bounds::new(PAGE_COUNTER, PAGE_COUNTER + FIRST_FREE_PAGE_PTR);
-    let nb_pages_per_record = compute_nb_pages_per_record(record_size, payload_bounds.len());
     PageMap{
         header_flags: header_flags_bounds,
         next_free_page_ptr: next_free_page_ptr_bounds,
@@ -215,7 +222,7 @@ fn compute_page_map(record_size: usize, nb_records_per_page: usize, nb_pages_per
         free_list_capacity: nb_records_per_page,
         nb_pages_per_record: nb_pages_per_record,
         nb_records_per_page: nb_records_per_page,
-        is_multi_page_record: nb_pages_per_record == 0,
+        is_multi_page_record: nb_pages_per_record != 0,
         payload: payload_bounds,
         header_page_free_list_ptr: header_page_free_list_ptr_bounds,
     }
@@ -332,7 +339,7 @@ impl RecordsManager {
                     let mut wrapper = RecordPageWrapper::new(new_page, self.page_map);
                     if first {
                         let first_page_id = wrapper.get_id();
-                        record_id = first_page_id / nb_pages_per_record as u64;
+                        record_id = (first_page_id - 1) / nb_pages_per_record as u64;
                         wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(first_page_id);
                         first = false;
                     }
@@ -343,10 +350,16 @@ impl RecordsManager {
                 let mut wrapper = RecordPageWrapper::new(new_page, self.page_map);
                 wrapper.init_page_free_list();
                 let page_id = wrapper.get_id();
-                wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(page_id);
-                let page_record_id = wrapper.pop_free_list_item();
-                record_id = (page_record_id * nb_records_per_page + page_record_id) as u64;
-                wrapper.get_slice_mut(payload_bounds.sub(page_record_id * self.record_size, self.record_size)).copy_from_slice(&data);
+                
+                let opage_record_id = wrapper.pop_free_list_item();
+                if let Some(page_record_id) = opage_record_id {
+                    record_id = (wrapper.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64;
+                    wrapper.get_slice_mut(payload_bounds.sub(page_record_id * self.record_size, self.record_size)).copy_from_slice(&data);
+                }
+                if wrapper.get_free_list_len() > 0 {
+                    wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(page_id);
+                }
+                
             }
         } else {
             if is_multi_page_record {
@@ -356,19 +369,21 @@ impl RecordsManager {
                 let mut first = true;
                 for page_count in 0..nb_pages_per_record {
                     if first {
-                        record_id = wrapper.get_id() / nb_pages_per_record as u64;
+                        record_id = (wrapper.get_id() - 1) / nb_pages_per_record as u64;
                         first = false;
                     }
                     copy_buffer_to_payload(wrapper.get_slice_mut(payload_bounds), &data[page_count*payload_bounds.len()..]);
                 }
             } else {
                 let mut wrapper = self.load_page_wrapper(first_free_page_ptr).ok_or(RecordsManagerError::NotFound)?;
-                let page_record_id = wrapper.pop_free_list_item();
-                record_id = (page_record_id * nb_records_per_page + page_record_id) as u64;
-                wrapper.get_slice_mut(payload_bounds.sub(page_record_id * record_size, record_size)).copy_from_slice(&data);
-                if wrapper.is_page_free_list_empty() {
-                    let next_free_page_ptr = wrapper.get_free_next_page_ptr();
-                    wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(next_free_page_ptr);
+                let opage_record_id = wrapper.pop_free_list_item();
+                if let Some(page_record_id) = opage_record_id {
+                    record_id = wrapper.page.id * nb_records_per_page as u64 + page_record_id as u64;
+                    wrapper.get_slice_mut(payload_bounds.sub(page_record_id * record_size, record_size)).copy_from_slice(&data);
+                    if wrapper.is_page_free_list_empty() {
+                        let next_free_page_ptr = wrapper.get_free_next_page_ptr();
+                        wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(next_free_page_ptr);
+                    }
                 }
             }
         }
