@@ -6,6 +6,7 @@ const IS_LIST_PTR_CELL_FLAG: u8 = 0b0010_0000;
 
 const IS_LEAF_NODE_FLAG: u8 = 0b1000_0000;
 const HAS_NEXT_NODE_FLAG: u8 = 0b0100_0000;
+const IS_OVERFLOW_NODE_FLAG: u8 = 0b0010_0000;
 
 #[derive(Copy, Clone)]
 pub struct CellRecord {
@@ -123,7 +124,7 @@ impl BNodeRecord {
         buf.copy_from_slice(&bytes[index..index+NODE_PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
         index += NODE_PTR_SIZE;
-        
+
         let mut free_cells_buf = [0u8; FREE_CELLS_NEXT_NODE_PTR_SIZE];
         free_cells_buf.copy_from_slice(&bytes[index..index+FREE_CELLS_NEXT_NODE_PTR_SIZE]);
         index += FREE_CELLS_NEXT_NODE_PTR_SIZE;
@@ -142,12 +143,33 @@ impl BNodeRecord {
     pub fn set_leaf(&mut self) {
         self.header = self.header | IS_LEAF_NODE_FLAG;
     }
+    
+    pub fn is_overflow_node(&self) -> bool {
+        (self.header & IS_OVERFLOW_NODE_FLAG) > 0
+    }
+    pub fn set_overflow_node(&mut self) {
+        self.header = self.header | IS_OVERFLOW_NODE_FLAG;
+    }
+
     pub fn has_next_node(&self) -> bool {
         (self.header & HAS_NEXT_NODE_FLAG) > 0
     }
     pub fn set_has_next_node(&mut self) {
         self.header = self.header | HAS_NEXT_NODE_FLAG;
     }
+
+    pub fn contains_free_cells(&self) -> bool {
+        let mut is_free_node = false;
+        for cell_id in 0..self.cells.len() {
+            let cell = self.cells[cell_id];
+            if !cell.is_active() {
+                is_free_node = true;
+                break;
+            }
+        }
+        is_free_node
+    }
+
     pub fn new() -> Self {
         BNodeRecord{header: 0, next_free_cells_node_ptr: 0, cells: [CellRecord::new(); NB_CELL], ptr: 0}
     }

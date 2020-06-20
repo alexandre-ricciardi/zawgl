@@ -112,52 +112,67 @@ impl BTreeNodeStore {
         Some(())
     }
 
+    fn load_or_create_free_cells_overflow_node(&mut self) -> Option<(NodeId, BNodeRecord)> {
+        if self.records_manager.is_empty() {
+            let mut first_node = BNodeRecord::new();
+            first_node.set_overflow_node();
+            self.create_node_record(&first_node)?;
+            Some((0, first_node))
+        } else {
+            let mut first_node = self.load_first_node_record()?;
+            if first_node.is_overflow_node() {
+                if first_node.contains_free_cells() {
+                    Some((0, first_node))
+                } else {
+                    Some((first_node.next_free_cells_node_ptr, self.load_node_record(first_node.next_free_cells_node_ptr)?))
+                }
+            } else {
+                if first_node.next_free_cells_node_ptr == 0 {
+                    let mut next_free_cells_overflow_node = BNodeRecord::new();
+                    next_free_cells_overflow_node.set_overflow_node();
+                    let id = self.create_node_record(&next_free_cells_overflow_node)?;
+                    first_node.next_free_cells_node_ptr = id;
+                    self.save_first_node_record(&first_node)?;
+                    Some((id, next_free_cells_overflow_node))
+                } else {
+                    Some((first_node.next_free_cells_node_ptr, self.load_node_record(first_node.next_free_cells_node_ptr)?))
+                }
+            }
+            
+        }
+    }
+
     fn create_overflow_cells(&mut self, reverse_cell_records: &mut [CellRecord]) -> Option<()> {
-        let mut root_node_record = self.load_root_node_record()?;
-        let mut curr_free_cells_node_record = self.load_node_record(root_node_record.next_free_cells_node_ptr)?;
+
+        let mut free_cells_node_record = self.load_or_create_free_cells_overflow_node()?;
         let mut reverse_cell_id = 0;
         let mut curr_cell_id: usize = 0;
-        let mut curr_node_ptr: u64 = 0;
-        let mut prev_cell_ptr: u32 = 0;
+        let mut prev_cell_ptr = 0;
+        let mut prev_node_ptr = free_cells_node_record.0;
 
+        //loop to store all overflow cells
         loop {
-            let free_cell = curr_free_cells_node_record.cells[curr_cell_id];
+            let free_cell = free_cells_node_record.1.cells[curr_cell_id];
             if !free_cell.is_active() {
                 let mut cell = &mut reverse_cell_records[reverse_cell_id];
                 cell.overflow_cell_ptr = prev_cell_ptr;
-                cell.node_ptr = curr_node_ptr;
-                curr_free_cells_node_record.cells[curr_cell_id] = *cell;
-                
+                cell.node_ptr = prev_node_ptr;
+                free_cells_node_record.1.cells[curr_cell_id] = *cell;
                 
                 reverse_cell_id += 1;
-                if reverse_cell_id > reverse_cell_records.len() {
+                if reverse_cell_id >= reverse_cell_records.len() {
                     break;
                 }
             }
+            prev_cell_ptr = curr_cell_id as u32;
             curr_cell_id += 1;
             if curr_cell_id > NB_CELL {
-                if curr_free_cells_node_record.has_next_node() {
-                    curr_node_ptr = curr_free_cells_node_record.next_free_cells_node_ptr;
-                    curr_free_cells_node_record = self.load_node_record(curr_node_ptr)?;
-                } else {
-                    curr_free_cells_node_record = BNodeRecord::new();
-                    let new_record_id = self.records_manager.create(&curr_free_cells_node_record.to_bytes()).ok()?;
-                    root_node_record.next_free_cells_node_ptr = new_record_id;
-                }
-            }
-        }
+                self.save_node_record(free_cells_node_record.0, &free_cells_node_record.1)?;
+                prev_node_ptr = free_cells_node_record.0;
+                free_cells_node_record = self.load_or_create_free_cells_overflow_node()?;
+                curr_cell_id = 0;
 
-        let mut found_next_free_cells_node = false;
-        for cell_id in curr_cell_id..NB_CELL {
-            if !curr_free_cells_node_record.cells[cell_id].is_active() {
-                found_next_free_cells_node = true;
-                root_node_record.next_free_cells_node_ptr = curr_node_ptr;
-                break;
             }
-        }
-
-        if !found_next_free_cells_node {
-            root_node_record.next_free_cells_node_ptr = curr_free_cells_node_record.next_free_cells_node_ptr;
         }
         Some(())
     }
@@ -221,8 +236,12 @@ impl BTreeNodeStore {
         Some(cell_records)
     }
 
-    fn load_root_node_record(&mut self) -> Option<BNodeRecord> {
+    fn load_first_node_record(&mut self) -> Option<BNodeRecord> {
         self.load_node_record(0)
+    }
+
+    fn save_first_node_record(&mut self, node_record: &BNodeRecord) -> Option<()> {
+        self.save_node_record(0, node_record)
     }
 
     fn load_node_record(&mut self, id: NodeId) -> Option<BNodeRecord> {
@@ -257,19 +276,6 @@ impl BTreeNodeStore {
         }
         let id = self.create_node_record(&node_record)?;
         node.set_id(id);
-
-        let is_not_full = node.get_cells_ref().len() < NB_CELL;
-        if is_not_full {
-            if !self.records_manager.is_empty() {
-                let mut root_node_record = self.load_root_node_record()?;
-                node_record.next_free_cells_node_ptr = root_node_record.next_free_cells_node_ptr;
-                root_node_record.next_free_cells_node_ptr = id;
-                self.save_node_record(0, &root_node_record)?;
-            } else {
-                node_record.next_free_cells_node_ptr = id;
-            }
-            // need create node id first_node.next_free_cells_node_ptr = 0;
-        }
 
         Some(())
     }
@@ -386,7 +392,8 @@ mod test_btree_node_store {
         cells.push(Cell::new_ptr("blabla3", Some(3)));
         cells.push(Cell::new_ptr("blabla4", Some(4)));
         cells.push(Cell::new_ptr("blabla5", Some(5)));
-        cells.push(Cell::new_ptr("blabla6", Some(6)));
+        cells.push(Cell::new_ptr("blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
+        blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6", Some(6)));
         let mut node = BTreeNode::new(false, cells);
         node.set_node_ptr(Some(42));
         store.create(&mut node);
@@ -400,6 +407,12 @@ mod test_btree_node_store {
             let cell = loaded.get_cell_ref(3);
             assert_eq!(cell.get_key(), &String::from("blabla4"));
             assert_eq!(cell.get_node_ptr(), Some(4));
+
+            let long_key_cell = loaded.get_cell_ref(5);
+            assert_eq!(long_key_cell.get_key(), &String::from("blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
+            blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6"));
+            assert_eq!(long_key_cell.get_node_ptr(), Some(6));
+
         } else {
             assert!(false);
         }
