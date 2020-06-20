@@ -20,13 +20,13 @@ impl CellRecord {
         CellRecord{header: 0, key: [0u8; KEY_SIZE], node_ptr: 0, overflow_cell_ptr: 0}
     }
     pub fn has_overflow(&self) -> bool {
-        self.header & HAS_OVERFLOW_CELL_FLAG == 1
+        self.header & HAS_OVERFLOW_CELL_FLAG > 0
     }
     pub fn set_has_overflow(&mut self) {
         self.header = self.header | HAS_OVERFLOW_CELL_FLAG;
     }
     pub fn is_active(&self) -> bool {
-        self.header & IS_ACTIVE_CELL_FLAG == 1
+        self.header & IS_ACTIVE_CELL_FLAG > 0
     }
     pub fn set_is_active(&mut self) {
         self.header = self.header | IS_ACTIVE_CELL_FLAG;
@@ -44,29 +44,34 @@ impl CellRecord {
     }
     pub fn to_bytes(&self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
-        bytes[0] = self.header;
-        let mut offset = CELL_HEADER_SIZE;
+        let mut offset = 0;
+        bytes[offset] = self.header;
+        offset += CELL_HEADER_SIZE;
         bytes[offset..offset+NODE_PTR_SIZE].copy_from_slice(&self.node_ptr.to_be_bytes());
         offset += NODE_PTR_SIZE;
         bytes[offset..offset+OVERFLOW_CELL_PTR_SIZE].copy_from_slice(&self.overflow_cell_ptr.to_be_bytes());
         offset += OVERFLOW_CELL_PTR_SIZE;
-        bytes[offset..offset+KEY_SIZE].copy_from_slice(&self.node_ptr.to_be_bytes());
+        bytes[offset..offset+KEY_SIZE].copy_from_slice(&self.key);
         bytes
     }
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        let mut offset = CELL_HEADER_SIZE;
+        let mut offset = 0;
+        let header = bytes[offset];
+        offset += CELL_HEADER_SIZE;
         let mut buf = [0u8; NODE_PTR_SIZE];
         buf.copy_from_slice(&bytes[offset..offset+NODE_PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
         offset += NODE_PTR_SIZE;
+
         let mut overflow_cell_ptr_buf = [0u8; OVERFLOW_CELL_PTR_SIZE];
         overflow_cell_ptr_buf.copy_from_slice(&bytes[offset..offset+OVERFLOW_CELL_PTR_SIZE]);
         let overflow_cell_ptr = u32::from_be_bytes(overflow_cell_ptr_buf);
         offset += OVERFLOW_CELL_PTR_SIZE;
+
         let mut key = [0u8; KEY_SIZE];
         key.copy_from_slice(&bytes[offset..offset+KEY_SIZE]);
         CellRecord{
-            header: bytes[0],
+            header: header,
             node_ptr: ptr,
             overflow_cell_ptr: overflow_cell_ptr,
             key: key}
@@ -98,12 +103,12 @@ impl BNodeRecord {
         let mut bytes = [0u8; BTREE_NODE_RECORD_SIZE];
         let mut index = 0;
         bytes[index] = self.header;
-        index += 1;
+        index += BTREE_NODE_HEADER_SIZE;
         bytes[index..index+NODE_PTR_SIZE].copy_from_slice(&self.ptr.to_be_bytes());
         index += NODE_PTR_SIZE;
         bytes[index..index+FREE_CELLS_NEXT_NODE_PTR_SIZE].copy_from_slice(&self.next_free_cells_node_ptr.to_be_bytes());
         index += FREE_CELLS_NEXT_NODE_PTR_SIZE;
-        for cell_id in 0..self.cells.len() {
+        for cell_id in 0..NB_CELL {
             bytes[index..index+CELL_SIZE].copy_from_slice(&self.cells[cell_id].to_bytes());
             index += CELL_SIZE;
         }
@@ -112,12 +117,13 @@ impl BNodeRecord {
     pub fn from_bytes(bytes: [u8; BTREE_NODE_RECORD_SIZE]) -> Self {
         let mut index = 0;
         let header = bytes[index];
-        index += 1;
+        index += BTREE_NODE_HEADER_SIZE;
 
         let mut buf = [0u8; NODE_PTR_SIZE];
         buf.copy_from_slice(&bytes[index..index+NODE_PTR_SIZE]);
         let ptr = u64::from_be_bytes(buf);
-
+        index += NODE_PTR_SIZE;
+        
         let mut free_cells_buf = [0u8; FREE_CELLS_NEXT_NODE_PTR_SIZE];
         free_cells_buf.copy_from_slice(&bytes[index..index+FREE_CELLS_NEXT_NODE_PTR_SIZE]);
         index += FREE_CELLS_NEXT_NODE_PTR_SIZE;
@@ -131,18 +137,37 @@ impl BNodeRecord {
         BNodeRecord{header: header, next_free_cells_node_ptr: next_free_cells_node_ptr, cells: cells, ptr: ptr}
     }
     pub fn is_leaf(&self) -> bool {
-        (self.header & IS_LEAF_NODE_FLAG) == 1
+        (self.header & IS_LEAF_NODE_FLAG) > 0
     }
     pub fn set_leaf(&mut self) {
         self.header = self.header | IS_LEAF_NODE_FLAG;
     }
     pub fn has_next_node(&self) -> bool {
-        (self.header & HAS_NEXT_NODE_FLAG) == 1
+        (self.header & HAS_NEXT_NODE_FLAG) > 0
     }
     pub fn set_has_next_node(&mut self) {
         self.header = self.header | HAS_NEXT_NODE_FLAG;
     }
     pub fn new() -> Self {
         BNodeRecord{header: 0, next_free_cells_node_ptr: 0, cells: [CellRecord::new(); NB_CELL], ptr: 0}
+    }
+}
+
+
+#[cfg(test)]
+mod test_btree_node_records {
+    use super::*;
+    #[test]
+    fn test_bytes() {
+        let mut node = BNodeRecord::new();
+        node.set_leaf();
+        node.set_has_next_node();
+        node.cells[0].set_is_active();
+        let bytes = node.to_bytes();
+        let from = BNodeRecord::from_bytes(bytes);
+
+        assert!(from.is_leaf());
+        assert!(from.has_next_node());
+        assert!(from.cells[0].is_active());
     }
 }

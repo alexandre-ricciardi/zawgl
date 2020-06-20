@@ -118,6 +118,10 @@ impl BTreeNode {
         self.id
     }
 
+    pub fn set_id(&mut self, id: NodeId) {
+        self.id = Some(id);
+    }
+
     pub fn get_node_ptr(&self) -> Option<NodeId> {
         self.node_ptr
     }

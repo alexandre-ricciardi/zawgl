@@ -422,4 +422,8 @@ impl RecordsManager {
     pub fn is_empty(&mut self) -> bool {
         self.get_header_page_wrapper().header_page.get_page_count() == 0
     }
+    
+    pub fn sync(&mut self) {
+        self.pager.sync();
+    }
 }
