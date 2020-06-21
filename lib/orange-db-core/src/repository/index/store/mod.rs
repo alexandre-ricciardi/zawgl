@@ -364,9 +364,30 @@ impl BTreeNodeStore {
         Some(())
     }
 
-    fn delete_cell_records(&mut self, root_cell_record: &CellRecord, root_node_record: &BNodeRecord) -> Option<()> {
-        let cell_records = self.load_overflow_cell_records(root_cell_record)?;
+    fn append_node_record_to_free_list(&mut self, node_record_id: NodeId, node_record: &mut BNodeRecord) -> Option<()> {
+        let mut first_node = self.load_first_node_record()?;
+        node_record.next_free_cells_node_ptr = first_node.next_free_cells_node_ptr;
+        first_node.next_free_cells_node_ptr = node_record_id;
+        self.save_first_node_record(&first_node)?;
+        Some(())
+    }
 
+    fn delete_cell_records(&mut self, root_cell_record: &mut CellRecord, root_node_record_id: NodeId) -> Option<()> {
+        root_cell_record.set_inactive();
+        let mut overflow_cell_records = self.load_overflow_cell_records(root_cell_record)?;
+        let mut curr_node_id = root_node_record_id;
+        let mut curr_cell_id = root_cell_record.overflow_cell_ptr;
+        for overflow_cell in &mut overflow_cell_records {
+            let mut current_node_record = self.load_node_record(curr_node_id)?;
+            let current_overflow_cell = &mut current_node_record.cells[curr_cell_id as usize];
+            current_overflow_cell.set_inactive();
+            if current_node_record.is_full() {
+                self.append_node_record_to_free_list(curr_node_id, &mut current_node_record)?;
+            }
+            self.save_node_record(curr_node_id, &current_node_record)?;
+            curr_cell_id = overflow_cell.overflow_cell_ptr;
+            curr_node_id = overflow_cell.node_ptr;
+        }
         Some(())
     }
 
@@ -389,15 +410,15 @@ impl BTreeNodeStore {
                 }
             }
 
-
-            //delete unused cells
+            //store new cell values and delete unused cells
             for cell_id in 0..main_node_record.cells.len() {
                 if cell_id < cell_records_to_store.len() {
                     main_node_record.cells[cell_id] = cell_records_to_store[cell_id];
                 } else if main_node_record.cells[cell_id].is_active() {
-                    self.delete_cell_records(&main_node_record.cells[cell_id], &main_node_record);
+                    self.delete_cell_records(&mut main_node_record.cells[cell_id], id);
                 }
             }
+            self.save_node_record(id, &main_node_record)?;
         }
         Some(())
     }

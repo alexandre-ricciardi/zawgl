@@ -173,6 +173,17 @@ impl BNodeRecord {
     pub fn new() -> Self {
         BNodeRecord{header: 0, next_free_cells_node_ptr: 0, cells: [CellRecord::new(); NB_CELL], ptr: 0}
     }
+
+    pub fn is_full(&self) -> bool {
+        let mut is_full = true;
+        for cell_id in 0..self.cells.len() {
+            if !self.cells[cell_id].is_active() {
+                is_full = false;
+                break;
+            }
+        }
+        is_full
+    }
 }
 
 
