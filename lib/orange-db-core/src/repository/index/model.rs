@@ -3,15 +3,29 @@ use super::super::super::config::*;
 pub type NodeId = u64;
 pub type CellId = u32;
 
-struct CellChangeState {
+pub struct CellChangeState {
     added_data_ptrs: Vec<NodeId>,
     removed_data_ptrs: Vec<NodeId>,
     is_new_instance: bool,
+    is_added: bool,
+    is_removed: bool,
 }
 
 impl CellChangeState {
     fn new(new: bool) -> Self {
-        CellChangeState{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new(), is_new_instance: new}
+        CellChangeState{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new(), is_new_instance: new, is_added: false, is_removed: false}
+    }
+    fn set_is_removed(&mut self) {
+        self.is_removed = true;
+    }
+    fn set_is_added(&mut self) {
+        self.is_added = true;
+    }
+    pub fn is_removed(&self) -> bool {
+        self.is_removed
+    }
+    pub fn is_added(&self) -> bool {
+        self.is_added
     }
 }
 
@@ -46,9 +60,13 @@ impl Cell {
     pub fn get_key(&self) -> &String {
         &self.key
     }
+    pub fn get_change_state(&self) -> &CellChangeState {
+        &self.cell_change_state
+    }
+
 }
 
-struct NodeChangeState {
+pub struct NodeChangeState {
     node_ptr_changed: bool,
     is_new_instance: bool,
 }
@@ -56,6 +74,13 @@ struct NodeChangeState {
 impl NodeChangeState {
     fn new(is_new_instance: bool) -> Self {
         NodeChangeState{node_ptr_changed: false, is_new_instance: is_new_instance}
+    }
+
+    pub fn did_node_ptr_changed(&self) -> bool {
+        self.node_ptr_changed
+    }
+    pub fn is_new_instance(&self) -> bool {
+        self.is_new_instance
     }
 }
 
@@ -98,12 +123,15 @@ impl BTreeNode {
         &self.cells[index]
     }
 
-    pub fn insert_cell(&mut self, index: usize, cell: Cell) {
+    pub fn insert_cell(&mut self, index: usize, mut cell: Cell) {
+        cell.cell_change_state.set_is_added();
         self.cells.insert(index, cell);
     }
 
     pub fn pop_cell(&mut self) -> Option<Cell> {
-        self.cells.pop()
+        let mut cell = self.cells.pop()?;
+        cell.cell_change_state.set_is_removed();
+        Some(cell)
     }
 
     pub fn get_cell_mut(&mut self, index: usize) -> &mut Cell {
@@ -129,5 +157,9 @@ impl BTreeNode {
     pub fn set_node_ptr(&mut self, id: Option<NodeId>) {
         self.node_change_state.node_ptr_changed = true;
         self.node_ptr = id;
+    }
+
+    pub fn get_node_changes_state(&self) -> &NodeChangeState {
+        &self.node_change_state
     }
 }

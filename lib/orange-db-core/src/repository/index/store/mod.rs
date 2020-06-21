@@ -37,25 +37,11 @@ impl BTreeNodeStore {
         BTreeNodeStore{records_manager: RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD)}
     }
 
-    fn load_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> Option<CellLoadRes> {
-        let mut curr_node_id = cell_record.node_ptr;
-        let mut curr_overflow_cell_id = cell_record.overflow_cell_ptr;
-        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-        let mut has_overflow = cell_record.has_overflow();
-        let mut load_node = true;
-        let mut curr_node = BNodeRecord::new();
-        let mut ptrs = Vec::new();
+    fn retrieve_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> Option<CellLoadRes> {
+        let overflow_cell_records = self.load_overflow_cell_records(cell_record)?;
         let mut is_leaf_cell = false;
-        while has_overflow {
-            if load_node {
-                self.records_manager.load(curr_node_id, &mut data).ok()?;
-                curr_node = BNodeRecord::from_bytes(data);
-            }
-            let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
-            has_overflow = overflow_cell.has_overflow();
-            curr_node_id = overflow_cell.node_ptr;
-            curr_overflow_cell_id = overflow_cell.overflow_cell_ptr;
-            load_node = curr_node_id != overflow_cell.node_ptr;
+        let mut ptrs = Vec::new();
+        for overflow_cell in &overflow_cell_records {
             if overflow_cell.is_list_ptr() {
                 is_leaf_cell = true;
                 append_list_ptr(&mut ptrs, &overflow_cell.key);
@@ -66,15 +52,20 @@ impl BTreeNodeStore {
         if is_leaf_cell {
             Some(CellLoadRes::LeafCell(ptrs))
         } else {
-            Some(CellLoadRes::InteriorCell(curr_node_id))
+            overflow_cell_records.last().map(|cell|{
+                CellLoadRes::InteriorCell(cell.node_ptr)
+            })
+            .or_else(|| {
+                Some(CellLoadRes::InteriorCell(cell_record.node_ptr))
+            })
         }
     }
 
     fn retrieve_cell(&mut self, cell_record: &CellRecord) -> Option<Cell> {
         let mut vkey = Vec::new();
         append_key(&mut vkey, &cell_record.key);
-        let node_id = self.load_overflow_cells(&cell_record, &mut vkey);
-        node_id.map(|res| {
+        let cell_load_res = self.retrieve_overflow_cells(&cell_record, &mut vkey);
+        cell_load_res.map(|res| {
             match res {
                 CellLoadRes::InteriorCell(id) => {
                     Cell::new(&String::from_utf8(vkey).unwrap(), Some(id), Vec::new(), cell_record.is_active())
@@ -291,35 +282,33 @@ impl BTreeNodeStore {
         Some(())
     }
 
-    fn load_cell_records(&mut self, root_cell_record: &CellRecord) -> Option<Vec<CellRecord>> {
+    fn load_overflow_cell_records(&mut self, root_cell_record: &CellRecord) -> Option<Vec<CellRecord>> {
         let mut cells = Vec::new();
-        cells.push(*root_cell_record);
         let mut curr_node_id = root_cell_record.node_ptr;
         let mut curr_overflow_cell_id = root_cell_record.overflow_cell_ptr;
-        let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
         let mut has_overflow = root_cell_record.has_overflow();
-        let mut load_node = true;
-        let mut curr_node = BNodeRecord::new();
-        while has_overflow {
-            if load_node {
-                self.records_manager.load(curr_node_id, &mut data).ok()?;
-                curr_node = BNodeRecord::from_bytes(data);
+        if has_overflow {
+            let mut curr_node = self.load_node_record(curr_node_id)?;
+            while has_overflow {
+                let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
+                has_overflow = overflow_cell.has_overflow();
+                curr_node_id = overflow_cell.node_ptr;
+                curr_overflow_cell_id = overflow_cell.overflow_cell_ptr;
+                cells.push(*overflow_cell);
+                if curr_node_id != overflow_cell.node_ptr {
+                    curr_node = self.load_node_record(curr_node_id)?;
+                }
             }
-            let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
-            has_overflow = overflow_cell.has_overflow();
-            curr_node_id = overflow_cell.node_ptr;
-            curr_overflow_cell_id = overflow_cell.overflow_cell_ptr;
-            load_node = curr_node_id != overflow_cell.node_ptr;
-            cells.push(*overflow_cell);
         }
+        
         Some(cells)
     }
 
-    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>) -> Option<()> {
-        let cell_records = self.load_cell_records(root_cell_record)?;
+    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, root_node_record: &BNodeRecord, data_ptrs: &Vec<NodeId>) -> Option<()> {
+        let overflow_cell_records = self.load_overflow_cell_records(root_cell_record)?;
         let mut list_ptr_cells = Vec::new();
         let mut prev_cell_record = CellRecord::new();
-        for cell_record in &cell_records {
+        for cell_record in &overflow_cell_records {
             if cell_record.is_list_ptr() {
                 list_ptr_cells.push(*cell_record);
             } else {
@@ -375,8 +364,41 @@ impl BTreeNodeStore {
         Some(())
     }
 
+    fn delete_cell_records(&mut self, root_cell_record: &CellRecord, root_node_record: &BNodeRecord) -> Option<()> {
+        let cell_records = self.load_overflow_cell_records(root_cell_record)?;
+
+        Some(())
+    }
+
     pub fn save(&mut self, node: &mut BTreeNode) -> Option<()> {
         let id = node.get_id()?;
+        if node.get_node_changes_state().is_new_instance() {
+
+        } else {
+            let mut main_node_record = self.load_node_record(id)?;
+            let mut cell_records_to_store = Vec::new();
+            let mut existing_record_cell_id = 0;
+            for cell_id in 0..node.get_cells_ref().len() {
+                let current_cell = node.get_cell_ref(cell_id);
+                if current_cell.get_change_state().is_added() {
+                    let cell_records = self.create_cell(current_cell)?;
+                    cell_records_to_store.push(cell_records[0]);
+                } else {
+                    cell_records_to_store.push(main_node_record.cells[existing_record_cell_id]);
+                    existing_record_cell_id += 1;
+                }
+            }
+
+
+            //delete unused cells
+            for cell_id in 0..main_node_record.cells.len() {
+                if cell_id < cell_records_to_store.len() {
+                    main_node_record.cells[cell_id] = cell_records_to_store[cell_id];
+                } else if main_node_record.cells[cell_id].is_active() {
+                    self.delete_cell_records(&main_node_record.cells[cell_id], &main_node_record);
+                }
+            }
+        }
         Some(())
     }
 
