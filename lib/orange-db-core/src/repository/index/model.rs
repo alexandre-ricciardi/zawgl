@@ -89,16 +89,17 @@ pub struct BTreeNode {
     cells: Vec<Cell>,
     node_ptr: Option<NodeId>,
     is_leaf: bool,
+    is_root: bool,
     node_change_state: NodeChangeState,
 }
 
 impl BTreeNode {
-    pub fn new(is_leaf: bool, cells: Vec<Cell>) -> Self {
-        BTreeNode{id: None, cells: cells, node_ptr: None, is_leaf: is_leaf, node_change_state: NodeChangeState::new(true)}
+    pub fn new(is_leaf: bool, is_root: bool, cells: Vec<Cell>) -> Self {
+        BTreeNode{id: None, cells: cells, node_ptr: None, is_leaf: is_leaf, is_root: is_root, node_change_state: NodeChangeState::new(true)}
     }
 
-    pub fn new_with_id(id: Option<NodeId>, node_ptr: Option<NodeId>, is_leaf: bool, cells: Vec<Cell>) -> Self {
-        BTreeNode{id: id, cells: cells, node_ptr: node_ptr, is_leaf: is_leaf, node_change_state: NodeChangeState::new(false)}
+    pub fn new_with_id(id: Option<NodeId>, node_ptr: Option<NodeId>, is_leaf: bool, is_root: bool, cells: Vec<Cell>) -> Self {
+        BTreeNode{id: id, cells: cells, node_ptr: node_ptr, is_leaf: is_leaf, is_root: is_root, node_change_state: NodeChangeState::new(false)}
     }
 
     pub fn is_full(&self) -> bool {

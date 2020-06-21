@@ -118,9 +118,9 @@ impl BTreeIndex {
         }
     }
 
-    pub fn insert(&mut self, value: &str, data_ptr: u64) -> bool {
-        let mut root = self.node_store.retrieve_node(0);
-        root.as_mut().and_then(|node| self.insert_or_update_key_ptrs(value, data_ptr, node)).is_some()
+    pub fn insert(&mut self, value: &str, data_ptr: u64) -> Option<()> {
+        let mut root = self.node_store.retrieve_node(0)?;
+        self.insert_or_update_key_ptrs(value, data_ptr, &mut root).map(|node|())
     }
 
     pub fn delete(&mut self, value: u64) {

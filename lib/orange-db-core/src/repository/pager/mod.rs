@@ -21,13 +21,13 @@ impl  HeaderPage {
     }
 
     pub fn get_page_count(&self) -> u64 {
-        let mut bytes = [0u8; PAGE_COUNTER];
-        bytes.copy_from_slice(&self.data[..PAGE_COUNTER]);
+        let mut bytes = [0u8; PAGE_COUNTER_SIZE];
+        bytes.copy_from_slice(&self.data[..PAGE_COUNTER_SIZE]);
         u64::from_be_bytes(bytes)
     }
 
     fn set_page_count(&mut self, count: u64) {
-        self.data[..PAGE_COUNTER].copy_from_slice(&count.to_be_bytes());
+        self.data[..PAGE_COUNTER_SIZE].copy_from_slice(&count.to_be_bytes());
     }
 }
 

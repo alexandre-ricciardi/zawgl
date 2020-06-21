@@ -2,10 +2,11 @@ use std::io::{Write, Result};
 
 ///PAGING
 const PAGE_SIZE: usize = 4096;
-const PAGE_COUNTER: usize = 8;
+const PAGE_COUNTER_SIZE: usize = 8;
 const FIRST_FREE_PAGE_PTR: usize = 8;
 
 ///RECORDS
+const RECORDS_COUNTER_SIZE: usize = 8;
 const FREE_LIST_PTR_SIZE: usize = 4;
 const FREE_LIST_ITEM_COUNTER_SIZE: usize = 4;
 const NEXT_PAGE_PTR: usize = 8;
@@ -83,10 +84,11 @@ fn generate_config() -> Result<()> {
     let mut config = std::fs::File::create("src/config.rs")?;
     writeln!(config, "//PAGING")?;
     writeln!(config, "pub const PAGE_SIZE: usize = {};", PAGE_SIZE)?;
-    writeln!(config, "pub const PAGE_COUNTER: usize = {};", PAGE_COUNTER)?;
+    writeln!(config, "pub const PAGE_COUNTER_SIZE: usize = {};", PAGE_COUNTER_SIZE)?;
     writeln!(config, "pub const FIRST_FREE_PAGE_PTR: usize = {};", FIRST_FREE_PAGE_PTR)?;
     
-    writeln!(config, "//RECORDS")?;
+    writeln!(config, "//RECORDS")?;    
+    writeln!(config, "pub const RECORDS_COUNTER_SIZE: usize = {};", RECORDS_COUNTER_SIZE)?;
     writeln!(config, "pub const FREE_LIST_PTR_SIZE: usize = {};", FREE_LIST_PTR_SIZE)?;
     writeln!(config, "pub const FREE_LIST_ITEM_COUNTER_SIZE: usize = {};", FREE_LIST_ITEM_COUNTER_SIZE)?;
     writeln!(config, "pub const NEXT_PAGE_PTR: usize = {};", NEXT_PAGE_PTR)?;

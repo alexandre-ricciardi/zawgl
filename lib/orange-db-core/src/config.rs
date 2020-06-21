@@ -1,8 +1,9 @@
 //PAGING
 pub const PAGE_SIZE: usize = 4096;
-pub const PAGE_COUNTER: usize = 8;
+pub const PAGE_COUNTER_SIZE: usize = 8;
 pub const FIRST_FREE_PAGE_PTR: usize = 8;
 //RECORDS
+pub const RECORDS_COUNTER_SIZE: usize = 8;
 pub const FREE_LIST_PTR_SIZE: usize = 4;
 pub const FREE_LIST_ITEM_COUNTER_SIZE: usize = 4;
 pub const NEXT_PAGE_PTR: usize = 8;
