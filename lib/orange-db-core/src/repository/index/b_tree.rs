@@ -36,10 +36,6 @@ impl BTreeIndex {
         }
     }
 
-    pub fn search(&mut self, value: &str) -> Option<Vec<DataPtr>> {
-        let root = self.node_store.retrieve_node(0);
-        root.and_then(|node| self.tree_search(value, &node))
-    }
 
     fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode, new_cell_index: usize) -> Option<BTreeNode> {
         let next = node.get_node_ptr().and_then(|id| self.node_store.retrieve_node(id))?;
@@ -52,7 +48,7 @@ impl BTreeIndex {
             }
         }
         new_node_cells.reverse();
-        let mut new = BTreeNode::new(true, new_node_cells);
+        let mut new = BTreeNode::new(true, false, new_node_cells);
         new.set_node_ptr(next.get_id());
         self.node_store.create(&mut new)?;
         node.set_node_ptr(new.get_id());
@@ -70,7 +66,7 @@ impl BTreeIndex {
             }
         }
         new_node_cells.reverse();
-        let mut new = BTreeNode::new(false, new_node_cells);
+        let mut new = BTreeNode::new(false, false, new_node_cells);
         self.node_store.create(&mut new);
         Some(new)
     }
@@ -118,8 +114,13 @@ impl BTreeIndex {
         }
     }
 
+    pub fn search(&mut self, value: &str) -> Option<Vec<DataPtr>> {
+        let root = self.node_store.load_root_node()?;
+        self.tree_search(value, &root)
+    }
+
     pub fn insert(&mut self, value: &str, data_ptr: u64) -> Option<()> {
-        let mut root = self.node_store.retrieve_node(0)?;
+        let mut root = self.node_store.load_root_node()?;
         self.insert_or_update_key_ptrs(value, data_ptr, &mut root).map(|node|())
     }
 

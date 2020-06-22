@@ -7,6 +7,7 @@ const IS_LIST_PTR_CELL_FLAG: u8 = 0b0010_0000;
 const IS_LEAF_NODE_FLAG: u8 = 0b1000_0000;
 const HAS_NEXT_NODE_FLAG: u8 = 0b0100_0000;
 const IS_OVERFLOW_NODE_FLAG: u8 = 0b0010_0000;
+const IS_ROOT_NODE_FLAG: u8 = 0b0001_0000;
 
 #[derive(Copy, Clone)]
 pub struct CellRecord {
@@ -142,6 +143,13 @@ impl BNodeRecord {
     }
     pub fn set_leaf(&mut self) {
         self.header = self.header | IS_LEAF_NODE_FLAG;
+    }
+    
+    pub fn is_root(&self) -> bool {
+        (self.header & IS_ROOT_NODE_FLAG) > 0
+    }
+    pub fn set_root(&mut self) {
+        self.header = self.header | IS_ROOT_NODE_FLAG;
     }
     
     pub fn is_overflow_node(&self) -> bool {

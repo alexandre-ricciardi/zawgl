@@ -93,7 +93,7 @@ impl BTreeNodeStore {
                 None
             }
         };
-        Some(BTreeNode::new_with_id(Some(nid), next_node_ptr, node.is_leaf(), cells))
+        Some(BTreeNode::new_with_id(Some(nid), next_node_ptr, node.is_leaf(), node.is_root(), cells))
     }
 
     fn update_overflow_cells(&mut self, reverse_cell_records: &mut [CellRecord]) -> Option<()> {
@@ -425,7 +425,7 @@ impl BTreeNodeStore {
 
     pub fn load_root_node(&mut self) -> Option<BTreeNode> {
         let mut buf = [0u8; NODE_PTR_SIZE];
-        buf.copy_from_slice(&self.records_manager.get_header_page_payload_ref()[..NODE_PTR_SIZE]);
+        buf.copy_from_slice(&self.records_manager.get_header_page_wrapper().get_header_payload_slice_ref()[..NODE_PTR_SIZE]);
         let root_node_id = u64::from_be_bytes(buf);
         self.retrieve_node(root_node_id)
     }
@@ -456,7 +456,7 @@ mod test_btree_node_store {
         cells.push(Cell::new_ptr("blabla4", Some(4)));
         cells.push(Cell::new_ptr("blabla5", Some(5)));
         cells.push(Cell::new_ptr(long_key, Some(6)));
-        let mut node = BTreeNode::new(false, cells);
+        let mut node = BTreeNode::new(false, false, cells);
         node.set_node_ptr(Some(42));
         store.create(&mut node);
         store.sync();
