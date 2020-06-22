@@ -40,18 +40,18 @@ impl <'a> HeaderPageWrapper<'a> {
         HeaderPageWrapper{header_page: header_page, page_map: page_map}
     }
 
-    fn get_header_slice_ref(&self, bounds: Bounds) -> &'a [u8] {
+    fn get_header_slice_ref(&'a self, bounds: Bounds) -> &'a [u8] {
         &self.header_page.data[bounds.begin..bounds.end]
     }
-    fn get_header_slice_mut(&mut self, bounds: Bounds) -> &'a mut [u8] {
+    fn get_header_slice_mut(&'a mut self, bounds: Bounds) -> &'a mut [u8] {
         &mut self.header_page.data[bounds.begin..bounds.end]
     }
     
-    pub fn get_header_payload_slice_mut(&mut self) -> &'a mut [u8] {
-        &mut self.get_header_slice_mut(self.page_map.header_page_payload)
+    pub fn get_header_payload_slice_mut(&'a mut self) -> &'a mut [u8] {
+        self.get_header_slice_mut(self.page_map.header_page_payload)
     }
     pub fn get_header_payload_slice_ref(&self) -> &[u8] {
-        &self.get_header_slice_ref(self.page_map.header_page_payload)
+        self.get_header_slice_ref(self.page_map.header_page_payload)
     }
 
     fn get_header_first_free_page_ptr(&self) -> PageId {
@@ -59,7 +59,7 @@ impl <'a> HeaderPageWrapper<'a> {
         bytes.copy_from_slice(self.get_header_slice_ref(self.page_map.header_page_free_list_ptr));
         u64::from_be_bytes(bytes)
     }
-    fn set_header_first_free_page_ptr(&mut self, id: u64) {
+    fn set_header_first_free_page_ptr(&'a mut self, id: u64) {
         let bounds = self.page_map.header_page_free_list_ptr;
         self.get_header_slice_mut(bounds).copy_from_slice(&id.to_be_bytes());
     }
@@ -69,7 +69,7 @@ impl <'a> HeaderPageWrapper<'a> {
         bytes.copy_from_slice(self.get_header_slice_ref(self.page_map.header_page_records_counter));
         u64::from_be_bytes(bytes)
     }
-    fn set_header_records_counter(&mut self, id: RecordId) {
+    fn set_header_records_counter(&'a mut self, id: RecordId) {
         let bounds = self.page_map.header_page_records_counter;
         self.get_header_slice_mut(bounds).copy_from_slice(&id.to_be_bytes());
     }

@@ -423,10 +423,14 @@ impl BTreeNodeStore {
         Some(())
     }
 
-    pub fn load_root_node(&mut self) -> Option<BTreeNode> {
+    fn get_root_node_ptr(&mut self) -> NodeId {
         let mut buf = [0u8; NODE_PTR_SIZE];
         buf.copy_from_slice(&self.records_manager.get_header_page_wrapper().get_header_payload_slice_ref()[..NODE_PTR_SIZE]);
-        let root_node_id = u64::from_be_bytes(buf);
+        u64::from_be_bytes(buf)
+    }
+
+    pub fn load_root_node(&mut self) -> Option<BTreeNode> {
+        let root_node_id = self.get_root_node_ptr();
         self.retrieve_node(root_node_id)
     }
 
