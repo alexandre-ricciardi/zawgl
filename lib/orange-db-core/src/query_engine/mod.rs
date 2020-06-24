@@ -1,7 +1,7 @@
 use super::cypher::*;
 use super::model::*;
 use super::cypher::parser::*;
-use super::graph::traits::{GraphTrait, GraphContainerTrait};
+use super::graph::traits::{GraphContainerTrait};
 use super::graph::*;
 
 pub fn process_query(query: &str) -> Option<Request> {

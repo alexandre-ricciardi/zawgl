@@ -35,7 +35,7 @@ impl FileAccess {
 
     pub fn write_at(&mut self, pos: u64, data: &[u8]) {
         match self._write_at(pos, data) {
-            Err(msg) => {
+            Err(_msg) => {
                 error!("writing file");
             },
             _ => {}
@@ -51,7 +51,7 @@ impl FileAccess {
     }
     pub fn get_file_len(&self) -> u64 {
         match self.file.metadata() {
-            Err(msg) => {
+            Err(_msg) => {
                 error!("retrieving file size");
                 0
             },

@@ -139,7 +139,7 @@ fn enter_rel_tags(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Par
     Ok(parser.index)
 }
 
-fn enter_rel_id(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) -> ParserResult<usize> {
+fn enter_rel_id(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<usize> {
     if parser.check(TokenType::Identifier) {
         let mut var_node = Box::new(AstTagNode::new_tag(AstTag::Variable));        
         enter_identifier(parser, &mut var_node)?;

@@ -60,7 +60,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             self.state_1.push(v1, v0);
         }
 
-        pub fn pop(&mut self, v0: &NID0, v1: &NID1) {
+        pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {
             if let Some(w_val) = self.state_0.core(v0) {
                 self.state_0.pop(v0, &w_val);
                 self.state_1.pop(&w_val, v0);

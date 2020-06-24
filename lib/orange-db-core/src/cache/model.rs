@@ -1,5 +1,4 @@
 use super::super::model::*;
-use std::collections::HashMap;
 use super::super::graph::traits::{GraphTrait, GraphContainerTrait, MemGraphId};
 use super::super::repository::graph_repository::GraphRepository;
 

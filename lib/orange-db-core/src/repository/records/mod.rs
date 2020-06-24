@@ -225,7 +225,7 @@ const fn compute_nb_pages_per_record(record_size: usize, page_payload_size: usiz
     record_size / page_payload_size
 }
 
-fn compute_page_map(record_size: usize, nb_records_per_page: usize, nb_pages_per_record: usize) -> PageMap {
+fn compute_page_map(nb_records_per_page: usize, nb_pages_per_record: usize) -> PageMap {
     let free_list_size = compute_freelist_size(nb_records_per_page);
     //TODO handle all cases
     let header_flags_bounds = Bounds::new(0, HEADER_FLAGS);
@@ -270,7 +270,7 @@ fn copy_buffer_to_payload(payload: &mut [u8], data: &[u8]) {
 
 impl RecordsManager {
     pub fn new(file: &str, record_size: usize, nb_records_per_page: usize, nb_pages_per_record: usize) -> Self {
-        RecordsManager{pager: Pager::new(file), record_size: record_size, nb_records_per_page: nb_records_per_page, page_map: compute_page_map(record_size, nb_records_per_page, nb_pages_per_record)}
+        RecordsManager{pager: Pager::new(file), record_size: record_size, nb_records_per_page: nb_records_per_page, page_map: compute_page_map(nb_records_per_page, nb_pages_per_record)}
     }
 
     fn compute_location(&self, record_id: u64) -> RecordLocation {
@@ -326,13 +326,11 @@ impl RecordsManager {
         let location = self.compute_location(id);
         let payload_bounds = self.page_map.payload;
         let nb_pages_per_record = self.page_map.nb_pages_per_record;
-        let nb_records_per_page = self.page_map.nb_records_per_page;
         let record_size = self.record_size;
         if location.is_multi_pages_record {
             let mut wrapper = self.load_page_wrapper(location.page_id).ok_or(RecordsManagerError::NotFound)?;
             let next_free_page_ptr = wrapper.get_free_next_page_ptr();
             wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(next_free_page_ptr);
-            let mut first_loop = true;
             for page_count in 0..nb_pages_per_record {
                 copy_buffer_to_payload(wrapper.get_slice_mut(payload_bounds), &data[page_count*payload_bounds.len()..]);
             }
@@ -367,7 +365,6 @@ impl RecordsManager {
         let payload_bounds = self.page_map.payload;
         let first_free_page_ptr = self.get_header_page_wrapper().get_header_first_free_page_ptr();
         let mut record_id = 0;
-        let increment_record_counter = false;
         if first_free_page_ptr == 0 {
             if is_multi_page_record {
                 let mut first = true;

@@ -1,11 +1,10 @@
 extern crate proc_macro;
 extern crate syn;
-#[macro_use]
 extern crate quote;
 
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Ident, parse_quote, Data, DeriveInput, Fields, GenericParam, Generics, Index};
+use syn::{parse_macro_input, Ident, Data, DeriveInput, Fields, Index};
 
 
 #[proc_macro_derive(Binarize)]
@@ -88,8 +87,8 @@ fn binary_deserialize_struct(data: &Data, s_name: &Ident) -> proc_macro2::TokenS
                     }
                 },
                 Fields::Unnamed(ref fields) => {
-                    let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
-                        let index = Index::from(i);
+                    let recurse = fields.unnamed.iter().enumerate().map(|(_i, f)| {
+                        //let index = Index::from(i);
                         let ty = &f.ty;
                         quote_spanned! {f.span() =>
                             {const TY_LEN: usize = std::mem::size_of::<#ty>(); let mut tmp = [0u8; TY_LEN]; tmp.copy_from_slice(&bytes[index..index+TY_LEN]); index += TY_LEN; #ty::from_be_bytes(tmp)}

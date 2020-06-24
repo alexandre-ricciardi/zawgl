@@ -1,6 +1,5 @@
 use super::store::*;
 use super::super::model::*;
-use std::path::Path;
 
 pub struct PropertiesRespository {
     prop_store: properties_store::PropertiesStore,

@@ -80,7 +80,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> BaseState<'g0, 'g1, NID0
             }
         }
 
-        pub fn pop(&mut self, v0: &NID0, v1: &NID1) {  
+        pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {  
             if self.core_count == 0 {
                 return;
             }
