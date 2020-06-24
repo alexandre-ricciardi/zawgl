@@ -9,11 +9,12 @@ pub struct CellChangeState {
     is_new_instance: bool,
     is_added: bool,
     is_removed: bool,
+    list_data_pointer_changed: bool,
 }
 
 impl CellChangeState {
     fn new(new: bool) -> Self {
-        CellChangeState{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new(), is_new_instance: new, is_added: false, is_removed: false}
+        CellChangeState{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new(), is_new_instance: new, is_added: false, is_removed: false, list_data_pointer_changed: false}
     }
     fn set_is_removed(&mut self) {
         self.is_removed = true;
@@ -26,6 +27,9 @@ impl CellChangeState {
     }
     pub fn is_added(&self) -> bool {
         self.is_added
+    }
+    pub fn did_list_data_ptr_changed(&self) -> bool {
+        self.list_data_pointer_changed
     }
 }
 
@@ -48,12 +52,13 @@ impl Cell {
         Cell{key: String::from(key), node_ptr: ptr, is_active: is_active, data_ptrs: data_ptrs, cell_change_state: CellChangeState::new(false)}
     }
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
-        self.cell_change_state.added_data_ptrs.push(data_ptr);
+        self.cell_change_state.list_data_pointer_changed = true;
         self.data_ptrs.push(data_ptr);
     }
     
     pub fn delete_data_ptr(&mut self, data_ptr: NodeId) {
-        self.cell_change_state.removed_data_ptrs.push(data_ptr);
+        self.cell_change_state.list_data_pointer_changed = true;
+        self.data_ptrs.retain(|&curr| curr != data_ptr);
     }
 
     pub fn get_data_ptrs_ref(&self) -> &Vec<NodeId> {
@@ -68,6 +73,7 @@ impl Cell {
     pub fn get_change_state(&self) -> &CellChangeState {
         &self.cell_change_state
     }
+
 
 }
 

@@ -198,20 +198,24 @@ impl BTreeNodeStore {
         if cell.get_data_ptrs_ref().len() > 0 {
             let mut data_ptr_offset = 2;
             let mut cell_record = CellRecord::new();
+            cell_record.set_is_active();
             cell_record.set_is_list_ptr();
             let mut data_ptr_count: u16 = 0;
+            let mut whole_data_ptr_count = 0;
             for data_ptr in cell.get_data_ptrs_ref() {
                 cell_record.key[data_ptr_offset..data_ptr_offset+8].copy_from_slice(&data_ptr.to_be_bytes());
                 data_ptr_offset += NODE_PTR_SIZE;
                 data_ptr_count += 1;
+                whole_data_ptr_count += 1;
                 if data_ptr_offset > KEY_SIZE {
                     cell_record.key[..2].copy_from_slice(&data_ptr_count.to_be_bytes());
                     cell_records.push(cell_record);
                     cell_record = CellRecord::new();
+                    cell_record.set_is_active();
                     cell_record.set_is_list_ptr();
                     data_ptr_offset = 2;
                     data_ptr_count = 0;
-                } else if data_ptr_count == cell.get_data_ptrs_ref().len() as u16 {
+                } else if whole_data_ptr_count == cell.get_data_ptrs_ref().len() {
                     cell_record.key[..2].copy_from_slice(&data_ptr_count.to_be_bytes());
                     cell_records.push(cell_record);
                     break;
@@ -417,6 +421,8 @@ impl BTreeNodeStore {
             if current_cell.get_change_state().is_added() {
                 let cell_records = self.create_cell(current_cell)?;
                 cell_records_to_store.push(cell_records[0]);
+            } else if current_cell.get_change_state().did_list_data_ptr_changed() {
+                self.update_cell_data_ptrs(&main_node_record.cells[existing_record_cell_id], &main_node_record, current_cell.get_data_ptrs_ref())?;
             } else {
                 cell_records_to_store.push(main_node_record.cells[existing_record_cell_id]);
                 existing_record_cell_id += 1;
@@ -513,5 +519,59 @@ mod test_btree_node_store {
         let file = "C:\\Temp\\test_btree_node_store_update_ptrs.db";
         std::fs::remove_file(file);
         let mut store = BTreeNodeStore::new(file);
+
+        let long_key = "blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3";
+        let mut cells = Vec::new();
+        cells.push(Cell::new_leaf("blabla1", 11));
+        cells.push(Cell::new_leaf("blabla2", 22));
+        cells.push(Cell::new_leaf(long_key, 33));
+        cells.push(Cell::new_leaf("blabla4", 44));
+        cells.push(Cell::new_leaf("blabla5", 55));
+        let mut node = BTreeNode::new(true, false, cells);
+
+        store.create(&mut node);
+        store.sync();
+
+        let mut load_store = BTreeNodeStore::new(file);
+        let mut loaded =  node.get_id().and_then(|id| load_store.retrieve_node(id));
+
+        if let Some(load) = &mut loaded {
+            assert_eq!(load.get_node_ptr(), None);
+            {
+                let cell = load.get_cell_ref(3);
+                assert_eq!(cell.get_key(), &String::from("blabla4"));
+                assert_eq!(cell.get_node_ptr(), None);
+                assert_eq!(cell.get_data_ptrs_ref(), &vec![44u64]);
+    
+                let long_key_cell = load.get_cell_ref(2);
+                assert_eq!(long_key_cell.get_key(), &String::from(long_key));
+                assert_eq!(long_key_cell.get_node_ptr(), None);
+                assert_eq!(long_key_cell.get_data_ptrs_ref(), &vec![33u64]);
+    
+            }
+            let update_long_key_cell = load.get_cell_mut(2);
+            update_long_key_cell.append_data_ptr(9879);
+
+            load_store.save(load);
+
+        } else {
+            assert!(false);
+        }
+
+        let updated =  node.get_id().and_then(|id| load_store.retrieve_node(id));
+        if let Some(update) = &updated {
+            let long_key_cell = update.get_cell_ref(2);
+            assert_eq!(long_key_cell.get_key(), &String::from(long_key));
+            assert_eq!(long_key_cell.get_node_ptr(), None);
+            assert!(long_key_cell.get_data_ptrs_ref().contains(&33));
+            assert!(long_key_cell.get_data_ptrs_ref().contains(&9879));
+        } else {
+            assert!(false);
+        }
+        
+        
+
+        
+
     }
 }
