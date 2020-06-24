@@ -507,4 +507,11 @@ mod test_btree_node_store {
         }
 
     }
+
+    #[test]
+    fn test_update_ptrs() {
+        let file = "C:\\Temp\\test_btree_node_store_update_ptrs.db";
+        std::fs::remove_file(file);
+        let mut store = BTreeNodeStore::new(file);
+    }
 }

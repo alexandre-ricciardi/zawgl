@@ -51,6 +51,11 @@ impl Cell {
         self.cell_change_state.added_data_ptrs.push(data_ptr);
         self.data_ptrs.push(data_ptr);
     }
+    
+    pub fn delete_data_ptr(&mut self, data_ptr: NodeId) {
+        self.cell_change_state.removed_data_ptrs.push(data_ptr);
+    }
+
     pub fn get_data_ptrs_ref(&self) -> &Vec<NodeId> {
         &self.data_ptrs
     }

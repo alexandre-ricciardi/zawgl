@@ -82,6 +82,7 @@ impl BTreeIndex {
             Ok(found) => {
                 if node.is_leaf() {
                     node.get_cell_mut(found).append_data_ptr(data_ptr);
+                    self.node_store.save(node)?;
                     None
                 } else {
                     let mut child = node.get_cell_ref(found).get_node_ptr().and_then(|id| self.node_store.retrieve_node(id))?;
@@ -134,6 +135,9 @@ impl BTreeIndex {
 
     }
 
+    pub fn sync(&mut self) {
+        self.node_store.sync();
+    }
 }
 
 #[cfg(test)]
@@ -155,5 +159,20 @@ mod test_b_tree {
         } else {
             assert!(false);
         }
+
+        index.sync();
+
+        index.insert(key, 56);
+
+        let data_ptrs_1 = index.search(key);
+
+        if let Some(ptrs) = &data_ptrs_1 {
+            assert_eq!(ptrs.len(), 2);
+            assert_eq!(ptrs[0], 42);
+            assert_eq!(ptrs[0], 56);
+        } else {
+            assert!(false);
+        }
+
     }
 }
