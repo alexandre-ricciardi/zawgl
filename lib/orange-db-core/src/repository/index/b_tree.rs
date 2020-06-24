@@ -38,7 +38,6 @@ impl BTreeIndex {
 
 
     fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode, new_cell_index: usize) -> Option<BTreeNode> {
-        let next = node.get_node_ptr().and_then(|id| self.node_store.retrieve_node(id))?;
         node.insert_cell(new_cell_index, Cell::new_leaf(value, data_ptr));
         let split = node.get_cells_ref().len() / 2;
         let mut new_node_cells = Vec::new();
@@ -49,7 +48,12 @@ impl BTreeIndex {
         }
         new_node_cells.reverse();
         let mut new = BTreeNode::new(true, false, new_node_cells);
-        new.set_node_ptr(next.get_id());
+
+        if node.get_node_ptr().is_some() {
+            let next = node.get_node_ptr().and_then(|id| self.node_store.retrieve_node(id))?;
+            new.set_node_ptr(next.get_id());
+        }
+        
         self.node_store.create(&mut new)?;
         node.set_node_ptr(new.get_id());
         self.node_store.save(node)?;
@@ -90,6 +94,7 @@ impl BTreeIndex {
                         self.split_leaf_node(value, data_ptr, node, not_found)
                     } else {
                         node.insert_cell(not_found, Cell::new_leaf(value, data_ptr));
+                        self.node_store.save(node)?;
                         None
                     }
                 } else {
@@ -99,10 +104,11 @@ impl BTreeIndex {
                     let first_split_cell_key_search = keys.binary_search(first_cell.get_key());
                     match first_split_cell_key_search {
                         Err(not_found) => {
-                            if child.is_full() {
+                            if node.is_full() {
                                 self.split_interior_node(first_cell.get_key(), split_node.get_id(), node, not_found)
                             } else {
                                 node.insert_cell(not_found, Cell::new_ptr(first_cell.get_key(), split_node.get_id()));
+                                self.node_store.save(node)?;
                                 None
                             }
                         },
@@ -115,12 +121,12 @@ impl BTreeIndex {
     }
 
     pub fn search(&mut self, value: &str) -> Option<Vec<DataPtr>> {
-        let root = self.node_store.load_root_node()?;
+        let root = self.node_store.load_or_create_root_node()?;
         self.tree_search(value, &root)
     }
 
     pub fn insert(&mut self, value: &str, data_ptr: u64) -> Option<()> {
-        let mut root = self.node_store.load_root_node()?;
+        let mut root = self.node_store.load_or_create_root_node()?;
         self.insert_or_update_key_ptrs(value, data_ptr, &mut root).map(|_node|())
     }
 
@@ -134,6 +140,20 @@ impl BTreeIndex {
 mod test_b_tree {
     use super::*;
     #[test]
-    fn test_ser() {
+    fn test_insert() {
+        let file = "C:\\Temp\\test_b_tree_insert.db";
+        std::fs::remove_file(file);
+        let mut index = BTreeIndex::new(file);
+        let key = "a short key";
+        index.insert(key, 42);
+
+        let data_ptrs = index.search(key);
+
+        if let Some(ptrs) = &data_ptrs {
+            assert_eq!(ptrs.len(), 1);
+            assert_eq!(ptrs[0], 42);
+        } else {
+            assert!(false);
+        }
     }
 }

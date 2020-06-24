@@ -142,6 +142,15 @@ impl BTreeNode {
     pub fn is_leaf(&self) -> bool {
         self.is_leaf
     }
+    
+
+    pub fn set_root(&mut self) {
+        self.is_root = true;
+    }
+    
+    pub fn is_root(&self) -> bool {
+        self.is_root
+    }
 
     pub fn get_id(&self) -> Option<NodeId> {
         self.id

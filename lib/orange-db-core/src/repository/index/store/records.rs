@@ -39,7 +39,7 @@ impl CellRecord {
     }
 
     pub fn is_list_ptr(&self) -> bool {
-        self.header & IS_LIST_PTR_CELL_FLAG == 1
+        self.header & IS_LIST_PTR_CELL_FLAG > 0
     }
     pub fn set_is_list_ptr(&mut self) {
         self.header = self.header | IS_LIST_PTR_CELL_FLAG;
