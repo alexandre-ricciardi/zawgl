@@ -98,7 +98,7 @@ impl BTreeNodeStore {
         Some(BTreeNode::new_with_id(Some(nid), next_node_ptr, node.is_leaf(), node.is_root(), cells))
     }
 
-    fn update_overflow_cells(&mut self, cell_records: &mut [CellRecord], prev_cell_record: &CellRecord) -> Option<(NodeId, CellId, BNodeRecord)> {
+    fn update_overflow_cells(&mut self, cell_records: &[CellRecord], prev_cell_record: &CellRecord) -> Option<(NodeId, CellId, BNodeRecord)> {
         let mut curr_cell_id = prev_cell_record.overflow_cell_ptr;
         let mut curr_node_id = prev_cell_record.node_ptr;
         let mut curr_node_record = self.load_node_record(curr_node_id)?;
@@ -341,7 +341,7 @@ impl BTreeNodeStore {
         Some(cells)
     }
 
-    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, root_node_record: &BNodeRecord, data_ptrs: &Vec<NodeId>) -> Option<()> {
+    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>) -> Option<()> {
         let overflow_cell_records = self.load_overflow_cell_records(root_cell_record)?;
         let mut list_ptr_cells = Vec::new();
         let mut prev_cell_record = *root_cell_record;
@@ -400,7 +400,7 @@ impl BTreeNodeStore {
         }
 
         cells_to_update.reverse();
-        let mut last_updated_cell_pos = self.update_overflow_cells(&mut cells_to_update, &prev_cell_record)?;
+        let mut last_updated_cell_pos = self.update_overflow_cells(&cells_to_update, &prev_cell_record)?;
         if cells_to_create.len() > 0 {
             let created_first_cell_pos = self.create_overflow_cells(&mut cells_to_create)?;
             //link last updated cell to created cells
@@ -455,17 +455,19 @@ impl BTreeNodeStore {
         let id = node.get_id()?;
 
         let mut main_node_record = self.load_node_record(id)?;
-        let mut cell_records_to_store = Vec::new();
+        let mut cell_records_to_store: Vec<Option<CellRecord>> = Vec::new();
         let mut existing_record_cell_id = 0;
         for cell_id in 0..node.get_cells_ref().len() {
             let current_cell = node.get_cell_ref(cell_id);
             if current_cell.get_change_state().is_added() {
                 let cell_records = self.create_cell(current_cell)?;
-                cell_records_to_store.push(cell_records[0]);
+                cell_records_to_store.push(Some(cell_records[0]));
             } else if current_cell.get_change_state().did_list_data_ptr_changed() {
-                self.update_cell_data_ptrs(&main_node_record.cells[existing_record_cell_id], &main_node_record, current_cell.get_data_ptrs_ref())?;
+                self.update_cell_data_ptrs(&main_node_record.cells[existing_record_cell_id], current_cell.get_data_ptrs_ref())?;
+                cell_records_to_store.push(None);
+                existing_record_cell_id += 1;
             } else {
-                cell_records_to_store.push(main_node_record.cells[existing_record_cell_id]);
+                cell_records_to_store.push(None);
                 existing_record_cell_id += 1;
             }
         }
@@ -473,7 +475,9 @@ impl BTreeNodeStore {
         //store new cell values and delete unused cells
         for cell_id in 0..main_node_record.cells.len() {
             if cell_id < cell_records_to_store.len() {
-                main_node_record.cells[cell_id] = cell_records_to_store[cell_id];
+                if let Some(cell_record) = &cell_records_to_store[cell_id] {
+                    main_node_record.cells[cell_id] = *cell_record;
+                }
             } else if main_node_record.cells[cell_id].is_active() {
                 self.delete_cell_records_from_root_cell(&mut main_node_record.cells[cell_id], id);
             }
@@ -584,6 +588,11 @@ mod test_btree_node_store {
                 assert_eq!(cell.get_node_ptr(), None);
                 assert_eq!(cell.get_data_ptrs_ref(), &vec![44u64]);
     
+                let cell1 = load.get_cell_ref(1);
+                assert_eq!(cell1.get_key(), &String::from("blabla2"));
+                assert_eq!(cell1.get_node_ptr(), None);
+                assert_eq!(cell1.get_data_ptrs_ref(), &vec![22u64]);
+
                 let long_key_cell = load.get_cell_ref(2);
                 assert_eq!(long_key_cell.get_key(), &String::from(long_key));
                 assert_eq!(long_key_cell.get_node_ptr(), None);

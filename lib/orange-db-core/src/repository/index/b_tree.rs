@@ -168,8 +168,8 @@ mod test_b_tree {
 
         if let Some(ptrs) = &data_ptrs_1 {
             assert_eq!(ptrs.len(), 2);
-            assert_eq!(ptrs[0], 42);
-            assert_eq!(ptrs[0], 56);
+            assert!(ptrs.contains(&42));
+            assert!(ptrs.contains(&56));
         } else {
             assert!(false);
         }

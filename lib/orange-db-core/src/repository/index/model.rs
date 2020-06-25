@@ -4,8 +4,6 @@ pub type NodeId = u64;
 pub type CellId = u32;
 
 pub struct CellChangeState {
-    added_data_ptrs: Vec<NodeId>,
-    removed_data_ptrs: Vec<NodeId>,
     is_new_instance: bool,
     is_added: bool,
     is_removed: bool,
@@ -14,7 +12,7 @@ pub struct CellChangeState {
 
 impl CellChangeState {
     fn new(new: bool) -> Self {
-        CellChangeState{added_data_ptrs: Vec::new(), removed_data_ptrs: Vec::new(), is_new_instance: new, is_added: false, is_removed: false, list_data_pointer_changed: false}
+        CellChangeState{is_new_instance: new, is_added: false, is_removed: false, list_data_pointer_changed: false}
     }
     fn set_is_removed(&mut self) {
         self.is_removed = true;
