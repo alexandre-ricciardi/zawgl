@@ -455,33 +455,61 @@ impl BTreeNodeStore {
         let id = node.get_id()?;
 
         let mut main_node_record = self.load_node_record(id)?;
-        let mut cell_records_to_store: Vec<Option<CellRecord>> = Vec::new();
-        let mut existing_record_cell_id = 0;
-        for cell_id in 0..node.get_cells_ref().len() {
-            let current_cell = node.get_cell_ref(cell_id);
-            if current_cell.get_change_state().is_added() {
-                let cell_records = self.create_cell(current_cell)?;
-                cell_records_to_store.push(Some(cell_records[0]));
-            } else if current_cell.get_change_state().did_list_data_ptr_changed() {
-                self.update_cell_data_ptrs(&main_node_record.cells[existing_record_cell_id], current_cell.get_data_ptrs_ref())?;
-                cell_records_to_store.push(None);
-                existing_record_cell_id += 1;
+
+        let mut cells_context = Vec::new();
+        for index in 0..main_node_record.cells.len() {
+            if main_node_record.cells[index].is_active() {
+                cells_context.push(CellChangeContext::old(index));
             } else {
-                cell_records_to_store.push(None);
-                existing_record_cell_id += 1;
+                break;
             }
         }
 
-        //store new cell values and delete unused cells
-        for cell_id in 0..main_node_record.cells.len() {
-            if cell_id < cell_records_to_store.len() {
-                if let Some(cell_record) = &cell_records_to_store[cell_id] {
-                    main_node_record.cells[cell_id] = *cell_record;
+        //replay change log
+        let mut list_old_ids_to_delete = Vec::new();
+        for cell_change_log in node.get_node_changes_state().get_list_change_log() {
+            if cell_change_log.is_remove() {
+                let index = cell_change_log.index();
+                let ctx = &cells_context[index];
+                if !ctx.is_added {
+                    list_old_ids_to_delete.push(ctx.old_cell_id)
                 }
-            } else if main_node_record.cells[cell_id].is_active() {
-                self.delete_cell_records_from_root_cell(&mut main_node_record.cells[cell_id], id);
+                cells_context.remove(index);
+            } else if cell_change_log.is_add() {
+                let index = cell_change_log.index();
+                cells_context.insert(index, CellChangeContext::added());
             }
         }
+
+        //delete old records
+        for cell_id in list_old_ids_to_delete {
+            self.delete_cell_records_from_root_cell(&mut main_node_record.cells[cell_id], id);
+        }
+
+        //move and update old records
+        let mut new_cell_id = 0;
+        for ctx in &cells_context {
+            if !ctx.is_added {
+                main_node_record.cells[new_cell_id] = main_node_record.cells[ctx.old_cell_id];
+                let current_cell = node.get_cell_ref(new_cell_id);
+                if current_cell.get_change_state().did_list_data_ptr_changed() {
+                    self.update_cell_data_ptrs(&main_node_record.cells[new_cell_id], current_cell.get_data_ptrs_ref())?;
+                }
+            }
+            new_cell_id += 1;
+        }
+
+        //create new records
+        new_cell_id = 0;
+        for ctx in &cells_context {
+            if ctx.is_added {
+                let current_cell = node.get_cell_ref(new_cell_id);
+                let cell_records = self.create_cell(current_cell)?;
+                main_node_record.cells[new_cell_id] = cell_records[0];
+            }
+            new_cell_id += 1;
+        }
+
         self.save_node_record(id, &main_node_record)?;
 
         Some(())
@@ -630,9 +658,25 @@ mod test_btree_node_store {
             assert!(false);
         }
         
-        
+    }
+}
 
-        
+struct CellChangeContext {
+    old_cell_id: usize,
+    is_added: bool,
+}
 
+impl CellChangeContext {
+    fn added() -> Self {
+        CellChangeContext {
+            old_cell_id: 0,
+            is_added: true,
+        }
+    }
+    fn old(index: usize) -> Self {
+        CellChangeContext {
+            old_cell_id: index,
+            is_added: false,
+        }
     }
 }

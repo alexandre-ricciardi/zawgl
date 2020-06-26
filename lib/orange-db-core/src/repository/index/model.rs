@@ -12,7 +12,10 @@ pub struct CellChangeState {
 
 impl CellChangeState {
     fn new(new: bool) -> Self {
-        CellChangeState{is_new_instance: new, is_added: false, is_removed: false, list_data_pointer_changed: false}
+        CellChangeState{is_new_instance: new, 
+            is_added: false,
+            is_removed: false, 
+            list_data_pointer_changed: false}
     }
     fn set_is_removed(&mut self) {
         self.is_removed = true;
@@ -75,14 +78,42 @@ impl Cell {
 
 }
 
+pub struct CellChangeLogItem {
+    is_add: bool,
+    is_remove: bool,
+    index: usize,
+}
+
+impl CellChangeLogItem {
+    fn new(index: usize, is_added: bool, is_removed: bool) -> Self {
+        CellChangeLogItem{is_add: is_added, is_remove: is_removed, index: index}
+    }
+
+    pub fn is_remove(&self) -> bool {
+        self.is_remove
+    }
+
+    pub fn is_add(&self) -> bool {
+        self.is_add
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+}
+
+
 pub struct NodeChangeState {
     node_ptr_changed: bool,
     is_new_instance: bool,
+    list_cell_change_log_items: Vec<CellChangeLogItem>,
 }
 
 impl NodeChangeState {
     fn new(is_new_instance: bool) -> Self {
-        NodeChangeState{node_ptr_changed: false, is_new_instance: is_new_instance}
+        NodeChangeState{node_ptr_changed: false, 
+            is_new_instance: is_new_instance,
+            list_cell_change_log_items: Vec::new()}
     }
 
     pub fn did_node_ptr_changed(&self) -> bool {
@@ -90,6 +121,9 @@ impl NodeChangeState {
     }
     pub fn is_new_instance(&self) -> bool {
         self.is_new_instance
+    }
+    pub fn get_list_change_log(&self) -> &Vec<CellChangeLogItem> {
+        &self.list_cell_change_log_items
     }
 }
 
@@ -104,11 +138,13 @@ pub struct BTreeNode {
 
 impl BTreeNode {
     pub fn new(is_leaf: bool, is_root: bool, cells: Vec<Cell>) -> Self {
-        BTreeNode{id: None, cells: cells, node_ptr: None, is_leaf: is_leaf, is_root: is_root, node_change_state: NodeChangeState::new(true)}
+        let state = NodeChangeState::new(true);
+        BTreeNode{id: None, cells: cells, node_ptr: None, is_leaf: is_leaf, is_root: is_root, node_change_state: state}
     }
 
     pub fn new_with_id(id: Option<NodeId>, node_ptr: Option<NodeId>, is_leaf: bool, is_root: bool, cells: Vec<Cell>) -> Self {
-        BTreeNode{id: id, cells: cells, node_ptr: node_ptr, is_leaf: is_leaf, is_root: is_root, node_change_state: NodeChangeState::new(false)}
+        let state = NodeChangeState::new(false);
+        BTreeNode{id: id, cells: cells, node_ptr: node_ptr, is_leaf: is_leaf, is_root: is_root, node_change_state: state}
     }
 
     pub fn is_full(&self) -> bool {
@@ -135,11 +171,22 @@ impl BTreeNode {
 
     pub fn insert_cell(&mut self, index: usize, mut cell: Cell) {
         cell.cell_change_state.set_is_added();
+        let cell_change_log = CellChangeLogItem::new(index,true, false);
+        self.node_change_state.list_cell_change_log_items.push(cell_change_log);
         self.cells.insert(index, cell);
+    }
+
+    pub fn remove_cell(&mut self, index: usize) {
+        let to_remove = &mut self.cells[index];
+        to_remove.cell_change_state.set_is_removed();
+        let cell_change_log = CellChangeLogItem::new(index,false, true);
+        self.node_change_state.list_cell_change_log_items.push(cell_change_log);
     }
 
     pub fn pop_cell(&mut self) -> Option<Cell> {
         let mut cell = self.cells.pop()?;
+        let cell_change_log = CellChangeLogItem::new(self.cells.len(),false, true);
+        self.node_change_state.list_cell_change_log_items.push(cell_change_log);
         cell.cell_change_state.set_is_removed();
         Some(cell)
     }
