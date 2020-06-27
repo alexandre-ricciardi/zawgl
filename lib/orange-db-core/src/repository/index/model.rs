@@ -3,6 +3,7 @@ use super::super::super::config::*;
 pub type NodeId = u64;
 pub type CellId = u32;
 
+#[derive(Clone)]
 pub struct CellChangeState {
     is_new_instance: bool,
     is_added: bool,
@@ -33,7 +34,7 @@ impl CellChangeState {
         self.list_data_pointer_changed
     }
 }
-
+#[derive(Clone)]
 pub struct Cell {
     key: String,
     node_ptr: Option<NodeId>,
@@ -74,7 +75,9 @@ impl Cell {
     pub fn get_change_state(&self) -> &CellChangeState {
         &self.cell_change_state
     }
-
+    pub fn set_node_ptr(&mut self, id: Option<NodeId>) {
+        self.node_ptr = id;
+    }
 
 }
 
@@ -200,8 +203,8 @@ impl BTreeNode {
     }
     
 
-    pub fn set_root(&mut self) {
-        self.is_root = true;
+    pub fn set_is_root(&mut self, is_root: bool) {
+        self.is_root = is_root;
     }
     
     pub fn is_root(&self) -> bool {

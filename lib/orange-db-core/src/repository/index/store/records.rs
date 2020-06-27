@@ -151,6 +151,9 @@ impl BNodeRecord {
     pub fn set_root(&mut self) {
         self.header = self.header | IS_ROOT_NODE_FLAG;
     }
+    pub fn set_is_not_root(&mut self) {
+        self.header = self.header & !IS_ROOT_NODE_FLAG;
+    }
     
     pub fn is_overflow_node(&self) -> bool {
         (self.header & IS_OVERFLOW_NODE_FLAG) > 0

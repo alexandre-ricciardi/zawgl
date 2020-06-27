@@ -472,6 +472,11 @@ impl BTreeNodeStore {
 
         let mut main_node_record = self.load_node_record(id)?;
 
+        if !node.is_root() {
+            main_node_record.set_is_not_root();
+        } else {
+            self.set_root_node_ptr(id);
+        }
         let mut cells_context = Vec::new();
         for index in 0..main_node_record.cells.len() {
             if main_node_record.cells[index].is_active() {

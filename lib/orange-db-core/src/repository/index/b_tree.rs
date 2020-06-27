@@ -29,8 +29,13 @@ impl BTreeIndex {
                 if node.is_leaf() {
                     None
                 } else {
-                    let child = node.get_cell_ref(not_found).get_node_ptr().and_then(|id|self.node_store.retrieve_node(id))?;
-                    self.tree_search(value, &child)
+                    if not_found == 0 {
+                        let child = node.get_node_ptr().and_then(|id|self.node_store.retrieve_node(id))?;
+                        self.tree_search(value, &child)
+                    } else {
+                        let child = node.get_cell_ref(not_found).get_node_ptr().and_then(|id|self.node_store.retrieve_node(id))?;
+                        self.tree_search(value, &child)
+                    }
                 }
             }
         }
@@ -47,6 +52,7 @@ impl BTreeIndex {
             }
         }
         new_node_cells.reverse();
+        let mut middle_key = new_node_cells[0].clone();
         let mut new = BTreeNode::new(true, false, new_node_cells);
 
         if node.get_node_ptr().is_some() {
@@ -56,6 +62,16 @@ impl BTreeIndex {
         
         self.node_store.create(&mut new)?;
         node.set_node_ptr(new.get_id());
+        
+
+        if node.is_root() {
+            node.set_is_root(false);
+            middle_key.set_node_ptr(new.get_id());
+            let mut new_root = BTreeNode::new(false, true, vec![middle_key]);
+            new_root.set_node_ptr(node.get_id());
+            self.node_store.create(&mut new_root)?;
+        }
+
         self.node_store.save(node)?;
         Some(new)
     }
@@ -99,7 +115,13 @@ impl BTreeIndex {
                         None
                     }
                 } else {
-                    let mut child = node.get_cell_ref(not_found).get_node_ptr().and_then(|id|self.node_store.retrieve_node(id))?;
+                    let mut node_ptr = node.get_node_ptr()?;
+                    if not_found == node.get_cells_ref().len() {
+                        node_ptr = node.get_cell_ref(not_found - 1).get_node_ptr()?;
+                    } else if not_found != 0 {
+                        node_ptr = node.get_cell_ref(not_found).get_node_ptr()?;
+                    }
+                    let mut child = self.node_store.retrieve_node(node_ptr)?;
                     let split_node = self.insert_or_update_key_ptrs(value, data_ptr, &mut child)?;
                     let first_cell = split_node.get_cell_ref(0);
                     let first_split_cell_key_search = keys.binary_search(first_cell.get_key());
