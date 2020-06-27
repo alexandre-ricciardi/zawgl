@@ -150,6 +150,9 @@ mod test_b_tree {
         let mut index = BTreeIndex::new(file);
         let key = "a short key";
         index.insert(key, 42);
+        let long_key = "a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key ";
+        index.insert(long_key, 87968567);
+
 
         let data_ptrs = index.search(key);
 
@@ -172,6 +175,29 @@ mod test_b_tree {
             assert!(ptrs.contains(&56));
         } else {
             assert!(false);
+        }
+
+        let data_ptrs_2 = index.search(long_key).unwrap();
+        assert_eq!(data_ptrs_2.len(), 1);
+        assert!(data_ptrs_2.contains(&87968567));
+    }
+
+    #[test]
+    fn test_root_split() {
+        let file = "C:\\Temp\\test_b_tree_root_split.db";
+        std::fs::remove_file(file);
+        let mut index = BTreeIndex::new(file);
+
+        for i in 0..100 {
+            index.insert(&format!("key # {}", i), i);
+        }
+
+        index.sync();
+
+        for i in 0..100 {
+            let ptrs = index.search(&format!("key # {}", i)).unwrap();
+            assert_eq!(ptrs.len(), 1);
+            assert!(ptrs.contains(&i));
         }
 
     }

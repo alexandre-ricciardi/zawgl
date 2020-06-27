@@ -166,18 +166,6 @@ impl BNodeRecord {
         self.header = self.header | HAS_NEXT_NODE_FLAG;
     }
 
-    pub fn contains_free_cells(&self) -> bool {
-        let mut is_free_node = false;
-        for cell_id in 0..self.cells.len() {
-            let cell = self.cells[cell_id];
-            if !cell.is_active() {
-                is_free_node = true;
-                break;
-            }
-        }
-        is_free_node
-    }
-
     pub fn new() -> Self {
         BNodeRecord{header: 0, next_free_cells_node_ptr: 0, cells: [CellRecord::new(); NB_CELL], ptr: 0}
     }
@@ -205,10 +193,21 @@ mod test_btree_node_records {
         node.set_has_next_node();
         node.cells[0].set_is_active();
         let bytes = node.to_bytes();
-        let from = BNodeRecord::from_bytes(bytes);
+        let mut from = BNodeRecord::from_bytes(bytes);
 
         assert!(from.is_leaf());
         assert!(from.has_next_node());
         assert!(from.cells[0].is_active());
+        from.cells[0].set_is_list_ptr();
+        from.cells[0].set_inactive();
+
+        let fbytes = from.to_bytes();
+        let from_1 = BNodeRecord::from_bytes(fbytes);
+
+        assert!(from_1.is_leaf());
+        assert!(from_1.has_next_node());
+        assert!(!from_1.cells[0].is_active());
+        assert!(from_1.cells[0].is_list_ptr());
+
     }
 }
