@@ -174,7 +174,7 @@ impl BTreeNode {
 
     pub fn insert_cell(&mut self, index: usize, mut cell: Cell) {
         cell.cell_change_state.set_is_added();
-        let cell_change_log = CellChangeLogItem::new(index,true, false);
+        let cell_change_log = CellChangeLogItem::new(index, true, false);
         self.node_change_state.list_cell_change_log_items.push(cell_change_log);
         self.cells.insert(index, cell);
     }

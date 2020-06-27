@@ -6,6 +6,15 @@ pub struct BTreeIndex {
     node_store: BTreeNodeStore,
 }
 
+fn get_node_ptr(not_found_index: usize, node: &BTreeNode) -> Option<NodeId> {
+    let mut node_ptr = node.get_node_ptr()?;
+    if not_found_index == node.get_cells_ref().len() {
+        node_ptr = node.get_cell_ref(not_found_index - 1).get_node_ptr()?;
+    } else if not_found_index != 0 {
+        node_ptr = node.get_cell_ref(not_found_index).get_node_ptr()?;
+    }
+    Some(node_ptr)
+}
 
 
 impl BTreeIndex {
@@ -29,13 +38,9 @@ impl BTreeIndex {
                 if node.is_leaf() {
                     None
                 } else {
-                    if not_found == 0 {
-                        let child = node.get_node_ptr().and_then(|id|self.node_store.retrieve_node(id))?;
-                        self.tree_search(value, &child)
-                    } else {
-                        let child = node.get_cell_ref(not_found).get_node_ptr().and_then(|id|self.node_store.retrieve_node(id))?;
-                        self.tree_search(value, &child)
-                    }
+                    let node_ptr = get_node_ptr(not_found, &node)?;
+                    let child = self.node_store.retrieve_node(node_ptr)?;
+                    self.tree_search(value, &child)
                 }
             }
         }
@@ -115,12 +120,7 @@ impl BTreeIndex {
                         None
                     }
                 } else {
-                    let mut node_ptr = node.get_node_ptr()?;
-                    if not_found == node.get_cells_ref().len() {
-                        node_ptr = node.get_cell_ref(not_found - 1).get_node_ptr()?;
-                    } else if not_found != 0 {
-                        node_ptr = node.get_cell_ref(not_found).get_node_ptr()?;
-                    }
+                    let node_ptr = get_node_ptr(not_found, &node)?;
                     let mut child = self.node_store.retrieve_node(node_ptr)?;
                     let split_node = self.insert_or_update_key_ptrs(value, data_ptr, &mut child)?;
                     let first_cell = split_node.get_cell_ref(0);
@@ -217,9 +217,14 @@ mod test_b_tree {
         index.sync();
 
         for i in 0..100 {
-            let ptrs = index.search(&format!("key # {}", i)).unwrap();
-            assert_eq!(ptrs.len(), 1);
-            assert!(ptrs.contains(&i));
+            let optrs = index.search(&format!("key # {}", i));
+            if let Some(ptrs) = optrs {
+                assert_eq!(ptrs.len(), 1);
+                assert!(ptrs.contains(&i));
+            } else {
+                assert!(false, format!("empty search result for key # {}", i));
+            }
+            
         }
 
     }

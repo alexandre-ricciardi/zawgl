@@ -129,6 +129,7 @@ impl BTreeNodeStore {
             Some((0, first_node))
         } else {
             let mut first_node = self.load_first_node_record()?;
+
             if first_node.is_overflow_node() && !first_node.is_full() {
                 Some((0, first_node))
             } else {
@@ -184,6 +185,9 @@ impl BTreeNodeStore {
                 
                 reverse_cell_id += 1;
                 if reverse_cell_id >= reverse_cell_records.len() {
+                    if curr_cell_id >= NB_CELL - 1 {
+                        self.pop_node_record_from_free_list(&free_cells_node_record.1);
+                    }
                     self.save_node_record(free_cells_node_record.0, &free_cells_node_record.1)?;
                     break;
                 }
@@ -457,6 +461,7 @@ impl BTreeNodeStore {
         let mut first_node = self.load_first_node_record()?;
         node_record.next_free_cells_node_ptr = first_node.next_free_cells_node_ptr;
         first_node.next_free_cells_node_ptr = node_record_id;
+        println!("current first node free list ptr (append_node_record_to_free_list) = {}", first_node.next_free_cells_node_ptr);
         self.save_first_node_record(&first_node)?;
         Some(())
     }
@@ -502,6 +507,8 @@ impl BTreeNodeStore {
             }
         }
 
+        let old_cell_records = main_node_record.cells;
+
         //delete old records
         for cell_id in list_old_ids_to_delete {
             self.delete_cell_records_from_root_cell(&mut main_node_record.cells[cell_id]);
@@ -511,7 +518,7 @@ impl BTreeNodeStore {
         let mut new_cell_id = 0;
         for ctx in &cells_context {
             if !ctx.is_added {
-                main_node_record.cells[new_cell_id] = main_node_record.cells[ctx.old_cell_id];
+                main_node_record.cells[new_cell_id] = old_cell_records[ctx.old_cell_id];
                 let current_cell = node.get_cell_ref(new_cell_id);
                 if current_cell.get_change_state().did_list_data_ptr_changed() {
                     self.update_cell_data_ptrs(&main_node_record.cells[new_cell_id], current_cell.get_data_ptrs_ref())?;

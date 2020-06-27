@@ -108,6 +108,7 @@ impl BNodeRecord {
         index += BTREE_NODE_HEADER_SIZE;
         bytes[index..index+NODE_PTR_SIZE].copy_from_slice(&self.ptr.to_be_bytes());
         index += NODE_PTR_SIZE;
+        
         bytes[index..index+FREE_CELLS_NEXT_NODE_PTR_SIZE].copy_from_slice(&self.next_free_cells_node_ptr.to_be_bytes());
         index += FREE_CELLS_NEXT_NODE_PTR_SIZE;
         for cell_id in 0..NB_CELL {
@@ -193,12 +194,14 @@ mod test_btree_node_records {
     fn test_bytes() {
         let mut node = BNodeRecord::new();
         node.set_leaf();
+        node.next_free_cells_node_ptr = 28967;
         node.set_has_next_node();
         node.cells[0].set_is_active();
         let bytes = node.to_bytes();
         let mut from = BNodeRecord::from_bytes(bytes);
 
         assert!(from.is_leaf());
+        assert_eq!(from.next_free_cells_node_ptr, 28967);
         assert!(from.has_next_node());
         assert!(from.cells[0].is_active());
         from.cells[0].set_is_list_ptr();
