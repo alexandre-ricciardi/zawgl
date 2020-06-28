@@ -34,7 +34,6 @@ impl CellChangeState {
         self.list_data_pointer_changed
     }
 }
-#[derive(Clone)]
 pub struct Cell {
     key: String,
     node_ptr: Option<NodeId>,
@@ -154,11 +153,11 @@ impl BTreeNode {
         self.cells.len() == NB_CELL
     }
 
-    pub fn get_keys(&self) -> Vec<String> {
-        let mut res = Vec::new();
+    pub fn get_keys(&self) -> Vec<&str> {
+        let mut res: Vec<&str> = Vec::new();
         for cell in &self.cells {
             if cell.is_active {
-                res.push(cell.key.to_owned());
+                res.push(&cell.key);
             }
         }
         res
