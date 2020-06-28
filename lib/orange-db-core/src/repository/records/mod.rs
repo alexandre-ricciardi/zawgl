@@ -73,7 +73,19 @@ impl <'a> HeaderPageWrapper<'a> {
         let bounds = self.page_map.header_page_records_counter;
         self.get_header_slice_mut(bounds).copy_from_slice(&id.to_be_bytes());
     }
+    
+    pub fn get_header_records_version_counter(&self) -> RecordId {
+        let mut bytes = [0u8; RECORDS_COUNTER_SIZE];
+        bytes.copy_from_slice(self.get_header_slice_ref(self.page_map.header_page_records_version_counter));
+        u64::from_be_bytes(bytes)
+    }
+    
+    fn set_header_records_version_counter(&'a mut self, id: RecordId) {
+        let bounds = self.page_map.header_page_records_version_counter;
+        self.get_header_slice_mut(bounds).copy_from_slice(&id.to_be_bytes());
+    }
 }
+
 struct RecordPageWrapper<'a> {
     page: Page<'a>,
     page_map: PageMap,
@@ -207,6 +219,7 @@ struct PageMap {
     is_multi_page_record: bool,
     header_page_free_list_ptr: Bounds,
     header_page_records_counter: Bounds,
+    header_page_records_version_counter: Bounds,
     header_page_payload: Bounds,
 }
 
@@ -235,6 +248,7 @@ fn compute_page_map(nb_records_per_page: usize, nb_pages_per_record: usize) -> P
     let payload_bounds = Bounds::new(free_list_bounds.end, PAGE_SIZE);
     let header_page_free_list_ptr_bounds = Bounds::new(PAGE_COUNTER_SIZE, PAGE_COUNTER_SIZE + FIRST_FREE_PAGE_PTR);
     let header_page_records_counter_bounds = header_page_free_list_ptr_bounds.shift(RECORDS_COUNTER_SIZE);
+    let header_page_records_version_counter_bounds = header_page_records_counter_bounds.shift(RECORDS_COUNTER_SIZE);
     let header_page_payload_bounds = Bounds::new(header_page_records_counter_bounds.end, PAGE_SIZE);
     PageMap{
         header_flags: header_flags_bounds,
@@ -248,6 +262,7 @@ fn compute_page_map(nb_records_per_page: usize, nb_pages_per_record: usize) -> P
         payload: payload_bounds,
         header_page_free_list_ptr: header_page_free_list_ptr_bounds,
         header_page_records_counter: header_page_records_counter_bounds,
+        header_page_records_version_counter: header_page_records_version_counter_bounds,
         header_page_payload: header_page_payload_bounds,
     }
 }
@@ -342,7 +357,14 @@ impl RecordsManager {
                 wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(next_free_page_ptr);
             }
         }
+        self.increment_records_version_counter();
         Ok(())
+    }
+
+    fn increment_records_version_counter(&mut self) {
+        let header = self.pager.get_header_page_mut();
+        let mut wrapper = HeaderPageWrapper::new(header, self.page_map);
+        wrapper.set_header_records_counter(wrapper.get_header_records_version_counter() + 1);
     }
 
     fn increment_records_counter(&mut self) {
@@ -421,6 +443,7 @@ impl RecordsManager {
                 
             }
         }
+        self.increment_records_version_counter();
         self.increment_records_counter();
         Ok(record_id)
     }
@@ -463,6 +486,7 @@ impl RecordsManager {
             rpage.get_header_page_wrapper().set_header_first_free_page_ptr(loc.page_id);
         }
         self.decrement_records_counter();
+        self.increment_records_version_counter();
         Ok(())
     }
 

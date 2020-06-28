@@ -123,33 +123,31 @@ impl BTreeNodeStore {
 
     fn load_or_create_free_cells_overflow_node(&mut self) -> Option<(NodeId, BNodeRecord)> {
         if self.records_manager.is_empty() {
-            let mut first_node = BNodeRecord::new();
-            first_node.set_overflow_node();
-            self.create_node_record(&first_node)?;
-            Some((0, first_node))
+            let mut first_free_node = BNodeRecord::new();
+            first_free_node.set_overflow_node();
+            let id = self.create_node_record(&first_free_node)?;
+            self.set_first_free_list_node_ptr(id);
+            Some((id, first_free_node))
         } else {
-            let mut first_node = self.load_first_node_record()?;
-
-            if first_node.is_overflow_node() && !first_node.is_full() {
-                Some((0, first_node))
-            } else {
-                if first_node.next_free_cells_node_ptr == 0 {
-                    let next_free_cells_overflow_node = self.create_overflow_node()?;
-                    first_node.next_free_cells_node_ptr = next_free_cells_overflow_node.0;
-                    self.save_first_node_record(&first_node)?;
-                    Some(next_free_cells_overflow_node)
+            let first_free_record_ptr = self.get_first_free_list_node_ptr();
+            if first_free_record_ptr == 0 {
+                let first_free_node_record = self.load_node_record(first_free_record_ptr)?;
+                if first_free_node_record.is_overflow_node() && !first_free_node_record.is_full() {
+                    Some((first_free_record_ptr, first_free_node_record))
                 } else {
-                    let free_node_record = self.load_node_record(first_node.next_free_cells_node_ptr)?;
-                    if free_node_record.is_full() {
-                        first_node.next_free_cells_node_ptr = free_node_record.next_free_cells_node_ptr;
-                        self.save_first_node_record(&first_node)?;
-                        self.load_or_create_free_cells_overflow_node()
-                    } else {
-                        Some((first_node.next_free_cells_node_ptr, free_node_record))
-                    }
+                    let next_free_cells_overflow_node = self.create_overflow_node()?;
+                    self.set_first_free_list_node_ptr(next_free_cells_overflow_node.0);
+                    Some(next_free_cells_overflow_node)
+                }
+            } else {
+                let free_node_record = self.load_node_record(first_free_record_ptr)?;
+                if free_node_record.is_full() {
+                    self.set_first_free_list_node_ptr(free_node_record.next_free_cells_node_ptr);
+                    self.load_or_create_free_cells_overflow_node()
+                } else {
+                    Some((first_free_record_ptr, free_node_record))
                 }
             }
-            
         }
     }
 
@@ -206,11 +204,8 @@ impl BTreeNodeStore {
         Some((prev_node_ptr, curr_cell_id as u32))
     }
 
-    fn pop_node_record_from_free_list(&mut self, node_record: &BNodeRecord) -> Option<()> {
-        let mut first_node = self.load_first_node_record()?;
-        first_node.next_free_cells_node_ptr = node_record.next_free_cells_node_ptr;
-        self.save_first_node_record(&first_node)?;
-        Some(())
+    fn pop_node_record_from_free_list(&mut self, node_record: &BNodeRecord) {
+        self.set_first_free_list_node_ptr(node_record.next_free_cells_node_ptr);
     }
 
     fn create_cell(&mut self, cell: &Cell) -> Option<Vec<CellRecord>> {
@@ -288,14 +283,6 @@ impl BTreeNodeStore {
         }
 
         Some(cell_records)
-    }
-
-    fn load_first_node_record(&mut self) -> Option<BNodeRecord> {
-        self.load_node_record(0)
-    }
-
-    fn save_first_node_record(&mut self, node_record: &BNodeRecord) -> Option<()> {
-        self.save_node_record(0, node_record)
     }
 
     fn load_node_record(&mut self, id: NodeId) -> Option<BNodeRecord> {
@@ -446,7 +433,7 @@ impl BTreeNodeStore {
         for cell in cell_records_to_delete {
             let mut current_node_record = self.load_node_record(curr_node_id)?;
             if current_node_record.is_full() {
-                self.append_node_record_to_free_list(curr_node_id, &mut current_node_record)?;
+                self.append_node_record_to_free_list(curr_node_id, &mut current_node_record);
             }
             let current_cell = &mut current_node_record.cells[curr_cell_id as usize];
             current_cell.set_inactive();
@@ -457,13 +444,9 @@ impl BTreeNodeStore {
         Some(())
     }
 
-    fn append_node_record_to_free_list(&mut self, node_record_id: NodeId, node_record: &mut BNodeRecord) -> Option<()> {
-        let mut first_node = self.load_first_node_record()?;
-        node_record.next_free_cells_node_ptr = first_node.next_free_cells_node_ptr;
-        first_node.next_free_cells_node_ptr = node_record_id;
-        println!("current first node free list ptr (append_node_record_to_free_list) = {}", first_node.next_free_cells_node_ptr);
-        self.save_first_node_record(&first_node)?;
-        Some(())
+    fn append_node_record_to_free_list(&mut self, node_record_id: NodeId, node_record: &mut BNodeRecord) {
+        node_record.next_free_cells_node_ptr = self.get_first_free_list_node_ptr();
+        self.set_first_free_list_node_ptr(node_record_id);
     }
 
     fn delete_cell_records_from_root_cell(&mut self, root_cell_record: &mut CellRecord) -> Option<()> {
@@ -551,6 +534,16 @@ impl BTreeNodeStore {
 
     fn set_root_node_ptr(&mut self, id: NodeId) {
         self.records_manager.get_header_page_wrapper().get_header_payload_slice_mut()[..NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
+    }
+
+    fn get_first_free_list_node_ptr(&mut self) -> NodeId {
+        let mut buf = [0u8; NODE_PTR_SIZE];
+        buf.copy_from_slice(&self.records_manager.get_header_page_wrapper().get_header_payload_slice_ref()[NODE_PTR_SIZE..2*NODE_PTR_SIZE]);
+        u64::from_be_bytes(buf)
+    }
+
+    fn set_first_free_list_node_ptr(&mut self, id: NodeId) {
+        self.records_manager.get_header_page_wrapper().get_header_payload_slice_mut()[NODE_PTR_SIZE..2*NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
     }
 
     pub fn load_or_create_root_node(&mut self) -> Option<BTreeNode> {
