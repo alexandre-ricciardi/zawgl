@@ -17,18 +17,6 @@ impl GraphRepository {
             count_booked_node_ids: 0}
     }
 
-    pub fn gen_node_id(&mut self) -> u64 {
-        self.nodes_store.gen_node_id()
-    }
-
-    pub fn gen_relationship_id(&mut self) -> u64 {
-        self.relationships_store.gen_relationship_id()
-    }
-
-    pub fn reserve_relationship_ids(&mut self, n: u64) -> Vec<u64> {
-        Vec::new()
-    }
-
     pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> Vec<u64> {
         Vec::new()
     }

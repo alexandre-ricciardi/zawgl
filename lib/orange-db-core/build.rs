@@ -25,6 +25,21 @@ const CELL_SIZE: usize = KEY_SIZE + NODE_PTR_SIZE + CELL_HEADER_SIZE + OVERFLOW_
 const BTREE_NODE_RECORD_SIZE: usize = BTREE_NODE_HEADER_SIZE + CELL_SIZE * NB_CELL + NODE_PTR_SIZE + FREE_CELLS_NEXT_NODE_PTR_SIZE;
 const OVERFLOW_CELL_PTR_SIZE: usize = 4;
 
+//NODES && RELATIONSHIPS && PROPERTIES
+const NODE_HEADER_SIZE: usize = 1;
+const RELATIONSHIP_HEADER_SIZE: usize = 1;
+const PROPERTY_HEADER_SIZE: usize = 1;
+const NODE_ID_SIZE: usize = 8;
+const RELATIONSHIP_ID_SIZE: usize = 8;
+const RELATIONSHIP_TYPE_SIZE: usize = 8;
+const PROPERTY_ID_SIZE: usize = 8;
+const PROPERTY_TYPE_SIZE: usize = 1;
+const PROPERTY_KEY_ID_SIZE: usize = 1;
+const PROPERTY_BLOCK_SIZE: usize = 24;
+const NODE_RECORD_SIZE: usize = NODE_HEADER_SIZE + RELATIONSHIP_ID_SIZE + PROPERTY_ID_SIZE;
+const RELATIONSHIP_RECORD_SIZE: usize = RELATIONSHIP_HEADER_SIZE + 2 * NODE_ID_SIZE + RELATIONSHIP_TYPE_SIZE + 4 * RELATIONSHIP_ID_SIZE + PROPERTY_ID_SIZE;
+const PROPERTY_RECORD_SIZE: usize = PROPERTY_HEADER_SIZE + PROPERTY_KEY_ID_SIZE + PROPERTY_TYPE_SIZE + PROPERTY_BLOCK_SIZE + PROPERTY_ID_SIZE;
+
 const fn max_nb_records(record_size: usize) -> usize {
     (PAGE_SIZE - HEADER_SIZE) / record_size
 }
@@ -111,6 +126,42 @@ fn generate_config() -> Result<()> {
     writeln!(config, "pub const BTREE_NODE_HEADER_SIZE: usize = {};", BTREE_NODE_HEADER_SIZE)?;
     writeln!(config, "pub const BTREE_NB_RECORDS_PER_PAGE: usize = {};", nb_records_per_page)?;
     writeln!(config, "pub const BTREE_NB_PAGES_PER_RECORD: usize = {};", nb_pages_per_record)?;
+
+
+    let nb_node_records_per_page = compute_nb_records_per_page(NODE_RECORD_SIZE);
+    let nb_pages_per_node_record = compute_nb_pages_per_record(NODE_RECORD_SIZE);
+    writeln!(config, "//NODES")?;
+    writeln!(config, "//PAGE PAYLOAD SIZE {} BYTES", compute_page_payload_size(nb_node_records_per_page))?;
+    writeln!(config, "//UNUSED SPACE {} BYTES", compute_page_free_space_size(NODE_RECORD_SIZE, nb_node_records_per_page, nb_pages_per_node_record))?;
+    writeln!(config, "pub const NODE_HEADER_SIZE: usize = {};", NODE_HEADER_SIZE)?;
+    writeln!(config, "pub const NODE_ID_SIZE: usize = {};", NODE_ID_SIZE)?;
+    writeln!(config, "pub const NODE_RECORD_SIZE: usize = {};", NODE_RECORD_SIZE)?;
+    writeln!(config, "pub const NODE_NB_RECORDS_PER_PAGE: usize = {};", nb_node_records_per_page)?;
+    writeln!(config, "pub const NODE_NB_PAGES_PER_RECORD: usize = {};", nb_pages_per_node_record)?;
+
+    let nb_relationship_records_per_page = compute_nb_records_per_page(RELATIONSHIP_RECORD_SIZE);
+    let nb_pages_per_relationship_record = compute_nb_pages_per_record(RELATIONSHIP_RECORD_SIZE);
+    writeln!(config, "//RELATIONSHIPS")?;
+    writeln!(config, "//PAGE PAYLOAD SIZE {} BYTES", compute_page_payload_size(nb_relationship_records_per_page))?;
+    writeln!(config, "//UNUSED SPACE {} BYTES", compute_page_free_space_size(RELATIONSHIP_RECORD_SIZE, nb_relationship_records_per_page, nb_pages_per_relationship_record))?;
+    writeln!(config, "pub const RELATIONSHIP_HEADER_SIZE: usize = {};", RELATIONSHIP_HEADER_SIZE)?;
+    writeln!(config, "pub const RELATIONSHIP_ID_SIZE: usize = {};", RELATIONSHIP_ID_SIZE)?;
+    writeln!(config, "pub const RELATIONSHIP_RECORD_SIZE: usize = {};", RELATIONSHIP_RECORD_SIZE)?;
+    writeln!(config, "pub const RELATIONSHIP_NB_RECORDS_PER_PAGE: usize = {};", nb_relationship_records_per_page)?;
+    writeln!(config, "pub const RELATIONSHIP_NB_PAGES_PER_RECORD: usize = {};", nb_pages_per_relationship_record)?;
+
+    let nb_property_records_per_page = compute_nb_records_per_page(PROPERTY_RECORD_SIZE);
+    let nb_pages_per_property_record = compute_nb_pages_per_record(PROPERTY_RECORD_SIZE);
+    writeln!(config, "//PROPERTIES")?;
+    writeln!(config, "//PAGE PAYLOAD SIZE {} BYTES", compute_page_payload_size(nb_property_records_per_page))?;
+    writeln!(config, "//UNUSED SPACE {} BYTES", compute_page_free_space_size(NODE_RECORD_SIZE, nb_property_records_per_page, nb_pages_per_property_record))?;
+    writeln!(config, "pub const PROPERTY_HEADER_SIZE: usize = {};", PROPERTY_HEADER_SIZE)?;
+    writeln!(config, "pub const PROPERTY_ID_SIZE: usize = {};", PROPERTY_ID_SIZE)?;
+    writeln!(config, "pub const PROPERTY_BLOCK_SIZE: usize = {};", PROPERTY_BLOCK_SIZE)?;
+    writeln!(config, "pub const PROPERTY_RECORD_SIZE: usize = {};", PROPERTY_RECORD_SIZE)?;
+    writeln!(config, "pub const PROPERTY_NB_RECORDS_PER_PAGE: usize = {};", nb_property_records_per_page)?;
+    writeln!(config, "pub const PROPERTY_NB_PAGES_PER_RECORD: usize = {};", nb_pages_per_property_record)?;
+
     Ok(())
 }
 

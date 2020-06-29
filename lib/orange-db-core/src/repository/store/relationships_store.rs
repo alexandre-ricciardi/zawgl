@@ -17,9 +17,6 @@ impl RelationshipsStore {
         self.relationship_records_store.load(rel_id, &mut data);
         rr_from_bytes(data)
     }
-    pub fn gen_relationship_id(&mut self) -> u64 {
-        self.relationship_records_store.next_free_record_id()
-    }
 }
 
 

@@ -24,3 +24,28 @@ pub const OVERFLOW_CELL_PTR_SIZE: usize = 4;
 pub const BTREE_NODE_HEADER_SIZE: usize = 1;
 pub const BTREE_NB_RECORDS_PER_PAGE: usize = 1;
 pub const BTREE_NB_PAGES_PER_RECORD: usize = 0;
+//NODES
+//PAGE PAYLOAD SIZE 3299 BYTES
+//UNUSED SPACE 1 BYTES
+pub const NODE_HEADER_SIZE: usize = 1;
+pub const NODE_ID_SIZE: usize = 8;
+pub const NODE_RECORD_SIZE: usize = 17;
+pub const NODE_NB_RECORDS_PER_PAGE: usize = 194;
+pub const NODE_NB_PAGES_PER_RECORD: usize = 0;
+//RELATIONSHIPS
+//PAGE PAYLOAD SIZE 3839 BYTES
+//UNUSED SPACE 4 BYTES
+pub const RELATIONSHIP_HEADER_SIZE: usize = 1;
+pub const RELATIONSHIP_ID_SIZE: usize = 8;
+pub const RELATIONSHIP_RECORD_SIZE: usize = 65;
+pub const RELATIONSHIP_NB_RECORDS_PER_PAGE: usize = 59;
+pub const RELATIONSHIP_NB_PAGES_PER_RECORD: usize = 0;
+//PROPERTIES
+//PAGE PAYLOAD SIZE 3659 BYTES
+//UNUSED SPACE 4 BYTES
+pub const PROPERTY_HEADER_SIZE: usize = 1;
+pub const PROPERTY_ID_SIZE: usize = 8;
+pub const PROPERTY_BLOCK_SIZE: usize = 24;
+pub const PROPERTY_RECORD_SIZE: usize = 35;
+pub const PROPERTY_NB_RECORDS_PER_PAGE: usize = 104;
+pub const PROPERTY_NB_PAGES_PER_RECORD: usize = 0;
