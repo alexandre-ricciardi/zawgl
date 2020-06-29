@@ -431,15 +431,14 @@ impl RecordsManager {
                 }
             } else {
                 let mut wrapper = self.load_page_wrapper(first_free_page_ptr).ok_or(RecordsManagerError::NotFound)?;
-                let opage_record_id = wrapper.pop_free_list_item();
-                if let Some(page_record_id) = opage_record_id {
-                    record_id = wrapper.page.id * nb_records_per_page as u64 + page_record_id as u64;
-                    wrapper.get_slice_mut(payload_bounds.sub(page_record_id * record_size, record_size)).copy_from_slice(&data);
-                    if wrapper.is_page_free_list_empty() {
-                        let next_free_page_ptr = wrapper.get_free_next_page_ptr();
-                        wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(next_free_page_ptr);
-                    }
+                let page_record_id = wrapper.pop_free_list_item().ok_or(RecordsManagerError::NotFound)?;
+                record_id = (wrapper.page.id - 1) * nb_records_per_page as u64 + page_record_id as u64;
+                wrapper.get_slice_mut(payload_bounds.sub(page_record_id * record_size, record_size)).copy_from_slice(&data);
+                if wrapper.is_page_free_list_empty() {
+                    let next_free_page_ptr = wrapper.get_free_next_page_ptr();
+                    wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(next_free_page_ptr);
                 }
+                
                 
             }
         }
