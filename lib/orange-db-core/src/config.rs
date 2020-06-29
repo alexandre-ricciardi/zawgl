@@ -41,11 +41,20 @@ pub const RELATIONSHIP_RECORD_SIZE: usize = 65;
 pub const RELATIONSHIP_NB_RECORDS_PER_PAGE: usize = 59;
 pub const RELATIONSHIP_NB_PAGES_PER_RECORD: usize = 0;
 //PROPERTIES
-//PAGE PAYLOAD SIZE 3659 BYTES
-//UNUSED SPACE 4 BYTES
+//PAGE PAYLOAD SIZE 3723 BYTES
+//UNUSED SPACE 0 BYTES
 pub const PROPERTY_HEADER_SIZE: usize = 1;
 pub const PROPERTY_ID_SIZE: usize = 8;
 pub const PROPERTY_BLOCK_SIZE: usize = 24;
-pub const PROPERTY_RECORD_SIZE: usize = 35;
-pub const PROPERTY_NB_RECORDS_PER_PAGE: usize = 104;
+pub const PROPERTY_RECORD_SIZE: usize = 42;
+pub const PROPERTY_NB_RECORDS_PER_PAGE: usize = 88;
 pub const PROPERTY_NB_PAGES_PER_RECORD: usize = 0;
+//DYN STORE
+//PAGE PAYLOAD SIZE 3955 BYTES
+//UNUSED SPACE 85 BYTES
+pub const DYN_HEADER_SIZE: usize = 1;
+pub const DYN_ID_SIZE: usize = 8;
+pub const DYN_PAYLOAD_SIZE: usize = 120;
+pub const DYN_RECORD_SIZE: usize = 129;
+pub const DYN_NB_RECORDS_PER_PAGE: usize = 30;
+pub const DYN_NB_PAGES_PER_RECORD: usize = 0;

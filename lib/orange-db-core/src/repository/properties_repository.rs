@@ -76,15 +76,15 @@ impl PropertiesRespository {
         PropertiesRespository {prop_store: properties_store::PropertiesStore::new(props_file), dyn_store: dynamic_store::DynamicStore::new(dyn_file)}
     }
 
-    pub fn save(&mut self, prop: &mut Property) {
+    pub fn create(&mut self, prop: &mut Property) {
         let prop_id = make_full_inlined_record(prop)
             .or_else(|| self.make_key_inlined_record(prop))
-            .or_else(|| self.make_record(prop)).as_mut().map(|r| self.prop_store.save(r));
+            .or_else(|| self.make_record(prop)).as_mut().and_then(|r| self.prop_store.create(r));
         prop.id = prop_id;
     }
 
     fn make_record(&mut self, prop: &Property) -> Option<records::PropertyRecord> {
-        let value_id = prop.value.as_ref().map(|val| {
+        let value_id = prop.value.as_ref().and_then(|val| {
             match val {
                 PropertyValue::PString(sval) => self.dyn_store.save_data(&sval.clone().into_bytes()),
                 PropertyValue::PInteger(ival) => self.dyn_store.save_data(&ival.to_be_bytes()),
@@ -92,7 +92,7 @@ impl PropertiesRespository {
                 PropertyValue::PBool(bval) => self.dyn_store.save_data(&[*bval as u8]),
             }
         });
-        let key_id = prop.name.as_ref().map(|key| {
+        let key_id = prop.name.as_ref().and_then(|key| {
             self.dyn_store.save_data(&key.clone().into_bytes())
         });
         value_id.and_then(|v_id| {
@@ -119,7 +119,7 @@ impl PropertiesRespository {
     fn make_key_inlined_record(&mut self, prop: &Property) -> Option<records::PropertyRecord> {
         is_key_inlined(prop).and_then(|key| {
             if key {
-                let value_id = prop.value.as_ref().map(|val| {
+                let value_id = prop.value.as_ref().and_then(|val| {
                     match val {
                         PropertyValue::PString(sval) => self.dyn_store.save_data(&sval.clone().into_bytes()),
                         PropertyValue::PInteger(ival) => self.dyn_store.save_data(&ival.to_be_bytes()),
@@ -156,8 +156,8 @@ impl PropertiesRespository {
     }
     
 
-    pub fn load(&mut self, prop_id: u64) -> Property {
-        let pr = self.prop_store.load(prop_id);
+    pub fn load(&mut self, prop_id: u64) -> Option<Property> {
+        let pr = self.prop_store.load(prop_id)?;
         let mut prop = Property::new();
         prop.id = Some(prop_id);
         if pr.full_inlined {
@@ -169,16 +169,16 @@ impl PropertiesRespository {
             let name_index = extract_string(&pr.prop_block);
             prop.name = name_index.1;
             let value_id = extract_id(name_index.0, &pr.prop_block);
-            let data = self.dyn_store.load_data(value_id);
+            let data = self.dyn_store.load_data(value_id)?;
             prop.value = extract_value(0, pr.prop_type, &data);
         } else {
-            let key = self.dyn_store.load_data(pr.key_id);
+            let key = self.dyn_store.load_data(pr.key_id)?;
             prop.name = extract_string(&key).1;
             let value_id = extract_id(0, &pr.prop_block);
-            let data = self.dyn_store.load_data(value_id);
+            let data = self.dyn_store.load_data(value_id)?;
             prop.value = extract_value(0, pr.prop_type, &data);
         }
-        prop
+        Some(prop)
     }
 }
 
@@ -230,8 +230,8 @@ mod test_prop_repo {
         let mut prop = Property::new();
         prop.name = Some(String::from("qsfsqdf"));
         prop.value = Some(PropertyValue::PString(String::from("qgkfdgsdf")));
-        pr.save(&mut prop);
-        let load = pr.load(prop.id.unwrap());
+        pr.create(&mut prop);
+        let load = pr.load(prop.id.unwrap()).unwrap();
         assert_eq!(load.name, prop.name);
         assert_eq!(load.value, prop.value);
     }
@@ -244,8 +244,8 @@ mod test_prop_repo {
         let mut prop = Property::new();
         prop.name = Some(String::from("qsfsqdfqsdfq"));
         prop.value = Some(PropertyValue::PString(String::from("qgkfdgsdf")));
-        pr.save(&mut prop);
-        let load = pr.load(prop.id.unwrap());
+        pr.create(&mut prop);
+        let load = pr.load(prop.id.unwrap()).unwrap();
         assert_eq!(load.name, prop.name);
         assert_eq!(load.value, prop.value);
     }
@@ -258,8 +258,8 @@ mod test_prop_repo {
         let mut prop = Property::new();
         prop.name = Some(String::from("qsfsqdfqsdfqdhgfdhgdfhgdfhqzerqzerqzregdfqsfdqsfderhryjsrrefqzeqgdsfdfsdrrdsredfsqer"));
         prop.value = Some(PropertyValue::PString(String::from("qgkfdgsdfqerqzerqzerqzerqzerqzerqzerarthdtrsdqeqtrshsreqsgstreq")));
-        pr.save(&mut prop);
-        let load = pr.load(prop.id.unwrap());
+        pr.create(&mut prop);
+        let load = pr.load(prop.id.unwrap()).unwrap();
         assert_eq!(load.name, prop.name);
         assert_eq!(load.value, prop.value);
     }

@@ -1,21 +1,21 @@
+use super::super::super::config::*;
+use super::super::records::*;
 use super::records::*;
-use super::store::*;
 
 pub struct PropertiesStore {
-    prop_records_store: Store,
+    records_manager: RecordsManager,
 }
 
 impl PropertiesStore {
     pub fn new(file: &str) -> Self {
-        PropertiesStore {prop_records_store: Store::new(file, 42)}
+        PropertiesStore {records_manager: RecordsManager::new(file, PROPERTY_RECORD_SIZE, PROPERTY_NB_RECORDS_PER_PAGE, PROPERTY_NB_PAGES_PER_RECORD)}
     }
-    pub fn save(&mut self, pr: &PropertyRecord) -> u64 {
-        let id = self.prop_records_store.next_free_record_id();
-        self.prop_records_store.save(id, &pr_to_bytes(pr))
+    pub fn create(&mut self, pr: &PropertyRecord) -> Option<u64> {
+        self.records_manager.create(&pr_to_bytes(pr)).ok()
     }
-    pub fn load(&mut self, pr_id: u64) -> PropertyRecord {
+    pub fn load(&mut self, pr_id: u64) -> Option<PropertyRecord> {
         let mut data: [u8; 42] = [0; 42];
-        self.prop_records_store.load(pr_id, &mut data);
-        pr_from_bytes(data)
+        self.records_manager.load(pr_id, &mut data).ok()?;
+        Some(pr_from_bytes(data))
     }
 }

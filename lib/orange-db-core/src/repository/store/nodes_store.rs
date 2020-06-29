@@ -1,6 +1,6 @@
 use super::super::super::config::*;
-use super::records::*;
 use super::super::records::*;
+use super::records::*;
 
 pub struct NodesStore {
     records_manager: RecordsManager,

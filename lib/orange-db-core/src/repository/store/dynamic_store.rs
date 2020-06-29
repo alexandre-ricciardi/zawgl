@@ -1,19 +1,19 @@
+use super::super::super::config::*;
+use super::super::records::*;
 use super::records::*;
-use super::store::*;
 
 pub struct DynamicStore {
-    dyn_records_store: Store,
+    records_manager: RecordsManager,
 }
 
 impl DynamicStore {
     pub fn new(file: &str) -> Self {
-        DynamicStore {dyn_records_store: Store::new(file, 129)}
+        DynamicStore {records_manager: RecordsManager::new(file, DYN_RECORD_SIZE, DYN_NB_RECORDS_PER_PAGE, DYN_NB_PAGES_PER_RECORD)}
     }
-    pub fn save(&mut self, dr: &DynamicStoreRecord) -> u64 {
-        let id = self.dyn_records_store.next_free_record_id();
-        self.dyn_records_store.save(id, &dr_to_bytes(dr))
+    pub fn create(&mut self, dr: &DynamicStoreRecord) -> Option<u64> {
+        self.records_manager.create(&dr_to_bytes(dr)).ok()
     }
-    pub fn save_data(&mut self, data: &[u8]) -> u64 {
+    pub fn save_data(&mut self, data: &[u8]) -> Option<u64> {
         let mut count = data.len() / 120;
         let rest = data.len() % 120;
         let mut next = 0u64;
@@ -28,7 +28,7 @@ impl DynamicStore {
             };
             let len = end - count * 120;
             dr.data[0..len].copy_from_slice(&data[count * 120..end]);
-            next = self.save(&dr);
+            next = self.create(&dr)?;
             end = count * 120;
             has_next = true;
             if count == 0 {
@@ -37,27 +37,27 @@ impl DynamicStore {
                 count -= 1;
             }
         }
-        next
+        Some(next)
         
     }
 
-    pub fn load_data(&mut self, id: u64) -> Box<[u8]> {
+    pub fn load_data(&mut self, id: u64) -> Option<Box<[u8]>> {
         let mut data = Vec::new();
         let mut next = id;
         let mut has_next = true;
         while has_next {
-            let dr = self.load(next);
+            let dr = self.load(next)?;
             data.extend_from_slice(&dr.data);
             has_next = dr.has_next;
             next = dr.next;
         }
-        data.into_boxed_slice()
+        Some(data.into_boxed_slice())
     }
 
-    pub fn load(&mut self, dr_id: u64) -> DynamicStoreRecord {
+    pub fn load(&mut self, dr_id: u64) -> Option<DynamicStoreRecord> {
         let mut data: [u8; 129] = [0; 129];
-        self.dyn_records_store.load(dr_id, &mut data);
-        dr_from_bytes(data)
+        self.records_manager.load(dr_id, &mut data).ok()?;
+        Some(dr_from_bytes(data))
     }
 }
 
@@ -72,9 +72,8 @@ mod test_dyn_store {
         clean("C:\\Temp\\dyn.db");
         let mut ds = DynamicStore::new("C:\\Temp\\dyn.db");
         let short = b"qsdfqsdfqsdf";
-        let id = ds.save_data(short);
-        assert_eq!(id, 0);
-        let data = ds.load_data(id);
+        let id = ds.save_data(short).unwrap();
+        let data = ds.load_data(id).unwrap();
         assert_eq!(&data[0..12], short);
     }
 
@@ -85,9 +84,8 @@ mod test_dyn_store {
         let long = b"qsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnec
         qfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqsh
         dfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqel";
-        let id = ds.save_data(long);
-        assert_eq!(id, 1);
-        let data = ds.load_data(id);
+        let id = ds.save_data(long).unwrap();
+        let data = ds.load_data(id).unwrap();
         let mut count = long.len() / 32;
         let rest = long.len() % 32;
         let mut low = count * 32;
