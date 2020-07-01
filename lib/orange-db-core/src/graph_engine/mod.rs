@@ -3,10 +3,10 @@ mod model;
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
+use super::matcher::vf2::sub_graph_isomorphism;
 
 
-
-pub struct Cache {
+pub struct GraphEngine {
     repository: GraphRepository,
 }
 
@@ -18,26 +18,13 @@ fn extract_nodes_labels(pattern: &PropertyGraph) -> Vec<String> {
     res
 }
 
-impl Cache {
+impl GraphEngine {
     pub fn new(ctx: &init::InitContext) -> Self {
-        Cache{repository: GraphRepository::new(ctx)}
+        GraphEngine{repository: GraphRepository::new(ctx)}
     }
 
-    ///compute item ids
-    ///
-    ///feed graph cache ?
-    /// 
-    ///store in mem records and models
-    /// 
-    ///grpah representation of cache
-    /// 
-    ///async save to disk invalidation graph cache or remove links in mem ?
-    /// 
-    ///compute cache size and give a size limit
-    /// 
-    ///map record id id in cache...
     pub fn add_graph(&mut self, graph: &PropertyGraph) {
-
+        
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) {
@@ -52,7 +39,7 @@ impl Cache {
 
     }
 
-    pub fn sync_to_disk() {
+    pub fn sync() {
         
     }
 }

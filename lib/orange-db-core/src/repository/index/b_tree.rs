@@ -233,13 +233,13 @@ mod test_b_tree {
         std::fs::remove_file(file);
         let mut index = BTreeIndex::new(file);
 
-        for i in 0..100 {
+        for i in 0..1000 {
             index.insert(&format!("key # {}", i), i);
         }
 
         index.sync();
 
-        for i in 0..100 {
+        for i in 0..1000 {
             let optrs = index.search(&format!("key # {}", i));
             if let Some(ptrs) = optrs {
                 assert_eq!(ptrs.len(), 1);

@@ -1,5 +1,5 @@
 use super::records::*;
-use super::super::super::config::*;
+use super::super::super::buf_config::*;
 use super::super::records::*;
 
 pub struct RelationshipsStore {

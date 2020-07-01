@@ -1,4 +1,4 @@
-use super::super::super::config::*;
+use super::super::super::buf_config::*;
 
 pub type NodeId = u64;
 pub type CellId = u32;

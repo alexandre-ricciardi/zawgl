@@ -1,7 +1,7 @@
 mod records;
 
 use self::records::*;
-use super::super::super::config::*;
+use super::super::super::buf_config::*;
 use super::model::*;
 use super::super::records::*;
 

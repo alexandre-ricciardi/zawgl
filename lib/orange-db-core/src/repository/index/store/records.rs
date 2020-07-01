@@ -1,4 +1,4 @@
-use super::super::super::super::config::*;
+use super::super::super::super::buf_config::*;
 
 const HAS_OVERFLOW_CELL_FLAG: u8 = 0b1000_0000;
 const IS_ACTIVE_CELL_FLAG: u8 = 0b0100_0000;

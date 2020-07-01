@@ -1,4 +1,4 @@
-use super::super::super::config::*;
+use super::super::super::buf_config::*;
 use super::super::records::*;
 use super::records::*;
 

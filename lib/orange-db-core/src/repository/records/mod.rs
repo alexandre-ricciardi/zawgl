@@ -1,4 +1,4 @@
-use super::super::config::*;
+use super::super::buf_config::*;
 
 use super::pager::*;
 

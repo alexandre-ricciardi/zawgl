@@ -102,7 +102,7 @@ fn compute_page_payload_size(nb_records_per_page: usize) -> usize {
 }
 
 fn generate_config() -> Result<()> {
-    let mut config = std::fs::File::create("src/config.rs")?;
+    let mut config = std::fs::File::create("src/buf_config.rs")?;
     writeln!(config, "//PAGING")?;
     writeln!(config, "pub const PAGE_SIZE: usize = {};", PAGE_SIZE)?;
     writeln!(config, "pub const PAGE_COUNTER_SIZE: usize = {};", PAGE_COUNTER_SIZE)?;

@@ -15,7 +15,7 @@ pub struct Stores {
     pub relationships_store: String,
     pub properties_store: String,
     pub dynamic_store: String,
-
+    pub nodes_labels_index: String,
 }
 
 pub fn load_conf(main_dir: &str) -> Conf {
