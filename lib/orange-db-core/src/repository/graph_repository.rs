@@ -47,7 +47,7 @@ impl GraphRepository {
             let rr = RelationshipRecord::new(*map_nodes.get(&rel.1.source.get_index())?,
              *map_nodes.get(&rel.1.target.get_index())?);
             let rid = self.relationships_store.create(&rr)?;
-
+            
         }
         Some(())
     }
