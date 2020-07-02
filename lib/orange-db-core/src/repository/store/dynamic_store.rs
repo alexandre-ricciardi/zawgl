@@ -59,6 +59,9 @@ impl DynamicStore {
         self.records_manager.load(dr_id, &mut data).ok()?;
         Some(dr_from_bytes(data))
     }
+    pub fn sync(&mut self) {
+        self.records_manager.sync();
+    }
 }
 
 #[cfg(test)]

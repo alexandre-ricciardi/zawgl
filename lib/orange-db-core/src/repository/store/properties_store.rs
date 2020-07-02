@@ -18,4 +18,7 @@ impl PropertiesStore {
         self.records_manager.load(pr_id, &mut data).ok()?;
         Some(pr_from_bytes(data))
     }
+    pub fn sync(&mut self) {
+        self.records_manager.sync();
+    }
 }

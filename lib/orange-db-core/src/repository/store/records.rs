@@ -6,6 +6,12 @@ pub struct NodeRecord {
     pub next_prop_id: u64,
 }
 
+impl NodeRecord {
+    pub fn new() -> Self {
+        NodeRecord{in_use: true, next_prop_id: 0, next_rel_id: 0}
+    }
+}
+
 pub fn nr_to_bytes(nr: &NodeRecord) -> [u8; 17] {
     let mut bytes: [u8; 17] = [0; 17];
     if nr.in_use {
@@ -64,6 +70,13 @@ pub struct RelationshipRecord {
     pub second_prev_rel_id: u64,
     pub second_next_rel_id: u64,
     pub next_prop_id: u64,
+}
+
+impl RelationshipRecord {
+    pub fn new(first_node: u64, second_node: u64) -> Self {
+        RelationshipRecord{in_use: true, first_node: first_node, second_node: second_node, relationship_type: 0, first_next_rel_id: 0,
+        first_prev_rel_id: 0, second_next_rel_id: 0, second_prev_rel_id: 0, next_prop_id: 0}
+    }
 }
 
 pub struct PropertyRecord {

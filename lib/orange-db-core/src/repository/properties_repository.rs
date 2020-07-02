@@ -180,6 +180,11 @@ impl PropertiesRespository {
         }
         Some(prop)
     }
+    
+    pub fn sync(&mut self) {
+        self.prop_store.sync();
+        self.dyn_store.sync();
+    }
 }
 
 fn extract_string(data: &[u8]) -> (usize, Option<String>) {

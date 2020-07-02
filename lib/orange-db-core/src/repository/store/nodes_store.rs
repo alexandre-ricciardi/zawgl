@@ -21,6 +21,9 @@ impl NodesStore {
         self.records_manager.load(node_id, &mut data).ok()?;
         Some(nr_from_bytes(data))
     }
+    pub fn sync(&mut self) {
+        self.records_manager.sync();
+    }
 }
 
 #[cfg(test)]

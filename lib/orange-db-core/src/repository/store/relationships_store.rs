@@ -21,6 +21,9 @@ impl RelationshipsStore {
         self.records_manager.load(rel_id, &mut data).ok()?;
         Some(rr_from_bytes(data))
     }
+    pub fn sync(&mut self) {
+        self.records_manager.sync();
+    }
 }
 
 

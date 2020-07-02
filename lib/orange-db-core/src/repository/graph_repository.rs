@@ -2,6 +2,9 @@ use super::store::*;
 use super::properties_repository::*;
 use super::super::model::*;
 use super::super::repository::index::b_tree::*;
+use self::records::*;
+use std::collections::HashMap;
+use super::super::graph::traits::*;
 
 pub struct GraphRepository {
     nodes_store: nodes_store::NodesStore,
@@ -27,7 +30,32 @@ impl GraphRepository {
         Some(res)
     }
 
-    pub fn save(pgraph: PropertyGraph) {
-        //let node_list = pgraph.nodes.iter().map(|n|)
+    pub fn save(&mut self, pgraph: &PropertyGraph) -> Option<()> {
+        let mut map_nodes = HashMap::new();
+        let mut node_index = 0;
+        for node in pgraph.get_nodes() {
+            let nr = NodeRecord::new();
+            let nid = self.nodes_store.create(&nr)?;
+            for label in &node.labels {
+                self.nodes_labels_index.insert(label, nid)?;
+            }
+            map_nodes.insert(node_index, nid);
+            node_index += 1;
+        }
+
+        for rel in pgraph.get_relationships_and_edges() {
+            let rr = RelationshipRecord::new(*map_nodes.get(&rel.1.source.get_index())?,
+             *map_nodes.get(&rel.1.target.get_index())?);
+            let rid = self.relationships_store.create(&rr)?;
+
+        }
+        Some(())
+    }
+
+    pub fn sync(&mut self) {
+        self.nodes_labels_index.sync();
+        self.relationships_store.sync();
+        self.nodes_store.sync();
+        self.properties_repository.sync();
     }
 }
