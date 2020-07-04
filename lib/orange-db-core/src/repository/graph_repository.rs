@@ -5,6 +5,7 @@ use super::super::repository::index::b_tree::*;
 use self::records::*;
 use std::collections::HashMap;
 use super::super::graph::traits::*;
+use super::super::graph::*;
 
 pub struct GraphRepository {
     nodes_store: nodes_store::NodesStore,
@@ -33,6 +34,7 @@ impl GraphRepository {
     pub fn save(&mut self, pgraph: &PropertyGraph) -> Option<()> {
         let mut map_nodes = HashMap::new();
         let mut node_index = 0;
+        let mut node_records = Vec::new();
         for node in pgraph.get_nodes() {
             let nr = NodeRecord::new();
             let nid = self.nodes_store.create(&nr)?;
@@ -40,15 +42,42 @@ impl GraphRepository {
                 self.nodes_labels_index.insert(label, nid)?;
             }
             map_nodes.insert(node_index, nid);
+            node_records.push((nid, nr));
             node_index += 1;
         }
 
+        let mut rel_index: usize = 0;
+        let mut map_rel = HashMap::new();
+        let mut rel_records = Vec::new();
         for rel in pgraph.get_relationships_and_edges() {
             let rr = RelationshipRecord::new(*map_nodes.get(&rel.1.source.get_index())?,
              *map_nodes.get(&rel.1.target.get_index())?);
             let rid = self.relationships_store.create(&rr)?;
-            
+            map_rel.insert(rel_index, rid);
+            rel_records.push((rid, rr));
+            rel_index += 1;
         }
+
+        let mut nr_index = 0;
+        for nr in &mut node_records {
+            let node = pgraph.get_inner_graph().get_node(NodeIndex::new(nr_index));
+            let in_edge_index = node.get_first_inbound_edge()?;
+            nr.1.first_inbound_edge = *map_rel.get(&in_edge_index.get_index())?;
+            let out_edge_index = node.get_first_outbound_edge()?;
+            nr.1.first_outbound_edge = *map_rel.get(&out_edge_index.get_index())?;
+            self.nodes_store.save(nr.0, &nr.1)?;
+            nr_index += 1;
+        }
+
+        let mut rr_index = 0;
+        for rr in &mut rel_records {
+            let edge = pgraph.get_inner_graph().get_edge(EdgeIndex::new(rr_index));
+            rr.1.next_outbound_edge = *map_rel.get(&edge.get_next_outbound_edge()?.get_index())?;
+            rr.1.next_inbound_edge = *map_rel.get(&edge.get_next_inbound_edge()?.get_index())?;
+            self.relationships_store.save(rr.0, &rr.1)?;
+            rr_index += 1;
+        }
+
         Some(())
     }
 

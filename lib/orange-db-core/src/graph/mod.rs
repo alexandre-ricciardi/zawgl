@@ -38,8 +38,17 @@ impl traits::MemGraphId for NodeIndex {
 }
 
 pub struct NodeData<EID: MemGraphId> {
-    first_outbound_edge: Option<EID>,
-    first_inbound_edge: Option<EID>,
+    pub first_outbound_edge: Option<EID>,
+    pub first_inbound_edge: Option<EID>,
+}
+
+impl <EID: MemGraphId + Copy> NodeData<EID> {
+    pub fn get_first_outbound_edge(&self) -> Option<EID> {
+        self.first_outbound_edge
+    }
+    pub fn get_first_inbound_edge(&self) -> Option<EID> {
+        self.first_inbound_edge
+    }
 }
 
 pub struct EdgeData<NID: MemGraphId, EID: MemGraphId> {
@@ -47,6 +56,22 @@ pub struct EdgeData<NID: MemGraphId, EID: MemGraphId> {
     pub target: NID,
     pub next_outbound_edge: Option<EID>,
     pub next_inbound_edge: Option<EID>,
+}
+
+impl <NID: MemGraphId + Copy, EID: MemGraphId + Copy> EdgeData<NID, EID> {
+    pub fn get_source(&self) -> NID {
+        self.source
+    }
+    pub fn get_target(&self) -> NID {
+        self.target
+    }
+
+    pub fn get_next_outbound_edge(&self) -> Option<EID> {
+        self.next_outbound_edge
+    }
+    pub fn get_next_inbound_edge(&self) ->  Option<EID> {
+        self.next_inbound_edge
+    }
 }
 
 pub struct Graph {
