@@ -131,14 +131,9 @@ impl BTreeNodeStore {
         } else {
             let first_free_record_ptr = self.get_first_free_list_node_ptr();
             if first_free_record_ptr == 0 {
-                let first_free_node_record = self.load_node_record(first_free_record_ptr)?;
-                if first_free_node_record.is_overflow_node() && !first_free_node_record.is_full() {
-                    Some((first_free_record_ptr, first_free_node_record))
-                } else {
-                    let next_free_cells_overflow_node = self.create_overflow_node()?;
-                    self.set_first_free_list_node_ptr(next_free_cells_overflow_node.0);
-                    Some(next_free_cells_overflow_node)
-                }
+                let next_free_cells_overflow_node = self.create_overflow_node()?;
+                self.set_first_free_list_node_ptr(next_free_cells_overflow_node.0);
+                Some(next_free_cells_overflow_node)
             } else {
                 let free_node_record = self.load_node_record(first_free_record_ptr)?;
                 if free_node_record.is_full() {

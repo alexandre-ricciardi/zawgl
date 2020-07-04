@@ -11,15 +11,15 @@ impl NodesStore {
         NodesStore {records_manager: RecordsManager::new(file, NODE_RECORD_SIZE, NODE_NB_RECORDS_PER_PAGE, NODE_NB_PAGES_PER_RECORD)}
     }
     pub fn save(&mut self, id: u64, node: &NodeRecord) -> Option<()> {
-        self.records_manager.save(id, &nr_to_bytes(&node)).ok()
+        self.records_manager.save(id, &node.to_bytes()).ok()
     }
     pub fn create(&mut self,node: &NodeRecord) -> Option<u64> {
-        self.records_manager.create(&nr_to_bytes(&node)).ok()
+        self.records_manager.create(&node.to_bytes()).ok()
     }
     pub fn load(&mut self, node_id: u64) -> Option<NodeRecord> {
-        let mut data: [u8; 17] = [0; 17];
+        let mut data: [u8; NODE_RECORD_SIZE] = [0; NODE_RECORD_SIZE];
         self.records_manager.load(node_id, &mut data).ok()?;
-        Some(nr_from_bytes(data))
+        Some(NodeRecord::from_bytes(data))
     }
     pub fn sync(&mut self) {
         self.records_manager.sync();
@@ -37,14 +37,14 @@ mod test_nodes_store {
         clean();
         let mut store = NodesStore::new("C:\\Temp\\nodes.db");
         let nr = NodeRecord {
-            in_use: true,
-            next_rel_id: 11287665,
+            first_inbound_edge: 11287665,
+            first_outbound_edge: 87687554,
             next_prop_id: 89089807,
         };
         let id = store.create(&nr).unwrap();
         let r = store.load(id).unwrap();
-        assert_eq!(r.in_use, true);
-        assert_eq!(r.next_rel_id, 11287665);
+        assert_eq!(r.first_inbound_edge, 11287665);
+        assert_eq!(r.first_outbound_edge, 87687554);
         assert_eq!(r.next_prop_id, 89089807);
     }
 }

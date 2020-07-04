@@ -289,21 +289,22 @@ impl RecordsManager {
     }
 
     fn compute_location(&self, record_id: u64) -> RecordLocation {
+        let record_ptr = record_id - 1;
         let page_payload_size = self.page_map.payload.len();
         let nb_records_per_page = page_payload_size / self.record_size;
         if self.page_map.is_multi_page_record {
             let nb_pages_per_record = self.record_size / page_payload_size;
             RecordLocation{
-                page_id: 1 + (nb_pages_per_record as u64 * record_id),
+                page_id: 1 + (nb_pages_per_record as u64 * record_ptr),
                 record_id_in_page: 0,
                 page_record_address: self.page_map.payload.begin,
                 payload_record_address: 0,
                 nb_pages_per_record: nb_pages_per_record,
                 is_multi_pages_record: true}
         } else {
-            let page_record_id = (record_id % nb_records_per_page as u64) as usize;
+            let page_record_id = (record_ptr % nb_records_per_page as u64) as usize;
             RecordLocation{
-                page_id: 1 + (record_id / nb_records_per_page as u64),
+                page_id: 1 + (record_ptr / nb_records_per_page as u64),
                 record_id_in_page: page_record_id,
                 page_record_address: self.page_map.payload.begin + self.record_size * page_record_id,
                 payload_record_address: self.record_size * page_record_id,
@@ -444,7 +445,7 @@ impl RecordsManager {
         }
         self.increment_records_version_counter();
         self.increment_records_counter();
-        Ok(record_id)
+        Ok(record_id + 1)
     }
 
     fn make_page_wrapper<'a>(&self, page: Page<'a>) -> RecordPageWrapper<'a> {

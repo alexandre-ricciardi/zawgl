@@ -1,81 +1,93 @@
 use super::super::byte_utils::*;
+use super::super::super::buf_config::*;
 
 pub struct NodeRecord {
-    pub in_use: bool,
-    pub next_rel_id: u64,
+    pub first_outbound_edge: u64,
+    pub first_inbound_edge: u64,
     pub next_prop_id: u64,
 }
 
 impl NodeRecord {
     pub fn new() -> Self {
-        NodeRecord{in_use: true, next_prop_id: 0, next_rel_id: 0}
+        NodeRecord{first_outbound_edge: 0, first_inbound_edge: 0, next_prop_id: 0}
+    }
+
+    pub fn to_bytes(&self) -> [u8; NODE_RECORD_SIZE] {
+        let mut bytes: [u8; NODE_RECORD_SIZE] = [0; NODE_RECORD_SIZE];
+        let mut offset = 0;
+        bytes[offset..offset+RELATIONSHIP_ID_SIZE].copy_from_slice(&u64_to_bytes(self.first_outbound_edge));
+        offset += RELATIONSHIP_ID_SIZE;
+        bytes[offset..offset+RELATIONSHIP_ID_SIZE].copy_from_slice(&u64_to_bytes(self.first_inbound_edge));
+        offset += RELATIONSHIP_ID_SIZE;
+        bytes[offset..offset+PROPERTY_ID_SIZE].copy_from_slice(&u64_to_bytes(self.next_prop_id));
+        bytes
+    }
+
+    pub fn from_bytes(bytes: [u8; NODE_RECORD_SIZE]) -> NodeRecord {
+        let mut offset = 0;
+        let out_rel_id = u64_from_bytes(&bytes[offset..offset+RELATIONSHIP_ID_SIZE]);
+        offset += RELATIONSHIP_ID_SIZE;
+        let in_rel_id = u64_from_bytes(&bytes[offset..offset+RELATIONSHIP_ID_SIZE]);
+        offset += RELATIONSHIP_ID_SIZE;
+        let prop_id = u64_from_bytes(&bytes[offset..offset+PROPERTY_ID_SIZE]);
+        NodeRecord {first_outbound_edge: out_rel_id, first_inbound_edge: in_rel_id, next_prop_id: prop_id}
     }
 }
 
-pub fn nr_to_bytes(nr: &NodeRecord) -> [u8; 17] {
-    let mut bytes: [u8; 17] = [0; 17];
-    if nr.in_use {
-        bytes[0] = bytes[0] | 0b00000001;
-    }
-    bytes[1..9].copy_from_slice(&u64_to_bytes(nr.next_rel_id));
-    bytes[9..17].copy_from_slice(&u64_to_bytes(nr.next_prop_id));
-    bytes
-}
 
-pub fn nr_from_bytes(bytes: [u8; 17]) -> NodeRecord {
-    let in_use = bytes[0] & 0b0000_0001 > 0;
-    let rel_id = u64_from_bytes(&bytes[1..9]);
-    let prop_id = u64_from_bytes(&bytes[9..17]);
-    NodeRecord {in_use: in_use, next_rel_id: rel_id, next_prop_id: prop_id}
-}
 
-pub fn rr_to_bytes(rr: &RelationshipRecord) -> [u8; 65] {
-    let mut bytes: [u8; 65] = [0; 65];
-    if rr.in_use {
-        bytes[0] = bytes[0] | 0b00000001;
-    }
-    bytes[1..9].clone_from_slice(&u64_to_bytes(rr.first_node));
-    bytes[9..17].clone_from_slice(&u64_to_bytes(rr.second_node));
-    bytes[17..25].clone_from_slice(&u64_to_bytes(rr.relationship_type));
-    bytes[25..33].clone_from_slice(&u64_to_bytes(rr.first_prev_rel_id));
-    bytes[33..41].clone_from_slice(&u64_to_bytes(rr.first_next_rel_id));
-    bytes[41..49].clone_from_slice(&u64_to_bytes(rr.second_prev_rel_id));
-    bytes[49..57].clone_from_slice(&u64_to_bytes(rr.second_next_rel_id));
-    bytes[57..65].clone_from_slice(&u64_to_bytes(rr.next_prop_id));
-    bytes
-}
 
-pub fn rr_from_bytes(bytes: [u8; 65]) -> RelationshipRecord {
-    let in_use = bytes[0] & 0b0000_0001 > 0;
-    let f_node = u64_from_bytes(&bytes[1..9]);
-    let s_node = u64_from_bytes(&bytes[9..17]);
-    let rt = u64_from_bytes(&bytes[17..25]);
-    let fp_rel = u64_from_bytes(&bytes[25..33]);
-    let fn_rel = u64_from_bytes(&bytes[33..41]);
-    let sp_rel = u64_from_bytes(&bytes[41..49]);
-    let sn_rel = u64_from_bytes(&bytes[49..57]);
-    let p = u64_from_bytes(&bytes[57..65]);
-    RelationshipRecord {in_use: in_use, first_node: f_node, second_node: s_node,
-        relationship_type: rt, first_prev_rel_id: fp_rel, first_next_rel_id: fn_rel,
-        second_prev_rel_id: sp_rel, second_next_rel_id: sn_rel, next_prop_id: p}
-}
+
+
 
 pub struct RelationshipRecord {
-    pub in_use: bool,
-    pub first_node: u64,
-    pub second_node: u64,
+    pub source: u64,
+    pub target: u64,
     pub relationship_type: u64,
-    pub first_prev_rel_id: u64,
-    pub first_next_rel_id: u64,
-    pub second_prev_rel_id: u64,
-    pub second_next_rel_id: u64,
+    pub next_outbound_edge: u64,
+    pub next_inbound_edge: u64,
     pub next_prop_id: u64,
 }
 
 impl RelationshipRecord {
     pub fn new(first_node: u64, second_node: u64) -> Self {
-        RelationshipRecord{in_use: true, first_node: first_node, second_node: second_node, relationship_type: 0, first_next_rel_id: 0,
-        first_prev_rel_id: 0, second_next_rel_id: 0, second_prev_rel_id: 0, next_prop_id: 0}
+        RelationshipRecord{source: first_node, target: second_node, relationship_type: 0, next_outbound_edge: 0,
+            next_inbound_edge: 0, next_prop_id: 0}
+    }
+
+    pub fn to_bytes(&self) -> [u8; RELATIONSHIP_RECORD_SIZE] {
+        let mut bytes: [u8; RELATIONSHIP_RECORD_SIZE] = [0; RELATIONSHIP_RECORD_SIZE];
+        let mut offset = 0;
+        bytes[offset..offset+NODE_ID_SIZE].clone_from_slice(&u64_to_bytes(self.source));
+        offset += NODE_ID_SIZE;
+        bytes[offset..offset+NODE_ID_SIZE].clone_from_slice(&u64_to_bytes(self.target));
+        offset += NODE_ID_SIZE;
+        bytes[offset..offset+RELATIONSHIP_TYPE_SIZE].clone_from_slice(&u64_to_bytes(self.relationship_type));        
+        offset += RELATIONSHIP_TYPE_SIZE;
+        bytes[offset..offset+RELATIONSHIP_ID_SIZE].clone_from_slice(&u64_to_bytes(self.next_outbound_edge));
+        offset += RELATIONSHIP_ID_SIZE;
+        bytes[offset..offset+RELATIONSHIP_ID_SIZE].clone_from_slice(&u64_to_bytes(self.next_inbound_edge));
+        offset += RELATIONSHIP_ID_SIZE;
+        bytes[offset..offset+PROPERTY_ID_SIZE].clone_from_slice(&u64_to_bytes(self.next_prop_id));
+        bytes
+    }
+    
+    pub fn from_bytes(bytes: [u8; RELATIONSHIP_RECORD_SIZE]) -> RelationshipRecord {
+        let mut offset = 0;
+        let s = u64_from_bytes(&bytes[offset..offset+NODE_ID_SIZE]);
+        offset += NODE_ID_SIZE;
+        let t = u64_from_bytes(&bytes[offset..offset+NODE_ID_SIZE]);
+        offset += NODE_ID_SIZE;
+        let rt = u64_from_bytes(&bytes[offset..offset+RELATIONSHIP_TYPE_SIZE]);
+        offset += RELATIONSHIP_TYPE_SIZE;
+        let out_rel = u64_from_bytes(&bytes[offset..offset+RELATIONSHIP_ID_SIZE]);
+        offset += RELATIONSHIP_ID_SIZE;
+        let in_rel = u64_from_bytes(&bytes[offset..offset+RELATIONSHIP_ID_SIZE]);
+        offset += RELATIONSHIP_ID_SIZE;
+        let p = u64_from_bytes(&bytes[offset..offset+PROPERTY_ID_SIZE]);
+        RelationshipRecord {source: s, target: t,
+            relationship_type: rt, next_outbound_edge: out_rel, next_inbound_edge: in_rel,
+            next_prop_id: p}
     }
 }
 
@@ -166,29 +178,26 @@ mod test_records {
     }
     #[test]
     fn test_node_record() {
-        let val = NodeRecord {in_use: true, next_prop_id: 100, next_rel_id: 32};
-        let bytes = nr_to_bytes(&val);
-        let nr = nr_from_bytes(bytes);
-        assert_eq!(nr.in_use, true);
-        assert_eq!(nr.next_rel_id, 32u64);
+        let val = NodeRecord {next_prop_id: 100, first_inbound_edge: 32, first_outbound_edge: 55};
+        let bytes = val.to_bytes();
+        let nr = NodeRecord::from_bytes(bytes);
+        assert_eq!(nr.first_outbound_edge, 55);
+        assert_eq!(nr.first_inbound_edge, 32);
         assert_eq!(nr.next_prop_id, 100u64);
     }
 
     
     #[test]
     fn test_relationship_record() {
-        let val = RelationshipRecord {in_use: true, first_node: 2, second_node: 3,
-            first_prev_rel_id: 4, first_next_rel_id: 5, second_prev_rel_id: 6, second_next_rel_id: 7,
+        let val = RelationshipRecord {source: 2, target: 3,
+            next_inbound_edge: 4, next_outbound_edge: 5,
             relationship_type: 33, next_prop_id: 100};
-        let bytes = rr_to_bytes(&val);
-        let rr = rr_from_bytes(bytes);
-        assert_eq!(rr.in_use, true);
-        assert_eq!(rr.first_node, 2);
-        assert_eq!(rr.second_node, 3);
-        assert_eq!(rr.first_prev_rel_id, 4);
-        assert_eq!(rr.first_next_rel_id, 5);
-        assert_eq!(rr.second_prev_rel_id, 6);
-        assert_eq!(rr.second_next_rel_id, 7);
+        let bytes = val.to_bytes();
+        let rr = RelationshipRecord::from_bytes(bytes);
+        assert_eq!(rr.source, 2);
+        assert_eq!(rr.target, 3);
+        assert_eq!(rr.next_inbound_edge, 4);
+        assert_eq!(rr.next_outbound_edge, 5);
         assert_eq!(rr.relationship_type, 33);
         assert_eq!(rr.next_prop_id, 100);
     }
