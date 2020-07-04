@@ -37,12 +37,12 @@ impl traits::MemGraphId for NodeIndex {
     }
 }
 
-pub struct NodeData<EID: MemGraphId> {
+pub struct VertexData<EID: MemGraphId> {
     pub first_outbound_edge: Option<EID>,
     pub first_inbound_edge: Option<EID>,
 }
 
-impl <EID: MemGraphId + Copy> NodeData<EID> {
+impl <EID: MemGraphId + Copy> VertexData<EID> {
     pub fn get_first_outbound_edge(&self) -> Option<EID> {
         self.first_outbound_edge
     }
@@ -75,7 +75,7 @@ impl <NID: MemGraphId + Copy, EID: MemGraphId + Copy> EdgeData<NID, EID> {
 }
 
 pub struct Graph {
-    nodes: Vec<NodeData<EdgeIndex>>,
+    nodes: Vec<VertexData<EdgeIndex>>,
     edges: Vec<EdgeData<NodeIndex, EdgeIndex>>,
 }
 
@@ -208,11 +208,11 @@ impl Graph {
 
     pub fn add_node(&mut self) -> NodeIndex {
         let index = self.nodes.len();
-        self.nodes.push(NodeData::<EdgeIndex>{first_outbound_edge: None, first_inbound_edge: None});
+        self.nodes.push(VertexData::<EdgeIndex>{first_outbound_edge: None, first_inbound_edge: None});
         NodeIndex::new(index)
     }
 
-    pub fn get_node(&self, id: NodeIndex) -> &NodeData<EdgeIndex> {
+    pub fn get_node(&self, id: NodeIndex) -> &VertexData<EdgeIndex> {
         &self.nodes[id.get_index()]
     }
     pub fn get_edge(&self, id: EdgeIndex) -> &EdgeData<NodeIndex, EdgeIndex> {
@@ -246,7 +246,7 @@ impl Graph {
         Ancestors{ graph: self, current_edge_index: first_inbound_edge }
     }
     
-    pub fn get_nodes(&self) -> &Vec<NodeData<EdgeIndex>> {
+    pub fn get_nodes(&self) -> &Vec<VertexData<EdgeIndex>> {
         &self.nodes
     }
     pub fn get_edges(&self) -> &Vec<EdgeData<NodeIndex, EdgeIndex>> {
