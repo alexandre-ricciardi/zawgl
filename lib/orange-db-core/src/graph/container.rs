@@ -67,7 +67,7 @@ impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
     }
     pub fn add_node(&mut self, node: NODE) -> NodeIndex {
         self.nodes.push(node);
-        self.graph.add_node()
+        self.graph.add_vertex()
     }
 
     pub fn add_relationship(&mut self, rel: RELATIONSHIP, source: NodeIndex, target: NodeIndex) -> EdgeIndex {

@@ -60,10 +60,10 @@ impl GraphRepository {
 
         let mut nr_index = 0;
         for nr in &mut node_records {
-            let node = pgraph.get_inner_graph().get_node(NodeIndex::new(nr_index));
-            let in_edge_index = node.get_first_inbound_edge()?;
+            let vertex = pgraph.get_inner_graph().get_vertex(NodeIndex::new(nr_index));
+            let in_edge_index = vertex.get_first_inbound_edge()?;
             nr.1.first_inbound_edge = *map_rel.get(&in_edge_index.get_index())?;
-            let out_edge_index = node.get_first_outbound_edge()?;
+            let out_edge_index = vertex.get_first_outbound_edge()?;
             nr.1.first_outbound_edge = *map_rel.get(&out_edge_index.get_index())?;
             self.nodes_store.save(nr.0, &nr.1)?;
             nr_index += 1;

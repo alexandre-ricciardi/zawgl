@@ -206,13 +206,13 @@ impl Graph {
         Graph{ nodes: Vec::new(), edges: Vec::new() }
     }
 
-    pub fn add_node(&mut self) -> NodeIndex {
+    pub fn add_vertex(&mut self) -> NodeIndex {
         let index = self.nodes.len();
         self.nodes.push(VertexData::<EdgeIndex>{first_outbound_edge: None, first_inbound_edge: None});
         NodeIndex::new(index)
     }
 
-    pub fn get_node(&self, id: NodeIndex) -> &VertexData<EdgeIndex> {
+    pub fn get_vertex(&self, id: NodeIndex) -> &VertexData<EdgeIndex> {
         &self.nodes[id.get_index()]
     }
     pub fn get_edge(&self, id: EdgeIndex) -> &EdgeData<NodeIndex, EdgeIndex> {
@@ -260,9 +260,9 @@ mod test_graph {
     #[test]
     fn test_small_graph_it() {
         let mut graph = Graph::new();
-        let n0 = graph.add_node();
-        let n1 = graph.add_node();
-        let n2 = graph.add_node();
+        let n0 = graph.add_vertex();
+        let n1 = graph.add_vertex();
+        let n2 = graph.add_vertex();
 
         let e0 = graph.add_edge(n0, n1);
         let e1 = graph.add_edge(n1, n2);
@@ -273,7 +273,7 @@ mod test_graph {
         assert_eq!(ed0.target, n1);
         assert_eq!(ed0.next_outbound_edge, None);
         
-        let nd0 = graph.get_node(n0);
+        let nd0 = graph.get_vertex(n0);
         assert_eq!(nd0.first_outbound_edge, Some(e2));
 
         let ed2 = graph.get_edge(e2);
