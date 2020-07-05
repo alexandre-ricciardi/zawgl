@@ -5,13 +5,15 @@ extern crate toml;
 
 extern crate orange_db_binary_derive;
 
-pub mod config;
-pub mod buf_config;
-pub mod cypher;
-pub mod graph;
-pub mod model;
-pub mod repository;
-pub mod query_engine;
-pub mod conf;
-pub mod matcher;
-pub mod graph_engine;
+mod config;
+mod buf_config;
+mod cypher;
+mod graph;
+mod model;
+mod repository;
+mod query_engine;
+mod conf;
+mod matcher;
+mod graph_engine;
+
+pub mod kernel;

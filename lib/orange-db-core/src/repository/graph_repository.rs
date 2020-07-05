@@ -31,7 +31,7 @@ impl GraphRepository {
         Some(res)
     }
 
-    pub fn save(&mut self, pgraph: &PropertyGraph) -> Option<()> {
+    pub fn create(&mut self, pgraph: &PropertyGraph) -> Option<()> {
         let mut map_nodes = HashMap::new();
         let mut node_index = 0;
         let mut node_records = Vec::new();

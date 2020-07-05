@@ -76,11 +76,12 @@ impl PropertiesRespository {
         PropertiesRespository {prop_store: properties_store::PropertiesStore::new(props_file), dyn_store: dynamic_store::DynamicStore::new(dyn_file)}
     }
 
-    pub fn create(&mut self, prop: &mut Property) {
+    pub fn create(&mut self, prop: &mut Property) -> Option<()> {
         let prop_id = make_full_inlined_record(prop)
             .or_else(|| self.make_key_inlined_record(prop))
-            .or_else(|| self.make_record(prop)).as_mut().and_then(|r| self.prop_store.create(r));
+            .or_else(|| self.make_record(prop)).as_mut().map(|r| self.prop_store.create(r))?;
         prop.id = prop_id;
+        Some(())
     }
 
     fn make_record(&mut self, prop: &Property) -> Option<records::PropertyRecord> {

@@ -5,11 +5,14 @@ use std::io::Read;
 
 #[derive(Deserialize)]
 pub struct Conf {
-    pub db_dir: String,
-    pub stores: Stores
+    pub databases: Database
 }
 
 #[derive(Deserialize)]
+pub struct Database {
+    pub dir: String,
+}
+
 pub struct Stores {
     pub nodes_store: String,
     pub relationships_store: String,
@@ -21,7 +24,7 @@ pub struct Stores {
 pub fn load_conf(main_dir: &str) -> Conf {
     let mut file_path = path::PathBuf::new();
     file_path.push(main_dir);
-    file_path.push("orange-db.toml");
+    file_path.push("db.toml");
     let mut configuration_file = fs::OpenOptions::new()
         .read(true)
         .open(file_path.as_path())
