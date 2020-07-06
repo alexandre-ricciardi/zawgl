@@ -49,7 +49,6 @@ impl GraphEngine {
 #[cfg(test)]
 mod test_cache {
     use super::*;
-    use super::super::conf::*;
     #[test]
     fn test_add_prop_graphs() {
         

@@ -19,7 +19,7 @@ dependencies = [
 name = "orange_db"
 version = "0.1.0"
 dependencies = [
- "orange_db_core",
+ "orange_db_kernel",
 ]
 
 [[package]]
@@ -33,6 +33,16 @@ dependencies = [
 
 [[package]]
 name = "orange_db_core"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "orange_db_kernel",
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "orange_db_kernel"
 version = "0.1.0"
 dependencies = [
  "log",
