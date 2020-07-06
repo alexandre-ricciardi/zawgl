@@ -1,7 +1,10 @@
 use super::graph::*;
 pub mod init;
+use std::hash::Hash;
+use std::hash::Hasher;
 
-#[derive(Debug, PartialEq, Clone)]
+
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum PropertyValue {
     PString(String),
     PInteger(i64),
@@ -9,12 +12,33 @@ pub enum PropertyValue {
     PBool(bool),
 }
 
+impl Hash for PropertyValue {
+    fn hash<H>(&self, state: &mut H) where H: Hasher {
+        match self {
+            PropertyValue::PBool(bval) => {
+                bval.hash(state);
+            },
+            PropertyValue::PString(sval) => {
+                sval.hash(state);
+            },
+            PropertyValue::PInteger(ival) => {
+                ival.hash(state);
+            },
+            PropertyValue::PFloat(fval) => {
+                
+            }
+        }
+    }
+}
+
+
 pub enum Directive {
     CREATE,
     MATCH,
     DELETE
 }
 
+#[derive(Hash, Eq, PartialEq)]
 pub struct Property {
     pub id: Option<u64>,
     pub name: Option<String>,
@@ -27,7 +51,7 @@ impl Property {
     } 
 }
 
-
+#[derive(Hash, Eq, PartialEq)]
 pub struct Node {
     pub id: Option<u64>,
     pub var: Option<String>,

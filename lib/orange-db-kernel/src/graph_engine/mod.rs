@@ -30,7 +30,22 @@ impl GraphEngine {
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) {
         let mut graph_proxy = GraphProxy::new(&self.repository, extract_nodes_labels(pattern));
         
-        //sub_graph_isomorphism();
+        sub_graph_isomorphism(pattern, &graph_proxy, |n0, n1| {
+            let mut res = true;
+            for p0 in &n0.properties {
+                if !n1.properties.contains(p0) {
+                    res = false;
+                    break;
+                }
+            }
+            res
+        },
+        |e0, e1| {
+            true
+        },
+        |map0, map1| {
+            true
+        });
     }
 
    
