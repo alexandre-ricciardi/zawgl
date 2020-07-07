@@ -213,7 +213,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             term_set_0.0 <= term_set_1.0 && term_set_0.1 <= term_set_1.1 && term_set_0.2 <= term_set_1.2
         }
 
-        pub fn call_back(&self, callback:  impl Fn(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool) -> bool
+        pub fn call_back<CALLBACK>(&self, mut callback: CALLBACK) -> bool
+        where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool
         {
             callback(self.state_0.get_map(), self.state_1.get_map())
         }

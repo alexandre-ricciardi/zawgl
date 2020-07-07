@@ -13,7 +13,7 @@ pub struct Matcher<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOM
     Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
     Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: Fn(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
+    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
         graph_0: &'g0 Graph0,
         graph_1: &'g1 Graph1,
         state: State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>,
@@ -34,7 +34,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
     Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: Fn(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool {
+    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool {
 
         pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
             Matcher {
@@ -75,7 +75,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         pub fn process(&mut self) -> bool {
             loop {
                 if self.state.success() {
-                    if !self.state.call_back(&self.callback) {
+                    if !self.state.call_back(&mut self.callback) {
                         return true;
                     } else {
                         self.found_match = true;
@@ -127,7 +127,7 @@ N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq,
 Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
 Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
 VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-CALLBACK: Fn(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
+CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
     if graph_0.nodes_len() > graph_1.nodes_len() {
         false
     } else if graph_0.edges_len() > graph_1.edges_len() {

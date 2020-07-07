@@ -2,6 +2,7 @@
 extern crate log;
 extern crate serde;
 extern crate toml;
+extern crate bson;
 
 extern crate orange_db_binary_derive;
 

@@ -27,9 +27,9 @@ impl GraphEngine {
         
     }
 
-    pub fn match_pattern(&mut self, pattern: &PropertyGraph) {
-        let mut graph_proxy = GraphProxy::new(&self.repository, extract_nodes_labels(pattern));
-        
+    pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
+        let graph_proxy = GraphProxy::new(&self.repository, extract_nodes_labels(pattern));
+        let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &graph_proxy, |n0, n1| {
             let mut res = true;
             for p0 in &n0.properties {
@@ -41,11 +41,24 @@ impl GraphEngine {
             res
         },
         |e0, e1| {
-            true
+            let mut res = true;
+            for p0 in &e0.properties {
+                if !e1.properties.contains(p0) {
+                    res = false;
+                    break;
+                }
+            }
+            res
         },
         |map0, map1| {
+            let mut res_match = PropertyGraph::new();
+            for node in pattern.get_nodes() {
+
+            }
+            res.push(res_match);
             true
         });
+        Some(res)
     }
 
    

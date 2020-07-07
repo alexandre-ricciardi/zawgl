@@ -4,7 +4,7 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum PropertyValue {
     PString(String),
     PInteger(i64),
@@ -24,12 +24,34 @@ impl Hash for PropertyValue {
             PropertyValue::PInteger(ival) => {
                 ival.hash(state);
             },
-            PropertyValue::PFloat(fval) => {
+            PropertyValue::PFloat(_) => {
                 
             }
         }
     }
 }
+
+impl PartialEq for PropertyValue {
+    fn eq(&self, other: &Self) -> bool {
+        use self::PropertyValue::*;
+        match (self, other) {
+            (PBool(sval), PBool(oval)) => {
+                sval == oval
+            },
+            (PString(sval), PString(oval))  => {
+                sval == oval
+            },
+            (PInteger(sval), PInteger(oval))  => {
+                sval == oval
+            },
+            (PFloat(_), PFloat(_))  => {
+                false
+            },
+            _ => {false}
+        }
+    }
+}
+impl Eq for PropertyValue {}
 
 
 pub enum Directive {
@@ -65,7 +87,7 @@ impl Node {
         Node {var: None, properties: Vec::new(), labels: Vec::new(), id:None}
     }
 }
-
+#[derive(Hash, Eq, PartialEq)]
 pub struct Relationship {
     pub id: Option<u64>,
     pub var: Option<String>,
