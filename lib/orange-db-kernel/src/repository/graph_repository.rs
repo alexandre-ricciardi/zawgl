@@ -22,13 +22,15 @@ impl GraphRepository {
             nodes_labels_index: BTreeIndex::new(&init_ctx.get_nodes_labels_index_path().unwrap())}
     }
 
-    pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> Option<Vec<u64>> {
+    pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> Vec<u64> {
         let mut res = Vec::new();
         for label in labels {
-            let ids = self.nodes_labels_index.search(label)?;
-            res.extend(ids.iter());
+            let ids = self.nodes_labels_index.search(label);
+            if let Some(node_ids) = &ids {
+                res.extend(node_ids.iter());
+            }
         }
-        Some(res)
+        res
     }
 
     pub fn create(&mut self, pgraph: &PropertyGraph) -> Option<()> {

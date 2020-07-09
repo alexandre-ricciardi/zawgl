@@ -60,7 +60,7 @@ pub enum Directive {
     DELETE
 }
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Property {
     pub id: Option<u64>,
     pub name: Option<String>,
@@ -73,7 +73,7 @@ impl Property {
     } 
 }
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Node {
     pub id: Option<u64>,
     pub var: Option<String>,
@@ -87,7 +87,7 @@ impl Node {
         Node {var: None, properties: Vec::new(), labels: Vec::new(), id:None}
     }
 }
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Relationship {
     pub id: Option<u64>,
     pub var: Option<String>,

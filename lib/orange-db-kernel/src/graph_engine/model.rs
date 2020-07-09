@@ -6,7 +6,10 @@ use super::super::repository::graph_repository::GraphRepository;
 pub struct ProxyNodeId {
     mem_id: usize,
     store_id: u64,
+    to_retrieve: bool,
 }
+
+
 
 impl MemGraphId for ProxyNodeId {
     fn get_index(&self) -> usize {
@@ -15,6 +18,11 @@ impl MemGraphId for ProxyNodeId {
 }
 
 impl ProxyNodeId {
+
+    fn new(db_id: u64) -> Self {
+        ProxyNodeId{mem_id: 0, store_id: db_id, to_retrieve: true}
+    }
+
     fn get_store_id(&self) -> u64 {
         self.store_id
     }
@@ -51,16 +59,17 @@ pub struct InnerEdgeData<NID: MemGraphId, EID: MemGraphId> {
 }
 
 
-pub struct InnerGraph {
+pub struct InnerGraph<'r> {
     nodes: Vec<InnerNodeData<ProxyRelationshipId>>,
     edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
+    repository: &'r GraphRepository,    
 }
 
 pub struct GraphProxy<'r> {
     nodes: Vec<Node>,
     labels: Vec<String>,
     relationships: Vec<Relationship>,
-    graph: InnerGraph,
+    graph: InnerGraph<'r>,
     repository: &'r GraphRepository,
 }
 
@@ -86,7 +95,7 @@ impl <'g> GraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relati
 }
 
 pub struct InEdges<'g> {
-    graph: &'g InnerGraph,
+    graph: &'g InnerGraph<'g>,
     current_edge_index: Option<ProxyRelationshipId>,
 }
 
@@ -107,7 +116,7 @@ impl <'graph> Iterator for InEdges<'graph> {
 }
 
 pub struct OutEdges<'g> {
-    graph: &'g InnerGraph,
+    graph: &'g InnerGraph<'g>,
     current_edge_index: Option<ProxyRelationshipId>,
 }
 
@@ -128,7 +137,7 @@ impl <'g> Iterator for OutEdges<'g> {
 }
 
 
-impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for InnerGraph {
+impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for InnerGraph<'g> {
     type OutIt = OutEdges<'g>;
     type InIt = InEdges<'g>;
     fn out_edges(&self, source: &ProxyNodeId) -> OutEdges {
@@ -157,7 +166,7 @@ impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for InnerGraph {
     }
  
     fn get_nodes_ids(&self) -> Vec<ProxyNodeId> {
-        //self.repository.fetch_nodes_ids_with_labels(&self.labels);
+        
         Vec::new()//(0..self.nodes_len()).map(ProxyNodeId::new).collect()
     }
     
@@ -191,9 +200,11 @@ impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
     fn edges_len(&self) -> usize {
         self.relationships.len()
     }
+    
     fn get_nodes_ids(&self) -> Vec<ProxyNodeId> {
-        self.graph.get_nodes_ids()
+        Vec::new()
     }
+
     fn in_degree(&self, node: &ProxyNodeId) -> usize {
         self.in_edges(node).count()
     }
@@ -202,14 +213,25 @@ impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
     }
 }
 
-impl InnerGraph {
-    fn new() -> Self {
-        InnerGraph{nodes: Vec::new(), edges: Vec::new()}
+impl <'r> InnerGraph<'r> {
+    fn new(repo: &'r GraphRepository) -> Self {
+        InnerGraph{nodes: Vec::new(), edges: Vec::new(), repository: repo}
     }
 }
+
+fn retrieve_db_nodes_ids(repository: &mut GraphRepository, labels: &Vec<String>) -> Vec<ProxyNodeId> {
+    let db_node_ids = repository.fetch_nodes_ids_with_labels(labels);
+    let mut res = Vec::new();
+    for id in db_node_ids {
+        res.push(ProxyNodeId::new(id))
+    }
+    res
+}
+
 impl <'r> GraphProxy<'r> {
-    pub fn new(repo: &'r GraphRepository, labels: Vec<String>) -> Self {
-        GraphProxy{repository: repo, nodes: Vec::new(), relationships: Vec::new(), graph: InnerGraph::new(), labels: labels}
+    pub fn new(repo: &'r mut GraphRepository, labels: Vec<String>) -> Self {
+        let ids = retrieve_db_nodes_ids(repo, &labels);
+        GraphProxy{repository: repo, nodes: Vec::new(), relationships: Vec::new(), graph: InnerGraph::new(repo), labels: labels}
     }
 }
 
