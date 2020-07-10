@@ -101,14 +101,14 @@ impl Relationship {
     }
 }
 
-pub type PropertyGraph = container::GraphContainer<Node, Relationship>;
+pub type PropertyGraph<'g> = container::GraphContainer<'g, Node, Relationship>;
 
-pub struct Request {
-    pub pattern: PropertyGraph,
+pub struct Request<'g> {
+    pub pattern: PropertyGraph<'g>,
     pub directive: Directive,
 }
 
-impl Request {
+impl <'g> Request<'g> {
     pub fn new(directive: Directive) -> Self {
         Request {pattern: PropertyGraph::new(), directive: directive}
     }

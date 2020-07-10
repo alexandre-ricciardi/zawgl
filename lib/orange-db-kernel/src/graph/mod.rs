@@ -1,5 +1,6 @@
 pub mod traits;
 pub mod container;
+use std::marker::PhantomData;
 
 use self::traits::*;
 
@@ -74,18 +75,19 @@ impl <NID: MemGraphId + Copy, EID: MemGraphId + Copy> EdgeData<NID, EID> {
     }
 }
 
-pub struct Graph {
+pub struct Graph<'g> {
     nodes: Vec<VertexData<EdgeIndex>>,
     edges: Vec<EdgeData<NodeIndex, EdgeIndex>>,
+    graph_lifetime: &'g PhantomData<Graph<'g>>,
 }
 
 pub struct Successors<'g> {
-    graph: &'g Graph,
+    graph: &'g Graph<'g>,
     current_edge_index: Option<EdgeIndex>,
 }
 
 pub struct Ancestors<'g> {
-    graph: &'g Graph,
+    graph: &'g Graph<'g>,
     current_edge_index: Option<EdgeIndex>,
 }
 
@@ -120,7 +122,7 @@ impl <'graph> Iterator for Ancestors<'graph> {
 }
 
 pub struct OutEdges<'g> {
-    graph: &'g Graph,
+    graph: &'g Graph<'g>,
     current_edge_index: Option<EdgeIndex>,
 }
 
@@ -142,7 +144,7 @@ impl <'g> Iterator for OutEdges<'g> {
 
 
 pub struct InEdges<'g> {
-    graph: &'g Graph,
+    graph: &'g Graph<'g>,
     current_edge_index: Option<EdgeIndex>,
 }
 
@@ -162,10 +164,10 @@ impl <'graph> Iterator for InEdges<'graph> {
     }
 }
 
-impl <'g> GraphTrait<'g, NodeIndex, EdgeIndex> for Graph {
+impl <'g> GraphTrait<NodeIndex, EdgeIndex> for Graph<'g> {
     type OutIt = OutEdges<'g>;
     type InIt = InEdges<'g>;
-    fn out_edges(&self, source: &NodeIndex) -> OutEdges {
+    fn out_edges(&self, source: &NodeIndex) -> Self::OutIt {
         let first_outbound_edge = self.nodes[source.get_index()].first_outbound_edge;
         OutEdges{ graph: self, current_edge_index: first_outbound_edge }
     }
@@ -201,9 +203,9 @@ impl <'g> GraphTrait<'g, NodeIndex, EdgeIndex> for Graph {
         self.out_edges(node).count()
     }
 }
-impl Graph {
+impl <'g> Graph<'g> {
     pub fn new() -> Self {
-        Graph{ nodes: Vec::new(), edges: Vec::new() }
+        Graph{ nodes: Vec::new(), edges: Vec::new(), graph_lifetime: &PhantomData }
     }
 
     pub fn add_vertex(&mut self) -> NodeIndex {

@@ -76,7 +76,7 @@ pub struct GraphProxy<'r> {
 }
 
 
-impl <'g> MutGraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'g> {
+impl <'g> MutGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'g> {
 
     fn get_node_mut(&mut self, id: &ProxyNodeId) -> &mut Node {
         &mut self.nodes[id.get_index()]
@@ -138,7 +138,7 @@ impl <'g> Iterator for OutEdges<'g> {
     }
 }
 
-impl <'g> MutGraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
+impl <'g> MutGraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
     type OutIt = OutEdges<'g>;
     type InIt = InEdges<'g>;
     fn out_edges(&'g mut self, source: &ProxyNodeId) -> OutEdges {

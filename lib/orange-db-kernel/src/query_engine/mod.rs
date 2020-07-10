@@ -37,8 +37,8 @@ enum IdentifierType {
     Label
 }
 
-struct CypherAstVisitor {
-    request: Option<Request>,
+struct CypherAstVisitor<'g> {
+    request: Option<Request<'g>>,
     curr_node: Option<NodeIndex>,
     curr_directed_relationship: Option<EdgeIndex>,
     curr_both_ways_relationship: Option<(EdgeIndex, EdgeIndex)>,

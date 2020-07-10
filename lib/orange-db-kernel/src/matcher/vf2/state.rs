@@ -9,8 +9,8 @@ pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: MutGraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
+    Graph1: MutGraphContainerTrait<NID1, EID1, N1, R1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
     state_0: RightMutBaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1>,
     state_1: LeftMutBaseState<'g1, 'g0, NID1, NID0, EID1, EID0, Graph1, Graph0>,
@@ -33,8 +33,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: MutGraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
+    Graph1: MutGraphContainerTrait<NID1, EID1, N1, R1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
 
 
@@ -55,12 +55,12 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        pub fn push(&'g1 mut self, v0: &NID0, v1: &NID1) {
+        pub fn push(&mut self, v0: &NID0, v1: &NID1) {
             self.state_0.push(v0, v1);
             self.state_1.push(v1, v0);
         }
 
-        pub fn pop(&'g1 mut self, v0: &NID0, _v1: &NID1) {
+        pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {
             if let Some(w_val) = self.state_0.get_base_state().core(v0) {
                 self.state_0.pop(v0, &w_val);
                 self.state_1.pop(&w_val, v0);
@@ -222,7 +222,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
 struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
     where  NID: MemGraphId, EID: MemGraphId,
-    Graph: GraphContainerTrait<'g, NID, EID, N, R>,
+    Graph: GraphContainerTrait<NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
     matched_edge_set: HashSet<EID>,
     graph: &'g Graph,
@@ -234,9 +234,9 @@ struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP>
     edge_comp: ECOMP,
 }
 
-impl <'g, 'a, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
+impl <'g, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
     where  NID: MemGraphId + Eq, EID: MemGraphId + std::hash::Hash + Eq,
-    Graph: GraphContainerTrait<'g, NID, EID, N, R>,
+    Graph: GraphContainerTrait<NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
 
     fn new(g: &'g Graph, ecomp: ECOMP) -> Self {
@@ -260,7 +260,7 @@ impl <'g, 'a, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, N
 
 struct MutEquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
     where  NID: MemGraphId, EID: MemGraphId,
-    Graph: MutGraphContainerTrait<'g, NID, EID, N, R>,
+    Graph: MutGraphContainerTrait<NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
     matched_edge_set: HashSet<EID>,
     graph: &'g Graph,
@@ -274,7 +274,7 @@ struct MutEquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP>
 
 impl <'g, 'a, NID, EID, N, R, RCOMP, Graph, ECOMP> MutEquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
     where  NID: MemGraphId + Eq, EID: MemGraphId + std::hash::Hash + Eq,
-    Graph: MutGraphContainerTrait<'g, NID, EID, N, R>,
+    Graph: MutGraphContainerTrait<NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
 
     fn new(g: &'g Graph, ecomp: ECOMP) -> Self {
