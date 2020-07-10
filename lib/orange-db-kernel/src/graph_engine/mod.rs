@@ -4,7 +4,7 @@ use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
 use super::matcher::vf2::sub_graph_isomorphism;
-use super::graph::traits::{GraphTrait, GraphContainerTrait};
+use super::graph::traits::*;
 
 pub struct GraphEngine {
     repository: GraphRepository,
@@ -39,9 +39,10 @@ impl GraphEngine {
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let graph_proxy = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
+        let mut graph_proxy = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
+        let proxy_ref = &mut graph_proxy;
         let mut res = Vec::new();
-        sub_graph_isomorphism(pattern, &graph_proxy, |n0, n1| {
+        sub_graph_isomorphism(pattern, &mut graph_proxy, |n0, n1| {
             let mut res = true;
             for p0 in &n0.properties {
                 if !n1.properties.contains(p0) {
@@ -73,7 +74,7 @@ impl GraphEngine {
                 let ptarget_id = &prel.1.target;
                 let proxy_source_id = map0[psource_id];
                 let proxy_target_id = map0[ptarget_id];
-                for rel_id in graph_proxy.out_edges(&proxy_source_id) {
+                for rel_id in proxy_ref.out_edges(&proxy_source_id) {
                     let target_id = graph_proxy.get_target_index(&rel_id);
                     if target_id == &proxy_target_id {
                         let rel = graph_proxy.get_relationship_ref(&rel_id);

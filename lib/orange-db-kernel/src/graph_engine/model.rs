@@ -1,6 +1,7 @@
 use super::super::model::*;
-use super::super::graph::traits::{GraphTrait, GraphContainerTrait, MemGraphId};
+use super::super::graph::traits::{MutGraphTrait, MutGraphContainerTrait, MemGraphId};
 use super::super::repository::graph_repository::GraphRepository;
+use std::collections::HashSet;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub struct ProxyNodeId {
@@ -67,14 +68,15 @@ pub struct InnerGraph<'r> {
 
 pub struct GraphProxy<'r> {
     nodes: Vec<Node>,
-    labels: Vec<String>,
     relationships: Vec<Relationship>,
-    graph: InnerGraph<'r>,
+    vertices: Vec<InnerNodeData<ProxyRelationshipId>>,
+    edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
     repository: &'r GraphRepository,
+    retrieved_nodes_ids: Vec<ProxyNodeId>,
 }
 
 
-impl <'g> GraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'g> {
+impl <'g> MutGraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'g> {
 
     fn get_node_mut(&mut self, id: &ProxyNodeId) -> &mut Node {
         &mut self.nodes[id.get_index()]
@@ -95,7 +97,7 @@ impl <'g> GraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relati
 }
 
 pub struct InEdges<'g> {
-    graph: &'g InnerGraph<'g>,
+    graph: &'g GraphProxy<'g>,
     current_edge_index: Option<ProxyRelationshipId>,
 }
 
@@ -116,7 +118,7 @@ impl <'graph> Iterator for InEdges<'graph> {
 }
 
 pub struct OutEdges<'g> {
-    graph: &'g InnerGraph<'g>,
+    graph: &'g GraphProxy<'g>,
     current_edge_index: Option<ProxyRelationshipId>,
 }
 
@@ -136,66 +138,26 @@ impl <'g> Iterator for OutEdges<'g> {
     }
 }
 
-
-impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for InnerGraph<'g> {
+impl <'g> MutGraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
     type OutIt = OutEdges<'g>;
     type InIt = InEdges<'g>;
-    fn out_edges(&self, source: &ProxyNodeId) -> OutEdges {
-        let first_outbound_edge = self.nodes[source.get_index()].first_outbound_edge;
+    fn out_edges(&'g mut self, source: &ProxyNodeId) -> OutEdges {
+        let first_outbound_edge = self.vertices[source.get_index()].first_outbound_edge;
         OutEdges{ graph: self, current_edge_index: first_outbound_edge }
     }
 
-    fn in_edges(&self, target: &ProxyNodeId) -> InEdges {
-        let first_inbound_edge = self.nodes[target.get_index()].first_inbound_edge;
+    fn in_edges(&'g mut self, target: &ProxyNodeId) -> Self::InIt {
+        let first_inbound_edge = self.vertices[target.get_index()].first_inbound_edge;
         InEdges{ graph: self, current_edge_index: first_inbound_edge }
     }
-
     fn get_source_index(&self, edge_index: &ProxyRelationshipId) -> &ProxyNodeId {
         &self.edges[edge_index.get_index()].source
     }
     fn get_target_index(&self, edge_index: &ProxyRelationshipId) -> &ProxyNodeId {
         &self.edges[edge_index.get_index()].target
     }
-
     fn nodes_len(&self) -> usize {
-        self.nodes.len()
-    }
-
-    fn edges_len(&self) -> usize {
-        self.edges.len()
-    }
- 
-    fn get_nodes_ids(&self) -> Vec<ProxyNodeId> {
-        
-        Vec::new()//(0..self.nodes_len()).map(ProxyNodeId::new).collect()
-    }
-    
-    fn in_degree(&self, node: &ProxyNodeId) -> usize {
-        self.in_edges(node).count()
-    }
-    fn out_degree(&self, node: &ProxyNodeId) -> usize {
-        self.out_edges(node).count()
-    }
-}
-
-impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
-    type OutIt = OutEdges<'g>;
-    type InIt = InEdges<'g>;
-    fn out_edges(&'g self, source: &ProxyNodeId) -> OutEdges {
-        self.graph.out_edges(source)
-    }
-
-    fn in_edges(&'g self, target: &ProxyNodeId) -> Self::InIt {
-        self.graph.in_edges(target)
-    }
-    fn get_source_index(&self, edge_index: &ProxyRelationshipId) -> &ProxyNodeId {
-        &self.graph.edges[edge_index.get_index()].source
-    }
-    fn get_target_index(&self, edge_index: &ProxyRelationshipId) -> &ProxyNodeId {
-        &self.graph.edges[edge_index.get_index()].target
-    }
-    fn nodes_len(&self) -> usize {
-        self.nodes.len()
+        self.retrieved_nodes_ids.len()
     }
     fn edges_len(&self) -> usize {
         self.relationships.len()
@@ -206,10 +168,10 @@ impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
     }
 
     fn in_degree(&self, node: &ProxyNodeId) -> usize {
-        self.in_edges(node).count()
+        0//self.in_edges(node).count()
     }
     fn out_degree(&self, node: &ProxyNodeId) -> usize {
-        self.out_edges(node).count()
+        0//self.out_edges(node).count()
     }
 }
 
@@ -231,7 +193,9 @@ fn retrieve_db_nodes_ids(repository: &mut GraphRepository, labels: &Vec<String>)
 impl <'r> GraphProxy<'r> {
     pub fn new(repo: &'r mut GraphRepository, labels: Vec<String>) -> Self {
         let ids = retrieve_db_nodes_ids(repo, &labels);
-        GraphProxy{repository: repo, nodes: Vec::new(), relationships: Vec::new(), graph: InnerGraph::new(repo), labels: labels}
+        GraphProxy{repository: repo, nodes: Vec::new(),
+            relationships: Vec::new(),
+            retrieved_nodes_ids: ids, vertices: Vec::new(), edges: Vec::new()}
     }
 }
 

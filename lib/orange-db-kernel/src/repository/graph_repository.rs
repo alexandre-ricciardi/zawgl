@@ -4,6 +4,7 @@ use super::super::model::*;
 use super::super::repository::index::b_tree::*;
 use self::records::*;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use super::super::graph::traits::*;
 use super::super::graph::*;
 
@@ -22,8 +23,8 @@ impl GraphRepository {
             nodes_labels_index: BTreeIndex::new(&init_ctx.get_nodes_labels_index_path().unwrap())}
     }
 
-    pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> Vec<u64> {
-        let mut res = Vec::new();
+    pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> HashSet<u64> {
+        let mut res = HashSet::new();
         for label in labels {
             let ids = self.nodes_labels_index.search(label);
             if let Some(node_ids) = &ids {

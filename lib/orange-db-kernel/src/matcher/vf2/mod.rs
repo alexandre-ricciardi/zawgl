@@ -11,7 +11,7 @@ pub struct Matcher<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOM
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
     Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+    Graph1: MutGraphContainerTrait<'g1, NID1, EID1, N1, R1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
         graph_0: &'g0 Graph0,
@@ -32,11 +32,11 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
     Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+    Graph1: MutGraphContainerTrait<'g1, NID1, EID1, N1, R1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool {
 
-        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
+        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
             Matcher {
                 graph_0: graph_0,
                 graph_1: graph_1,
@@ -51,14 +51,14 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        fn back_track(&mut self) {
+        fn back_track(&'g1 mut self) {
             if let Some(back) = self.match_continuation.pop() {
                 self.state.pop(&back.0, &back.1);
                 self.graph_1_loop();
             }
         }
 
-        fn graph_1_loop(&mut self) {
+        fn graph_1_loop(&'g1 mut self) {
             if let Some(id0) = self.first_candidate_0 {
                 for next_candidate_1_id in self.curr_candidate_1_index..self.graph_1_ids.len() {
                     let id1 = self.graph_1_ids[next_candidate_1_id];
@@ -72,7 +72,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        pub fn process(&mut self) -> bool {
+        pub fn process(&'g1 mut self) -> bool {
             loop {
                 if self.state.success() {
                     if !self.state.call_back(&mut self.callback) {
@@ -118,22 +118,17 @@ Graph: GraphContainerTrait<'g, NID, EID, N, R> {
     res
 }
 
-pub fn sub_graph_isomorphism<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
-(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> bool
+pub fn sub_graph_isomorphism<'g0, 'g1, NID0: 'g0, NID1: 'g1, EID0: 'g0, EID1: 'g1, N0: 'g0, R0: 'g0, N1: 'g1, R1: 'g1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
+(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> bool
 where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
 EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
 N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
 N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
 Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1>,
-VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
-    if graph_0.nodes_len() > graph_1.nodes_len() {
-        false
-    } else if graph_0.edges_len() > graph_1.edges_len() {
-        false
-    } else {
-        let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
-        matcher.process()
-    }
+Graph1: MutGraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+VCOMP: 'g0 + Fn(&N0, &N1) -> bool, ECOMP: 'g0 + Fn(&R0, &R1) -> bool,
+CALLBACK: 'g0 + FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>)-> bool  {
+
+    let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
+    matcher.process()
 }

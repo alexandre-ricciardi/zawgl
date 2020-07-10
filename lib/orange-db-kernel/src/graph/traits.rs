@@ -23,3 +23,26 @@ pub trait GraphContainerTrait<'g, NID: MemGraphId, EID: MemGraphId, NODE, RELATI
     fn get_node_ref(&self, id: &NID) -> &NODE;
     fn get_relationship_ref(&self, id: &EID) -> &RELATIONSHIP;
 }
+
+
+pub trait MutGraphTrait<'g, NodeId: MemGraphId, EdgeId: MemGraphId> {
+    type OutIt: Iterator<Item=EdgeId>;
+    type InIt: Iterator<Item=EdgeId>;
+    fn out_edges(&'g mut self, source: &NodeId) -> Self::OutIt;
+    fn in_edges(&'g mut self, target: &NodeId) -> Self::InIt;
+    fn get_source_index(&self, edge_index: &EdgeId) -> &NodeId;
+    fn get_target_index(&self, edge_index: &EdgeId) -> &NodeId;
+    fn nodes_len(&self) -> usize;
+    fn edges_len(&self) -> usize;
+    fn get_nodes_ids(&self) -> Vec<NodeId>;
+    fn in_degree(&self, node: &NodeId) -> usize;
+    fn out_degree(&self, node: &NodeId) -> usize;
+}
+
+
+pub trait MutGraphContainerTrait<'g, NID: MemGraphId, EID: MemGraphId, NODE, RELATIONSHIP>: MutGraphTrait<'g, NID, EID> {
+    fn get_node_mut(&mut self, id: &NID) -> &mut NODE;
+    fn get_relationship_mut(&mut self, id: &EID) -> &mut RELATIONSHIP;
+    fn get_node_ref(&self, id: &NID) -> &NODE;
+    fn get_relationship_ref(&self, id: &EID) -> &RELATIONSHIP;
+}
