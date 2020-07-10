@@ -164,15 +164,15 @@ impl <'graph> Iterator for InEdges<'graph> {
     }
 }
 
-impl <'g> GraphTrait<NodeIndex, EdgeIndex> for Graph<'g> {
+impl <'g> GraphTrait<'g, NodeIndex, EdgeIndex> for Graph<'g> {
     type OutIt = OutEdges<'g>;
     type InIt = InEdges<'g>;
-    fn out_edges(&self, source: &NodeIndex) -> Self::OutIt {
+    fn out_edges(&'g self, source: &NodeIndex) -> Self::OutIt {
         let first_outbound_edge = self.nodes[source.get_index()].first_outbound_edge;
         OutEdges{ graph: self, current_edge_index: first_outbound_edge }
     }
 
-    fn in_edges(&self, target: &NodeIndex) -> InEdges {
+    fn in_edges(&'g self, target: &NodeIndex) -> InEdges {
         let first_inbound_edge = self.nodes[target.get_index()].first_inbound_edge;
         InEdges{ graph: self, current_edge_index: first_inbound_edge }
     }

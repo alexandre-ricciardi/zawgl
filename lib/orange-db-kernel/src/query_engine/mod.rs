@@ -49,7 +49,7 @@ struct CypherAstVisitor<'g> {
     id_type: Option<IdentifierType>
 }
 
-impl CypherAstVisitor {
+impl <'g> CypherAstVisitor<'g> {
     fn new() -> Self {
         CypherAstVisitor { request: None, curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
             curr_property_id: None, state: VisitorState::Init, curr_both_ways_property_ids: None,
@@ -57,7 +57,7 @@ impl CypherAstVisitor {
     }
 }
 
-impl AstVisitor for CypherAstVisitor {
+impl <'g> AstVisitor<'g> for CypherAstVisitor<'g> {
     fn enter_create(&mut self, node: &AstTagNode) {
         self.request = Some(Request::new(Directive::CREATE));
         self.state = VisitorState::DirectiveCreate;

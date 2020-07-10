@@ -6,11 +6,10 @@ pub struct GraphContainer<'g, NODE, RELATIONSHIP> {
     nodes: Vec<NODE>,
     relationships: Vec<RELATIONSHIP>,
     graph: Graph<'g>,
-    graph_lifetime: &'g PhantomData<Graph<'g>>,
 }
 
 
-impl <'g, NODE, RELATIONSHIP> GraphContainerTrait<NodeIndex, EdgeIndex, NODE, RELATIONSHIP> for GraphContainer<'g, NODE, RELATIONSHIP> {
+impl <'g, NODE, RELATIONSHIP> GraphContainerTrait<'g, NodeIndex, EdgeIndex, NODE, RELATIONSHIP> for GraphContainer<'g, NODE, RELATIONSHIP> {
 
     fn get_node_mut(&mut self, id: &NodeIndex) -> &mut NODE {
         &mut self.nodes[id.get_index()]
@@ -30,14 +29,14 @@ impl <'g, NODE, RELATIONSHIP> GraphContainerTrait<NodeIndex, EdgeIndex, NODE, RE
 
 }
 
-impl <'g, NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<'g, NODE, RELATIONSHIP> {
+impl <'g, NODE, RELATIONSHIP> GraphTrait<'g, NodeIndex, EdgeIndex> for GraphContainer<'g, NODE, RELATIONSHIP> {
     type OutIt = OutEdges<'g>;
     type InIt = InEdges<'g>;
-    fn out_edges(&self, source: &NodeIndex) -> Self::OutIt {
+    fn out_edges(&'g self, source: &NodeIndex) -> Self::OutIt {
         self.get_inner_graph().out_edges(source)
     }
 
-    fn in_edges(&self, target: &NodeIndex) -> Self::InIt {
+    fn in_edges(&'g self, target: &NodeIndex) -> Self::InIt {
         self.get_inner_graph().in_edges(target)
     }
     fn get_source_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
@@ -65,7 +64,7 @@ impl <'g, NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContaine
 
 impl <'g, NODE, RELATIONSHIP> GraphContainer<'g, NODE, RELATIONSHIP> {
     pub fn new() -> Self {
-        GraphContainer {nodes: Vec::new(), relationships: Vec::new(), graph: Graph::new(), graph_lifetime: PhantomData}
+        GraphContainer {nodes: Vec::new(), relationships: Vec::new(), graph: Graph::new()}
     }
     pub fn add_node(&mut self, node: NODE) -> NodeIndex {
         self.nodes.push(node);

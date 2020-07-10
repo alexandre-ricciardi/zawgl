@@ -20,7 +20,7 @@ pub enum AstTag  {
     Label,
 }
 
-pub trait AstVisitor {
+pub trait AstVisitor<'g> {
     fn enter_create(&mut self, node: &AstTagNode);
     fn enter_node(&mut self, node: &AstTagNode);
     fn enter_relationship(&mut self, node: &AstTagNode);

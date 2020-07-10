@@ -5,7 +5,7 @@ use super::super::super::graph::traits::*;
 pub struct RightMutBaseState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: MemGraphId, EID1: MemGraphId, Graph0, Graph1>
     where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy,
     EID0: std::hash::Hash + Eq + Copy, EID1: std::hash::Hash + Eq + Copy, 
-    Graph0: GraphTrait<NID0, EID0>, Graph1: MutGraphTrait<NID1, EID1> {
+    Graph0: GraphTrait<'g0, NID0, EID0>, Graph1: MutGraphTrait<'g1, NID1, EID1> {
     graph_0: &'g0 Graph0,
     graph_1: &'g1 mut Graph1,
     phantom_e_0: PhantomData<EID0>,
@@ -16,7 +16,7 @@ pub struct RightMutBaseState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0:
 impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> RightMutBaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> 
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    Graph0: GraphTrait<NID0, EID0>, Graph1: MutGraphTrait<NID1, EID1> {
+    Graph0: GraphTrait<'g0, NID0, EID0>, Graph1: MutGraphTrait<'g1, NID1, EID1> {
 
         pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1) -> Self {
             RightMutBaseState {
@@ -132,7 +132,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> RightMutBaseState<'g0, '
 pub struct LeftMutBaseState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: MemGraphId, EID1: MemGraphId, Graph0, Graph1>
     where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy,
     EID0: std::hash::Hash + Eq + Copy, EID1: std::hash::Hash + Eq + Copy, 
-    Graph0: MutGraphTrait<NID0, EID0>, Graph1: GraphTrait<NID1, EID1> {
+    Graph0: MutGraphTrait<'g0, NID0, EID0>, Graph1: GraphTrait<'g1, NID1, EID1> {
     graph_0: &'g0 mut Graph0,
     graph_1: &'g1 Graph1,
     phantom_e_0: PhantomData<EID0>,
@@ -143,7 +143,7 @@ pub struct LeftMutBaseState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: 
 impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> LeftMutBaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> 
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    Graph0: MutGraphTrait<NID0, EID0>, Graph1: GraphTrait<NID1, EID1> {
+    Graph0: MutGraphTrait<'g0, NID0, EID0>, Graph1: GraphTrait<'g1, NID1, EID1> {
 
         pub fn new(graph_0: &'g0 mut Graph0, graph_1: &'g1 Graph1) -> Self {
             LeftMutBaseState {
@@ -155,7 +155,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> LeftMutBaseState<'g0, 'g
             }
         }
             
-        pub fn push(&mut self, v0: &NID0, v1: &NID1) {  
+        pub fn push(&'g0 mut self, v0: &NID0, v1: &NID1) {  
             self.base_state.core_count += 1;
             self.base_state.core_map.insert(*v0, *v1);
             if !self.base_state.in_map.contains_key(&v0) {
@@ -195,7 +195,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> LeftMutBaseState<'g0, 'g
             }
         }
 
-        pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {  
+        pub fn pop(&'g0 mut self, v0: &NID0, _v1: &NID1) {  
             if self.base_state.core_count == 0 {
                 return;
             }

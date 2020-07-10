@@ -5,6 +5,8 @@ use super::repository::graph_repository::GraphRepository;
 use self::model::*;
 use super::matcher::vf2::sub_graph_isomorphism;
 use super::graph::traits::*;
+use super::graph::NodeIndex;
+use std::collections::HashMap;
 
 pub struct GraphEngine {
     repository: GraphRepository,
@@ -38,9 +40,8 @@ impl GraphEngine {
         
     }
 
-    pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let mut graph_proxy = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
-        let proxy_ref = &mut graph_proxy;
+    pub fn match_pattern<'rq>(&'rq mut self, pattern: &'rq PropertyGraph) -> Option<Vec<PropertyGraph>> {
+        let mut graph_proxy: GraphProxy<'rq> = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, |n0, n1| {
             let mut res = true;
@@ -62,7 +63,7 @@ impl GraphEngine {
             }
             res
         },
-        |map0, map1| {
+        |map0: &'rq HashMap<NodeIndex, ProxyNodeId>, map1: &HashMap<ProxyNodeId, NodeIndex>| {
             let mut res_match = PropertyGraph::new();
             for index in pattern.get_nodes_ids() {
                 let proxy_index = map0[&index];
@@ -74,7 +75,7 @@ impl GraphEngine {
                 let ptarget_id = &prel.1.target;
                 let proxy_source_id = map0[psource_id];
                 let proxy_target_id = map0[ptarget_id];
-                for rel_id in proxy_ref.out_edges(&proxy_source_id) {
+                for rel_id in graph_proxy.out_edges(&proxy_source_id) {
                     let target_id = graph_proxy.get_target_index(&rel_id);
                     if target_id == &proxy_target_id {
                         let rel = graph_proxy.get_relationship_ref(&rel_id);
