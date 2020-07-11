@@ -2,24 +2,24 @@ use std::marker::PhantomData;
 use std::collections::HashMap;
 use super::super::super::graph::traits::*;
 
-pub struct RightMutBaseState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: MemGraphId, EID1: MemGraphId, Graph0, Graph1>
+pub struct SubState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: MemGraphId, EID1: MemGraphId, Graph0, Graph1>
     where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy,
     EID0: std::hash::Hash + Eq + Copy, EID1: std::hash::Hash + Eq + Copy, 
-    Graph0: GraphTrait<'g0, NID0, EID0>, Graph1: MutGraphTrait<'g1, NID1, EID1> {
+    Graph0: GraphTrait<'g0, NID0, EID0>, Graph1: GraphTrait<'g1, NID1, EID1> {
     graph_0: &'g0 Graph0,
-    graph_1: &'g1 mut Graph1,
+    graph_1: &'g1 Graph1,
     phantom_e_0: PhantomData<EID0>,
     phantom_e_1: PhantomData<EID1>,
     base_state: BaseState<NID0, NID1>,
 }
 
-impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> RightMutBaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> 
+impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> SubState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> 
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    Graph0: GraphTrait<'g0, NID0, EID0>, Graph1: MutGraphTrait<'g1, NID1, EID1> {
+    Graph0: GraphTrait<'g0, NID0, EID0>, Graph1: GraphTrait<'g1, NID1, EID1> {
 
-        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1) -> Self {
-            RightMutBaseState {
+        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1) -> Self {
+            SubState {
                 graph_0: graph_0,
                 graph_1: graph_1,
                 phantom_e_0: PhantomData,
@@ -69,133 +69,6 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> RightMutBaseState<'g0, '
         }
 
         pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {  
-            if self.base_state.core_count == 0 {
-                return;
-            }
-
-            if let Some(in_count) = self.base_state.in_map.get(&v0) {
-                if *in_count == self.base_state.core_count {
-                    self.base_state.in_map.insert(*v0, 0);
-                    self.base_state.term_in_count -= 1;
-                    if let Some(_out_count) = self.base_state.out_map.get(&v0) {
-                        self.base_state.term_both_count -= 1;
-                    }
-                }
-            }
-
-            for in_edge in self.graph_0.in_edges(&v0) {
-                let source = self.graph_0.get_source_index(&in_edge);
-                if let Some(in_count) = self.base_state.in_map.get(&source) {
-                    if *in_count == self.base_state.core_count {
-                        self.base_state.in_map.insert(*source, 0);
-                        self.base_state.term_in_count -= 1;
-                        if let Some(_out_count) = self.base_state.out_map.get(&source) {
-                            self.base_state.term_both_count -= 1;
-                        }
-                    }
-                }
-            }
-
-            if let Some(out_count) = self.base_state.out_map.get(&v0) {
-                if *out_count == self.base_state.core_count {
-                    self.base_state.out_map.insert(*v0, 0);
-                    self.base_state.term_out_count -= 1;
-                    if let Some(_in_count) = self.base_state.in_map.get(&v0) {
-                        self.base_state.term_both_count -= 1;
-                    }
-                }
-            }
-
-            for out_edge in self.graph_0.out_edges(&v0) {
-                let target = self.graph_0.get_target_index(&out_edge);
-                if let Some(out_count) = self.base_state.in_map.get(&target) {
-                    if *out_count == self.base_state.core_count {
-                        self.base_state.out_map.insert(*target, 0);
-                        self.base_state.term_out_count -= 1;
-                        if let Some(_in_count) = self.base_state.in_map.get(&target) {
-                            self.base_state.term_both_count -= 1;
-                        }
-                    }
-                }
-            }
-
-            self.base_state.core_map.remove(&v0);
-
-            self.base_state.core_count -= 1;
-        }
-
-        pub fn get_base_state(&self) -> &BaseState<NID0, NID1> {
-            &self.base_state
-        } 
-}
-
-pub struct LeftMutBaseState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: MemGraphId, EID1: MemGraphId, Graph0, Graph1>
-    where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy,
-    EID0: std::hash::Hash + Eq + Copy, EID1: std::hash::Hash + Eq + Copy, 
-    Graph0: MutGraphTrait<'g0, NID0, EID0>, Graph1: GraphTrait<'g1, NID1, EID1> {
-    graph_0: &'g0 mut Graph0,
-    graph_1: &'g1 Graph1,
-    phantom_e_0: PhantomData<EID0>,
-    phantom_e_1: PhantomData<EID1>,
-    base_state: BaseState<NID0, NID1>,
-}
-
-impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> LeftMutBaseState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> 
-    where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    Graph0: MutGraphTrait<'g0, NID0, EID0>, Graph1: GraphTrait<'g1, NID1, EID1> {
-
-        pub fn new(graph_0: &'g0 mut Graph0, graph_1: &'g1 Graph1) -> Self {
-            LeftMutBaseState {
-                graph_0: graph_0,
-                graph_1: graph_1,
-                phantom_e_0: PhantomData,
-                phantom_e_1: PhantomData,
-                base_state: BaseState::new(),
-            }
-        }
-            
-        pub fn push(&'g0 mut self, v0: &NID0, v1: &NID1) {  
-            self.base_state.core_count += 1;
-            self.base_state.core_map.insert(*v0, *v1);
-            if !self.base_state.in_map.contains_key(&v0) {
-                self.base_state.in_map.insert(*v0, self.base_state.core_count);
-                self.base_state.term_in_count += 1;
-                if self.base_state.out_map.contains_key(&v0) {
-                    self.base_state.term_both_count += 1;
-                }
-            }
-            if !self.base_state.out_map.contains_key(&v0) {
-                self.base_state.out_map.insert(*v0, self.base_state.core_count);
-                self.base_state.term_out_count += 1;
-                if self.base_state.in_map.contains_key(&v0) {
-                    self.base_state.term_both_count += 1;
-                }
-            }
-
-            for edge_index in self.graph_0.in_edges(&v0) {
-                let ancestor = self.graph_0.get_source_index(&edge_index);
-                if !self.base_state.in_map.contains_key(&ancestor) {
-                    self.base_state.in_map.insert(*ancestor, self.base_state.core_count);
-                    self.base_state.term_in_count += 1;
-                    if self.base_state.out_map.contains_key(&ancestor) {
-                        self.base_state.term_both_count += 1;
-                    }
-                }
-            }
-            for edge_index in self.graph_0.out_edges(&v0) {
-                let successor = self.graph_0.get_target_index(&edge_index);
-                if !self.base_state.out_map.contains_key(&successor) {
-                    self.base_state.out_map.insert(*successor, self.base_state.core_count);
-                    self.base_state.term_out_count += 1;
-                    if self.base_state.in_map.contains_key(&successor) {
-                        self.base_state.term_both_count += 1;
-                    }
-                }
-            }
-        }
-
-        pub fn pop(&'g0 mut self, v0: &NID0, _v1: &NID1) {  
             if self.base_state.core_count == 0 {
                 return;
             }

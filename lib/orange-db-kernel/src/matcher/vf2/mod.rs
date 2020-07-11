@@ -11,11 +11,9 @@ pub struct Matcher<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOM
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
     Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: MutGraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool  {
-        graph_0: &'g0 Graph0,
-        graph_1: &'g1 Graph1,
+    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &'g0 Graph0, &'g1 Graph1) -> bool  {
         state: State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>,
         found_match: bool,
         graph_0_ids: Vec<NID0>,
@@ -32,18 +30,17 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
     Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: MutGraphContainerTrait<'g1, NID1, EID1, N1, R1>,
+    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>) -> bool {
+    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &'g0 Graph0, &'g1 Graph1) -> bool {
 
         pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
+            let graph1_ids = graph_1.get_nodes_ids();
             Matcher {
-                graph_0: graph_0,
-                graph_1: graph_1,
                 state: State::new(graph_0, graph_1, vcomp, ecomp),
                 found_match: false,
                 graph_0_ids: sort_nodes(graph_0),
-                graph_1_ids: graph_1.get_nodes_ids(),
+                graph_1_ids: graph1_ids,
                 match_continuation: Vec::new(),
                 first_candidate_0: None,
                 curr_candidate_1_index: 0,
@@ -51,14 +48,14 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        fn back_track(&'g1 mut self) {
+        fn back_track(&mut self) {
             if let Some(back) = self.match_continuation.pop() {
                 self.state.pop(&back.0, &back.1);
                 self.graph_1_loop();
             }
         }
 
-        fn graph_1_loop(&'g1 mut self) {
+        fn graph_1_loop(&mut self) {
             if let Some(id0) = self.first_candidate_0 {
                 for next_candidate_1_id in self.curr_candidate_1_index..self.graph_1_ids.len() {
                     let id1 = self.graph_1_ids[next_candidate_1_id];
@@ -72,7 +69,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        pub fn process(&'g1 mut self) -> bool {
+        pub fn process(&mut self) -> bool {
             loop {
                 if self.state.success() {
                     if !self.state.call_back(&mut self.callback) {
@@ -125,9 +122,9 @@ EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + Mem
 N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
 N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
 Graph0: GraphContainerTrait<'g, NID0, EID0, N0, R0>,
-Graph1: MutGraphContainerTrait<'g, NID1, EID1, N1, R1>,
+Graph1: GraphContainerTrait<'g, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
 VCOMP: 'g + Fn(&N0, &N1) -> bool, ECOMP: 'g + Fn(&R0, &R1) -> bool,
-CALLBACK: 'g + FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>)-> bool  {
+CALLBACK: 'g + FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &'g Graph0, &'g Graph1)-> bool  {
 
     let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
     matcher.process()

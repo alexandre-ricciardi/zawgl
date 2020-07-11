@@ -1,5 +1,5 @@
 use super::super::model::*;
-use super::super::graph::traits::{MutGraphTrait, MutGraphContainerTrait, MemGraphId};
+use super::super::graph::traits::*;
 use super::super::repository::graph_repository::GraphRepository;
 use std::collections::HashSet;
 
@@ -76,7 +76,7 @@ pub struct GraphProxy<'r> {
 }
 
 
-impl <'g> MutGraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'g> {
+impl <'g> GraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'g> {
 
     fn get_node_mut(&mut self, id: &ProxyNodeId) -> &mut Node {
         &mut self.nodes[id.get_index()]
@@ -138,15 +138,15 @@ impl <'g> Iterator for OutEdges<'g> {
     }
 }
 
-impl <'g> MutGraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
+impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
     type OutIt = OutEdges<'g>;
     type InIt = InEdges<'g>;
-    fn out_edges(&'g mut self, source: &ProxyNodeId) -> OutEdges {
+    fn out_edges(&'g self, source: &ProxyNodeId) -> OutEdges {
         let first_outbound_edge = self.vertices[source.get_index()].first_outbound_edge;
         OutEdges{ graph: self, current_edge_index: first_outbound_edge }
     }
 
-    fn in_edges(&'g mut self, target: &ProxyNodeId) -> Self::InIt {
+    fn in_edges(&'g self, target: &ProxyNodeId) -> Self::InIt {
         let first_inbound_edge = self.vertices[target.get_index()].first_inbound_edge;
         InEdges{ graph: self, current_edge_index: first_inbound_edge }
     }
@@ -172,6 +172,18 @@ impl <'g> MutGraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g>
     }
     fn out_degree(&self, node: &ProxyNodeId) -> usize {
         0//self.out_edges(node).count()
+    }
+
+}
+
+impl <'g> GrowableGraph<ProxyNodeId> for GraphProxy<'g> {
+    
+    fn retrieve_out_edges(&mut self, source: &ProxyNodeId) {
+        
+    }
+
+    fn retrieve_in_edges(&mut self, target: &ProxyNodeId) {
+        
     }
 }
 

@@ -40,8 +40,8 @@ impl GraphEngine {
         
     }
 
-    pub fn match_pattern<'rq>(&'rq mut self, pattern: &'rq PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let mut graph_proxy: GraphProxy<'rq> = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
+    pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
+        let mut graph_proxy = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, |n0, n1| {
             let mut res = true;
@@ -63,11 +63,11 @@ impl GraphEngine {
             }
             res
         },
-        |map0: &'rq HashMap<NodeIndex, ProxyNodeId>, map1: &HashMap<ProxyNodeId, NodeIndex>| {
+        |map0, map1, gpattern, proxy| {
             let mut res_match = PropertyGraph::new();
-            for index in pattern.get_nodes_ids() {
+            for index in gpattern.get_nodes_ids() {
                 let proxy_index = map0[&index];
-                let proxy_node = graph_proxy.get_node_ref(&proxy_index);
+                let proxy_node = proxy.get_node_ref(&proxy_index);
                 res_match.add_node(proxy_node.clone());
             }
             for prel in pattern.get_relationships_and_edges() {
@@ -75,10 +75,10 @@ impl GraphEngine {
                 let ptarget_id = &prel.1.target;
                 let proxy_source_id = map0[psource_id];
                 let proxy_target_id = map0[ptarget_id];
-                for rel_id in graph_proxy.out_edges(&proxy_source_id) {
-                    let target_id = graph_proxy.get_target_index(&rel_id);
+                for rel_id in proxy.out_edges(&proxy_source_id) {
+                    let target_id = proxy.get_target_index(&rel_id);
                     if target_id == &proxy_target_id {
-                        let rel = graph_proxy.get_relationship_ref(&rel_id);
+                        let rel = proxy.get_relationship_ref(&rel_id);
                         if compare_relationships(prel.0, rel) {
                             res_match.add_relationship(rel.clone(), *psource_id, *ptarget_id);
                         }
