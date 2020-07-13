@@ -4,6 +4,111 @@ use std::collections::HashMap;
 use super::base_state::*;
 use super::super::super::graph::traits::*;
 
+pub fn push_state<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA, v1: &NIDB)
+where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
+EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
+NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
+GraphA: GraphContainerTrait<'g, NIDA, EIDA, NA, RA> {  
+    base_state.core_count += 1;
+    base_state.core_map.insert(*v0, *v1);
+    if !base_state.in_map.contains_key(&v0) {
+        base_state.in_map.insert(*v0, base_state.core_count);
+        base_state.term_in_count += 1;
+        if base_state.out_map.contains_key(&v0) {
+            base_state.term_both_count += 1;
+        }
+    }
+    if !base_state.out_map.contains_key(&v0) {
+        base_state.out_map.insert(*v0, base_state.core_count);
+        base_state.term_out_count += 1;
+        if base_state.in_map.contains_key(&v0) {
+            base_state.term_both_count += 1;
+        }
+    }
+
+    for edge_index in graph.in_edges(&v0) {
+        let ancestor = graph.get_source_index(&edge_index);
+        if !base_state.in_map.contains_key(&ancestor) {
+            base_state.in_map.insert(*ancestor, base_state.core_count);
+            base_state.term_in_count += 1;
+            if base_state.out_map.contains_key(&ancestor) {
+                base_state.term_both_count += 1;
+            }
+        }
+    }
+    for edge_index in graph.out_edges(&v0) {
+        let successor = graph.get_target_index(&edge_index);
+        if !base_state.out_map.contains_key(&successor) {
+            base_state.out_map.insert(*successor, base_state.core_count);
+            base_state.term_out_count += 1;
+            if base_state.in_map.contains_key(&successor) {
+                base_state.term_both_count += 1;
+            }
+        }
+    }
+}
+
+pub fn pop_state<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA)
+where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
+EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
+NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
+GraphA: GraphContainerTrait<'g, NIDA, EIDA, NA, RA> {  
+    if base_state.core_count == 0 {
+        return;
+    }
+
+    if let Some(in_count) = base_state.in_map.get(&v0) {
+        if *in_count == base_state.core_count {
+            base_state.in_map.insert(*v0, 0);
+            base_state.term_in_count -= 1;
+            if let Some(_out_count) = base_state.out_map.get(&v0) {
+                base_state.term_both_count -= 1;
+            }
+        }
+    }
+
+    for in_edge in graph.in_edges(&v0) {
+        let source = graph.get_source_index(&in_edge);
+        if let Some(in_count) = base_state.in_map.get(&source) {
+            if *in_count == base_state.core_count {
+                base_state.in_map.insert(*source, 0);
+                base_state.term_in_count -= 1;
+                if let Some(_out_count) = base_state.out_map.get(&source) {
+                    base_state.term_both_count -= 1;
+                }
+            }
+        }
+    }
+
+    if let Some(out_count) = base_state.out_map.get(&v0) {
+        if *out_count == base_state.core_count {
+            base_state.out_map.insert(*v0, 0);
+            base_state.term_out_count -= 1;
+            if let Some(_in_count) = base_state.in_map.get(&v0) {
+                base_state.term_both_count -= 1;
+            }
+        }
+    }
+
+    for out_edge in graph.out_edges(&v0) {
+        let target = graph.get_target_index(&out_edge);
+        if let Some(out_count) = base_state.in_map.get(&target) {
+            if *out_count == base_state.core_count {
+                base_state.out_map.insert(*target, 0);
+                base_state.term_out_count -= 1;
+                if let Some(_in_count) = base_state.in_map.get(&target) {
+                    base_state.term_both_count -= 1;
+                }
+            }
+        }
+    }
+
+    base_state.core_map.remove(&v0);
+
+    base_state.core_count -= 1;
+}
+
+
 pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
@@ -12,10 +117,8 @@ pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP,
     Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
     Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
-    state_0: SubState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1>,
-    state_1: SubState<'g1, 'g0, NID1, NID0, EID1, EID0, Graph1, Graph0>,
     graph_0: &'g0 Graph0,
-    graph_1: &'g1 Graph1,
+    graph_1: &'g1 mut Graph1,
     vertex_comp: VCOMP,
     edge_comp: ECOMP,
     phantom_v_0: PhantomData<N0>,
@@ -24,6 +127,8 @@ pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP,
     phantom_r_1: PhantomData<R1>,
     phantom_e_0: PhantomData<EID0>,
     phantom_e_1: PhantomData<EID1>,
+    base_state_0: BaseState<NID0, NID1>,
+    base_state_1: BaseState<NID1, NID0>,
 
 }
 
@@ -38,10 +143,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
 
 
-        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1, vcomp: VCOMP, ecomp: ECOMP) -> Self {
+        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP) -> Self {
             State {
-                state_0: SubState::new(graph_0, graph_1),
-                state_1: SubState::new(graph_1, graph_0),
                 graph_0: graph_0,
                 graph_1: graph_1,
                 vertex_comp: vcomp,
@@ -52,18 +155,20 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 phantom_r_1: PhantomData,
                 phantom_v_0: PhantomData,
                 phantom_v_1: PhantomData,
+                base_state_0: BaseState::new(),
+                base_state_1: BaseState::new(),
             }
         }
 
-        pub fn push(&mut self, v0: &NID0, v1: &NID1) {
-            self.state_0.push(v0, v1);
-            self.state_1.push(v1, v0);
+        pub fn push(&'g1 mut self, v0: &NID0, v1: &NID1) {
+            push_state(&mut self.base_state_0, self.graph_0, v0, v1);
+            push_state(&mut self.base_state_1, self.graph_1, v1, v0);
         }
 
-        pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {
-            if let Some(w_val) = self.state_0.get_base_state().core(v0) {
-                self.state_0.pop(v0, &w_val);
-                self.state_1.pop(&w_val, v0);
+        pub fn pop(&'g1 mut self, v0: &NID0, _v1: &NID1) {
+            if let Some(w_val) = self.base_state_0.core(v0) {
+                pop_state(&mut self.base_state_0, self.graph_0, v0);
+                pop_state(&mut self.base_state_1, self.graph_1, &w_val);
             }
         }
 
@@ -124,10 +229,10 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         fn inc_counters_match_edge_0<PREDICATE>(&self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NID0, v_adj: &NID0, w_new: &NID1, edge_index: &EID0, mut edge_predicate: PREDICATE) -> bool where PREDICATE: FnMut(&NID1, &NID1, &R0) -> bool {
-            if self.state_0.get_base_state().in_core(v_adj) || v_new == v_adj {
+            if self.base_state_0.in_core(v_adj) || v_new == v_adj {
                 let mut w_source = *w_new;
                 if *v_adj != *v_new {
-                    if let Some(ws) = self.state_0.get_base_state().core(v_adj) {
+                    if let Some(ws) =  self.base_state_0.core(v_adj) {
                         w_source = ws;
                     }
                 }
@@ -138,13 +243,13 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     return false;
                 }
             } else {
-                if self.state_0.get_base_state().in_depth(v_adj) > 0 {
+                if  self.base_state_0.in_depth(v_adj) > 0 {
                     *term_in += 1;
                 }
-                if self.state_0.get_base_state().out_depth(v_adj) > 0 {
+                if  self.base_state_0.out_depth(v_adj) > 0 {
                     *term_out += 1;
                 }
-                if self.state_0.get_base_state().in_depth(v_adj) == 0 && self.state_0.get_base_state().out_depth(v_adj) == 0 {
+                if  self.base_state_0.in_depth(v_adj) == 0 &&  self.base_state_0.out_depth(v_adj) == 0 {
                     *rest += 1;
                 }
             }
@@ -152,10 +257,10 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         fn inc_counters_match_edge_1<PREDICATE>(&self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1, v_new: &NID0, edge_index: &EID1, mut edge_predicate: PREDICATE) -> bool where PREDICATE: FnMut(&NID0, &NID0, &R1) -> bool {
-            if self.state_1.get_base_state().in_core(w_adj) || w_new == w_adj {
+            if  self.base_state_1.in_core(w_adj) || w_new == w_adj {
                 let mut v_source = *v_new;
                 if *w_adj != *w_new {
-                    if let Some(vs) = self.state_1.get_base_state().core(w_adj) {
+                    if let Some(vs) = self.base_state_1.core(w_adj) {
                         v_source = vs;
                     }
                 }
@@ -166,13 +271,13 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     return false;
                 }
             } else {
-                if self.state_1.get_base_state().in_depth(w_adj) > 0 {
+                if self.base_state_1.in_depth(w_adj) > 0 {
                     *term_in += 1;
                 }
-                if self.state_1.get_base_state().out_depth(w_adj) > 0 {
+                if self.base_state_1.out_depth(w_adj) > 0 {
                     *term_out += 1;
                 }
-                if self.state_1.get_base_state().in_depth(w_adj) == 0 && self.state_1.get_base_state().out_depth(w_adj) == 0 {
+                if self.base_state_1.in_depth(w_adj) == 0 && self.base_state_1.out_depth(w_adj) == 0 {
                     *rest += 1;
                 }
             }
@@ -180,44 +285,45 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         pub fn possible_candidate_0(&self, v0: &NID0) -> bool {
-            if self.state_0.get_base_state().term_both() && self.state_1.get_base_state().term_both() {
-                self.state_0.get_base_state().term_both_vertex(v0)
-            } else if self.state_0.get_base_state().term_out() && self.state_1.get_base_state().term_out() {
-                self.state_0.get_base_state().term_out_vertex(v0)
-            } else if self.state_0.get_base_state().term_in() && self.state_1.get_base_state().term_in() {
-                self.state_0.get_base_state().term_in_vertex(v0)
+            if self.base_state_0.term_both() && self.base_state_1.term_both() {
+                self.base_state_0.term_both_vertex(v0)
+            } else if self.base_state_0.term_out() && self.base_state_1.term_out() {
+                self.base_state_0.term_out_vertex(v0)
+            } else if self.base_state_0.term_in() && self.base_state_1.term_in() {
+                self.base_state_0.term_in_vertex(v0)
             } else {
-                !self.state_0.get_base_state().in_core(v0)
+                !self.base_state_0.in_core(v0)
             }
         }
 
         pub fn possible_candidate_1(&self, v1: &NID1) -> bool {
-            if self.state_0.get_base_state().term_both() && self.state_1.get_base_state().term_both() {
-                self.state_1.get_base_state().term_both_vertex(v1)
-            } else if self.state_0.get_base_state().term_out() && self.state_1.get_base_state().term_out() {
-                self.state_1.get_base_state().term_out_vertex(v1)
-            } else if self.state_0.get_base_state().term_in() && self.state_1.get_base_state().term_in() {
-                self.state_1.get_base_state().term_in_vertex(v1)
+            if self.base_state_0.term_both() && self.base_state_1.term_both() {
+                self.base_state_1.term_both_vertex(v1)
+            } else if self.base_state_0.term_out() && self.base_state_1.term_out() {
+                self.base_state_1.term_out_vertex(v1)
+            } else if self.base_state_0.term_in() && self.base_state_1.term_in() {
+                self.base_state_1.term_in_vertex(v1)
             } else {
-                !self.state_1.get_base_state().in_core(v1)
+                !self.base_state_1.in_core(v1)
             }
         }
 
         pub fn success(&self) -> bool {
-            self.state_0.get_base_state().count() == self.graph_0.nodes_len()
+            self.base_state_0.count() == self.graph_0.nodes_len()
         }
 
         pub fn valid(&self) -> bool {
-            let term_set_0 = self.state_0.get_base_state().term_set();
-            let term_set_1 = self.state_1.get_base_state().term_set();
+            let term_set_0 = self.base_state_0.term_set();
+            let term_set_1 = self.base_state_1.term_set();
             term_set_0.0 <= term_set_1.0 && term_set_0.1 <= term_set_1.1 && term_set_0.2 <= term_set_1.2
         }
 
         pub fn call_back<CALLBACK>(&self, callback: &mut CALLBACK) -> bool
         where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &'g0 Graph0, &'g1 Graph1) -> bool
         {
-            callback(self.state_0.get_base_state().get_map(), self.state_1.get_base_state().get_map(), self.graph_0, self.graph_1)
+            callback(self.base_state_0.get_map(), self.base_state_1.get_map(), self.graph_0, self.graph_1)
         }
+
 }
 
 struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 

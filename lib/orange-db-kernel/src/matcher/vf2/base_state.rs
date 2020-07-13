@@ -130,18 +130,18 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> SubState<'g0, 'g1, NID0,
 }
 
 pub struct BaseState<NID0: MemGraphId, NID1: MemGraphId> where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
-    term_in_count: usize,
-    term_out_count: usize,
-    term_both_count: usize,
-    core_count: usize,
-    core_map: HashMap<NID0, NID1>,
-    in_map: HashMap<NID0, usize>,
-    out_map: HashMap<NID0, usize>,
+    pub term_in_count: usize,
+    pub term_out_count: usize,
+    pub term_both_count: usize,
+    pub core_count: usize,
+    pub core_map: HashMap<NID0, NID1>,
+    pub in_map: HashMap<NID0, usize>,
+    pub out_map: HashMap<NID0, usize>,
 }
 
 impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     
-    fn new() -> Self {
+    pub fn new() -> Self {
         BaseState {
             term_in_count: 0,
             term_out_count: 0,
