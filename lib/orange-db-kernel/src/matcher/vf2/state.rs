@@ -172,7 +172,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        pub fn feasible(&mut self, v_new: &NID0, w_new: &NID1) -> bool {
+        pub fn feasible(&'g1 mut self, v_new: &NID0, w_new: &NID1) -> bool {
             let v = self.graph_0.get_node_ref(&v_new);
             let w = self.graph_1.get_node_ref(&w_new);
             if !(self.vertex_comp)(v, w) {
@@ -319,7 +319,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         pub fn call_back<CALLBACK>(&self, callback: &mut CALLBACK) -> bool
-        where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &'g0 Graph0, &'g1 Graph1) -> bool
+        where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool
         {
             callback(self.base_state_0.get_map(), self.base_state_1.get_map(), self.graph_0, self.graph_1)
         }
