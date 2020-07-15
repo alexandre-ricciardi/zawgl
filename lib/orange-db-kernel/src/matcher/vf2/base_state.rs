@@ -5,7 +5,7 @@ use super::super::super::graph::traits::*;
 pub struct SubState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: MemGraphId, EID1: MemGraphId, Graph0, Graph1>
     where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy,
     EID0: std::hash::Hash + Eq + Copy, EID1: std::hash::Hash + Eq + Copy, 
-    Graph0: GraphTrait<'g0, NID0, EID0>, Graph1: GraphTrait<'g1, NID1, EID1> {
+    Graph0: GraphTrait<NID0, EID0>, Graph1: GraphTrait<NID1, EID1> {
     graph_0: &'g0 Graph0,
     graph_1: &'g1 Graph1,
     phantom_e_0: PhantomData<EID0>,
@@ -16,7 +16,7 @@ pub struct SubState<'g0, 'g1, NID0: MemGraphId, NID1: MemGraphId, EID0: MemGraph
 impl <'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> SubState<'g0, 'g1, NID0, NID1, EID0, EID1, Graph0, Graph1> 
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    Graph0: GraphTrait<'g0, NID0, EID0>, Graph1: GraphTrait<'g1, NID1, EID1> {
+    Graph0: GraphTrait<NID0, EID0>, Graph1: GraphTrait<NID1, EID1> {
 
         pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 Graph1) -> Self {
             SubState {

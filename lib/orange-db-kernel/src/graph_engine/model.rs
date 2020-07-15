@@ -1,7 +1,6 @@
 use super::super::model::*;
 use super::super::graph::traits::*;
 use super::super::repository::graph_repository::GraphRepository;
-use std::collections::HashSet;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub struct ProxyNodeId {
@@ -52,6 +51,7 @@ pub struct InnerNodeData<EID: MemGraphId> {
     first_inbound_edge: Option<EID>,
 }
 
+#[derive(Clone)]
 pub struct InnerEdgeData<NID: MemGraphId, EID: MemGraphId> {
     pub source: NID,
     pub target: NID,
@@ -76,7 +76,7 @@ pub struct GraphProxy<'r> {
 }
 
 
-impl <'g> GraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'g> {
+impl <'r> GraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'r> {
 
     fn get_node_mut(&mut self, id: &ProxyNodeId) -> &mut Node {
         &mut self.nodes[id.get_index()]
@@ -96,19 +96,19 @@ impl <'g> GraphContainerTrait<'g, ProxyNodeId, ProxyRelationshipId, Node, Relati
 
 }
 
-pub struct InEdges<'g> {
-    graph: &'g GraphProxy<'g>,
+pub struct InEdges {
+    edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
     current_edge_index: Option<ProxyRelationshipId>,
 }
 
-impl <'graph> Iterator for InEdges<'graph> {
+impl Iterator for InEdges {
     type Item = ProxyRelationshipId;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.graph.edges[edge_index.get_index()];
+                let edge = &self.edges[edge_index.get_index()];
                 let curr_edge_index = self.current_edge_index;
                 self.current_edge_index = edge.next_inbound_edge;
                 curr_edge_index
@@ -117,19 +117,19 @@ impl <'graph> Iterator for InEdges<'graph> {
     }
 }
 
-pub struct OutEdges<'g> {
-    graph: &'g GraphProxy<'g>,
+pub struct OutEdges {
+    edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
     current_edge_index: Option<ProxyRelationshipId>,
 }
 
-impl <'g> Iterator for OutEdges<'g> {
+impl Iterator for OutEdges {
     type Item = ProxyRelationshipId;
 
     fn next(&mut self) -> Option<ProxyRelationshipId> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.graph.edges[edge_index.get_index()];
+                let edge = &self.edges[edge_index.get_index()];
                 let curr_edge_index = self.current_edge_index;
                 self.current_edge_index = edge.next_outbound_edge;
                 curr_edge_index
@@ -138,17 +138,17 @@ impl <'g> Iterator for OutEdges<'g> {
     }
 }
 
-impl <'g> GraphTrait<'g, ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
-    type OutIt = OutEdges<'g>;
-    type InIt = InEdges<'g>;
-    fn out_edges(&'g self, source: &ProxyNodeId) -> OutEdges {
+impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
+    type OutIt = OutEdges;
+    type InIt = InEdges;
+    fn out_edges(&self, source: &ProxyNodeId) -> OutEdges {
         let first_outbound_edge = self.vertices[source.get_index()].first_outbound_edge;
-        OutEdges{ graph: self, current_edge_index: first_outbound_edge }
+        OutEdges{ edges: self.edges.clone(), current_edge_index: first_outbound_edge }
     }
 
-    fn in_edges(&'g self, target: &ProxyNodeId) -> Self::InIt {
+    fn in_edges(&self, target: &ProxyNodeId) -> Self::InIt {
         let first_inbound_edge = self.vertices[target.get_index()].first_inbound_edge;
-        InEdges{ graph: self, current_edge_index: first_inbound_edge }
+        InEdges{ edges: self.edges.clone(), current_edge_index: first_inbound_edge }
     }
     fn get_source_index(&self, edge_index: &ProxyRelationshipId) -> &ProxyNodeId {
         &self.edges[edge_index.get_index()].source

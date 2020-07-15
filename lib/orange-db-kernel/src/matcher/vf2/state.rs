@@ -8,7 +8,7 @@ pub fn push_state<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseSta
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
 NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
-GraphA: GraphContainerTrait<'g, NIDA, EIDA, NA, RA> {  
+GraphA: GraphContainerTrait<NIDA, EIDA, NA, RA> {  
     base_state.core_count += 1;
     base_state.core_map.insert(*v0, *v1);
     if !base_state.in_map.contains_key(&v0) {
@@ -52,7 +52,7 @@ pub fn pop_state<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseStat
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
 NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
-GraphA: GraphContainerTrait<'g, NIDA, EIDA, NA, RA> {  
+GraphA: GraphContainerTrait<NIDA, EIDA, NA, RA> {  
     if base_state.core_count == 0 {
         return;
     }
@@ -114,8 +114,8 @@ pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
+    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
     graph_0: &'g0 Graph0,
     graph_1: &'g1 mut Graph1,
@@ -138,8 +138,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
+    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
 
 
@@ -160,19 +160,19 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        pub fn push(&'g1 mut self, v0: &NID0, v1: &NID1) {
+        pub fn push(&mut self, v0: &NID0, v1: &NID1) {
             push_state(&mut self.base_state_0, self.graph_0, v0, v1);
             push_state(&mut self.base_state_1, self.graph_1, v1, v0);
         }
 
-        pub fn pop(&'g1 mut self, v0: &NID0, _v1: &NID1) {
+        pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {
             if let Some(w_val) = self.base_state_0.core(v0) {
                 pop_state(&mut self.base_state_0, self.graph_0, v0);
                 pop_state(&mut self.base_state_1, self.graph_1, &w_val);
             }
         }
 
-        pub fn feasible(&'g1 mut self, v_new: &NID0, w_new: &NID1) -> bool {
+        pub fn feasible(&mut self, v_new: &NID0, w_new: &NID1) -> bool {
             let v = self.graph_0.get_node_ref(&v_new);
             let w = self.graph_1.get_node_ref(&w_new);
             if !(self.vertex_comp)(v, w) {
@@ -328,7 +328,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
 struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
     where  NID: MemGraphId, EID: MemGraphId,
-    Graph: GraphContainerTrait<'g, NID, EID, N, R>,
+    Graph: GraphContainerTrait<NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
     matched_edge_set: HashSet<EID>,
     graph: &'g Graph,
@@ -342,7 +342,7 @@ struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP>
 
 impl <'g, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
     where  NID: MemGraphId + Eq, EID: MemGraphId + std::hash::Hash + Eq,
-    Graph: GraphContainerTrait<'g, NID, EID, N, R>,
+    Graph: GraphContainerTrait<NID, EID, N, R>,
     ECOMP: Fn(&R, &RCOMP) -> bool {
 
     fn new(g: &'g Graph, ecomp: ECOMP) -> Self {

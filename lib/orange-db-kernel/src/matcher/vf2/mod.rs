@@ -10,8 +10,8 @@ pub struct Matcher<'g0: 'g1, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: GraphContainerTrait<'g1, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
+    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool  {
         state: State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>,
@@ -29,8 +29,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: 'g0 + GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-    Graph1: 'g1 + GraphContainerTrait<'g1, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
+    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool {
 
@@ -55,7 +55,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        fn graph_1_loop(&'g1 mut self) {
+        fn graph_1_loop(&mut self) {
             if let Some(id0) = self.first_candidate_0 {
                 for next_candidate_1_id in self.curr_candidate_1_index..self.graph_1_ids.len() {
                     let id1 = self.graph_1_ids[next_candidate_1_id];
@@ -69,7 +69,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        pub fn process(&'g1 mut self) -> bool {
+        pub fn process(&mut self) -> bool {
             loop {
                 if self.state.success() {
                     if !self.state.call_back(&mut self.callback) {
@@ -109,7 +109,7 @@ fn sort_nodes<'g, NID, EID, N, R, Graph>(graph: &'g Graph) -> Vec<NID>
 where NID: std::hash::Hash + Eq + MemGraphId + Copy,
 EID: std::hash::Hash + Eq + MemGraphId + Copy,
 N: std::hash::Hash + Eq, R: std::hash::Hash + Eq,
-Graph: GraphContainerTrait<'g, NID, EID, N, R> {
+Graph: GraphContainerTrait<NID, EID, N, R> {
     let mut res = graph.get_nodes_ids();
     res.sort_by(|a, b| (graph.in_degree(b) + graph.out_degree(b)).cmp(&(graph.in_degree(a) + graph.out_degree(a))));
     res
@@ -121,10 +121,10 @@ where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq
 EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
 N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
 N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-Graph0: 'g0 + GraphContainerTrait<'g0, NID0, EID0, N0, R0>,
-Graph1: 'g1 + GraphContainerTrait<'g1, NID1, EID1, N1, R1> + GrowableGraph<NID1>,
-VCOMP: 'g1 + Fn(&N0, &N1) -> bool, ECOMP: 'g1 + Fn(&R0, &R1) -> bool,
-CALLBACK: 'g1 + FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1)-> bool  {
+Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
+Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
+CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1)-> bool  {
 
     let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
     matcher.process()

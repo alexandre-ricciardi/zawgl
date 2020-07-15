@@ -1,15 +1,14 @@
 use super::*;
 use super::traits::*;
-use std::marker::PhantomData;
 
-pub struct GraphContainer<'g, NODE, RELATIONSHIP> {
+pub struct GraphContainer<NODE, RELATIONSHIP> {
     nodes: Vec<NODE>,
     relationships: Vec<RELATIONSHIP>,
-    graph: Graph<'g>,
+    graph: Graph,
 }
 
 
-impl <'g, NODE, RELATIONSHIP> GraphContainerTrait<'g, NodeIndex, EdgeIndex, NODE, RELATIONSHIP> for GraphContainer<'g, NODE, RELATIONSHIP> {
+impl <NODE, RELATIONSHIP> GraphContainerTrait<NodeIndex, EdgeIndex, NODE, RELATIONSHIP> for GraphContainer<NODE, RELATIONSHIP> {
 
     fn get_node_mut(&mut self, id: &NodeIndex) -> &mut NODE {
         &mut self.nodes[id.get_index()]
@@ -29,14 +28,14 @@ impl <'g, NODE, RELATIONSHIP> GraphContainerTrait<'g, NodeIndex, EdgeIndex, NODE
 
 }
 
-impl <'g, NODE, RELATIONSHIP> GraphTrait<'g, NodeIndex, EdgeIndex> for GraphContainer<'g, NODE, RELATIONSHIP> {
-    type OutIt = OutEdges<'g>;
-    type InIt = InEdges<'g>;
-    fn out_edges(&'g self, source: &NodeIndex) -> Self::OutIt {
+impl <NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<NODE, RELATIONSHIP> {
+    type OutIt = OutEdges;
+    type InIt = InEdges;
+    fn out_edges(&self, source: &NodeIndex) -> Self::OutIt {
         self.get_inner_graph().out_edges(source)
     }
 
-    fn in_edges(&'g self, target: &NodeIndex) -> Self::InIt {
+    fn in_edges(&self, target: &NodeIndex) -> Self::InIt {
         self.get_inner_graph().in_edges(target)
     }
     fn get_source_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
@@ -62,7 +61,7 @@ impl <'g, NODE, RELATIONSHIP> GraphTrait<'g, NodeIndex, EdgeIndex> for GraphCont
     }
 }
 
-impl <'g, NODE, RELATIONSHIP> GraphContainer<'g, NODE, RELATIONSHIP> {
+impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
     pub fn new() -> Self {
         GraphContainer {nodes: Vec::new(), relationships: Vec::new(), graph: Graph::new()}
     }
@@ -85,15 +84,6 @@ impl <'g, NODE, RELATIONSHIP> GraphContainer<'g, NODE, RELATIONSHIP> {
     }
     pub fn get_nodes(&self) -> &Vec<NODE> {
         &self.nodes
-    }
-
-    
-    pub fn successors(&self, source: &NodeIndex) -> Successors {
-        self.get_inner_graph().successors(source)
-    }
-    
-    pub fn ancestors(&self, target: &NodeIndex) -> Ancestors {
-        self.get_inner_graph().ancestors(target)
     }
 
 }
