@@ -52,9 +52,9 @@ impl GraphRepository {
         let mut rel_index: usize = 0;
         let mut map_rel = HashMap::new();
         let mut rel_records = Vec::new();
-        for rel in pgraph.get_relationships_and_edges() {
-            let rr = RelationshipRecord::new(*map_nodes.get(&rel.1.source.get_index())?,
-             *map_nodes.get(&rel.1.target.get_index())?);
+        for rel in pgraph.get_edges() {
+            let rr = RelationshipRecord::new(*map_nodes.get(&rel.source.get_index())?,
+             *map_nodes.get(&rel.target.get_index())?);
             let rid = self.relationships_store.create(&rr)?;
             map_rel.insert(rel_index, rid);
             rel_records.push((rid, rr));
@@ -74,7 +74,7 @@ impl GraphRepository {
 
         let mut rr_index = 0;
         for rr in &mut rel_records {
-            let edge = pgraph.get_inner_graph().get_edge(EdgeIndex::new(rr_index));
+            let edge = pgraph.get_inner_graph().get_edge_data(EdgeIndex::new(rr_index));
             rr.1.next_outbound_edge = *map_rel.get(&edge.get_next_outbound_edge()?.get_index())?;
             rr.1.next_inbound_edge = *map_rel.get(&edge.get_next_inbound_edge()?.get_index())?;
             self.relationships_store.save(rr.0, &rr.1)?;

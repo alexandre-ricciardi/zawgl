@@ -42,9 +42,9 @@ impl GraphEngine {
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let mut graph_proxy = RefCell::new(GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern)));
+        let mut graph_proxy = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
         let mut res = Vec::new();
-        sub_graph_isomorphism(pattern, &graph_proxy, |n0, n1| {
+        sub_graph_isomorphism(pattern, &mut graph_proxy, |n0, n1| {
             let mut res = true;
             for p0 in &n0.properties {
                 if !n1.properties.contains(p0) {
@@ -68,7 +68,7 @@ impl GraphEngine {
             let mut res_match = PropertyGraph::new();
             for index in gpattern.get_nodes_ids() {
                 let proxy_index = map0[&index];
-                let proxy_node = proxy.borrow().get_node_ref(&proxy_index).clone();
+                let proxy_node = proxy.get_node_ref(&proxy_index).clone();
                 res_match.add_node(proxy_node);
             }
             for prel in pattern.get_relationships_and_edges() {
@@ -76,10 +76,10 @@ impl GraphEngine {
                 let ptarget_id = &prel.1.target;
                 let proxy_source_id = map0[psource_id];
                 let proxy_target_id = map0[ptarget_id];
-                for rel_id in proxy.borrow().out_edges(&proxy_source_id) {
-                    let target_id = proxy.borrow().get_target_index(&rel_id);
+                for rel_id in proxy.out_edges(&proxy_source_id) {
+                    let target_id = proxy.get_target_index(&rel_id);
                     if target_id == proxy_target_id {
-                        let rel = proxy.borrow().get_relationship_ref(&rel_id);
+                        let rel = proxy.get_relationship_ref(&rel_id);
                         if compare_relationships(prel.0, rel) {
                             res_match.add_relationship(rel.clone(), *psource_id, *ptarget_id);
                         }

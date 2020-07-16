@@ -121,7 +121,7 @@ pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP,
     Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1> + GraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
     graph_0: &'g0 Graph0,
-    graph_1: &'g1 RefCell<Graph1>,
+    graph_1: &'g1 mut Graph1,
     vertex_comp: VCOMP,
     edge_comp: ECOMP,
     phantom_v_0: PhantomData<N0>,
@@ -146,7 +146,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
 
 
-        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 RefCell<Graph1>, vcomp: VCOMP, ecomp: ECOMP) -> Self {
+        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP) -> Self {
             State {
                 graph_0: graph_0,
                 graph_1: graph_1,
@@ -177,7 +177,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
         pub fn feasible(&mut self, v_new: &NID0, w_new: &NID1) -> bool {
             let v = self.graph_0.get_node_ref(&v_new);
-            let w = self.graph_1.borrow().get_node_ref(&w_new);
+            let w = self.graph_1.get_node_ref(&w_new);
             if !(self.vertex_comp)(v, w) {
                 false
             } else {
@@ -186,7 +186,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 let mut rest0_count = 0;
 
                 {
-                    let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1.get_mut(), |r1, r0| (self.edge_comp)(r0, r1));
+                    let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
                     for edge_index in self.graph_0.in_edges(&v_new) {
                         let source_index = self.graph_0.get_source_index(&edge_index);
                         if !self.inc_counters_match_edge_0(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, &v_new, &source_index, &w_new, &edge_index, |&w_source, &w_new, r0| edge_predicate.edge_exists(&w_source, &w_new, r0)) {
@@ -195,7 +195,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     }
                 }
                 {
-                    let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1.get_mut(), |r1, r0| (self.edge_comp)(r0, r1));
+                    let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
                     for edge_index in self.graph_0.out_edges(&v_new) {
                         let target_index = self.graph_0.get_target_index(&edge_index);
                         if !self.inc_counters_match_edge_0(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, &v_new, &target_index, &w_new, &edge_index, |&w_source, &w_new, r0| edge_predicate.edge_exists(&w_source, &w_new, r0)) {
@@ -211,8 +211,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
                 {
                     let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_0, |r0, r1| (self.edge_comp)(r0, r1));
-                    for edge_index in self.graph_1.borrow().in_edges(&w_new) {
-                        let source_index = self.graph_1.borrow().get_source_index(&edge_index);
+                    for edge_index in self.graph_1.in_edges(&w_new) {
+                        let source_index = self.graph_1.get_source_index(&edge_index);
                         if !self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, &w_new, &source_index, &v_new, &edge_index, |&v_source, &v_new, r1| edge_predicate.edge_exists(&v_source, &v_new, r1)) {
                             return false;
                         }
@@ -220,8 +220,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 }
                 {
                     let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_0, |r0, r1| (self.edge_comp)(r0, r1));
-                    for edge_index in self.graph_1.borrow().out_edges(&w_new) {
-                        let target_index = self.graph_1.borrow().get_target_index(&edge_index);
+                    for edge_index in self.graph_1.out_edges(&w_new) {
+                        let target_index = self.graph_1.get_target_index(&edge_index);
                         if !self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, &w_new, &target_index, &v_new, &edge_index, |&v_source, &v_new, r1| edge_predicate.edge_exists(&v_source, &v_new, r1)) {
                             return false;
                         }
@@ -268,7 +268,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     }
                 }
                 
-                let r0 = self.graph_1.borrow().get_relationship_ref(&edge_index);
+                let r0 = self.graph_1.get_relationship_ref(&edge_index);
 
                 if !edge_predicate(&v_source, &v_new, r0) {
                     return false;
@@ -322,7 +322,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         pub fn call_back<CALLBACK>(&self, callback: &mut CALLBACK) -> bool
-        where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &RefCell<Graph1>) -> bool
+        where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool
         {
             callback(self.base_state_0.get_map(), self.base_state_1.get_map(), self.graph_0, self.graph_1)
         }

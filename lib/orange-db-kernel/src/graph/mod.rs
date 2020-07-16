@@ -2,6 +2,7 @@ pub mod traits;
 pub mod container;
 
 use std::rc::Rc;
+use std::cell::RefCell;
 use self::traits::*;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
@@ -78,12 +79,12 @@ impl <NID: MemGraphId + Copy, EID: MemGraphId + Copy> EdgeData<NID, EID> {
 
 pub struct Graph {
     nodes: Vec<VertexData<EdgeIndex>>,
-    edges: Rc<Vec<EdgeData<NodeIndex, EdgeIndex>>>,
+    edges: Rc<RefCell<Vec<EdgeData<NodeIndex, EdgeIndex>>>>,
 }
 
 
 pub struct OutEdges {
-    edges: Rc<Vec<EdgeData<NodeIndex, EdgeIndex>>>,
+    edges: Rc<RefCell<Vec<EdgeData<NodeIndex, EdgeIndex>>>>,
     current_edge_index: Option<EdgeIndex>,
 }
 
@@ -94,7 +95,7 @@ impl Iterator for OutEdges {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.edges[edge_index.get_index()];
+                let edge = &self.edges.borrow()[edge_index.get_index()];
                 let curr_edge_index = self.current_edge_index;
                 self.current_edge_index = edge.next_outbound_edge;
                 curr_edge_index
@@ -105,7 +106,7 @@ impl Iterator for OutEdges {
 
 
 pub struct InEdges {
-    edges: Rc<Vec<EdgeData<NodeIndex, EdgeIndex>>>,
+    edges: Rc<RefCell<Vec<EdgeData<NodeIndex, EdgeIndex>>>>,
     current_edge_index: Option<EdgeIndex>,
 }
 
@@ -116,7 +117,7 @@ impl Iterator for InEdges {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.edges[edge_index.get_index()];
+                let edge = &self.edges.borrow()[edge_index.get_index()];
                 let curr_edge_index = self.current_edge_index;
                 self.current_edge_index = edge.next_inbound_edge;
                 curr_edge_index
@@ -130,21 +131,21 @@ impl GraphIteratorTrait<NodeIndex, EdgeIndex> for Graph {
     type InIt = InEdges;
     fn out_edges(&self, source: &NodeIndex) -> Self::OutIt {
         let first_outbound_edge = self.nodes[source.get_index()].first_outbound_edge;
-        OutEdges{ edges: self.edges, current_edge_index: first_outbound_edge }
+        OutEdges{ edges: self.edges.clone(), current_edge_index: first_outbound_edge }
     }
 
     fn in_edges(&self, target: &NodeIndex) -> InEdges {
         let first_inbound_edge = self.nodes[target.get_index()].first_inbound_edge;
-        InEdges{ edges: self.edges, current_edge_index: first_inbound_edge }
+        InEdges{ edges: self.edges.clone(), current_edge_index: first_inbound_edge }
     }
 }
 
 impl GraphTrait<NodeIndex, EdgeIndex> for Graph {
     fn get_source_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
-        self.edges[edge_index.get_index()].source
+        self.edges.borrow()[edge_index.get_index()].source
     }
     fn get_target_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
-        self.edges[edge_index.get_index()].target
+        self.edges.borrow()[edge_index.get_index()].target
     }
 
     fn nodes_len(&self) -> usize {
@@ -152,7 +153,7 @@ impl GraphTrait<NodeIndex, EdgeIndex> for Graph {
     }
 
     fn edges_len(&self) -> usize {
-        self.edges.len()
+        self.edges.borrow().len()
     }
 
     fn get_nodes_ids(&self) -> Vec<NodeIndex> {
@@ -168,7 +169,7 @@ impl GraphTrait<NodeIndex, EdgeIndex> for Graph {
 }
 impl Graph {
     pub fn new() -> Self {
-        Graph{ nodes: Vec::new(), edges: Rc::new(Vec::new()) }
+        Graph{ nodes: Vec::new(), edges: Rc::new(RefCell::new(Vec::new())) }
     }
 
     pub fn add_vertex(&mut self) -> NodeIndex {
@@ -180,16 +181,16 @@ impl Graph {
     pub fn get_vertex(&self, id: NodeIndex) -> &VertexData<EdgeIndex> {
         &self.nodes[id.get_index()]
     }
-    pub fn get_edge(&self, id: EdgeIndex) -> &EdgeData<NodeIndex, EdgeIndex> {
-        &self.edges[id.get_index()]
+    pub fn get_edge_data(&self, id: EdgeIndex) -> EdgeData<NodeIndex, EdgeIndex> {
+        self.edges.borrow()[id.get_index()].clone()
     }
 
     pub fn add_edge(&mut self, source: NodeIndex, target: NodeIndex) -> EdgeIndex {
-        let index = self.edges.len();
+        let index = self.edges.borrow().len();
         {
             let source_data = &self.nodes[source.get_index()];
             let target_data = &self.nodes[target.get_index()];
-            self.edges.push(EdgeData{source: source, target: target,
+            self.edges.borrow_mut().push(EdgeData{source: source, target: target,
                  next_inbound_edge: target_data.first_inbound_edge, 
                  next_outbound_edge: source_data.first_outbound_edge});
         }
@@ -199,13 +200,6 @@ impl Graph {
         let mt = &mut self.nodes[target.get_index()];
         mt.first_inbound_edge = Some(EdgeIndex::new(index));
         EdgeIndex::new(index)
-    }
-
-    pub fn get_nodes(&self) -> &Vec<VertexData<EdgeIndex>> {
-        &self.nodes
-    }
-    pub fn get_edges(&self) -> &Vec<EdgeData<NodeIndex, EdgeIndex>> {
-        &self.edges
     }
 }
 
@@ -223,7 +217,7 @@ mod test_graph {
         let e1 = graph.add_edge(n1, n2);
         let e2 = graph.add_edge(n0, n2);
 
-        let ed0 = graph.get_edge(e0);
+        let ed0 = graph.get_edge_data(e0);
         assert_eq!(ed0.source, n0);
         assert_eq!(ed0.target, n1);
         assert_eq!(ed0.next_outbound_edge, None);
@@ -231,7 +225,7 @@ mod test_graph {
         let nd0 = graph.get_vertex(n0);
         assert_eq!(nd0.first_outbound_edge, Some(e2));
 
-        let ed2 = graph.get_edge(e2);
+        let ed2 = graph.get_edge_data(e2);
         assert_eq!(ed2.source, n0);
         assert_eq!(ed2.target, n2);
         assert_eq!(ed2.next_outbound_edge, Some(e0));

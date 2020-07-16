@@ -1,7 +1,10 @@
 use super::super::model::*;
 use super::super::graph::traits::*;
 use super::super::repository::graph_repository::GraphRepository;
-use std::convert::AsRef;
+
+use std::rc::Rc;
+use std::cell::RefCell;
+
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub struct ProxyNodeId {
     mem_id: usize,
@@ -59,18 +62,11 @@ pub struct InnerEdgeData<NID: MemGraphId, EID: MemGraphId> {
     pub next_inbound_edge: Option<EID>,
 }
 
-
-pub struct InnerGraph<'r> {
-    nodes: Vec<InnerNodeData<ProxyRelationshipId>>,
-    edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
-    repository: &'r GraphRepository,    
-}
-
 pub struct GraphProxy<'r> {
     nodes: Vec<Node>,
     relationships: Vec<Relationship>,
     vertices: Vec<InnerNodeData<ProxyRelationshipId>>,
-    edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
+    edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
     repository: &'r GraphRepository,
     retrieved_nodes_ids: Vec<ProxyNodeId>,
 }
@@ -97,7 +93,7 @@ impl <'r> GraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationsh
 }
 
 pub struct InEdges {
-    edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
+    edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
     current_edge_index: Option<ProxyRelationshipId>,
 }
 
@@ -108,7 +104,7 @@ impl Iterator for InEdges {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.edges[edge_index.get_index()];
+                let edge = &self.edges.borrow()[edge_index.get_index()];
                 let curr_edge_index = self.current_edge_index;
                 self.current_edge_index = edge.next_inbound_edge;
                 curr_edge_index
@@ -118,7 +114,7 @@ impl Iterator for InEdges {
 }
 
 pub struct OutEdges {
-    edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
+    edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
     current_edge_index: Option<ProxyRelationshipId>,
 }
 
@@ -129,7 +125,7 @@ impl Iterator for OutEdges {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.edges[edge_index.get_index()];
+                let edge = &self.edges.borrow()[edge_index.get_index()];
                 let curr_edge_index = self.current_edge_index;
                 self.current_edge_index = edge.next_outbound_edge;
                 curr_edge_index
@@ -169,10 +165,10 @@ impl <'r> GraphIteratorTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r
 
 impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
     fn get_source_index(&self, edge_index: &ProxyRelationshipId) -> ProxyNodeId {
-        self.edges[edge_index.get_index()].source
+        self.edges.borrow()[edge_index.get_index()].source
     }
     fn get_target_index(&self, edge_index: &ProxyRelationshipId) -> ProxyNodeId {
-        self.edges[edge_index.get_index()].target
+        self.edges.borrow()[edge_index.get_index()].target
     }
     fn nodes_len(&self) -> usize {
         self.retrieved_nodes_ids.len()
@@ -205,11 +201,6 @@ impl <'g> GrowableGraph<ProxyNodeId> for GraphProxy<'g> {
     }
 }
 
-impl <'r> InnerGraph<'r> {
-    fn new(repo: &'r GraphRepository) -> Self {
-        InnerGraph{nodes: Vec::new(), edges: Vec::new(), repository: repo}
-    }
-}
 
 fn retrieve_db_nodes_ids(repository: &mut GraphRepository, labels: &Vec<String>) -> Vec<ProxyNodeId> {
     let db_node_ids = repository.fetch_nodes_ids_with_labels(labels);
@@ -225,7 +216,7 @@ impl <'r> GraphProxy<'r> {
         let ids = retrieve_db_nodes_ids(repo, &labels);
         GraphProxy{repository: repo, nodes: Vec::new(),
             relationships: Vec::new(),
-            retrieved_nodes_ids: ids, vertices: Vec::new(), edges: Vec::new()}
+            retrieved_nodes_ids: ids, vertices: Vec::new(), edges: Rc::new(RefCell::new(Vec::new()))}
     }
 }
 

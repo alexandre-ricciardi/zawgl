@@ -43,10 +43,10 @@ impl <NODE, RELATIONSHIP> GraphIteratorTrait<NodeIndex, EdgeIndex> for GraphCont
 impl <NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<NODE, RELATIONSHIP> {
 
     fn get_source_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
-        self.get_inner_graph().get_edges()[edge_index.get_index()].source
+        self.get_inner_graph().get_source_index(edge_index)
     }
     fn get_target_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
-        self.get_inner_graph().get_edges()[edge_index.get_index()].target
+        self.get_inner_graph().get_target_index(edge_index)
     }
     fn nodes_len(&self) -> usize {
         self.nodes.len()
@@ -83,9 +83,23 @@ impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
         &self.graph
     }
 
-    pub fn get_relationships_and_edges(&self) -> Vec<(&RELATIONSHIP, &EdgeData<NodeIndex, EdgeIndex>)> {
-        self.relationships.iter().zip(self.graph.get_edges()).collect::<Vec<(&RELATIONSHIP, &EdgeData<NodeIndex, EdgeIndex>)>>()
+    pub fn get_relationships_and_edges(&self) -> Vec<(&RELATIONSHIP, EdgeData<NodeIndex, EdgeIndex>)> {
+        self.relationships.iter().zip(self.get_edges()).collect::<Vec<(&RELATIONSHIP, EdgeData<NodeIndex, EdgeIndex>)>>()
     }
+
+    pub fn get_relationships(&self) -> Vec<&RELATIONSHIP> {
+        self.relationships.iter().collect::<Vec<&RELATIONSHIP>>()
+    }
+
+    pub fn get_edges(&self) -> Vec<EdgeData<NodeIndex, EdgeIndex>> {
+        let edges = self.graph.edges.borrow();
+        let mut res = Vec::new();
+        for e in edges.iter() {
+            res.push(e.clone());
+        }
+        res
+    }
+
     pub fn get_nodes(&self) -> &Vec<NODE> {
         &self.nodes
     }
