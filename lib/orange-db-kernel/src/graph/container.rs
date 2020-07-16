@@ -28,7 +28,7 @@ impl <NODE, RELATIONSHIP> GraphContainerTrait<NodeIndex, EdgeIndex, NODE, RELATI
 
 }
 
-impl <NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<NODE, RELATIONSHIP> {
+impl <NODE, RELATIONSHIP> GraphIteratorTrait<NodeIndex, EdgeIndex> for GraphContainer<NODE, RELATIONSHIP> {
     type OutIt = OutEdges;
     type InIt = InEdges;
     fn out_edges(&self, source: &NodeIndex) -> Self::OutIt {
@@ -38,11 +38,15 @@ impl <NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<NO
     fn in_edges(&self, target: &NodeIndex) -> Self::InIt {
         self.get_inner_graph().in_edges(target)
     }
-    fn get_source_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
-        &self.get_inner_graph().get_edges()[edge_index.get_index()].source
+}
+
+impl <NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<NODE, RELATIONSHIP> {
+
+    fn get_source_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
+        self.get_inner_graph().get_edges()[edge_index.get_index()].source
     }
-    fn get_target_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
-        &self.get_inner_graph().get_edges()[edge_index.get_index()].target
+    fn get_target_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
+        self.get_inner_graph().get_edges()[edge_index.get_index()].target
     }
     fn nodes_len(&self) -> usize {
         self.nodes.len()

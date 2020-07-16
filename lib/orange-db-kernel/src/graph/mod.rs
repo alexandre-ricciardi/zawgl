@@ -1,5 +1,7 @@
 pub mod traits;
 pub mod container;
+
+use std::rc::Rc;
 use self::traits::*;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
@@ -76,12 +78,12 @@ impl <NID: MemGraphId + Copy, EID: MemGraphId + Copy> EdgeData<NID, EID> {
 
 pub struct Graph {
     nodes: Vec<VertexData<EdgeIndex>>,
-    edges: Vec<EdgeData<NodeIndex, EdgeIndex>>,
+    edges: Rc<Vec<EdgeData<NodeIndex, EdgeIndex>>>,
 }
 
 
 pub struct OutEdges {
-    edges: Vec<EdgeData<NodeIndex, EdgeIndex>>,
+    edges: Rc<Vec<EdgeData<NodeIndex, EdgeIndex>>>,
     current_edge_index: Option<EdgeIndex>,
 }
 
@@ -103,7 +105,7 @@ impl Iterator for OutEdges {
 
 
 pub struct InEdges {
-    edges: Vec<EdgeData<NodeIndex, EdgeIndex>>,
+    edges: Rc<Vec<EdgeData<NodeIndex, EdgeIndex>>>,
     current_edge_index: Option<EdgeIndex>,
 }
 
@@ -123,24 +125,26 @@ impl Iterator for InEdges {
     }
 }
 
-impl <'g> GraphTrait<NodeIndex, EdgeIndex> for Graph {
+impl GraphIteratorTrait<NodeIndex, EdgeIndex> for Graph {
     type OutIt = OutEdges;
     type InIt = InEdges;
     fn out_edges(&self, source: &NodeIndex) -> Self::OutIt {
         let first_outbound_edge = self.nodes[source.get_index()].first_outbound_edge;
-        OutEdges{ edges: self.edges.clone(), current_edge_index: first_outbound_edge }
+        OutEdges{ edges: self.edges, current_edge_index: first_outbound_edge }
     }
 
     fn in_edges(&self, target: &NodeIndex) -> InEdges {
         let first_inbound_edge = self.nodes[target.get_index()].first_inbound_edge;
-        InEdges{ edges: self.edges.clone(), current_edge_index: first_inbound_edge }
+        InEdges{ edges: self.edges, current_edge_index: first_inbound_edge }
     }
+}
 
-    fn get_source_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
-        &self.edges[edge_index.get_index()].source
+impl GraphTrait<NodeIndex, EdgeIndex> for Graph {
+    fn get_source_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
+        self.edges[edge_index.get_index()].source
     }
-    fn get_target_index(&self, edge_index: &EdgeIndex) -> &NodeIndex {
-        &self.edges[edge_index.get_index()].target
+    fn get_target_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
+        self.edges[edge_index.get_index()].target
     }
 
     fn nodes_len(&self) -> usize {
@@ -164,7 +168,7 @@ impl <'g> GraphTrait<NodeIndex, EdgeIndex> for Graph {
 }
 impl Graph {
     pub fn new() -> Self {
-        Graph{ nodes: Vec::new(), edges: Vec::new() }
+        Graph{ nodes: Vec::new(), edges: Rc::new(Vec::new()) }
     }
 
     pub fn add_vertex(&mut self) -> NodeIndex {

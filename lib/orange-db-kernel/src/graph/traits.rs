@@ -3,17 +3,20 @@ pub trait MemGraphId {
 }
 
 pub trait GraphTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
-    type OutIt: Iterator<Item=EdgeId>;
-    type InIt: Iterator<Item=EdgeId>;
-    fn out_edges(&self, source: &NodeId) -> Self::OutIt;
-    fn in_edges(&self, target: &NodeId) -> Self::InIt;
-    fn get_source_index(&self, edge_index: &EdgeId) -> &NodeId;
-    fn get_target_index(&self, edge_index: &EdgeId) -> &NodeId;
+    fn get_source_index(&self, edge_index: &EdgeId) -> NodeId;
+    fn get_target_index(&self, edge_index: &EdgeId) -> NodeId;
     fn nodes_len(&self) -> usize;
     fn edges_len(&self) -> usize;
     fn get_nodes_ids(&self) -> Vec<NodeId>;
     fn in_degree(&self, node: &NodeId) -> usize;
     fn out_degree(&self, node: &NodeId) -> usize;
+}
+
+pub trait GraphIteratorTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
+    type OutIt: Iterator<Item=EdgeId>;
+    type InIt: Iterator<Item=EdgeId>;
+    fn out_edges(&self, source: &NodeId) -> Self::OutIt;
+    fn in_edges(&self, target: &NodeId) -> Self::InIt;
 }
 
 

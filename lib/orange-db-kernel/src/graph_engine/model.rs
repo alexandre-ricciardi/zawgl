@@ -1,7 +1,7 @@
 use super::super::model::*;
 use super::super::graph::traits::*;
 use super::super::repository::graph_repository::GraphRepository;
-
+use std::convert::AsRef;
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub struct ProxyNodeId {
     mem_id: usize,
@@ -138,7 +138,7 @@ impl Iterator for OutEdges {
     }
 }
 
-impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
+impl <'g, 'r> GraphIteratorTrait<ProxyNodeId, ProxyRelationshipId> for &'g mut GraphProxy<'r> {
     type OutIt = OutEdges;
     type InIt = InEdges;
     fn out_edges(&self, source: &ProxyNodeId) -> OutEdges {
@@ -150,11 +150,29 @@ impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
         let first_inbound_edge = self.vertices[target.get_index()].first_inbound_edge;
         InEdges{ edges: self.edges.clone(), current_edge_index: first_inbound_edge }
     }
-    fn get_source_index(&self, edge_index: &ProxyRelationshipId) -> &ProxyNodeId {
-        &self.edges[edge_index.get_index()].source
+}
+
+impl <'r> GraphIteratorTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
+    type OutIt = OutEdges;
+    type InIt = InEdges;
+    fn out_edges(&self, source: &ProxyNodeId) -> OutEdges {
+        let first_outbound_edge = self.vertices[source.get_index()].first_outbound_edge;
+        OutEdges{ edges: self.edges.clone(), current_edge_index: first_outbound_edge }
     }
-    fn get_target_index(&self, edge_index: &ProxyRelationshipId) -> &ProxyNodeId {
-        &self.edges[edge_index.get_index()].target
+
+    fn in_edges(&self, target: &ProxyNodeId) -> Self::InIt {
+        let first_inbound_edge = self.vertices[target.get_index()].first_inbound_edge;
+        InEdges{ edges: self.edges.clone(), current_edge_index: first_inbound_edge }
+    }
+}
+
+
+impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
+    fn get_source_index(&self, edge_index: &ProxyRelationshipId) -> ProxyNodeId {
+        self.edges[edge_index.get_index()].source
+    }
+    fn get_target_index(&self, edge_index: &ProxyRelationshipId) -> ProxyNodeId {
+        self.edges[edge_index.get_index()].target
     }
     fn nodes_len(&self) -> usize {
         self.retrieved_nodes_ids.len()

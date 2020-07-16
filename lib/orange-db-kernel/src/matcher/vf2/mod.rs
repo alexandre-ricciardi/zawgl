@@ -1,6 +1,7 @@
 mod base_state;
 mod state;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use self::state::State;
 use super::super::graph::traits::*;
@@ -10,10 +11,10 @@ pub struct Matcher<'g0: 'g1, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
-    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
+    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1> + GraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool  {
+    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &RefCell<Graph1>) -> bool  {
         state: State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>,
         found_match: bool,
         graph_0_ids: Vec<NID0>,
@@ -29,13 +30,13 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
-    Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
-    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
+    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1> + GraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool {
+    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &RefCell<Graph1>) -> bool {
 
-        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
-            let graph1_ids = graph_1.get_nodes_ids();
+        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 RefCell<Graph1>, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
+            let graph1_ids = graph_1.borrow().get_nodes_ids();
             Matcher {
                 state: State::new(graph_0, graph_1, vcomp, ecomp),
                 found_match: false,
@@ -116,15 +117,17 @@ Graph: GraphContainerTrait<NID, EID, N, R> {
 }
 
 pub fn sub_graph_isomorphism<'g0: 'g1, 'g1, NID0: 'g1, NID1: 'g1, EID0: 'g1, EID1: 'g1, N0: 'g1, R0: 'g1, N1: 'g1, R1: 'g1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
-(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> bool
+(graph_0: &'g0 Graph0, graph_1: &'g1 RefCell<Graph1>, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> bool
 where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
 EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
 N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
 N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
 Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
+Graph0: GraphIteratorTrait<NID0, EID0>,
 Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+Graph1: GraphIteratorTrait<NID1, EID1>,
 VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1)-> bool  {
+CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &RefCell<Graph1>)-> bool  {
 
     let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
     matcher.process()
