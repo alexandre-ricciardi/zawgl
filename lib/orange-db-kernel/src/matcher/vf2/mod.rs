@@ -96,6 +96,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     self.first_candidate_0 = Some(*nid);
                 }
 
+                self.graph_1_loop();
+
                 if self.match_continuation.is_empty() {
                     return self.found_match;
                 } else {

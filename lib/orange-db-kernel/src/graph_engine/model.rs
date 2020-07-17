@@ -178,7 +178,7 @@ impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
     }
     
     fn get_nodes_ids(&self) -> Vec<ProxyNodeId> {
-        Vec::new()
+        self.retrieved_nodes_ids.clone()
     }
 
     fn in_degree(&self, node: &ProxyNodeId) -> usize {
