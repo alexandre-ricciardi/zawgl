@@ -22,6 +22,7 @@ impl <'a> DbKernel<'a> {
         match req.directive {
             Directive::CREATE => {
                 graph_engine.add_graph(&req.pattern);
+                graph_engine.sync();
                 Some(Document::new())
             },
             Directive::MATCH => {
@@ -32,5 +33,6 @@ impl <'a> DbKernel<'a> {
                 Some(Document::new())
             }
         }
+        
     }
 }

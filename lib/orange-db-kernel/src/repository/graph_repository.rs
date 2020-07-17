@@ -42,7 +42,7 @@ impl GraphRepository {
             let nr = NodeRecord::new();
             let nid = self.nodes_store.create(&nr)?;
             for label in &node.labels {
-                self.nodes_labels_index.insert(label, nid)?;
+                self.nodes_labels_index.insert(label, nid);
             }
             map_nodes.insert(node_index, nid);
             node_records.push((nid, nr));

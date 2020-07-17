@@ -18,6 +18,16 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
                 }
                 
             },
+            TokenType::Match => {
+                parser.advance();
+                let mut create_node = Box::new(AstTagNode::new_tag(AstTag::Match));
+                let res = parse_pattern(parser, &mut create_node);
+                if res.is_err() {
+                    Err(res.err().unwrap())
+                } else {
+                    Ok(create_node)
+                }
+            },
             _ => Err(ParserError::SyntaxError)
         }
     } else {

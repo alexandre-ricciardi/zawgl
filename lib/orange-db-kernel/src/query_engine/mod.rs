@@ -62,6 +62,10 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
         self.request = Some(Request::new(Directive::CREATE));
         self.state = VisitorState::DirectiveCreate;
     }
+    fn enter_match(&mut self, node: &AstTagNode) {
+        self.request = Some(Request::new(Directive::MATCH));
+        self.state = VisitorState::DirectiveMatch;
+    }
     fn enter_node(&mut self, node: &AstTagNode) {
         
         match self.state {

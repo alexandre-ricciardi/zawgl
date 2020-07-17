@@ -37,14 +37,15 @@ impl GraphEngine {
         GraphEngine{repository: GraphRepository::new(ctx)}
     }
 
-    pub fn add_graph(&mut self, graph: &PropertyGraph) {
-        
+    pub fn add_graph(&mut self, graph: &PropertyGraph) -> Option<()> {
+        self.repository.create(graph)
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
         let mut graph_proxy = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
         let mut res = Vec::new();
-        sub_graph_isomorphism(pattern, &mut graph_proxy, |n0, n1| {
+        sub_graph_isomorphism(pattern, &mut graph_proxy, 
+        |n0, n1| {
             let mut res = true;
             for p0 in &n0.properties {
                 if !n1.properties.contains(p0) {
@@ -64,7 +65,7 @@ impl GraphEngine {
             }
             res
         },
-        |map0, map1, gpattern, proxy| {
+        |map0, _map1, gpattern, proxy| {
             let mut res_match = PropertyGraph::new();
             for index in gpattern.get_nodes_ids() {
                 let proxy_index = map0[&index];
@@ -98,8 +99,8 @@ impl GraphEngine {
 
     }
 
-    pub fn sync() {
-        
+    pub fn sync(&mut self) {
+        self.repository.sync();
     }
 }
 

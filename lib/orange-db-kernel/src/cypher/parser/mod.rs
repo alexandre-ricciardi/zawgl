@@ -11,6 +11,7 @@ use std::fmt;
 #[derive(Debug, Clone, Copy)]
 pub enum AstTag  {
     Create,
+    Match,
     Node,
     Property,
     RelDirectedLR,
@@ -22,6 +23,7 @@ pub enum AstTag  {
 
 pub trait AstVisitor<'g> {
     fn enter_create(&mut self, node: &AstTagNode);
+    fn enter_match(&mut self, node: &AstTagNode);
     fn enter_node(&mut self, node: &AstTagNode);
     fn enter_relationship(&mut self, node: &AstTagNode);
     fn enter_property(&mut self, node: &AstTagNode);
@@ -74,6 +76,9 @@ impl Ast for AstTagNode {
                 match ast_tag {
                     AstTag::Create => {
                         visitor.enter_create(&self);
+                    },
+                    AstTag::Match => {
+                        visitor.enter_match(&self);
                     },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |
