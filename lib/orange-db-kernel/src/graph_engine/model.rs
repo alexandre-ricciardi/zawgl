@@ -4,6 +4,7 @@ use super::super::repository::graph_repository::GraphRepository;
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub struct ProxyNodeId {
@@ -69,6 +70,8 @@ pub struct GraphProxy<'r> {
     edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
     repository: &'r GraphRepository,
     retrieved_nodes_ids: Vec<ProxyNodeId>,
+    map_nodes: HashMap<u64, Node>,
+    map_relationships: HashMap<u64, Relationship>,
 }
 
 
@@ -83,6 +86,11 @@ impl <'r> GraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationsh
     }
 
     fn get_node_ref(&self, id: &ProxyNodeId) -> &Node {
+        if self.map_nodes.contains_key(&id.get_store_id()) {
+
+        } else {
+            self.repository.retrieve_node_by_id(node_id)
+        }
         &self.nodes[id.get_index()]
     }
 

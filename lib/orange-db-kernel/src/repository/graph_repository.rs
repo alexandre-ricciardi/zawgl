@@ -34,6 +34,12 @@ impl GraphRepository {
         res
     }
 
+    pub fn retrieve_node_by_id(&mut self, node_id: u64) -> Option<Node> {
+        let nr = self.nodes_store.load(node_id)?;
+        let mut node = Node::new();
+        
+    }
+
     pub fn create(&mut self, pgraph: &PropertyGraph) -> Option<()> {
         let mut map_nodes = HashMap::new();
         let mut node_index = 0;
