@@ -68,9 +68,9 @@ pub struct GraphProxy<'r> {
     relationships: Vec<Relationship>,
     vertices: Vec<InnerNodeData<ProxyRelationshipId>>,
     edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
-    repository: &'r GraphRepository,
+    repository: &'r mut GraphRepository,
     retrieved_nodes_ids: Vec<ProxyNodeId>,
-    map_nodes: HashMap<u64, Node>,
+    map_nodes: HashMap<u64, usize>,
     map_relationships: HashMap<u64, Relationship>,
 }
 
@@ -86,11 +86,6 @@ impl <'r> GraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationsh
     }
 
     fn get_node_ref(&self, id: &ProxyNodeId) -> &Node {
-        if self.map_nodes.contains_key(&id.get_store_id()) {
-
-        } else {
-            self.repository.retrieve_node_by_id(node_id)
-        }
         &self.nodes[id.get_index()]
     }
 
@@ -198,7 +193,7 @@ impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
 
 }
 
-impl <'g> GrowableGraph<ProxyNodeId> for GraphProxy<'g> {
+impl <'g> GrowableGraph<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
     
     fn retrieve_out_edges(&mut self, source: &ProxyNodeId) {
         
@@ -206,6 +201,24 @@ impl <'g> GrowableGraph<ProxyNodeId> for GraphProxy<'g> {
 
     fn retrieve_in_edges(&mut self, target: &ProxyNodeId) {
         
+    }
+
+    fn retrieve_node(&mut self, node_id: &ProxyNodeId) {
+        if !self.map_nodes.contains_key(&node_id.get_store_id()) {
+            if let Some(node) = self.repository.retrieve_node_by_id(node_id.get_store_id()) {
+                self.map_nodes.insert(node_id.get_store_id(), self.nodes.len());
+                self.nodes.push(node);
+            }
+        }
+    }
+
+    fn retrieve_relationship(&mut self, rel_id: &ProxyRelationshipId) {
+        if !self.map_relationships.contains_key(&rel_id.get_store_id()) {
+            if let Some(rel) = self.repository.retrieve_relationship_by_id(rel_id.get_store_id()) {
+                self.map_relationships.insert(rel_id.get_store_id(), self.relationships.len());
+                self.relationships.push(node);
+            }
+        }
     }
 }
 
@@ -224,7 +237,10 @@ impl <'r> GraphProxy<'r> {
         let ids = retrieve_db_nodes_ids(repo, &labels);
         GraphProxy{repository: repo, nodes: Vec::new(),
             relationships: Vec::new(),
-            retrieved_nodes_ids: ids, vertices: Vec::new(), edges: Rc::new(RefCell::new(Vec::new()))}
+            retrieved_nodes_ids: ids, vertices: Vec::new(),
+            edges: Rc::new(RefCell::new(Vec::new())),
+            map_nodes: HashMap::new(),
+            map_relationships: HashMap::new()}
     }
 }
 

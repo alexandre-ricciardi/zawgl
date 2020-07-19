@@ -1,7 +1,6 @@
 mod base_state;
 mod state;
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use self::state::State;
 use super::super::graph::traits::*;
@@ -12,7 +11,7 @@ pub struct Matcher<'g0: 'g1, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP,
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
     Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
-    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1> + GraphIteratorTrait<NID1, EID1>,
+    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1, EID1> + GraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool  {
         state: State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>,
@@ -31,7 +30,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
     Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
-    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1> + GraphIteratorTrait<NID1, EID1>,
+    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1, EID1> + GraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool {
 
@@ -126,7 +125,7 @@ N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq,
 N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
 Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
 Graph0: GraphIteratorTrait<NID0, EID0>,
-Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1>,
+Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1, EID1>,
 Graph1: GraphIteratorTrait<NID1, EID1>,
 VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
 CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1)-> bool  {

@@ -27,7 +27,9 @@ pub trait GraphContainerTrait<NID: MemGraphId, EID: MemGraphId, NODE, RELATIONSH
     fn get_relationship_ref(&self, id: &EID) -> &RELATIONSHIP;
 }
 
-pub trait GrowableGraph<NodeId: MemGraphId> {
+pub trait GrowableGraph<NodeId: MemGraphId, RelationshipId: MemGraphId> {
     fn retrieve_out_edges(&mut self, source: &NodeId);
     fn retrieve_in_edges(&mut self, target: &NodeId);
+    fn retrieve_node(&mut self, node_id: &NodeId);
+    fn retrieve_relationship(&mut self, rel_id: &RelationshipId);
 }
