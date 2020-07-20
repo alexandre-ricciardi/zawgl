@@ -71,7 +71,7 @@ pub struct GraphProxy<'r> {
     repository: &'r mut GraphRepository,
     retrieved_nodes_ids: Vec<ProxyNodeId>,
     map_nodes: HashMap<u64, usize>,
-    map_relationships: HashMap<u64, Relationship>,
+    map_relationships: HashMap<u64, usize>,
 }
 
 
@@ -216,7 +216,7 @@ impl <'g> GrowableGraph<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
         if !self.map_relationships.contains_key(&rel_id.get_store_id()) {
             if let Some(rel) = self.repository.retrieve_relationship_by_id(rel_id.get_store_id()) {
                 self.map_relationships.insert(rel_id.get_store_id(), self.relationships.len());
-                self.relationships.push(node);
+                self.relationships.push(rel);
             }
         }
     }

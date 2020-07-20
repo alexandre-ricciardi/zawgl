@@ -38,8 +38,46 @@ impl GraphRepository {
         let nr = self.nodes_store.load(node_id)?;
         let mut node = Node::new();
         node.id = Some(node_id);
-        
+
         Some(node)
+    }
+
+    pub fn retrieve_relationship_by_id(&mut self, rel_id: u64) -> Option<Relationship> {
+        let rr = self.relationships_store.load(rel_id);
+        let mut rel = Relationship::new();
+        rel.id = Some(rel_id);
+        Some(rel)
+    }
+
+    pub fn retrieve_sub_graph_around(&mut self, node_id: u64) -> Option<PropertyGraph> {
+        let mut pg = PropertyGraph::new();
+        let mut map_nodes = HashMap::new();
+        let nr = self.nodes_store.load(node_id)?;
+        let mut node = Node::new();
+        node.id = Some(node_id);
+        map_nodes.insert(node_id, pg.add_node(node));
+
+        if nr.first_outbound_edge != 0 {
+            let mut curr_rel_id = nr.first_outbound_edge;
+            loop {
+                if curr_rel_id == 0 {
+                    break;
+                }
+                let rr = self.relationships_store.load(curr_rel_id)?;
+                let mut rel = Relationship::new();
+                rel.id = Some(curr_rel_id);
+
+                let nr_target = self.nodes_store.load(rr.target)?;
+                let mut target = Node::new();
+                target.id = Some(rr.target);
+                map_nodes.insert(rr.target, pg.add_node(target));
+                pg.add_relationship(rel, map_nodes[&node_id], map_nodes[&rr.target]);
+                curr_rel_id = rr.next_outbound_edge;
+            }
+        }
+        
+
+        Some(pg)
     }
 
     pub fn create(&mut self, pgraph: &PropertyGraph) -> Option<()> {
