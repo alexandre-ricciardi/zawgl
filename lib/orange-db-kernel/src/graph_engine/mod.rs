@@ -16,7 +16,7 @@ pub struct GraphEngine {
 fn extract_nodes_labels(pattern: &PropertyGraph) -> Vec<String> {
     let mut res = Vec::new();
     for node in pattern.get_nodes() {
-        node.labels.iter().for_each(|l| res.push(l.to_owned()));
+        node.get_labels_ref().iter().for_each(|l| res.push(l.to_owned()));
     }
     res
 }
@@ -47,8 +47,8 @@ impl GraphEngine {
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
             let mut res = true;
-            for p0 in &n0.properties {
-                if !n1.properties.contains(p0) {
+            for p0 in n0.get_properties_ref() {
+                if !n1.get_properties_ref().contains(p0) {
                     res = false;
                     break;
                 }

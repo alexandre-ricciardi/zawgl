@@ -174,16 +174,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        fn retrieve_graph_1_around(&mut self, node_id: &NID1) {
-            self.graph_1.retrieve_node(node_id);
-            self.graph_1.retrieve_in_edges(node_id);
-            for eid in self.graph_1.in_edges(node_id) {
-                self.graph_1.retrieve_relationship(&eid);
-            }
-            self.graph_1.retrieve_out_edges(node_id);
-            for eid in self.graph_1.out_edges(node_id) {
-                self.graph_1.retrieve_relationship(&eid);
-            }
+        fn retrieve_graph_1_around(&mut self, node_id: &NID1) -> Option<()> {
+            self.graph_1.retrieve_sub_graph_around(node_id)
         }
 
         pub fn feasible(&mut self, v_new: &NID0, w_new: &NID1) -> bool {

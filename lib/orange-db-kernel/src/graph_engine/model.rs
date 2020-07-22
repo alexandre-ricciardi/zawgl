@@ -200,42 +200,19 @@ impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
 
 impl <'g> GrowableGraph<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
     
-    fn retrieve_out_edges(&mut self, source: &ProxyNodeId) {
-        
-    }
-
-    fn retrieve_in_edges(&mut self, target: &ProxyNodeId) {
-        
-    }
-
-    fn retrieve_node(&mut self, node_id: &ProxyNodeId) {
-        if !self.map_nodes.contains_key(&node_id.get_store_id()) {
-            if let Some(node) = self.repository.retrieve_node_by_id(node_id.get_store_id()) {
-                self.map_nodes.insert(node_id.get_store_id(), self.nodes.len());
-                self.nodes.push(node);
-            }
-        }
-    }
-
-    fn retrieve_relationship(&mut self, rel_id: &ProxyRelationshipId) {
-        if !self.map_relationships.contains_key(&rel_id.get_store_id()) {
-            if let Some(rel) = self.repository.retrieve_relationship_by_id(rel_id.get_store_id()) {
-                self.map_relationships.insert(rel_id.get_store_id(), self.relationships.len());
-                self.relationships.push(rel);
-            }
-        }
-    }
-
-    fn retrieve_sub_graph_around(&mut self, node_id: &ProxyNodeId) {
-        let pg = self.repository.retrieve_sub_graph_around(node_id.get_store_id());
+    fn retrieve_sub_graph_around(&mut self, node_id: &ProxyNodeId) -> Option<()> {
+        let pg = self.repository.retrieve_sub_graph_around(node_id.get_store_id())?;
         let mut map_nodes = HashMap::new();
-        if let Some(pgraph) = pg {
-            for node in pgraph.get_nodes() {
-                if let Some(id) = node.id {
-                    map_nodes.insert(id, self.add_vertex(id));
-                }
-            }
+        for node in pg.get_nodes() {
+            let id = node.get_id()?;
+            map_nodes.insert(id, self.add_vertex(id));
         }
+        for edge in pg.get_edges() {
+            let s = pg.get_node_ref(&edge.get_source());
+            let t = pg.get_node_ref(&edge.get_target());
+            self.add_edge(map_nodes[s.get_id()?], map_nodes[t.get_id()?]), pg.get_relationship_ref(id))
+        }
+        Some(())
     }
 }
 

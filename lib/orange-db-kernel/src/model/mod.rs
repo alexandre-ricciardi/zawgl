@@ -75,10 +75,10 @@ impl Property {
 
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Node {
-    pub id: Option<u64>,
-    pub var: Option<String>,
-    pub properties: Vec<Property>,
-    pub labels: Vec<String>
+    id: Option<u64>,
+    var: Option<String>,
+    properties: Vec<Property>,
+    labels: Vec<String>
 }
 
 
@@ -86,6 +86,38 @@ impl Node {
     pub fn new() -> Self {
         Node {var: None, properties: Vec::new(), labels: Vec::new(), id:None}
     }
+
+    pub fn get_id(&self) -> Option<u64> {
+        self.id
+    }
+
+    pub fn set_id(&mut self, id: Option<u64>) {
+        self.id = id;
+    }
+
+    pub fn get_var(&self) -> &Option<String> {
+        &self.var
+    }
+
+    pub fn set_var(&mut self, var: &str) {
+        self.var = Some(String::from(var));
+    }
+
+    pub fn get_properties_ref(&self) -> &Vec<Property> {
+        &self.properties
+    }
+
+    pub fn get_properties_mut(&mut self) -> &mut Vec<Property> {
+        &mut self.properties
+    }
+    pub fn get_labels_ref(&self) -> &Vec<String> {
+        &self.labels
+    }
+
+    pub fn get_labels_mut(&mut self) -> &mut Vec<String> {
+        &mut self.labels
+    }
+
 }
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Relationship {

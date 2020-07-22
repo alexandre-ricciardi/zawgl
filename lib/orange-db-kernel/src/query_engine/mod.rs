@@ -146,9 +146,9 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
             if let Some(node_id) = self.curr_node {
                 self.curr_property_id = self.request.as_mut().map(|req| {
                     let pnode = req.pattern.get_node_mut(&node_id);
-                    let pvec = &mut pnode.properties;
+                    let pvec = pnode.get_properties_mut();
                     pvec.push(Property::new());
-                    pnode.properties.len() - 1
+                    pvec.len() - 1
                 })
             }
         }
@@ -171,7 +171,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(node_id) = self.curr_node {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut node.properties[prop_id];
+                            let prop = &mut node.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PInteger(v));
                         }
                     }
@@ -212,7 +212,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(node_id) = self.curr_node {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut node.properties[prop_id];
+                            let prop = &mut node.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PFloat(v));
                         }
                     }
@@ -253,7 +253,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(node_id) = self.curr_node {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut node.properties[prop_id];
+                            let prop = &mut node.get_properties_mut()[prop_id];
                             prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
                         }
                     }
@@ -294,7 +294,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(node_id) = self.curr_node {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut node.properties[prop_id];
+                            let prop = &mut node.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PBool(v));
                         }
                     }
@@ -337,10 +337,10 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let node = req.pattern.get_node_mut(&node_id);
                         match self.id_type {
                             Some(IdentifierType::Variable) => {
-                                node.var = Some(String::from(key));
+                                node.set_var(key);
                             },
                             Some(IdentifierType::Label) => {
-                                node.labels.push(String::from(key));
+                                node.get_labels_mut().push(String::from(key));
                             },
                             _ => {}
                         } 
@@ -402,7 +402,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(node_id) = self.curr_node {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut node.properties[prop_id];
+                            let prop = &mut node.get_properties_mut()[prop_id];
                             prop.name = Some(String::from(key));
                         }
                     }
@@ -439,8 +439,8 @@ mod test_query_engine {
         let request = process_query("CREATE (n:Person)");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(&NodeIndex::new(0));
-            assert_eq!(node.var, Some(String::from("n")));
-            assert_eq!(node.labels[0], String::from("Person"));
+            assert_eq!(node.get_var(), &Some(String::from("n")));
+            assert_eq!(node.get_labels_ref()[0], String::from("Person"));
         } else {
             assert!(false, "no request found");
         }
@@ -452,12 +452,12 @@ mod test_query_engine {
         let request = process_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(&NodeIndex::new(0));
-            assert_eq!(node.var, Some(String::from("n")));
-            assert_eq!(node.labels[0], String::from("Person"));
-            assert_eq!(node.labels[1], String::from("Parent"));
-            assert_eq!(node.properties[0].name, Some(String::from("test")));
-            assert_eq!(node.properties[0].value, Some(PropertyValue::PString(String::from("Hello"))));
-            assert_eq!(node.properties[1].name, Some(String::from("case")));
+            assert_eq!(node.get_var(), &Some(String::from("n")));
+            assert_eq!(node.get_labels_ref()[0], String::from("Person"));
+            assert_eq!(node.get_labels_ref()[1], String::from("Parent"));
+            assert_eq!(node.get_properties_ref()[0].name, Some(String::from("test")));
+            assert_eq!(node.get_properties_ref()[0].value, Some(PropertyValue::PString(String::from("Hello"))));
+            assert_eq!(node.get_properties_ref()[1].name, Some(String::from("case")));
             //assert_eq!(node.properties[1].value, Some(PropertyValue::PFloat(4.99)));
             
         } else {
@@ -471,8 +471,8 @@ mod test_query_engine {
         let request = process_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(&NodeIndex::new(0));
-            assert_eq!(node.var, Some(String::from("n")));
-            assert_eq!(node.labels[0], String::from("Person"));
+            assert_eq!(node.get_var(), &Some(String::from("n")));
+            assert_eq!(node.get_labels_ref()[0], String::from("Person"));
             let rel = req.pattern.get_relationship_ref(&EdgeIndex::new(0));
             assert_eq!(rel.var, Some(String::from("r")));
             assert_eq!(rel.labels[0], String::from("FRIEND_OF"));
