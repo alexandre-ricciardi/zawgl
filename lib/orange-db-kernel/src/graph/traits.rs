@@ -32,4 +32,5 @@ pub trait GrowableGraph<NodeId: MemGraphId, RelationshipId: MemGraphId> {
     fn retrieve_in_edges(&mut self, target: &NodeId);
     fn retrieve_node(&mut self, node_id: &NodeId);
     fn retrieve_relationship(&mut self, rel_id: &RelationshipId);
+    fn retrieve_sub_graph_around(&mut self, node_id: &NodeId);
 }

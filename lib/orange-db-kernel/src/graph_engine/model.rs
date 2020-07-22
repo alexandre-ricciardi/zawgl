@@ -23,10 +23,12 @@ impl MemGraphId for ProxyNodeId {
 
 impl ProxyNodeId {
 
-    fn new(db_id: u64) -> Self {
+    fn new_db(db_id: u64) -> Self {
         ProxyNodeId{mem_id: 0, store_id: db_id, to_retrieve: true}
     }
-
+    fn new(mem_id: usize, db_id: u64) -> Self {
+        ProxyNodeId{mem_id: mem_id, store_id: db_id, to_retrieve: false}
+    }
     fn get_store_id(&self) -> u64 {
         self.store_id
     }
@@ -45,12 +47,15 @@ impl MemGraphId for ProxyRelationshipId {
 }
 
 impl ProxyRelationshipId {
+    fn new(mem_id: usize, db_id: u64) -> Self {
+        ProxyRelationshipId{mem_id: mem_id, store_id: db_id}
+    }
     fn get_store_id(&self) -> u64 {
         self.store_id
     }
 }
 
-pub struct InnerNodeData<EID: MemGraphId> {
+pub struct InnerVertexData<EID: MemGraphId> {
     first_outbound_edge: Option<EID>,
     first_inbound_edge: Option<EID>,
 }
@@ -66,7 +71,7 @@ pub struct InnerEdgeData<NID: MemGraphId, EID: MemGraphId> {
 pub struct GraphProxy<'r> {
     nodes: Vec<Node>,
     relationships: Vec<Relationship>,
-    vertices: Vec<InnerNodeData<ProxyRelationshipId>>,
+    vertices: Vec<InnerVertexData<ProxyRelationshipId>>,
     edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
     repository: &'r mut GraphRepository,
     retrieved_nodes_ids: Vec<ProxyNodeId>,
@@ -220,6 +225,18 @@ impl <'g> GrowableGraph<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
             }
         }
     }
+
+    fn retrieve_sub_graph_around(&mut self, node_id: &ProxyNodeId) {
+        let pg = self.repository.retrieve_sub_graph_around(node_id.get_store_id());
+        let mut map_nodes = HashMap::new();
+        if let Some(pgraph) = pg {
+            for node in pgraph.get_nodes() {
+                if let Some(id) = node.id {
+                    map_nodes.insert(id, self.add_vertex(id));
+                }
+            }
+        }
+    }
 }
 
 
@@ -227,7 +244,7 @@ fn retrieve_db_nodes_ids(repository: &mut GraphRepository, labels: &Vec<String>)
     let db_node_ids = repository.fetch_nodes_ids_with_labels(labels);
     let mut res = Vec::new();
     for id in db_node_ids {
-        res.push(ProxyNodeId::new(id))
+        res.push(ProxyNodeId::new_db(id))
     }
     res
 }
@@ -241,6 +258,29 @@ impl <'r> GraphProxy<'r> {
             edges: Rc::new(RefCell::new(Vec::new())),
             map_nodes: HashMap::new(),
             map_relationships: HashMap::new()}
+    }
+
+    fn add_edge(&mut self, source: ProxyNodeId, target: ProxyNodeId, rel_db_id: u64) -> ProxyRelationshipId {
+        let index = self.edges.borrow().len();
+        {
+            let source_data = &self.vertices[source.get_index()];
+            let target_data = &self.vertices[target.get_index()];
+            self.edges.borrow_mut().push(InnerEdgeData{source: source, target: target,
+                 next_inbound_edge: target_data.first_inbound_edge, 
+                 next_outbound_edge: source_data.first_outbound_edge});
+        }
+        
+        let ms = &mut self.vertices[source.get_index()];
+        ms.first_outbound_edge = Some(ProxyRelationshipId::new(index, rel_db_id));
+        let mt = &mut self.vertices[target.get_index()];
+        mt.first_inbound_edge = Some(ProxyRelationshipId::new(index, rel_db_id));
+        ProxyRelationshipId::new(index, rel_db_id)
+    }
+
+    fn add_vertex(&mut self, db_id: u64) -> ProxyNodeId {
+        let index = self.nodes.len();
+        self.vertices.push(InnerVertexData{first_outbound_edge: None, first_inbound_edge: None});
+        ProxyNodeId::new(index, db_id)
     }
 }
 
