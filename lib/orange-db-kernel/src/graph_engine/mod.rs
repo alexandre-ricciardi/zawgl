@@ -23,8 +23,8 @@ fn extract_nodes_labels(pattern: &PropertyGraph) -> Vec<String> {
 
 fn compare_relationships(r0: &Relationship, r1: &Relationship) -> bool {
     let mut res = true;
-    for p0 in &r0.properties {
-        if !r1.properties.contains(p0) {
+    for p0 in r0.get_properties_ref() {
+        if !r1.get_properties_ref().contains(p0) {
             res = false;
             break;
         }
@@ -57,8 +57,8 @@ impl GraphEngine {
         },
         |e0, e1| {
             let mut res = true;
-            for p0 in &e0.properties {
-                if !e1.properties.contains(p0) {
+            for p0 in e0.get_properties_ref() {
+                if !e1.get_properties_ref().contains(p0) {
                     res = false;
                     break;
                 }

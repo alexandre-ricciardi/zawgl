@@ -119,9 +119,9 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
             if let Some(rel_id) = self.curr_directed_relationship {
                 self.curr_property_id = self.request.as_mut().map(|req| {
                     let rel = req.pattern.get_relationship_mut(&rel_id);
-                    let pvec = &mut rel.properties;
+                    let pvec = &mut rel.get_properties_mut();
                     pvec.push(Property::new());
-                    rel.properties.len() - 1
+                    rel.get_properties_ref().len() - 1
                 })
             }
         }
@@ -132,12 +132,12 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     let mut sizes: (usize, usize) = (0, 0);
                     {
                         let rel0 = pattern.get_relationship_mut(&both_ways.0);
-                        rel0.properties.push(Property::new());
-                        sizes.0 = rel0.properties.len() - 1;
+                        rel0.get_properties_mut().push(Property::new());
+                        sizes.0 = rel0.get_properties_ref().len() - 1;
                     }
                     let rel1 = pattern.get_relationship_mut(&both_ways.1);
-                    rel1.properties.push(Property::new());
-                    sizes.1 = rel1.properties.len() - 1;
+                    rel1.get_properties_mut().push(Property::new());
+                    sizes.1 = rel1.get_properties_ref().len() - 1;
                     sizes
                 })
             }
@@ -162,7 +162,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(rel_id) = self.curr_directed_relationship {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PInteger(v));
                         }
                     }
@@ -181,13 +181,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
-                                let prop = &mut rel.properties[prop_id];
+                                let prop = &mut rel.get_properties_mut()[prop_id];
                                 prop.value = value.map(|v| PropertyValue::PInteger(v));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PInteger(v));
                         }
                     }
@@ -203,7 +203,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(rel_id) = self.curr_directed_relationship {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PFloat(v));
                         }
                     }
@@ -222,13 +222,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
-                                let prop = &mut rel.properties[prop_id];
+                                let prop = &mut rel.get_properties_mut()[prop_id];
                                 prop.value = value.map(|v| PropertyValue::PFloat(v));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PFloat(v));
                         }
                     }
@@ -244,7 +244,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(rel_id) = self.curr_directed_relationship {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
                         }
                     }
@@ -263,13 +263,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
-                                let prop = &mut rel.properties[prop_id];
+                                let prop = &mut rel.get_properties_mut()[prop_id];
                                 prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
                         }
                     }
@@ -285,7 +285,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(rel_id) = self.curr_directed_relationship {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PBool(v));
                         }
                     }
@@ -304,13 +304,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
-                                let prop = &mut rel.properties[prop_id];
+                                let prop = &mut rel.get_properties_mut()[prop_id];
                                 prop.value = value.map(|v| PropertyValue::PBool(v));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.value = value.map(|v| PropertyValue::PBool(v));
                         }
                     }
@@ -353,10 +353,10 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         
                         match self.id_type {
                             Some(IdentifierType::Variable) => {
-                                rel.var = Some(String::from(key));
+                                rel.set_var(key);
                             },
                             Some(IdentifierType::Label) => {
-                                rel.labels.push(String::from(key));
+                                rel.get_labels_mut().push(String::from(key));
                             },
                             _ => {}
                         } 
@@ -368,10 +368,10 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             match self.id_type {
                                 Some(IdentifierType::Variable) => {
-                                    rel.var = Some(String::from(key));
+                                    rel.set_var(key);
                                 },
                                 Some(IdentifierType::Label) => {
-                                    rel.labels.push(String::from(key));
+                                    rel.get_labels_mut().push(String::from(key));
                                 },
                                 _ => {}
                             } 
@@ -379,10 +379,10 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         match self.id_type {
                             Some(IdentifierType::Variable) => {
-                                rel.var = Some(String::from(key));
+                                rel.set_var(key);
                             },
                             Some(IdentifierType::Label) => {
-                                rel.labels.push(String::from(key));
+                                rel.get_labels_mut().push(String::from(key));
                             },
                             _ => {}
                         } 
@@ -393,7 +393,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(rel_id) = self.curr_directed_relationship {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.name = Some(String::from(key));
                         }
                     }
@@ -412,13 +412,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
-                                let prop = &mut rel.properties[prop_id];
+                                let prop = &mut rel.get_properties_mut()[prop_id];
                                 prop.name = Some(String::from(key));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.properties[prop_id];
+                            let prop = &mut rel.get_properties_mut()[prop_id];
                             prop.name = Some(String::from(key));
                         }
                     }
@@ -474,8 +474,8 @@ mod test_query_engine {
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
             let rel = req.pattern.get_relationship_ref(&EdgeIndex::new(0));
-            assert_eq!(rel.var, Some(String::from("r")));
-            assert_eq!(rel.labels[0], String::from("FRIEND_OF"));
+            assert_eq!(rel.get_var(), &Some(String::from("r")));
+            assert_eq!(rel.get_labels_ref()[0], String::from("FRIEND_OF"));
             
             
         } else {

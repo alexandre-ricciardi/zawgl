@@ -190,10 +190,10 @@ impl <'r> GraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r> {
     }
 
     fn in_degree(&self, node: &ProxyNodeId) -> usize {
-        0//self.in_edges(node).count()
+        self.in_edges(node).count()
     }
     fn out_degree(&self, node: &ProxyNodeId) -> usize {
-        0//self.out_edges(node).count()
+        self.out_edges(node).count()
     }
 
 }
@@ -205,12 +205,14 @@ impl <'g> GrowableGraph<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
         let mut map_nodes = HashMap::new();
         for node in pg.get_nodes() {
             let id = node.get_id()?;
-            map_nodes.insert(id, self.add_vertex(id));
+            self.nodes.push(node.clone());
+            map_nodes.insert(id, self.add_node(node)?);
         }
         for edge in pg.get_edges() {
             let s = pg.get_node_ref(&edge.get_source());
             let t = pg.get_node_ref(&edge.get_target());
-            self.add_edge(map_nodes[s.get_id()?], map_nodes[t.get_id()?]), pg.get_relationship_ref(id))
+            let rel = pg.get_relationship_ref(&edge.id);
+            self.add_relationship(map_nodes[&s.get_id()?], map_nodes[&t.get_id()?], rel)?;
         }
         Some(())
     }
@@ -255,9 +257,21 @@ impl <'r> GraphProxy<'r> {
     }
 
     fn add_vertex(&mut self, db_id: u64) -> ProxyNodeId {
-        let index = self.nodes.len();
+        let index = self.vertices.len();
         self.vertices.push(InnerVertexData{first_outbound_edge: None, first_inbound_edge: None});
         ProxyNodeId::new(index, db_id)
+    }
+
+    fn add_node(&mut self, node: &Node) -> Option<ProxyNodeId> {
+        let id = node.get_id()?;
+        self.nodes.push(node.clone());
+        Some(self.add_vertex(id))
+    }
+
+    fn add_relationship(&mut self, source: ProxyNodeId, target: ProxyNodeId, rel: &Relationship) -> Option<ProxyRelationshipId> {
+        let id = rel.get_id()?;
+        self.relationships.push(rel.clone());
+        Some(self.add_edge(source, target, id))
     }
 }
 

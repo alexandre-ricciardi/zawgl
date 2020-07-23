@@ -55,6 +55,7 @@ impl <EID: MemGraphId + Copy> VertexData<EID> {
 
 #[derive(Clone)]
 pub struct EdgeData<NID: MemGraphId, EID: MemGraphId> {
+    pub id: EID,
     pub source: NID,
     pub target: NID,
     pub next_outbound_edge: Option<EID>,
@@ -190,9 +191,10 @@ impl Graph {
         {
             let source_data = &self.nodes[source.get_index()];
             let target_data = &self.nodes[target.get_index()];
-            self.edges.borrow_mut().push(EdgeData{source: source, target: target,
-                 next_inbound_edge: target_data.first_inbound_edge, 
-                 next_outbound_edge: source_data.first_outbound_edge});
+            self.edges.borrow_mut().push(EdgeData{id: EdgeIndex::new(index),
+                source: source, target: target,
+                next_inbound_edge: target_data.first_inbound_edge, 
+                next_outbound_edge: source_data.first_outbound_edge});
         }
         
         let ms = &mut self.nodes[source.get_index()];
