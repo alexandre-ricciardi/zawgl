@@ -2,18 +2,28 @@ use super::super::model::*;
 use super::super::graph::traits::*;
 use super::super::repository::graph_repository::GraphRepository;
 
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
+#[derive(Copy, Clone, Debug)]
 pub struct ProxyNodeId {
     mem_id: usize,
     store_id: u64,
-    to_retrieve: bool,
 }
 
-
+impl PartialEq for ProxyNodeId {
+    fn eq(&self, other: &Self) -> bool {
+        self.store_id == other.store_id
+    }
+}
+impl Eq for ProxyNodeId {}
+impl Hash for ProxyNodeId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.store_id.hash(state);
+    }
+}
 
 impl MemGraphId for ProxyNodeId {
     fn get_index(&self) -> usize {
@@ -24,10 +34,10 @@ impl MemGraphId for ProxyNodeId {
 impl ProxyNodeId {
 
     fn new_db(db_id: u64) -> Self {
-        ProxyNodeId{mem_id: 0, store_id: db_id, to_retrieve: true}
+        ProxyNodeId{mem_id: 0, store_id: db_id}
     }
     fn new(mem_id: usize, db_id: u64) -> Self {
-        ProxyNodeId{mem_id: mem_id, store_id: db_id, to_retrieve: false}
+        ProxyNodeId{mem_id: mem_id, store_id: db_id}
     }
     fn get_store_id(&self) -> u64 {
         self.store_id
