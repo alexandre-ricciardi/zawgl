@@ -31,8 +31,8 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
     }
 
     pub fn term_in_vertex(&self, v0: &NID0) -> bool {
-        let has_in_count = self.in_map.get(v0).map(|count| *count > 0);
-        has_in_count.map(|has_in| has_in && !self.core_map.contains_key(v0)) == Some(true)
+        let has_in_count = self.in_map[v0] > 0;
+        has_in_count && !self.core_map.contains_key(v0)
     }
     
     pub fn term_out(&self) -> bool {
@@ -40,8 +40,8 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
     }
 
     pub fn term_out_vertex(&self, v0: &NID0) -> bool {
-        let has_out_count = self.out_map.get(v0).map(|count| *count > 0);
-        has_out_count.map(|has_out| has_out && self.core_map.contains_key(v0)) == Some(true)
+        let has_out_count = self.out_map[v0] > 0;
+        has_out_count && !self.core_map.contains_key(v0)
     }
     
     pub fn term_both(&self) -> bool {
@@ -49,9 +49,9 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
     }
     
     pub fn term_both_vertex(&self, v0: &NID0) -> bool {
-        let has_in_count = self.in_map.get(v0).map(|count| *count > 0); 
-        let has_out_count = self.out_map.get(v0).map(|count| *count > 0);
-        has_in_count.and_then(|has_in|has_out_count.map(|has_out| self.core_map.contains_key(v0) && has_in && has_out)) == Some(true)
+        let has_in_count = self.in_map[v0] > 0; 
+        let has_out_count = self.out_map[v0] > 0;
+        has_in_count && has_out_count && !self.core_map.contains_key(v0)
     }
 
     pub fn in_core(&self, v0: &NID0) -> bool
@@ -63,8 +63,8 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
         self.core_count
     }
 
-    pub fn core(&self, v0: &NID0) -> Option<NID1> {
-        self.core_map.get(v0).map(|v1| *v1)
+    pub fn core(&self, v0: &NID0) -> Option<&NID1> {
+        self.core_map.get(v0)
     }
 
     pub fn get_map(&self) ->  &HashMap<NID0, NID1> {

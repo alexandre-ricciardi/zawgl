@@ -6,6 +6,7 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 #[derive(Copy, Clone, Debug)]
 pub struct ProxyNodeId {
@@ -85,8 +86,8 @@ pub struct GraphProxy<'r> {
     edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
     repository: &'r mut GraphRepository,
     retrieved_nodes_ids: Vec<ProxyNodeId>,
-    map_nodes: HashMap<u64, usize>,
-    map_relationships: HashMap<u64, usize>,
+    map_nodes: HashMap<u64, ProxyNodeId>,
+    map_relationships: HashMap<u64, ProxyRelationshipId>,
 }
 
 
@@ -215,14 +216,24 @@ impl <'g> GrowableGraph<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
         let mut map_nodes = HashMap::new();
         for node in pg.get_nodes() {
             let id = node.get_id()?;
-            self.nodes.push(node.clone());
-            map_nodes.insert(id, self.add_node(node)?);
+            if self.map_nodes.contains_key(&id) {
+                map_nodes.insert(id, self.map_nodes[&id]);
+            } else {
+                let pid = self.add_node(node)?;
+                self.map_nodes.insert(id, pid);
+                self.nodes.push(node.clone());
+                map_nodes.insert(id, pid);
+            }
+            
         }
         for edge in pg.get_edges() {
             let s = pg.get_node_ref(&edge.get_source());
             let t = pg.get_node_ref(&edge.get_target());
             let rel = pg.get_relationship_ref(&edge.id);
-            self.add_relationship(map_nodes[&s.get_id()?], map_nodes[&t.get_id()?], rel)?;
+            let id_rel = rel.get_id()?;
+            if !self.map_relationships.contains_key(&id_rel) {
+                self.add_relationship(map_nodes[&s.get_id()?], map_nodes[&t.get_id()?], rel)?;
+            }
         }
         Some(())
     }

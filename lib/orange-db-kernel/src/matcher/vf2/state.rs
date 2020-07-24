@@ -15,15 +15,19 @@ GraphA: GraphIteratorTrait<NIDA, EIDA> {
     if !base_state.in_map.contains_key(&v0) {
         base_state.in_map.insert(*v0, base_state.core_count);
         base_state.term_in_count += 1;
-        if base_state.out_map.contains_key(&v0) {
-            base_state.term_both_count += 1;
+        if let Some(&out) = base_state.out_map.get(&v0) {
+            if out > 0 {
+                base_state.term_both_count += 1;
+            }
         }
     }
     if !base_state.out_map.contains_key(&v0) {
         base_state.out_map.insert(*v0, base_state.core_count);
         base_state.term_out_count += 1;
-        if base_state.in_map.contains_key(&v0) {
-            base_state.term_both_count += 1;
+        if let Some(&in_count) = base_state.in_map.get(&v0) {
+            if in_count > 0 {
+                base_state.term_both_count += 1;
+            }
         }
     }
 
@@ -32,8 +36,10 @@ GraphA: GraphIteratorTrait<NIDA, EIDA> {
         if !base_state.in_map.contains_key(&ancestor) {
             base_state.in_map.insert(ancestor, base_state.core_count);
             base_state.term_in_count += 1;
-            if base_state.out_map.contains_key(&ancestor) {
-                base_state.term_both_count += 1;
+            if let Some(&out_count) = base_state.out_map.get(&ancestor) {
+                if out_count > 0 {
+                    base_state.term_both_count += 1;
+                }
             }
         }
     }
@@ -42,8 +48,10 @@ GraphA: GraphIteratorTrait<NIDA, EIDA> {
         if !base_state.out_map.contains_key(&successor) {
             base_state.out_map.insert(successor, base_state.core_count);
             base_state.term_out_count += 1;
-            if base_state.in_map.contains_key(&successor) {
-                base_state.term_both_count += 1;
+            if let Some(&in_count) = base_state.in_map.get(&successor) {
+                if in_count > 0 {
+                    base_state.term_both_count += 1;
+                }
             }
         }
     }
@@ -63,8 +71,11 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
         if *in_count == base_state.core_count {
             base_state.in_map.insert(*v0, 0);
             base_state.term_in_count -= 1;
-            if let Some(_out_count) = base_state.out_map.get(&v0) {
-                base_state.term_both_count -= 1;
+            if let Some(&out_count) = base_state.out_map.get(&v0) {
+                if out_count > 0 {
+                    base_state.term_both_count -= 1;
+                }
+                
             }
         }
     }
@@ -75,8 +86,10 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
             if *in_count == base_state.core_count {
                 base_state.in_map.insert(source, 0);
                 base_state.term_in_count -= 1;
-                if let Some(_out_count) = base_state.out_map.get(&source) {
-                    base_state.term_both_count -= 1;
+                if let Some(&out_count) = base_state.out_map.get(&source) {
+                    if out_count > 0 {
+                        base_state.term_both_count -= 1;
+                    }
                 }
             }
         }
@@ -86,8 +99,10 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
         if *out_count == base_state.core_count {
             base_state.out_map.insert(*v0, 0);
             base_state.term_out_count -= 1;
-            if let Some(_in_count) = base_state.in_map.get(&v0) {
-                base_state.term_both_count -= 1;
+            if let Some(&in_count) = base_state.in_map.get(&v0) {
+                if in_count > 0 {
+                    base_state.term_both_count -= 1;
+                }
             }
         }
     }
@@ -98,8 +113,10 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
             if *out_count == base_state.core_count {
                 base_state.out_map.insert(target, 0);
                 base_state.term_out_count -= 1;
-                if let Some(_in_count) = base_state.in_map.get(&target) {
-                    base_state.term_both_count -= 1;
+                if let Some(&in_count) = base_state.in_map.get(&target) {
+                    if in_count > 0 {
+                        base_state.term_both_count -= 1;
+                    }
                 }
             }
         }
@@ -168,10 +185,11 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {
-            if let Some(w_val) = self.base_state_0.core(v0) {
+            if let Some(&w) = self.base_state_0.core(v0) {
                 pop_state(&mut self.base_state_0, self.graph_0, v0);
-                pop_state(&mut self.base_state_1, self.graph_1, &w_val);
+                pop_state(&mut self.base_state_1, self.graph_1, &w);
             }
+            
         }
 
         fn retrieve_graph_1_around(&mut self, node_id: &NID1) -> Option<()> {
@@ -242,8 +260,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             if self.base_state_0.in_core(v_adj) || v_new == v_adj {
                 let mut w_source = *w_new;
                 if *v_adj != *v_new {
-                    if let Some(ws) =  self.base_state_0.core(v_adj) {
-                        w_source = ws;
+                    if let Some(&ws) = self.base_state_0.core(v_adj) {
+                        w_source =  ws;
                     }
                 }
                 
@@ -270,7 +288,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             if  self.base_state_1.in_core(w_adj) || w_new == w_adj {
                 let mut v_source = *v_new;
                 if *w_adj != *w_new {
-                    if let Some(vs) = self.base_state_1.core(w_adj) {
+                    if let Some(&vs) = self.base_state_1.core(w_adj) {
                         v_source = vs;
                     }
                 }
