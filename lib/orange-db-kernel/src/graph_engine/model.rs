@@ -171,12 +171,14 @@ impl <'r> GraphIteratorTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'r
     type OutIt = OutEdges;
     type InIt = InEdges;
     fn out_edges(&self, source: &ProxyNodeId) -> OutEdges {
-        let first_outbound_edge = self.vertices[source.get_index()].first_outbound_edge;
+        let pid = self.map_nodes[&source.get_store_id()];
+        let first_outbound_edge = self.vertices[pid.get_index()].first_outbound_edge;
         OutEdges{ edges: self.edges.clone(), current_edge_index: first_outbound_edge }
     }
 
     fn in_edges(&self, target: &ProxyNodeId) -> Self::InIt {
-        let first_inbound_edge = self.vertices[target.get_index()].first_inbound_edge;
+        let pid = self.map_nodes[&target.get_store_id()];
+        let first_inbound_edge = self.vertices[pid.get_index()].first_inbound_edge;
         InEdges{ edges: self.edges.clone(), current_edge_index: first_inbound_edge }
     }
 }
