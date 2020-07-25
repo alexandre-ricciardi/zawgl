@@ -221,7 +221,6 @@ impl <'g> GrowableGraph<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
             } else {
                 let pid = self.add_node(node)?;
                 self.map_nodes.insert(id, pid);
-                self.nodes.push(node.clone());
                 map_nodes.insert(id, pid);
             }
             
@@ -232,7 +231,8 @@ impl <'g> GrowableGraph<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'g> {
             let rel = pg.get_relationship_ref(&edge.id);
             let id_rel = rel.get_id()?;
             if !self.map_relationships.contains_key(&id_rel) {
-                self.add_relationship(map_nodes[&s.get_id()?], map_nodes[&t.get_id()?], rel)?;
+                let pid = self.add_relationship(map_nodes[&s.get_id()?], map_nodes[&t.get_id()?], rel)?;
+                self.map_relationships.insert(id_rel, pid);
             }
         }
         Some(())
