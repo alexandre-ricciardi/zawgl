@@ -78,17 +78,15 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                         self.found_match = true;
                         if self.match_continuation.is_empty() {
                             return self.found_match;
-                        } else {
-                            self.back_track();
                         }
+                        self.back_track();
                     }
                 }
                 if !self.state.valid() {
                     if self.match_continuation.is_empty() {
                         return self.found_match;
-                    } else {
-                        self.back_track();
                     }
+                    self.back_track();
                 }
 
                 if let Some(nid) = self.graph_0_ids.iter().find(|nid| self.state.possible_candidate_0(nid)) {
@@ -99,9 +97,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
                 if self.match_continuation.is_empty() {
                     return self.found_match;
-                } else {
-                    self.back_track();
                 }
+                self.back_track();
             }
         }
 
