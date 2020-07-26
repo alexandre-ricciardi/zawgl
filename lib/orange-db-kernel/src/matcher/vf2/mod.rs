@@ -70,31 +70,26 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         pub fn process(&mut self) -> bool {
+            let mut backtrack = false;
             loop {
                 if self.state.success() {
                     if !self.state.call_back(&mut self.callback) {
                         return true;
                     } else {
                         self.found_match = true;
-                        if self.match_continuation.is_empty() {
-                            return self.found_match;
-                        }
-                        self.back_track();
+                        backtrack = true;
                     }
                 }
-                if !self.state.valid() {
-                    if self.match_continuation.is_empty() {
-                        return self.found_match;
+                if !backtrack && !self.state.valid() {
+                    backtrack = true;
+                }
+                if !backtrack {
+                    if let Some(nid) = self.graph_0_ids.iter().find(|nid| self.state.possible_candidate_0(nid)) {
+                        self.first_candidate_0 = Some(*nid);
                     }
-                    self.back_track();
+                    self.curr_candidate_1_index = 0;
+                    self.graph_1_loop();
                 }
-
-                if let Some(nid) = self.graph_0_ids.iter().find(|nid| self.state.possible_candidate_0(nid)) {
-                    self.first_candidate_0 = Some(*nid);
-                }
-                self.curr_candidate_1_index = 0;
-                self.graph_1_loop();
-
                 if self.match_continuation.is_empty() {
                     return self.found_match;
                 }
