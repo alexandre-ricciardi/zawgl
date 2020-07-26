@@ -45,6 +45,9 @@ pub struct VertexData<EID: MemGraphId> {
 }
 
 impl <EID: MemGraphId + Copy> VertexData<EID> {
+    pub fn new() -> Self {
+        VertexData{first_outbound_edge: None, first_inbound_edge: None}
+    }
     pub fn get_first_outbound_edge(&self) -> Option<EID> {
         self.first_outbound_edge
     }

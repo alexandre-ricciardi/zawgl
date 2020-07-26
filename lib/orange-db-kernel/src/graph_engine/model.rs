@@ -6,7 +6,6 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::HashSet;
 
 #[derive(Copy, Clone, Debug)]
 pub struct ProxyNodeId {
@@ -102,7 +101,19 @@ impl <'r> GraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationsh
     }
 
     fn get_node_ref(&self, id: &ProxyNodeId) -> &Node {
-        &self.nodes[id.get_index()]
+        if let Some(pid) = self.map_nodes.get(&id.get_store_id()) {
+            &self.nodes[pid.get_index()]
+        } else {
+            let ornode = self.repository.retrieve_node_by_id(id.get_store_id());
+            if let Some(rnode) = ornode {
+                let opid = self.add_node(&rnode.0);
+                if let Some(pid) = opid {
+                    self.map_nodes.insert(pid.get_store_id(), pid);
+                    &self.nodes[pid.get_index()]
+                }
+            }
+            
+        }
     }
 
     fn get_relationship_ref(&self, id: &ProxyRelationshipId) -> &Relationship {

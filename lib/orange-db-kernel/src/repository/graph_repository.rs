@@ -34,19 +34,32 @@ impl GraphRepository {
         res
     }
 
-    pub fn retrieve_node_by_id(&mut self, node_id: u64) -> Option<Node> {
+    pub fn retrieve_node_by_id(&mut self, node_id: u64) -> Option<(Node, DbVertexData)> {
         let nr = self.nodes_store.load(node_id)?;
         let mut node = Node::new();
         node.set_id(Some(node_id));
-
-        Some(node)
+        let mut vertex = DbVertexData::new();
+        if nr.first_inbound_edge != 0 {
+            vertex.first_inbound_edge = Some(nr.first_inbound_edge);
+        }
+        if nr.first_outbound_edge != 0 {
+            vertex.first_outbound_edge = Some(nr.first_outbound_edge);
+        }
+        Some((node, vertex))
     }
 
-    pub fn retrieve_relationship_by_id(&mut self, rel_id: u64) -> Option<Relationship> {
-        let rr = self.relationships_store.load(rel_id);
+    pub fn retrieve_relationship_by_id(&mut self, rel_id: u64) -> Option<(Relationship, DbEdgeData)> {
+        let rr = self.relationships_store.load(rel_id)?;
         let mut rel = Relationship::new();
         rel.set_id(Some(rel_id));
-        Some(rel)
+        let mut edge = DbEdgeData::new(rr.source, rr.target);
+        if rr.next_inbound_edge != 0 {
+            edge.next_inbound_edge = Some(rr.next_inbound_edge);
+        }
+        if rr.next_outbound_edge != 0 {
+            edge.next_outbound_edge = Some(rr.next_outbound_edge);
+        }
+        Some((rel, edge))
     }
 
     pub fn retrieve_sub_graph_around(&mut self, node_id: u64) -> Option<PropertyGraph> {
@@ -164,5 +177,29 @@ impl GraphRepository {
         self.relationships_store.sync();
         self.nodes_store.sync();
         self.properties_repository.sync();
+    }
+}
+
+pub struct DbVertexData {
+    pub first_inbound_edge: Option<u64>,
+    pub first_outbound_edge: Option<u64>,
+}
+
+impl DbVertexData {
+    fn new() -> Self {
+        DbVertexData{first_inbound_edge: None, first_outbound_edge: None}
+    }
+}
+
+pub struct DbEdgeData {
+    pub source: u64,
+    pub target: u64,
+    pub next_outbound_edge: Option<u64>,
+    pub next_inbound_edge: Option<u64>,
+}
+
+impl DbEdgeData {
+    fn new(source: u64, target: u64) -> Self {
+        DbEdgeData{source: source, target: target, next_outbound_edge: None, next_inbound_edge: None}
     }
 }
