@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::base_state::*;
 use super::super::super::graph::traits::*;
 
-pub fn push_state<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA, v1: &NIDB)
+pub fn push_state_0<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA, v1: &NIDB)
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
 NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
@@ -57,7 +57,7 @@ GraphA: GraphIteratorTrait<NIDA, EIDA> {
     }
 }
 
-pub fn pop_state<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA)
+pub fn pop_state_0<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA)
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
 NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
@@ -128,13 +128,136 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
 }
 
 
+pub fn push_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA, v1: &NIDB)
+where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
+EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
+NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
+GraphA: GrowableGraphContainerTrait<NIDA, EIDA, NA, RA>,
+GraphA: GrowableGraphIteratorTrait<NIDA, EIDA> {  
+    base_state.core_count += 1;
+    base_state.core_map.insert(*v0, *v1);
+    if !base_state.in_map.contains_key(&v0) {
+        base_state.in_map.insert(*v0, base_state.core_count);
+        base_state.term_in_count += 1;
+        if let Some(&out) = base_state.out_map.get(&v0) {
+            if out > 0 {
+                base_state.term_both_count += 1;
+            }
+        }
+    }
+    if !base_state.out_map.contains_key(&v0) {
+        base_state.out_map.insert(*v0, base_state.core_count);
+        base_state.term_out_count += 1;
+        if let Some(&in_count) = base_state.in_map.get(&v0) {
+            if in_count > 0 {
+                base_state.term_both_count += 1;
+            }
+        }
+    }
+
+    for edge_index in graph.in_edges(&v0) {
+        let ancestor = graph.get_source_index(&edge_index);
+        if !base_state.in_map.contains_key(&ancestor) {
+            base_state.in_map.insert(ancestor, base_state.core_count);
+            base_state.term_in_count += 1;
+            if let Some(&out_count) = base_state.out_map.get(&ancestor) {
+                if out_count > 0 {
+                    base_state.term_both_count += 1;
+                }
+            }
+        }
+    }
+    for edge_index in graph.out_edges(&v0) {
+        let successor = graph.get_target_index(&edge_index);
+        if !base_state.out_map.contains_key(&successor) {
+            base_state.out_map.insert(successor, base_state.core_count);
+            base_state.term_out_count += 1;
+            if let Some(&in_count) = base_state.in_map.get(&successor) {
+                if in_count > 0 {
+                    base_state.term_both_count += 1;
+                }
+            }
+        }
+    }
+}
+
+pub fn pop_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA)
+where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
+EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
+NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
+GraphA: GrowableGraphContainerTrait<NIDA, EIDA, NA, RA>,
+GraphA: GrowableGraphIteratorTrait<NIDA, EIDA>  {  
+    if base_state.core_count == 0 {
+        return;
+    }
+
+    if let Some(in_count) = base_state.in_map.get(&v0) {
+        if *in_count == base_state.core_count {
+            base_state.in_map.insert(*v0, 0);
+            base_state.term_in_count -= 1;
+            if let Some(&out_count) = base_state.out_map.get(&v0) {
+                if out_count > 0 {
+                    base_state.term_both_count -= 1;
+                }
+                
+            }
+        }
+    }
+
+    for in_edge in graph.in_edges(&v0) {
+        let source = graph.get_source_index(&in_edge);
+        if let Some(in_count) = base_state.in_map.get(&source) {
+            if *in_count == base_state.core_count {
+                base_state.in_map.insert(source, 0);
+                base_state.term_in_count -= 1;
+                if let Some(&out_count) = base_state.out_map.get(&source) {
+                    if out_count > 0 {
+                        base_state.term_both_count -= 1;
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(out_count) = base_state.out_map.get(&v0) {
+        if *out_count == base_state.core_count {
+            base_state.out_map.insert(*v0, 0);
+            base_state.term_out_count -= 1;
+            if let Some(&in_count) = base_state.in_map.get(&v0) {
+                if in_count > 0 {
+                    base_state.term_both_count -= 1;
+                }
+            }
+        }
+    }
+
+    for out_edge in graph.out_edges(&v0) {
+        let target = graph.get_target_index(&out_edge);
+        if let Some(out_count) = base_state.in_map.get(&target) {
+            if *out_count == base_state.core_count {
+                base_state.out_map.insert(target, 0);
+                base_state.term_out_count -= 1;
+                if let Some(&in_count) = base_state.in_map.get(&target) {
+                    if in_count > 0 {
+                        base_state.term_both_count -= 1;
+                    }
+                }
+            }
+        }
+    }
+
+    base_state.core_map.remove(&v0);
+
+    base_state.core_count -= 1;
+}
+
 pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
     Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
-    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1, EID1> + GraphIteratorTrait<NID1, EID1>,
+    Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
     graph_0: &'g0 Graph0,
     graph_1: &'g1 mut Graph1,
@@ -158,7 +281,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
     N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
     Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
-    Graph1: GraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraph<NID1, EID1> + GraphIteratorTrait<NID1, EID1>,
+    Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
 
 
@@ -180,50 +303,45 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         pub fn push(&mut self, v0: &NID0, v1: &NID1) {
-            push_state(&mut self.base_state_0, self.graph_0, v0, v1);
-            push_state(&mut self.base_state_1, self.graph_1, v1, v0);
+            push_state_0(&mut self.base_state_0, self.graph_0, v0, v1);
+            push_state_1(&mut self.base_state_1, self.graph_1, v1, v0);
         }
 
         pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {
             if let Some(&w) = self.base_state_0.core(v0) {
-                pop_state(&mut self.base_state_0, self.graph_0, v0);
-                pop_state(&mut self.base_state_1, self.graph_1, &w);
+                pop_state_0(&mut self.base_state_0, self.graph_0, v0);
+                pop_state_1(&mut self.base_state_1, self.graph_1, &w);
             }
             
         }
 
-        fn retrieve_graph_1_around(&mut self, node_id: &NID1) -> Option<()> {
-            self.graph_1.retrieve_sub_graph_around(node_id)
-        }
-
-        pub fn feasible(&mut self, v_new: &NID0, w_new: &NID1) -> bool {
-            self.retrieve_graph_1_around(w_new);
+        pub fn feasible(&mut self, v_new: &NID0, w_new: &NID1) -> Option<bool> {
             let v = self.graph_0.get_node_ref(v_new);
-            let w = self.graph_1.get_node_ref(w_new);
+            let w = self.graph_1.get_node_ref(w_new)?;
             if !(self.vertex_comp)(v, w) {
-                false
+                Some(false)
             } else {
                 let mut term_in0_count = 0;
                 let mut term_out0_count = 0;
                 let mut rest0_count = 0;
 
                 {
-                    let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
+                    let mut edge_predicate = GrowableEquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
                     for edge_index in self.graph_0.in_edges(v_new) {
                         let source_index = self.graph_0.get_source_index(&edge_index);
                         if !self.inc_counters_match_edge_0(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, v_new, &source_index, w_new, &edge_index, 
-                            |w_source, w_new, r0| edge_predicate.edge_exists(w_source, w_new, r0)) {
-                            return false;
+                            |w_source, w_new, r0| edge_predicate.edge_exists(w_source, w_new, r0))? {
+                            return Some(false);
                         }
                     }
                 }
                 {
-                    let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
+                    let mut edge_predicate = GrowableEquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
                     for edge_index in self.graph_0.out_edges(v_new) {
                         let target_index = self.graph_0.get_target_index(&edge_index);
                         if !self.inc_counters_match_edge_0(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, v_new, &target_index, &w_new, &edge_index, 
-                            |w_source, w_new, r0| edge_predicate.edge_exists(w_new, w_source, r0)) {
-                            return false;
+                            |w_source, w_new, r0| edge_predicate.edge_exists(w_new, w_source, r0))? {
+                            return Some(false);
                         }
                     }
                 }
@@ -238,8 +356,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     for edge_index in self.graph_1.in_edges(&w_new) {
                         let source_index = self.graph_1.get_source_index(&edge_index);
                         if !self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index, v_new, &edge_index, 
-                            |v_source, v_new, r1| edge_predicate.edge_exists(v_source, v_new, r1)) {
-                            return false;
+                            |v_source, v_new, r1| edge_predicate.edge_exists(v_source, v_new, r1))? {
+                            return Some(false);
                         }
                     }
                 }
@@ -248,16 +366,16 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     for edge_index in self.graph_1.out_edges(&w_new) {
                         let target_index = self.graph_1.get_target_index(&edge_index);
                         if !self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index, v_new, &edge_index, 
-                            |v_source, v_new, r1| edge_predicate.edge_exists(v_new, v_source, r1)) {
-                            return false;
+                            |v_source, v_new, r1| edge_predicate.edge_exists(v_new, v_source, r1))? {
+                            return Some(false);
                         }
                     }
                 }
-                term_in0_count <= term_in1_count && term_out0_count <= term_out1_count && rest0_count <= rest1_count
+                Some(term_in0_count <= term_in1_count && term_out0_count <= term_out1_count && rest0_count <= rest1_count)
             }
         }
 
-        fn inc_counters_match_edge_0<PREDICATE>(&self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NID0, v_adj: &NID0, w_new: &NID1, edge_index: &EID0, mut edge_predicate: PREDICATE) -> bool where PREDICATE: FnMut(&NID1, &NID1, &R0) -> bool {
+        fn inc_counters_match_edge_0<PREDICATE>(&self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NID0, v_adj: &NID0, w_new: &NID1, edge_index: &EID0, mut edge_predicate: PREDICATE) -> Option<bool> where PREDICATE: FnMut(&NID1, &NID1, &R0) -> Option<bool> {
             if self.base_state_0.in_core(v_adj) || v_new == v_adj {
                 let mut w = *w_new;
                 if *v_adj != *v_new {
@@ -268,8 +386,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 
                 let r0 = self.graph_0.get_relationship_ref(&edge_index);
 
-                if !edge_predicate(&w, w_new, r0) {
-                    return false;
+                if !edge_predicate(&w, w_new, r0)? {
+                    return Some(false);
                 }
             } else {
                 if  self.base_state_0.in_depth(v_adj) > 0 {
@@ -282,10 +400,10 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     *rest += 1;
                 }
             }
-            return true;
+            return Some(true);
         }
 
-        fn inc_counters_match_edge_1<PREDICATE>(&self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1, v_new: &NID0, edge_index: &EID1, mut edge_predicate: PREDICATE) -> bool where PREDICATE: FnMut(&NID0, &NID0, &R1) -> bool {
+        fn inc_counters_match_edge_1<PREDICATE>(&mut self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1, v_new: &NID0, edge_index: &EID1, mut edge_predicate: PREDICATE) -> Option<bool> where PREDICATE: FnMut(&NID0, &NID0, &R1) -> bool {
             if self.base_state_1.in_core(w_adj) || w_new == w_adj {
                 let mut v = *v_new;
                 if *w_adj != *w_new {
@@ -294,10 +412,10 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     }
                 }
                 
-                let r1 = self.graph_1.get_relationship_ref(&edge_index);
+                let r1 = self.graph_1.get_relationship_ref(&edge_index)?;
 
                 if !edge_predicate(&v, &v_new, r1) {
-                    return false;
+                    return Some(false);
                 }
             } else {
                 if self.base_state_1.in_depth(w_adj) > 0 {
@@ -310,7 +428,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     *rest += 1;
                 }
             }
-            return true;
+            return Some(true);
         }
 
         pub fn possible_candidate_0(&self, v0: &NID0) -> bool {
@@ -347,8 +465,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             term_set_0.0 <= term_set_1.0 && term_set_0.1 <= term_set_1.1 && term_set_0.2 <= term_set_1.2
         }
 
-        pub fn call_back<CALLBACK>(&self, callback: &mut CALLBACK) -> bool
-        where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &Graph1) -> bool
+        pub fn call_back<CALLBACK>(&mut self, callback: &mut CALLBACK) -> Option<bool>
+        where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1) -> Option<bool>
         {
             callback(self.base_state_0.get_map(), self.base_state_1.get_map(), self.graph_0, self.graph_1)
         }
@@ -390,5 +508,45 @@ impl <'g, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, NID, 
             }
         }
         return  false;
+    }
+}
+
+
+
+struct GrowableEquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
+    where  NID: MemGraphId, EID: MemGraphId,
+    Graph: GrowableGraphContainerTrait<NID, EID, N, R>,
+    ECOMP: Fn(&R, &RCOMP) -> bool {
+    matched_edge_set: HashSet<EID>,
+    graph: &'g mut Graph,
+    phantom_v: PhantomData<NID>,
+    phantom_e: PhantomData<EID>,
+    phantom_n: PhantomData<N>,
+    phantom_r_0: PhantomData<R>,
+    phantom_r_1: PhantomData<RCOMP>,
+    edge_comp: ECOMP,
+}
+
+impl <'g, NID, EID, N, R, RCOMP, Graph, ECOMP> GrowableEquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
+    where  NID: MemGraphId + Eq, EID: MemGraphId + std::hash::Hash + Eq,
+    Graph: GrowableGraphContainerTrait<NID, EID, N, R>,
+    Graph: GrowableGraphIteratorTrait<NID, EID>,
+    ECOMP: Fn(&R, &RCOMP) -> bool {
+
+    fn new(g: &'g mut Graph, ecomp: ECOMP) -> Self {
+        GrowableEquivalentEdgePredicate {graph: g, matched_edge_set: HashSet::new(), edge_comp: ecomp,
+        phantom_e: PhantomData, phantom_n: PhantomData, phantom_v: PhantomData, phantom_r_0: PhantomData, phantom_r_1: PhantomData}
+    }
+
+    fn edge_exists(&mut self, source: &NID, target: &NID, rcomp: &RCOMP) -> Option<bool> {
+        for out_edge_index in self.graph.out_edges(source) {
+            let curr_target = self.graph.get_target_index(&out_edge_index);
+            let r = self.graph.get_relationship_ref(&out_edge_index)?;
+            if curr_target == *target && !self.matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r, rcomp) {
+                self.matched_edge_set.insert(out_edge_index);
+                return Some(true);
+            }
+        }
+        return  Some(false);
     }
 }
