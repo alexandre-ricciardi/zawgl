@@ -128,7 +128,7 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
 }
 
 
-pub fn push_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA, v1: &NIDB)
+pub fn push_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g mut GraphA, v0: &NIDA, v1: &NIDB)
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
 NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
@@ -181,7 +181,7 @@ GraphA: GrowableGraphIteratorTrait<NIDA, EIDA> {
     }
 }
 
-pub fn pop_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA)
+pub fn pop_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g mut GraphA, v0: &NIDA)
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
 NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
@@ -326,21 +326,21 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 let mut rest0_count = 0;
 
                 {
-                    let mut edge_predicate = GrowableEquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
+                    let mut matched_edge_set = HashSet::new();
                     for edge_index in self.graph_0.in_edges(v_new) {
                         let source_index = self.graph_0.get_source_index(&edge_index);
-                        if !self.inc_counters_match_edge_0(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, v_new, &source_index, w_new, &edge_index, 
-                            |w_source, w_new, r0| edge_predicate.edge_exists(w_source, w_new, r0))? {
+                        if !self.inc_counters_match_edge_0(true, &mut term_in0_count, &mut term_out0_count, &mut rest0_count, v_new, &source_index, w_new, &edge_index, 
+                            &mut matched_edge_set)? {
                             return Some(false);
                         }
                     }
                 }
                 {
-                    let mut edge_predicate = GrowableEquivalentEdgePredicate::new(self.graph_1, |r1, r0| (self.edge_comp)(r0, r1));
+                    let mut matched_edge_set = HashSet::new();
                     for edge_index in self.graph_0.out_edges(v_new) {
                         let target_index = self.graph_0.get_target_index(&edge_index);
-                        if !self.inc_counters_match_edge_0(&mut term_in0_count, &mut term_out0_count, &mut rest0_count, v_new, &target_index, &w_new, &edge_index, 
-                            |w_source, w_new, r0| edge_predicate.edge_exists(w_new, w_source, r0))? {
+                        if !self.inc_counters_match_edge_0(false, &mut term_in0_count, &mut term_out0_count, &mut rest0_count, v_new, &target_index, &w_new, &edge_index, 
+                            &mut matched_edge_set)? {
                             return Some(false);
                         }
                     }
@@ -352,21 +352,21 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 let mut rest1_count = 0;
 
                 {
-                    let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_0, |r0, r1| (self.edge_comp)(r0, r1));
+                    let mut matched_edge_set = HashSet::new();
                     for edge_index in self.graph_1.in_edges(&w_new) {
                         let source_index = self.graph_1.get_source_index(&edge_index);
-                        if !self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index, v_new, &edge_index, 
-                            |v_source, v_new, r1| edge_predicate.edge_exists(v_source, v_new, r1))? {
+                        if !self.inc_counters_match_edge_1(true, &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index, v_new, &edge_index, 
+                            &mut matched_edge_set)? {
                             return Some(false);
                         }
                     }
                 }
                 {
-                    let mut edge_predicate = EquivalentEdgePredicate::new(self.graph_0, |r0, r1| (self.edge_comp)(r0, r1));
+                    let mut matched_edge_set = HashSet::new();
                     for edge_index in self.graph_1.out_edges(&w_new) {
                         let target_index = self.graph_1.get_target_index(&edge_index);
-                        if !self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index, v_new, &edge_index, 
-                            |v_source, v_new, r1| edge_predicate.edge_exists(v_new, v_source, r1))? {
+                        if !self.inc_counters_match_edge_1(false, &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index, v_new, &edge_index, 
+                            &mut matched_edge_set)? {
                             return Some(false);
                         }
                     }
@@ -375,7 +375,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        fn inc_counters_match_edge_0<PREDICATE>(&self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NID0, v_adj: &NID0, w_new: &NID1, edge_index: &EID0, mut edge_predicate: PREDICATE) -> Option<bool> where PREDICATE: FnMut(&NID1, &NID1, &R0) -> Option<bool> {
+        fn inc_counters_match_edge_0(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NID0, v_adj: &NID0, w_new: &NID1, edge_index: &EID0, matched_edge_set: &mut HashSet<EID1>) -> Option<bool> {
             if self.base_state_0.in_core(v_adj) || v_new == v_adj {
                 let mut w = *w_new;
                 if *v_adj != *v_new {
@@ -384,10 +384,16 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     }
                 }
                 
-                let r0 = self.graph_0.get_relationship_ref(&edge_index);
+                let r0 = self.graph_0.get_relationship_ref(edge_index);
 
-                if !edge_predicate(&w, w_new, r0)? {
-                    return Some(false);
+                if is_inbound {
+                    if !self.edge_exists_1(&w, &w_new, r0, matched_edge_set)? {
+                        return Some(false);
+                    }
+                } else {
+                    if !self.edge_exists_1(&w_new, &w, r0, matched_edge_set)? {
+                        return Some(false);
+                    }
                 }
             } else {
                 if  self.base_state_0.in_depth(v_adj) > 0 {
@@ -403,7 +409,32 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             return Some(true);
         }
 
-        fn inc_counters_match_edge_1<PREDICATE>(&mut self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1, v_new: &NID0, edge_index: &EID1, mut edge_predicate: PREDICATE) -> Option<bool> where PREDICATE: FnMut(&NID0, &NID0, &R1) -> bool {
+        fn edge_exists_0(&mut self, source: &NID0, target: &NID0, e1: &EID1, matched_edge_set: &mut HashSet<EID0>) -> Option<bool> {
+            for out_edge_index in self.graph_0.out_edges(source) {
+                let curr_target = self.graph_0.get_target_index(&out_edge_index);
+                let r = self.graph_0.get_relationship_ref(&out_edge_index);
+                let r1 = self.graph_1.get_relationship_ref(e1)?;
+                if curr_target == *target && !matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r, r1) {
+                    matched_edge_set.insert(out_edge_index);
+                    return Some(true);
+                }
+            }
+            return  Some(false);
+        }
+
+        fn edge_exists_1(&mut self, source: &NID1, target: &NID1, r0: &R0, matched_edge_set: &mut HashSet<EID1>) -> Option<bool> {
+            for out_edge_index in self.graph_1.out_edges(source) {
+                let curr_target = self.graph_1.get_target_index(&out_edge_index);
+                let r = self.graph_1.get_relationship_ref(&out_edge_index)?;
+                if curr_target == *target && !matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r0, r) {
+                    matched_edge_set.insert(out_edge_index);
+                    return Some(true);
+                }
+            }
+            return  Some(false);
+        }
+
+        fn inc_counters_match_edge_1(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1, v_new: &NID0, edge_index: &EID1, matched_edge_set: &mut HashSet<EID0>) -> Option<bool> {
             if self.base_state_1.in_core(w_adj) || w_new == w_adj {
                 let mut v = *v_new;
                 if *w_adj != *w_new {
@@ -412,10 +443,15 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     }
                 }
                 
-                let r1 = self.graph_1.get_relationship_ref(&edge_index)?;
-
-                if !edge_predicate(&v, &v_new, r1) {
-                    return Some(false);
+                
+                if is_inbound {
+                    if !self.edge_exists_0(&v, v_new, edge_index, matched_edge_set)? {
+                        return Some(false);
+                    }
+                } else {
+                    if !self.edge_exists_0(v_new, &v, edge_index, matched_edge_set)? {
+                        return Some(false);
+                    }
                 }
             } else {
                 if self.base_state_1.in_depth(w_adj) > 0 {
@@ -471,82 +507,4 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             callback(self.base_state_0.get_map(), self.base_state_1.get_map(), self.graph_0, self.graph_1)
         }
 
-}
-
-struct EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
-    where  NID: MemGraphId, EID: MemGraphId,
-    Graph: GraphContainerTrait<NID, EID, N, R>,
-    ECOMP: Fn(&R, &RCOMP) -> bool {
-    matched_edge_set: HashSet<EID>,
-    graph: &'g Graph,
-    phantom_v: PhantomData<NID>,
-    phantom_e: PhantomData<EID>,
-    phantom_n: PhantomData<N>,
-    phantom_r_0: PhantomData<R>,
-    phantom_r_1: PhantomData<RCOMP>,
-    edge_comp: ECOMP,
-}
-
-impl <'g, NID, EID, N, R, RCOMP, Graph, ECOMP> EquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
-    where  NID: MemGraphId + Eq, EID: MemGraphId + std::hash::Hash + Eq,
-    Graph: GraphContainerTrait<NID, EID, N, R>,
-    Graph: GraphIteratorTrait<NID, EID>,
-    ECOMP: Fn(&R, &RCOMP) -> bool {
-
-    fn new(g: &'g Graph, ecomp: ECOMP) -> Self {
-        EquivalentEdgePredicate {graph: g, matched_edge_set: HashSet::new(), edge_comp: ecomp,
-        phantom_e: PhantomData, phantom_n: PhantomData, phantom_v: PhantomData, phantom_r_0: PhantomData, phantom_r_1: PhantomData}
-    }
-
-    fn edge_exists(&mut self, source: &NID, target: &NID, rcomp: &RCOMP) -> bool {
-        for out_edge_index in self.graph.out_edges(source) {
-            let curr_target = self.graph.get_target_index(&out_edge_index);
-            let r = self.graph.get_relationship_ref(&out_edge_index);
-            if curr_target == *target && !self.matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r, rcomp) {
-                self.matched_edge_set.insert(out_edge_index);
-                return true;
-            }
-        }
-        return  false;
-    }
-}
-
-
-
-struct GrowableEquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
-    where  NID: MemGraphId, EID: MemGraphId,
-    Graph: GrowableGraphContainerTrait<NID, EID, N, R>,
-    ECOMP: Fn(&R, &RCOMP) -> bool {
-    matched_edge_set: HashSet<EID>,
-    graph: &'g mut Graph,
-    phantom_v: PhantomData<NID>,
-    phantom_e: PhantomData<EID>,
-    phantom_n: PhantomData<N>,
-    phantom_r_0: PhantomData<R>,
-    phantom_r_1: PhantomData<RCOMP>,
-    edge_comp: ECOMP,
-}
-
-impl <'g, NID, EID, N, R, RCOMP, Graph, ECOMP> GrowableEquivalentEdgePredicate<'g, NID, EID, N, R, RCOMP, Graph, ECOMP> 
-    where  NID: MemGraphId + Eq, EID: MemGraphId + std::hash::Hash + Eq,
-    Graph: GrowableGraphContainerTrait<NID, EID, N, R>,
-    Graph: GrowableGraphIteratorTrait<NID, EID>,
-    ECOMP: Fn(&R, &RCOMP) -> bool {
-
-    fn new(g: &'g mut Graph, ecomp: ECOMP) -> Self {
-        GrowableEquivalentEdgePredicate {graph: g, matched_edge_set: HashSet::new(), edge_comp: ecomp,
-        phantom_e: PhantomData, phantom_n: PhantomData, phantom_v: PhantomData, phantom_r_0: PhantomData, phantom_r_1: PhantomData}
-    }
-
-    fn edge_exists(&mut self, source: &NID, target: &NID, rcomp: &RCOMP) -> Option<bool> {
-        for out_edge_index in self.graph.out_edges(source) {
-            let curr_target = self.graph.get_target_index(&out_edge_index);
-            let r = self.graph.get_relationship_ref(&out_edge_index)?;
-            if curr_target == *target && !self.matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r, rcomp) {
-                self.matched_edge_set.insert(out_edge_index);
-                return Some(true);
-            }
-        }
-        return  Some(false);
-    }
 }

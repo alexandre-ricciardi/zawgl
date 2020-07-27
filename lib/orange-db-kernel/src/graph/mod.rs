@@ -142,6 +142,12 @@ impl GraphIteratorTrait<NodeIndex, EdgeIndex> for Graph {
         let first_inbound_edge = self.nodes[target.get_index()].first_inbound_edge;
         InEdges{ edges: self.edges.clone(), current_edge_index: first_inbound_edge }
     }
+    fn in_degree(&self, node: &NodeIndex) -> usize {
+        self.in_edges(node).count()
+    }
+    fn out_degree(&self, node: &NodeIndex) -> usize {
+        self.out_edges(node).count()
+    }
 }
 
 impl GraphTrait<NodeIndex, EdgeIndex> for Graph {
@@ -164,12 +170,6 @@ impl GraphTrait<NodeIndex, EdgeIndex> for Graph {
         (0..self.nodes_len()).map(NodeIndex::new).collect()
     }
     
-    fn in_degree(&self, node: &NodeIndex) -> usize {
-        self.in_edges(node).count()
-    }
-    fn out_degree(&self, node: &NodeIndex) -> usize {
-        self.out_edges(node).count()
-    }
 }
 impl Graph {
     pub fn new() -> Self {

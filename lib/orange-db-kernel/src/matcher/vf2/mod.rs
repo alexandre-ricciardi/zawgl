@@ -101,11 +101,10 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
     }
 
-fn sort_nodes<'g, NID, EID, N, R, Graph>(graph: &'g Graph) -> Vec<NID> 
+fn sort_nodes<'g, NID, EID, Graph>(graph: &'g Graph) -> Vec<NID> 
 where NID: std::hash::Hash + Eq + MemGraphId + Copy,
 EID: std::hash::Hash + Eq + MemGraphId + Copy,
-N: std::hash::Hash + Eq, R: std::hash::Hash + Eq,
-Graph: GraphContainerTrait<NID, EID, N, R> {
+Graph: GraphIteratorTrait<NID, EID> + GraphTrait<NID, EID> {
     let mut res = graph.get_nodes_ids();
     res.sort_by(|a, b| (graph.in_degree(b) + graph.out_degree(b)).cmp(&(graph.in_degree(a) + graph.out_degree(a))));
     res

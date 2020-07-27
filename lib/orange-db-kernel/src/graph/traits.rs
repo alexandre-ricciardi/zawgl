@@ -8,8 +8,6 @@ pub trait GraphTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
     fn nodes_len(&self) -> usize;
     fn edges_len(&self) -> usize;
     fn get_nodes_ids(&self) -> Vec<NodeId>;
-    fn in_degree(&self, node: &NodeId) -> usize;
-    fn out_degree(&self, node: &NodeId) -> usize;
 }
 
 pub trait GraphIteratorTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
@@ -17,6 +15,8 @@ pub trait GraphIteratorTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
     type InIt: Iterator<Item=EdgeId>;
     fn out_edges(&self, source: &NodeId) -> Self::OutIt;
     fn in_edges(&self, target: &NodeId) -> Self::InIt;
+    fn in_degree(&self, node: &NodeId) -> usize;
+    fn out_degree(&self, node: &NodeId) -> usize;
 }
 
 
@@ -33,15 +33,15 @@ pub trait GrowableGraphTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
     fn nodes_len(&self) -> usize;
     fn edges_len(&self) -> usize;
     fn get_nodes_ids(&self) -> Vec<NodeId>;
-    fn in_degree(&self, node: &NodeId) -> usize;
-    fn out_degree(&self, node: &NodeId) -> usize;
 }
 
 pub trait GrowableGraphIteratorTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
     type OutIt: Iterator<Item=EdgeId>;
     type InIt: Iterator<Item=EdgeId>;
-    fn out_edges(&self, source: &NodeId) -> Self::OutIt;
-    fn in_edges(&self, target: &NodeId) -> Self::InIt;
+    fn out_edges(&mut self, source: &NodeId) -> Self::OutIt;
+    fn in_edges(&mut self, target: &NodeId) -> Self::InIt;
+    fn in_degree(&mut self, node: &NodeId) -> usize;
+    fn out_degree(&mut self, node: &NodeId) -> usize;
 }
 
 

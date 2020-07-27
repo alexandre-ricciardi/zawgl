@@ -38,6 +38,12 @@ impl <NODE, RELATIONSHIP> GraphIteratorTrait<NodeIndex, EdgeIndex> for GraphCont
     fn in_edges(&self, target: &NodeIndex) -> Self::InIt {
         self.get_inner_graph().in_edges(target)
     }
+    fn in_degree(&self, node: &NodeIndex) -> usize {
+        self.in_edges(node).count()
+    }
+    fn out_degree(&self, node: &NodeIndex) -> usize {
+        self.out_edges(node).count()
+    }
 }
 
 impl <NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<NODE, RELATIONSHIP> {
@@ -56,12 +62,6 @@ impl <NODE, RELATIONSHIP> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<NO
     }
     fn get_nodes_ids(&self) -> Vec<NodeIndex> {
         (0..self.nodes_len()).map(NodeIndex::new).collect()
-    }
-    fn in_degree(&self, node: &NodeIndex) -> usize {
-        self.in_edges(node).count()
-    }
-    fn out_degree(&self, node: &NodeIndex) -> usize {
-        self.out_edges(node).count()
     }
 }
 
