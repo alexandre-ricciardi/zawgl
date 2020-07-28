@@ -180,6 +180,7 @@ impl GraphRepository {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct DbVertexData {
     pub first_inbound_edge: Option<u64>,
     pub first_outbound_edge: Option<u64>,
@@ -191,6 +192,8 @@ impl DbVertexData {
     }
 }
 
+
+#[derive(Copy, Clone)]
 pub struct DbEdgeData {
     pub source: u64,
     pub target: u64,

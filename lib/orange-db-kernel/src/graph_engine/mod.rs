@@ -1,16 +1,15 @@
 mod model;
 
 use std::cell::RefCell;
+use std::rc::Rc;
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
 use super::matcher::vf2::sub_graph_isomorphism;
 use super::graph::traits::*;
-use super::graph::NodeIndex;
-use std::collections::HashMap;
 
 pub struct GraphEngine {
-    repository: GraphRepository,
+    repository: Rc<RefCell<GraphRepository>>,
 }
 
 fn extract_nodes_labels(pattern: &PropertyGraph) -> Vec<String> {
@@ -34,15 +33,15 @@ fn compare_relationships(r0: &Relationship, r1: &Relationship) -> bool {
 
 impl GraphEngine {
     pub fn new(ctx: &init::InitContext) -> Self {
-        GraphEngine{repository: GraphRepository::new(ctx)}
+        GraphEngine{repository: Rc::new(RefCell::new(GraphRepository::new(ctx)))}
     }
 
     pub fn add_graph(&mut self, graph: &PropertyGraph) -> Option<()> {
-        self.repository.create(graph)
+        self.repository.borrow_mut().create(graph)
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let mut graph_proxy = GraphProxy::new(&mut self.repository, extract_nodes_labels(pattern));
+        let mut graph_proxy = GraphProxy::new(self.repository.clone(), extract_nodes_labels(pattern));
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
@@ -100,7 +99,7 @@ impl GraphEngine {
     }
 
     pub fn sync(&mut self) {
-        self.repository.sync();
+        self.repository.borrow_mut().sync();
     }
 }
 
