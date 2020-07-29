@@ -93,10 +93,15 @@ pub struct GraphProxy {
 impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy {
 
     fn get_node_ref(&mut self, id: &ProxyNodeId) -> Option<&Node> {
-        if let Some(ndata) = self.map_nodes.borrow_mut().get(&id.get_store_id()) {
+        let ondata = {
+            self.map_nodes.borrow().get(&id.get_store_id()).map(|data|*data)
+        };
+        if let Some(ndata) = ondata {
             Some(&self.nodes[ndata.0.get_index()])
         } else {
-            let rnode = self.repository.borrow_mut().retrieve_node_by_id(id.get_store_id())?;
+            let rnode = {
+                self.repository.borrow_mut().retrieve_node_by_id(id.get_store_id())?
+            };
             let pid = self.add_node(&rnode.0)?;
             self.map_nodes.borrow_mut().insert(pid.get_store_id(), (pid, rnode.1));
             Some(&self.nodes[pid.get_index()])
@@ -104,10 +109,15 @@ impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relatio
     }
 
     fn get_relationship_ref(&mut self, id: &ProxyRelationshipId) -> Option<&Relationship> {
-        if let Some(rdata) = self.map_relationships.borrow_mut().get(&id.get_store_id()) {
+        let ordata = {
+            self.map_relationships.borrow().get(&id.get_store_id()).map(|data|*data)
+        };
+        if let Some(rdata) = ordata {
             Some(&self.relationships[rdata.0.get_index()])
         } else {
-            let rrel = self.repository.borrow_mut().retrieve_relationship_by_id(id.get_store_id())?;
+            let rrel = {
+                self.repository.borrow_mut().retrieve_relationship_by_id(id.get_store_id())?
+            };
             let sdata = *self.map_nodes.borrow().get(&rrel.1.source)?;
             let tdata = *self.map_nodes.borrow().get(&rrel.1.target)?;
             let pid = self.add_relationship(sdata.0, tdata.0, &rrel.0)?;
@@ -133,10 +143,14 @@ impl Iterator for InEdges {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let edge = &self.edges.borrow()[edge_index.get_index()];
-                let curr_edge_index = self.current_edge_index;
-                self.current_edge_index = edge.next_inbound_edge;
-                curr_edge_index
+                if let Some(rdata) = self.map_relationships.borrow().get(&edge_index.get_store_id()) {
+                    let edges = self.edges.borrow();
+                    let curr_edge = edges.get(rdata.0.get_index())?;
+                    self.current_edge_index = curr_edge.next_inbound_edge;
+                    Some(rdata.0)
+                } else {
+                    
+                }
             }
         }
     }
