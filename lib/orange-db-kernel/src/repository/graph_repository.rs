@@ -48,6 +48,18 @@ impl GraphRepository {
         Some((node, vertex))
     }
 
+    pub fn retrieve_vertex_data_by_id(&mut self, node_id: u64) -> Option<DbVertexData> {
+        let nr = self.nodes_store.load(node_id)?;
+        let mut vertex = DbVertexData::new();
+        if nr.first_inbound_edge != 0 {
+            vertex.first_inbound_edge = Some(nr.first_inbound_edge);
+        }
+        if nr.first_outbound_edge != 0 {
+            vertex.first_outbound_edge = Some(nr.first_outbound_edge);
+        }
+        Some(vertex)
+    }
+
     pub fn retrieve_relationship_by_id(&mut self, rel_id: u64) -> Option<(Relationship, DbEdgeData)> {
         let rr = self.relationships_store.load(rel_id)?;
         let mut rel = Relationship::new();
@@ -60,6 +72,18 @@ impl GraphRepository {
             edge.next_outbound_edge = Some(rr.next_outbound_edge);
         }
         Some((rel, edge))
+    }
+
+    pub fn retrieve_edge_data_by_id(&mut self, rel_id: u64) -> Option<DbEdgeData> {
+        let rr = self.relationships_store.load(rel_id)?;
+        let mut edge = DbEdgeData::new(rr.source, rr.target);
+        if rr.next_inbound_edge != 0 {
+            edge.next_inbound_edge = Some(rr.next_inbound_edge);
+        }
+        if rr.next_outbound_edge != 0 {
+            edge.next_outbound_edge = Some(rr.next_outbound_edge);
+        }
+        Some(edge)
     }
 
     pub fn retrieve_sub_graph_around(&mut self, node_id: u64) -> Option<PropertyGraph> {

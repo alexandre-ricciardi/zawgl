@@ -412,11 +412,13 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         fn edge_exists_0(&mut self, source: &NID0, target: &NID0, e1: &EID1, matched_edge_set: &mut HashSet<EID0>) -> Option<bool> {
             for out_edge_index in self.graph_0.out_edges(source) {
                 let curr_target = self.graph_0.get_target_index(&out_edge_index);
-                let r = self.graph_0.get_relationship_ref(&out_edge_index);
-                let r1 = self.graph_1.get_relationship_ref(e1)?;
-                if curr_target == *target && !matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r, r1) {
-                    matched_edge_set.insert(out_edge_index);
-                    return Some(true);
+                if curr_target == *target && !matched_edge_set.contains(&out_edge_index) {
+                    let r = self.graph_0.get_relationship_ref(&out_edge_index);
+                    let r1 = self.graph_1.get_relationship_ref(e1)?;
+                    if (self.edge_comp)(r, r1) {
+                        matched_edge_set.insert(out_edge_index);
+                        return Some(true);
+                    }
                 }
             }
             return  Some(false);
@@ -425,10 +427,12 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         fn edge_exists_1(&mut self, source: &NID1, target: &NID1, r0: &R0, matched_edge_set: &mut HashSet<EID1>) -> Option<bool> {
             for out_edge_index in self.graph_1.out_edges(source) {
                 let curr_target = self.graph_1.get_target_index(&out_edge_index);
-                let r = self.graph_1.get_relationship_ref(&out_edge_index)?;
-                if curr_target == *target && !matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r0, r) {
-                    matched_edge_set.insert(out_edge_index);
-                    return Some(true);
+                if curr_target == *target && !matched_edge_set.contains(&out_edge_index) {
+                    let r = self.graph_1.get_relationship_ref(&out_edge_index)?;
+                    if (self.edge_comp)(r0, r) {
+                        matched_edge_set.insert(out_edge_index);
+                        return Some(true);
+                    }
                 }
             }
             return  Some(false);
