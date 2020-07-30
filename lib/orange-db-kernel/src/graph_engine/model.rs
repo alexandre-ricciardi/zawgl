@@ -188,7 +188,7 @@ fn add_vertex(vertices: Rc<RefCell<Vec<InnerVertexData<ProxyRelationshipId>>>>, 
     let index = vertices.borrow().len();
     let inbound = vdata.first_inbound_edge.map(|id|ProxyRelationshipId::new_db(id));
     let outbound = vdata.first_outbound_edge.map(|id|ProxyRelationshipId::new_db(id));
-    let ivdata = InnerVertexData{first_outbound_edge: inbound, first_inbound_edge: outbound};
+    let ivdata = InnerVertexData{first_outbound_edge: outbound, first_inbound_edge: inbound};
     vertices.borrow_mut().push(ivdata);
     (ProxyNodeId::new(index, db_id), ivdata)
 }
@@ -287,10 +287,12 @@ impl GrowableGraphIteratorTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy
 
 impl GrowableGraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy {
     fn get_source_index(&self, edge_index: &ProxyRelationshipId) -> ProxyNodeId {
-        self.edges.borrow()[edge_index.get_index()].source
+        let pid = self.map_edges.borrow()[&edge_index.get_store_id()];
+        self.edges.borrow()[pid.0.get_index()].source
     }
     fn get_target_index(&self, edge_index: &ProxyRelationshipId) -> ProxyNodeId {
-        self.edges.borrow()[edge_index.get_index()].target
+        let pid = self.map_edges.borrow()[&edge_index.get_store_id()];
+        self.edges.borrow()[pid.0.get_index()].target
     }
     fn nodes_len(&self) -> usize {
         self.retrieved_nodes_ids.len()
