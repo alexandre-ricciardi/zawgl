@@ -1,7 +1,6 @@
 [workspace]
 members = [
-    "lib/binary-derive",
-    "lib/orange-db-kernel",
-    "lib/orange-db-core",
+    "lib/kernel",
+    "lib/core",
     "orange-db",
 ]

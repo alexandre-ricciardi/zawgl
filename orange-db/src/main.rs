@@ -1,4 +1,4 @@
-extern crate orange_db_kernel;
+extern crate kernel;
 
 
 fn main() {

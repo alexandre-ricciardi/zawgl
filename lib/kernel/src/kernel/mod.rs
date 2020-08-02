@@ -33,6 +33,5 @@ impl <'a> DbKernel<'a> {
                 Some(Document::new())
             }
         }
-        
     }
 }

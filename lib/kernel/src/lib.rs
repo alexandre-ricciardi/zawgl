@@ -4,8 +4,6 @@ extern crate serde;
 extern crate toml;
 extern crate bson;
 
-extern crate orange_db_binary_derive;
-
 mod config;
 mod buf_config;
 mod cypher;
