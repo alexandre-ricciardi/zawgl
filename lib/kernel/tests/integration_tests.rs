@@ -1,6 +1,6 @@
-extern crate orange_db_kernel;
+extern crate kernel;
 
-use orange_db_kernel::kernel::*;
+use kernel::kernel::*;
 
 #[test]
 fn create_graph() {

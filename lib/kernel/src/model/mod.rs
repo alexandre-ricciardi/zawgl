@@ -62,15 +62,42 @@ pub enum Directive {
 
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Property {
-    pub id: Option<u64>,
-    pub name: Option<String>,
-    pub value: Option<PropertyValue>,
+    id: Option<u64>,
+    name: Option<String>,
+    value: Option<PropertyValue>,
 }
 
 impl Property {
     pub fn new() -> Self {
-        Property { name: None, value: None, id: None }
-    } 
+        Property {id: None, name: None, value: None}
+    }
+
+    pub fn get_id(&self) -> Option<u64> {
+        self.id
+    }
+
+    pub fn set_id(&mut self, id: Option<u64>) {
+        self.id = id;
+    }
+    pub fn get_name(&self) -> &Option<String> {
+        &self.name
+    }
+
+    pub fn set_name(&mut self, name: &str) {
+        self.name = Some(String::from(name));
+    }
+
+    pub fn set_option_name(&mut self, name: Option<String>) {
+        self.name = name;
+    }
+
+    pub fn get_value(&self) -> &Option<PropertyValue> {
+        &self.value
+    }
+
+    pub fn set_value(&mut self, val: Option<PropertyValue>) {
+        self.value = val;
+    }
 }
 
 #[derive(Hash, Eq, PartialEq, Clone)]
@@ -109,6 +136,10 @@ impl Node {
 
     pub fn get_properties_mut(&mut self) -> &mut Vec<Property> {
         &mut self.properties
+    }
+    
+    pub fn set_properties(&mut self, properties: Vec<Property>) {
+        self.properties = properties;
     }
     pub fn get_labels_ref(&self) -> &Vec<String> {
         &self.labels
@@ -153,6 +184,10 @@ impl Relationship {
 
     pub fn get_properties_mut(&mut self) -> &mut Vec<Property> {
         &mut self.properties
+    }
+
+    pub fn set_properties(&mut self, properties: Vec<Property>) {
+        self.properties = properties;
     }
     pub fn get_labels_ref(&self) -> &Vec<String> {
         &self.labels

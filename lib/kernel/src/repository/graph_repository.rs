@@ -38,6 +38,7 @@ impl GraphRepository {
         let nr = self.nodes_store.load(node_id)?;
         let mut node = Node::new();
         node.set_id(Some(node_id));
+        node.set_properties(self.properties_repository.retrieve_list(nr.next_prop_id)?);
         let mut vertex = DbVertexData::new();
         if nr.first_inbound_edge != 0 {
             vertex.first_inbound_edge = Some(nr.first_inbound_edge);
@@ -64,6 +65,7 @@ impl GraphRepository {
         let rr = self.relationships_store.load(rel_id)?;
         let mut rel = Relationship::new();
         rel.set_id(Some(rel_id));
+        rel.set_properties(self.properties_repository.retrieve_list(rr.next_prop_id)?);
         let mut edge = DbEdgeData::new(rr.source, rr.target);
         if rr.next_inbound_edge != 0 {
             edge.next_inbound_edge = Some(rr.next_inbound_edge);
@@ -140,7 +142,8 @@ impl GraphRepository {
         let mut node_index = 0;
         let mut node_records = Vec::new();
         for node in pgraph.get_nodes() {
-            let nr = NodeRecord::new();
+            let mut nr = NodeRecord::new();
+            nr.next_prop_id = self.properties_repository.create_list(node.get_properties_ref())?;
             let nid = self.nodes_store.create(&nr)?;
             for label in node.get_labels_ref() {
                 self.nodes_labels_index.insert(label, nid);
@@ -153,9 +156,11 @@ impl GraphRepository {
         let mut rel_index: usize = 0;
         let mut map_rel = HashMap::new();
         let mut rel_records = Vec::new();
-        for rel in pgraph.get_edges() {
-            let rr = RelationshipRecord::new(*map_nodes.get(&rel.source.get_index())?,
-             *map_nodes.get(&rel.target.get_index())?);
+        for edge in pgraph.get_edges() {
+            let mut rr = RelationshipRecord::new(*map_nodes.get(&edge.source.get_index())?,
+             *map_nodes.get(&edge.target.get_index())?);
+            let rel = pgraph.get_relationship_ref(&edge.id);
+            rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_ref())?;
             let rid = self.relationships_store.create(&rr)?;
             map_rel.insert(rel_index, rid);
             rel_records.push((rid, rr));

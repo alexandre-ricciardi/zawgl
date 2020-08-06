@@ -163,7 +163,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PInteger(v));
+                            prop.set_value(value.map(|v| PropertyValue::PInteger(v)));
                         }
                     }
                 },
@@ -172,7 +172,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PInteger(v));
+                            prop.set_value(value.map(|v| PropertyValue::PInteger(v)));
                         }
                     }
                 },
@@ -182,13 +182,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.get_properties_mut()[prop_id];
-                                prop.value = value.map(|v| PropertyValue::PInteger(v));
+                                prop.set_value(value.map(|v| PropertyValue::PInteger(v)));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PInteger(v));
+                            prop.set_value(value.map(|v| PropertyValue::PInteger(v)));
                         }
                     }
                 },
@@ -204,7 +204,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PFloat(v));
+                            prop.set_value(value.map(|v| PropertyValue::PFloat(v)));
                         }
                     }
                 },
@@ -213,7 +213,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PFloat(v));
+                            prop.set_value(value.map(|v| PropertyValue::PFloat(v)));
                         }
                     }
                 },
@@ -223,13 +223,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.get_properties_mut()[prop_id];
-                                prop.value = value.map(|v| PropertyValue::PFloat(v));
+                                prop.set_value(value.map(|v| PropertyValue::PFloat(v)));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PFloat(v));
+                            prop.set_value(value.map(|v| PropertyValue::PFloat(v)));
                         }
                     }
                 },
@@ -245,7 +245,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
+                            prop.set_value(value.map(|sv|PropertyValue::PString(String::from(sv))));
                         }
                     }
                 },
@@ -254,7 +254,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.get_properties_mut()[prop_id];
-                            prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
+                            prop.set_value(value.map(|sv|PropertyValue::PString(String::from(sv))));
                         }
                     }
                 },
@@ -264,13 +264,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.get_properties_mut()[prop_id];
-                                prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
+                                prop.set_value(value.map(|sv|PropertyValue::PString(String::from(sv))));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.value = value.map(|sv|PropertyValue::PString(String::from(sv)));
+                            prop.set_value(value.map(|sv|PropertyValue::PString(String::from(sv))));
                         }
                     }
                 },
@@ -286,7 +286,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PBool(v));
+                            prop.set_value(value.map(|v| PropertyValue::PBool(v)));
                         }
                     }
                 },
@@ -295,7 +295,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PBool(v));
+                            prop.set_value(value.map(|v| PropertyValue::PBool(v)));
                         }
                     }
                 },
@@ -305,13 +305,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.get_properties_mut()[prop_id];
-                                prop.value = value.map(|v| PropertyValue::PBool(v));
+                                prop.set_value(value.map(|v| PropertyValue::PBool(v)));
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.value = value.map(|v| PropertyValue::PBool(v));
+                            prop.set_value(value.map(|v| PropertyValue::PBool(v)));
                         }
                     }
                 },
@@ -394,7 +394,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.name = Some(String::from(key));
+                            prop.set_name(key);
                         }
                     }
                 },
@@ -403,7 +403,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut node.get_properties_mut()[prop_id];
-                            prop.name = Some(String::from(key));
+                            prop.set_name(key);
                         }
                     }
                 },
@@ -413,13 +413,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                             let rel = req.pattern.get_relationship_mut(&rel_ids.0);
                             if let Some(prop_id) = self.curr_property_id {
                                 let prop = &mut rel.get_properties_mut()[prop_id];
-                                prop.name = Some(String::from(key));
+                                prop.set_name(key);
                             }
                         }
                         let rel = req.pattern.get_relationship_mut(&rel_ids.1);
                         if let Some(prop_id) = self.curr_property_id {
                             let prop = &mut rel.get_properties_mut()[prop_id];
-                            prop.name = Some(String::from(key));
+                            prop.set_name(key);
                         }
                     }
                 },
@@ -455,9 +455,9 @@ mod test_query_engine {
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
             assert_eq!(node.get_labels_ref()[1], String::from("Parent"));
-            assert_eq!(node.get_properties_ref()[0].name, Some(String::from("test")));
-            assert_eq!(node.get_properties_ref()[0].value, Some(PropertyValue::PString(String::from("Hello"))));
-            assert_eq!(node.get_properties_ref()[1].name, Some(String::from("case")));
+            assert_eq!(node.get_properties_ref()[0].get_name(), &Some(String::from("test")));
+            assert_eq!(node.get_properties_ref()[0].get_value(), &Some(PropertyValue::PString(String::from("Hello"))));
+            assert_eq!(node.get_properties_ref()[1].get_name(), &Some(String::from("case")));
             //assert_eq!(node.properties[1].value, Some(PropertyValue::PFloat(4.99)));
             
         } else {
