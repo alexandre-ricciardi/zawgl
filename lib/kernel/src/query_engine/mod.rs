@@ -4,7 +4,7 @@ use super::cypher::parser::*;
 use super::graph::traits::{GraphContainerTrait};
 use super::graph::*;
 
-pub fn process_query(query: &str) -> Option<Request> {
+pub fn process_cypher_query(query: &str) -> Option<Request> {
     let mut lexer = lexer::Lexer::new(query);
     match lexer.get_tokens() {
         Ok(tokens) => {
@@ -58,6 +58,15 @@ impl <'g> CypherAstVisitor {
 }
 
 impl <'g> AstVisitor<'g> for CypherAstVisitor {
+    fn enter_query(&mut self) {
+        
+    }
+    fn enter_return(&mut self) {
+        
+    }
+    fn enter_function(&mut self) {
+        
+    }
     fn enter_create(&mut self, node: &AstTagNode) {
         self.request = Some(Request::new(Directive::CREATE));
         self.state = VisitorState::DirectiveCreate;
@@ -436,7 +445,7 @@ mod test_query_engine {
 
     #[test]
     fn test_create_0() {
-        let request = process_query("CREATE (n:Person)");
+        let request = process_cypher_query("CREATE (n:Person)");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
@@ -449,7 +458,7 @@ mod test_query_engine {
 
     #[test]
     fn test_create_1() {
-        let request = process_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
+        let request = process_cypher_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
@@ -468,7 +477,7 @@ mod test_query_engine {
 
     #[test]
     fn test_create_2() {
-        let request = process_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
+        let request = process_cypher_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));

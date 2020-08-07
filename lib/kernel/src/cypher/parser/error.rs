@@ -18,12 +18,3 @@ impl fmt::Display for ParserError {
         }
     }
 }
-
-impl Error for ParserError {
-    fn description(&self) -> &str {
-        match *self {
-            ParserError::SyntaxError => "Record not found",
-            ParserError::EndOfFile => "Internal server error",
-        }
-    }
-}

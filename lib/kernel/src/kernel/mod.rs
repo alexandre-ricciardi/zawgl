@@ -1,5 +1,5 @@
 use super::model::init::InitContext;
-use super::query_engine::process_query;
+use super::query_engine::process_cypher_query;
 use super::graph_engine::GraphEngine;
 use super::model::Directive;
 
@@ -17,7 +17,7 @@ impl <'a> DbKernel<'a> {
     }
 
     pub fn process_cypher_query(&mut self, query: &str) -> Option<Document> {
-        let req = process_query(query)?;
+        let req = process_cypher_query(query)?;
         let mut graph_engine = GraphEngine::new(&self.ctx);
         match req.directive {
             Directive::CREATE => {

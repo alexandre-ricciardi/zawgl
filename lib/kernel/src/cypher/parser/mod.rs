@@ -19,6 +19,9 @@ pub enum AstTag  {
     RelUndirected,
     Variable,
     Label,
+    Query,
+    Return,
+    Function,
 }
 
 pub trait AstVisitor<'g> {
@@ -34,6 +37,9 @@ pub trait AstVisitor<'g> {
     fn enter_identifier(&mut self, key: &str);
     fn enter_variable(&mut self);
     fn enter_label(&mut self);
+    fn enter_query(&mut self);
+    fn enter_return(&mut self);
+    fn enter_function(&mut self);
 }
 
 pub trait Ast : fmt::Display {
@@ -96,6 +102,15 @@ impl Ast for AstTagNode {
                     },
                     AstTag::Label => {
                         visitor.enter_label();
+                    },
+                    AstTag::Query => {
+                        visitor.enter_query();
+                    },
+                    AstTag::Return => {
+                        visitor.enter_return();
+                    },
+                    AstTag::Function => {
+                        visitor.enter_function();
                     }
                 }
             },
@@ -241,13 +256,13 @@ mod test_parser {
                 let root = cypher_parser::parse(&mut parser);
                 parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
             },
-            Err(value) => assert!(false)
+            Err(_value) => assert!(false)
         }
     }
 
     #[test]
     fn test_create() {
-        run("CREATE (n:Person)");
+        run("CREATE (n:Person) RETURN id(n, r, z)");
     }
     #[test]
     fn test_create_labels() {
