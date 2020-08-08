@@ -22,6 +22,7 @@ pub enum AstTag  {
     Query,
     Return,
     Function,
+    FunctionArg,
 }
 
 pub trait AstVisitor<'g> {
@@ -40,6 +41,7 @@ pub trait AstVisitor<'g> {
     fn enter_query(&mut self);
     fn enter_return(&mut self);
     fn enter_function(&mut self);
+    fn enter_function_arg(&mut self);
 }
 
 pub trait Ast : fmt::Display {
@@ -111,6 +113,9 @@ impl Ast for AstTagNode {
                     },
                     AstTag::Function => {
                         visitor.enter_function();
+                    },
+                    AstTag::FunctionArg => {
+                        visitor.enter_function_arg();
                     }
                 }
             },
@@ -199,7 +204,7 @@ impl <'a> Parser<'a> {
 
     pub fn require(&mut self, token_type: TokenType) -> ParserResult<usize> {
         if !self.check(token_type) {
-            return Err(ParserError::SyntaxError);
+            return Err(ParserError::SyntaxError(self.index));
         }
         self.advance();
         Ok(self.index)

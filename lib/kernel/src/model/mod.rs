@@ -200,13 +200,34 @@ impl Relationship {
 
 pub type PropertyGraph = container::GraphContainer<Node, Relationship>;
 
+pub struct FunctionCall {
+    pub name: String,
+    pub args: Vec<String>,
+}
+
+impl FunctionCall {
+    pub fn new(name: &str) -> Self {
+        FunctionCall{name: String::from(name), args: Vec::new()}
+    }
+}
+pub struct ReturnClause {
+    pub function_calls: Vec<FunctionCall>,
+}
+
+impl ReturnClause {
+    pub fn new() -> Self {
+        ReturnClause{function_calls: Vec::new()}
+    }
+}
+
 pub struct Request {
     pub pattern: PropertyGraph,
     pub directive: Directive,
+    pub return_clause: Option<ReturnClause>,
 }
 
 impl Request {
     pub fn new(directive: Directive) -> Self {
-        Request {pattern: PropertyGraph::new(), directive: directive}
+        Request {pattern: PropertyGraph::new(), directive: directive, return_clause: None}
     }
 }

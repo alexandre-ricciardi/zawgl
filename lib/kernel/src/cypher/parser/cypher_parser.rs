@@ -28,10 +28,10 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
                 
                 Ok(query_node)
             },
-            _ => Err(ParserError::SyntaxError)
+            _ => Err(ParserError::SyntaxError(parser.index))
         }
     } else {
-        Err(ParserError::SyntaxError)
+        Err(ParserError::SyntaxError(parser.index))
     }
 }
 
@@ -54,9 +54,12 @@ fn parse_return(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parse
 }
 
 fn parse_func_args(parser: &mut Parser, parent_node: &mut Box<AstTokenNode>) -> ParserResult<()> {
+    
     while parser.check(TokenType::Identifier) {
         parser.advance();
-        parent_node.append(make_ast_token(parser));
+        let mut func_arg = Box::new(AstTagNode::new_tag(AstTag::FunctionArg));
+        func_arg.append(make_ast_token(parser));
+        parent_node.append(func_arg);
         if !parser.check(TokenType::Comma) {
             break;
         } else {

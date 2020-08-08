@@ -12,7 +12,7 @@ fn enter_string_expr(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> Par
             Ok(parser.index)
         }
     } else {
-        Err(ParserError::SyntaxError)
+        Err(ParserError::SyntaxError(parser.index))
     }
 }
 
@@ -22,7 +22,7 @@ fn enter_float_expr(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> Pars
         parent_node.append(float_node);
         Ok(parser.index)
     } else {
-        Err(ParserError::SyntaxError)
+        Err(ParserError::SyntaxError(parser.index))
     }
 }
 
@@ -32,7 +32,7 @@ fn enter_integer_expr(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> Pa
         parent_node.append(int_node);
         Ok(parser.index)
     } else {
-        Err(ParserError::SyntaxError)
+        Err(ParserError::SyntaxError(parser.index))
     }
 }
 
@@ -46,7 +46,7 @@ fn enter_bool_expr(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> Parse
         parent_node.append(bool_node);
         Ok(parser.index)
     } else {
-        Err(ParserError::SyntaxError)
+        Err(ParserError::SyntaxError(parser.index))
     }
 }
 
@@ -66,7 +66,7 @@ fn enter_prop_value(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> Pars
             enter_integer_expr(parser, parent_node)
         },
         _ => {
-            Err(ParserError::SyntaxError)
+            Err(ParserError::SyntaxError(parser.index))
         }
     }
 }
@@ -91,7 +91,7 @@ fn enter_property(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Par
             Ok(parser.index)
         }
     } else {
-        Err(ParserError::SyntaxError)
+        Err(ParserError::SyntaxError(parser.index))
     }
 }
 

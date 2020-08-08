@@ -10,7 +10,6 @@ mod cypher;
 mod graph;
 mod model;
 mod repository;
-mod query_engine;
 mod matcher;
 mod graph_engine;
 

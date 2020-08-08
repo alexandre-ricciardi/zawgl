@@ -1,17 +1,18 @@
-use super::cypher::*;
-use super::model::*;
-use super::cypher::parser::*;
-use super::graph::traits::{GraphContainerTrait};
-use super::graph::*;
+use super::*;
+use super::super::model::*;
+use super::parser::*;
+use super::super::graph::traits::{GraphContainerTrait};
+use super::super::graph::*;
 
 pub fn process_cypher_query(query: &str) -> Option<Request> {
     let mut lexer = lexer::Lexer::new(query);
     match lexer.get_tokens() {
         Ok(tokens) => {
             let mut parser = parser::Parser::new(tokens);
-            let ast = parser::cypher_parser::parse(&mut parser).ok();
+            let ast = parser::cypher_parser::parse(&mut parser).ok()?;
             let mut visitor = CypherAstVisitor::new();
-            ast.as_ref().and_then(|ast_root_node| { parser::walk_ast(&mut visitor, ast_root_node); visitor.request })
+            parser::walk_ast(&mut visitor, &ast);
+            visitor.request
         }
         Err(value) => None
     }
@@ -29,7 +30,9 @@ enum VisitorState {
     UndirectedRelationship,
     NodeProperty,
     DirectedRelationshipProperty,
-    UnirectedRelationshipProperty
+    UnirectedRelationshipProperty,
+    FunctionCall,
+    FunctionArg,
 }
 
 enum IdentifierType {
@@ -62,10 +65,21 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
         
     }
     fn enter_return(&mut self) {
-        
+        if let Some(request) = &mut self.request {
+            request.return_clause = Some(ReturnClause::new());
+        }
     }
     fn enter_function(&mut self) {
-        
+        if let Some(request) = &mut self.request {
+            if let Some(_) = &mut request.return_clause {
+                self.state = VisitorState::FunctionCall;
+            }
+        }
+    }
+    fn enter_function_arg(&mut self) {
+        if self.state == VisitorState::FunctionCall {
+            self.state = VisitorState::FunctionArg;
+        }
     }
     fn enter_create(&mut self, node: &AstTagNode) {
         self.request = Some(Request::new(Directive::CREATE));
@@ -80,8 +94,8 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
         match self.state {
             VisitorState::DirectiveCreate |
             VisitorState::DirectiveMatch => {
-                let node = Node::new();
-                self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node(node));
+                let n = Node::new();
+                self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node(n));
             },
             _ => {}
         }    
@@ -432,6 +446,22 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                         }
                     }
                 },
+                VisitorState::FunctionCall => {
+                    if let Some(req) = &mut self.request {
+                        if let Some(ret) = &mut req.return_clause {
+                            ret.function_calls.push(FunctionCall::new(key));
+                        }
+                    }
+                },
+                VisitorState::FunctionArg => {
+                    if let Some(req) = &mut self.request {
+                        if let Some(ret) = &mut req.return_clause {
+                            if let Some(func) = ret.function_calls.last_mut() {
+                                func.args.push(String::from(key));
+                            }
+                        }
+                    }
+                }
                 _ => {}
             }
         }
