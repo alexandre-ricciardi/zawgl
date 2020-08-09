@@ -33,6 +33,7 @@ enum VisitorState {
     UnirectedRelationshipProperty,
     FunctionCall,
     FunctionArg,
+    ReturnItem,
 }
 
 enum IdentifierType {
@@ -80,6 +81,9 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
         if self.state == VisitorState::FunctionCall {
             self.state = VisitorState::FunctionArg;
         }
+    }
+    fn enter_item(&mut self) {
+        self.state = VisitorState::ReturnItem;
     }
     fn enter_create(&mut self, node: &AstTagNode) {
         self.request = Some(Request::new(Directive::CREATE));
@@ -459,6 +463,13 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                             if let Some(func) = ret.function_calls.last_mut() {
                                 func.args.push(String::from(key));
                             }
+                        }
+                    }
+                },
+                VisitorState::ReturnItem => {
+                    if let Some(req) = &mut self.request {
+                        if let Some(ret) = &mut req.return_clause {
+                            ret.items.push(String::from(key));
                         }
                     }
                 }

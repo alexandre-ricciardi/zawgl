@@ -212,11 +212,12 @@ impl FunctionCall {
 }
 pub struct ReturnClause {
     pub function_calls: Vec<FunctionCall>,
+    pub items: Vec<String>,
 }
 
 impl ReturnClause {
     pub fn new() -> Self {
-        ReturnClause{function_calls: Vec::new()}
+        ReturnClause{function_calls: Vec::new(), items: Vec::new()}
     }
 }
 

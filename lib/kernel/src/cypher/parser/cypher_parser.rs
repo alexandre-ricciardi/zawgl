@@ -40,13 +40,20 @@ fn parse_return(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parse
         parser.require(TokenType::Return)?;
         let mut ret_node = Box::new(AstTagNode::new_tag(AstTag::Return));
         if parser.current_token_type_advance(TokenType::Identifier) {
-            let mut func_node = Box::new(AstTagNode::new_tag(AstTag::Function));
-            let mut func_id = make_ast_token(&parser);
-            parser.require(TokenType::OpenParenthesis)?;
-            parse_func_args(parser, &mut func_id)?;
-            func_node.append(func_id);
-            ret_node.append(func_node);
-            parser.require(TokenType::CloseParenthesis)?;
+            let mut item_id = make_ast_token(&parser);
+            if parser.get_current_token_type() == TokenType::Comma {
+                parser.advance();
+                let mut item_node = Box::new(AstTagNode::new_tag(AstTag::Item));
+                item_node.append(item_id);
+                ret_node.append(item_node);
+            } else {
+                let mut func_node = Box::new(AstTagNode::new_tag(AstTag::Function));
+                parser.require(TokenType::OpenParenthesis)?;
+                parse_func_args(parser, &mut item_id)?;
+                func_node.append(item_id);
+                ret_node.append(func_node);
+                parser.require(TokenType::CloseParenthesis)?;
+            }
         }
         parent_node.append(ret_node);
     }
