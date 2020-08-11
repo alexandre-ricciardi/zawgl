@@ -210,14 +210,19 @@ impl FunctionCall {
         FunctionCall{name: String::from(name), args: Vec::new()}
     }
 }
+
+pub enum Expression {
+    FunctionCall(FunctionCall),
+    Item(String),
+}
+
 pub struct ReturnClause {
-    pub function_calls: Vec<FunctionCall>,
-    pub items: Vec<String>,
+    pub expressions: Vec<Expression>,
 }
 
 impl ReturnClause {
     pub fn new() -> Self {
-        ReturnClause{function_calls: Vec::new(), items: Vec::new()}
+        ReturnClause{expressions: Vec::new()}
     }
 }
 

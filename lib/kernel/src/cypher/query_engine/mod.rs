@@ -453,15 +453,17 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                 VisitorState::FunctionCall => {
                     if let Some(req) = &mut self.request {
                         if let Some(ret) = &mut req.return_clause {
-                            ret.function_calls.push(FunctionCall::new(key));
+                            ret.expressions.push(Expression::FunctionCall(FunctionCall::new(key)));
                         }
                     }
                 },
                 VisitorState::FunctionArg => {
                     if let Some(req) = &mut self.request {
                         if let Some(ret) = &mut req.return_clause {
-                            if let Some(func) = ret.function_calls.last_mut() {
-                                func.args.push(String::from(key));
+                            if let Some(expr) = ret.expressions.last_mut() {
+                                if let Expression::FunctionCall(func_call) = expr {
+                                    func_call.args.push(String::from(key));
+                                }
                             }
                         }
                     }
@@ -469,7 +471,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                 VisitorState::ReturnItem => {
                     if let Some(req) = &mut self.request {
                         if let Some(ret) = &mut req.return_clause {
-                            ret.items.push(String::from(key));
+                            ret.expressions.push(Expression::Item(String::from(key)));
                         }
                     }
                 }
