@@ -36,7 +36,7 @@ impl GraphEngine {
         GraphEngine{repository: Rc::new(RefCell::new(GraphRepository::new(ctx)))}
     }
 
-    pub fn add_graph(&mut self, graph: &PropertyGraph) -> Option<()> {
+    pub fn create_graph(&mut self, graph: &PropertyGraph) -> Option<PropertyGraph> {
         self.repository.borrow_mut().create(graph)
     }
 

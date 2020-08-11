@@ -21,7 +21,8 @@ impl <'a> DbKernel<'a> {
         let mut graph_engine = GraphEngine::new(&self.ctx);
         match req.directive {
             Directive::CREATE => {
-                graph_engine.add_graph(&req.pattern);
+                let res = graph_engine.create_graph(&req.pattern)?;
+                
                 graph_engine.sync();
                 Some(Document::new())
             },

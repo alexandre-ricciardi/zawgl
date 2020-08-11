@@ -1,6 +1,7 @@
 use super::*;
 use super::traits::*;
 
+#[derive(Clone)]
 pub struct GraphContainer<NODE, RELATIONSHIP> {
     nodes: Vec<NODE>,
     relationships: Vec<RELATIONSHIP>,
@@ -87,8 +88,12 @@ impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
         self.relationships.iter().zip(self.get_edges()).collect::<Vec<(&RELATIONSHIP, EdgeData<NodeIndex, EdgeIndex>)>>()
     }
 
-    pub fn get_relationships(&self) -> Vec<&RELATIONSHIP> {
-        self.relationships.iter().collect::<Vec<&RELATIONSHIP>>()
+    pub fn get_relationships(&self) -> &Vec<RELATIONSHIP> {
+        &self.relationships
+    }
+
+    pub fn get_relationships_mut(&mut self) -> &mut Vec<RELATIONSHIP> {
+        &mut self.relationships
     }
 
     pub fn get_edges(&self) -> Vec<EdgeData<NodeIndex, EdgeIndex>> {
@@ -104,4 +109,7 @@ impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
         &self.nodes
     }
 
+    pub fn get_nodes_mut(&mut self) -> &mut Vec<NODE> {
+        &mut self.nodes
+    }
 }

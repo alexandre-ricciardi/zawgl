@@ -137,7 +137,7 @@ impl GraphRepository {
         Some(pg)
     }
 
-    pub fn create(&mut self, pgraph: &PropertyGraph) -> Option<()> {
+    pub fn create(&mut self, pgraph: &PropertyGraph) -> Option<PropertyGraph> {
         let mut map_nodes = HashMap::new();
         let mut node_index = 0;
         let mut node_records = Vec::new();
@@ -198,7 +198,20 @@ impl GraphRepository {
             rr_index += 1;
         }
 
-        Some(())
+        let mut res = pgraph.clone();
+        let mut n_index = 0;
+        for n in res.get_nodes_mut() {
+            n.set_id(Some(map_nodes[&n_index]));
+            n_index += 1;
+        }
+
+        let mut r_index = 0;
+        for r  in res.get_relationships_mut() {
+            r.set_id(Some(map_rel[&r_index]));
+            r_index += 1;
+        }
+
+        Some(res)
     }
 
     pub fn sync(&mut self) {

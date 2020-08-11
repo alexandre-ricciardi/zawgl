@@ -39,6 +39,7 @@ impl traits::MemGraphId for NodeIndex {
     }
 }
 
+#[derive(Clone)]
 pub struct VertexData<EID: MemGraphId> {
     pub first_outbound_edge: Option<EID>,
     pub first_inbound_edge: Option<EID>,
@@ -86,6 +87,11 @@ pub struct Graph {
     edges: Rc<RefCell<Vec<EdgeData<NodeIndex, EdgeIndex>>>>,
 }
 
+impl Clone for Graph {
+    fn clone(&self) -> Self {
+        Graph::new_clone(self.nodes.clone(), self.edges.borrow().clone())
+    }
+}
 
 pub struct OutEdges {
     edges: Rc<RefCell<Vec<EdgeData<NodeIndex, EdgeIndex>>>>,
@@ -174,6 +180,10 @@ impl GraphTrait<NodeIndex, EdgeIndex> for Graph {
 impl Graph {
     pub fn new() -> Self {
         Graph{ nodes: Vec::new(), edges: Rc::new(RefCell::new(Vec::new())) }
+    }
+
+    fn new_clone(nodes: Vec<VertexData<EdgeIndex>>, edges: Vec<EdgeData<NodeIndex, EdgeIndex>>) -> Self {
+        Graph{ nodes: nodes, edges: Rc::new(RefCell::new(edges)) }
     }
 
     pub fn add_vertex(&mut self) -> NodeIndex {
