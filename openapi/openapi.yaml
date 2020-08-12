@@ -1,0 +1,102 @@
+    openapi: 3.0.0
+    info:
+      title: Graph DB API
+      description: Graph Database API.
+      version: 0.0.1
+    servers:
+      - url: http://site.liteapps.fr/v1
+        description: Sample server
+    paths:
+      /graphs:
+        get:
+          summary: Returns a list of graphs names.
+          responses:
+            '200':    # status code
+              description: A BSON array of graph names
+              content:
+                application/bson:
+                  schema: 
+                    type: array
+                    items: 
+                      type: string
+      /graph/{graphId}:
+        get:
+          summary: Graphs requests endpoint.
+          parameters: 
+            - name: graphId
+              in: path
+              required: true
+          responses:
+            
+    components:
+      schemas:
+        StringProperty:
+          properties:
+            key:
+              type: string
+            value:
+              type: string
+          required:  
+            - key
+            - value
+        BoolProperty:
+          properties:
+            key:
+              type: string
+            value:
+              type: boolean
+          required:  
+            - key
+            - value
+        FloatProperty:
+          properties:
+            key:
+              type: string
+            value:
+              type: number
+          required:  
+            - key
+            - value
+        IntegerProperty:
+          properties:
+            key:
+              type: string
+            value:
+              type: integer
+          required:  
+            - key
+            - value
+        Node:
+          properties:
+            id:
+              type: integer
+            properties:
+              type: array
+              items:
+                oneOf:
+                  - $ref: '#/components/schemas/StringProperty'
+                  - $ref: '#/components/schemas/BoolProperty'
+                  - $ref: '#/components/schemas/FloatProperty'
+                  - $ref: '#/components/schemas/IntegerProperty'
+        Relationship:
+          properties:
+            id:
+              type: integer
+            source:
+              type: integer
+            target:
+              type: integer
+            properties:
+              type: array
+              items:
+                oneOf:
+                  - $ref: '#/components/schemas/StringProperty'
+                  - $ref: '#/components/schemas/BoolProperty'
+                  - $ref: '#/components/schemas/FloatProperty'
+                  - $ref: '#/components/schemas/IntegerProperty'
+          required:  
+            - id
+            - source
+            - target
+              
+                
