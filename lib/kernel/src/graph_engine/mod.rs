@@ -67,11 +67,13 @@ impl GraphEngine {
         |map0, _map1, gpattern, proxy| {
             let mut res_match = PropertyGraph::new();
             for index in gpattern.get_nodes_ids() {
+                let pattern_node = gpattern.get_node_ref(&index);
                 let proxy_index = map0[&index];
-                let proxy_node = proxy.get_node_ref(&proxy_index)?.clone();
+                let mut proxy_node = proxy.get_node_ref(&proxy_index)?.clone();
+                proxy_node.set_option_var(pattern_node.get_var());
                 res_match.add_node(proxy_node);
             }
-            for prel in pattern.get_relationships_and_edges() {
+            for prel in gpattern.get_relationships_and_edges() {
                 let psource_id = &prel.1.source;
                 let ptarget_id = &prel.1.target;
                 let proxy_source_id = map0[psource_id];
@@ -81,7 +83,9 @@ impl GraphEngine {
                     if target_id == proxy_target_id {
                         let rel = proxy.get_relationship_ref(&rel_id)?;
                         if compare_relationships(prel.0, rel) {
-                            res_match.add_relationship(rel.clone(), *psource_id, *ptarget_id);
+                            let mut rel_clone = rel.clone();
+                            rel_clone.set_option_var(prel.0.get_var());
+                            res_match.add_relationship(rel_clone, *psource_id, *ptarget_id);
                         }
                     }
                 }

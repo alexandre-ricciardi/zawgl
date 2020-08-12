@@ -224,7 +224,7 @@ impl <'a> Parser<'a> {
     }
 
     pub fn current_token_type_advance(&mut self, token_type: TokenType) -> bool {
-        if self.tokens[self.index].token_type == token_type {
+        if self.tokens.len() > self.index && self.tokens[self.index].token_type == token_type {
             self.advance();
             true
         } else {
@@ -237,11 +237,11 @@ impl <'a> Parser<'a> {
     }
 
     pub fn check(&self, token_type: TokenType) -> bool {
-        self.tokens[self.index].token_type == token_type
+        self.tokens.len() > self.index && self.tokens[self.index].token_type == token_type
     }
 
     pub fn next_token_type(& self, token_type: TokenType) -> bool {
-        self.tokens.len() > self.index && self.tokens[self.index + 1].token_type == token_type
+        self.tokens.len() > self.index + 1 && self.tokens[self.index + 1].token_type == token_type
     }
 
 }
@@ -281,7 +281,7 @@ mod test_parser {
 
     #[test]
     fn test_create_graph() {
-        run("CREATE (n:Person)-[r:FRIEND_OF]->(m:Person)");
+        run("CREATE (n:Person)-[r:FRIEND_OF]->(m:Person) RETURN n, r, m");
     }
 
     #[test]

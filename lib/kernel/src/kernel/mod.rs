@@ -31,7 +31,7 @@ impl <'a> DbKernel<'a> {
                     let mut doc = Document::new();
                     let mut counter = 0;
                     for graph in &res {
-                        doc.insert(counter.to_string(), process_return_clause(&ret, graph)?)?;
+                        doc.insert(counter.to_string(), process_return_clause(&ret, graph)?);
                         counter += 1;
                     }
                     Some(doc)
@@ -62,10 +62,30 @@ fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
     for node in result.get_nodes() {
         if let Some(var) = node.get_var() {
             if var == item {
+
+                let mut props = Vec::new();
+                for p in node.get_properties_ref() {
+                    
+                    let name = p.get_name();
+                    let value = p.get_value();
+                    if let Some(n) = name {
+                        if let Some(v) = value {
+                            let mut bprop = Document::new();
+                            match v {
+                                PropertyValue::PBool(v) => bprop.insert(n, v),
+                                PropertyValue::PFloat(f) => bprop.insert(n, f),
+                                PropertyValue::PInteger(i) => bprop.insert(n, i),
+                                PropertyValue::PString(s) => bprop.insert(n, s),
+                            };
+                            props.push(bprop);
+                        }
+                        
+                    }
+                }
                 return Some(doc!{
                     "id": node.get_id()?,
-                    "properties": ""
-                })
+                    "properties": props
+                });
             }
         }
     }
@@ -75,5 +95,16 @@ fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
 }
 
 fn evaluate_function_call(result: &PropertyGraph, func_call: &FunctionCall) -> Option<Document> {
+    if func_call.name == "id" {
+        for node in result.get_nodes() {
+            if let Some(var) = node.get_var() {
+                if func_call.args.contains(var) {
+                    return Some(doc!{
+                        "id": node.get_id()?
+                    });
+                }
+            }
+        }
+    }
     None
 }

@@ -129,6 +129,10 @@ impl Node {
     pub fn set_var(&mut self, var: &str) {
         self.var = Some(String::from(var));
     }
+    
+    pub fn set_option_var(&mut self, var: &Option<String>) {
+        self.var = var.to_owned();
+    }
 
     pub fn get_properties_ref(&self) -> &Vec<Property> {
         &self.properties
@@ -176,6 +180,10 @@ impl Relationship {
 
     pub fn set_var(&mut self, var: &str) {
         self.var = Some(String::from(var));
+    }
+
+    pub fn set_option_var(&mut self, var: &Option<String>) {
+        self.var = var.to_owned();
     }
 
     pub fn get_properties_ref(&self) -> &Vec<Property> {
