@@ -45,17 +45,18 @@ impl <'a> DbKernel<'a> {
 }
 
 fn process_return_clause(return_clause: &ReturnClause, result: &PropertyGraph) -> Option<Document> {
+    let mut res = Document::new();
     for expr in &return_clause.expressions {
         match expr {
             Expression::Item(item) => {
-                return evaluate_item(result, item)
+                res.insert(item, evaluate_item(result, item)?);
             }
             Expression::FunctionCall(func_call) => {
-                return evaluate_function_call(result, func_call)
+                res.insert(&func_call.name, evaluate_function_call(result, func_call)?);
             }
         }
     }
-    None
+    Some(res)
 }
 
 fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
@@ -90,6 +91,37 @@ fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
         }
     }
 
+    for relationship in result.get_relationships() {
+        if let Some(var) = relationship.get_var() {
+            if var == item {
+
+                let mut props = Vec::new();
+                for p in relationship.get_properties_ref() {
+                    
+                    let name = p.get_name();
+                    let value = p.get_value();
+                    if let Some(n) = name {
+                        if let Some(v) = value {
+                            let mut bprop = Document::new();
+                            match v {
+                                PropertyValue::PBool(v) => bprop.insert(n, v),
+                                PropertyValue::PFloat(f) => bprop.insert(n, f),
+                                PropertyValue::PInteger(i) => bprop.insert(n, i),
+                                PropertyValue::PString(s) => bprop.insert(n, s),
+                            };
+                            props.push(bprop);
+                        }
+                        
+                    }
+                }
+                return Some(doc!{
+                    "id": relationship.get_id()?,
+                    "properties": props
+                });
+            }
+        }
+    }
+
     None
     
 }
@@ -100,7 +132,7 @@ fn evaluate_function_call(result: &PropertyGraph, func_call: &FunctionCall) -> O
             if let Some(var) = node.get_var() {
                 if func_call.args.contains(var) {
                     return Some(doc!{
-                        "id": node.get_id()?
+                        var: node.get_id()?
                     });
                 }
             }
