@@ -100,7 +100,7 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
 
     for out_edge in graph.out_edges(&v0) {
         let target = graph.get_target_index(&out_edge);
-        if let Some(out_count) = base_state.in_map.get(&target) {
+        if let Some(out_count) = base_state.out_map.get(&target) {
             if *out_count == base_state.core_count {
                 base_state.out_map.remove(&target);
                 base_state.term_out_count -= 1;
@@ -215,7 +215,7 @@ GraphA: GrowableGraphIteratorTrait<NIDA, EIDA>  {
 
     for out_edge in graph.out_edges(&v0) {
         let target = graph.get_target_index(&out_edge);
-        if let Some(out_count) = base_state.in_map.get(&target) {
+        if let Some(out_count) = base_state.out_map.get(&target) {
             if *out_count == base_state.core_count {
                 base_state.out_map.remove(&target);
                 base_state.term_out_count -= 1;
