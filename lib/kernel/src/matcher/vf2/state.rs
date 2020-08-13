@@ -339,7 +339,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     let mut matched_edge_set = HashSet::new();
                     for edge_index in self.graph_0.out_edges(v_new) {
                         let target_index = self.graph_0.get_target_index(&edge_index);
-                        if !self.inc_counters_match_edge_0(false, &mut term_in0_count, &mut term_out0_count, &mut rest0_count, v_new, &target_index, &w_new, &edge_index, 
+                        if !self.inc_counters_match_edge_0(false, &mut term_in0_count, &mut term_out0_count, &mut rest0_count, v_new, &target_index, w_new, &edge_index, 
                             &mut matched_edge_set)? {
                             return Some(false);
                         }

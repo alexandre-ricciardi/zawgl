@@ -58,7 +58,8 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         fn back_track(&mut self) {
-            if let Some(back) = self.match_continuation.pop() {
+            let last =  self.match_continuation.pop();
+            if let Some(back) = last {
                 self.state.pop(&back.0, &back.1);
             }
         }
@@ -67,12 +68,12 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             if let Some(id0) = self.first_candidate_0 {
                 for next_candidate_1_id in self.curr_candidate_1_index..self.graph_1_ids.len() {
                     let id1 = self.graph_1_ids[next_candidate_1_id];
-                    self.curr_candidate_1_index += 1;
                     if self.state.possible_candidate_1(&id1) && self.state.feasible(&id0, &id1)? {
                         self.match_continuation.push((id0, id1));
                         self.state.push(&id0, &id1);
                         return Some(true);
                     }
+                    self.curr_candidate_1_index += 1;
                 }
             }
             Some(false)
@@ -124,6 +125,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                             return Some(self.found_match);
                         }
                         self.back_track();
+                        self.curr_candidate_1_index += 1;
                         state = IterationStates::Graph1Loop;
                     }
                 }
