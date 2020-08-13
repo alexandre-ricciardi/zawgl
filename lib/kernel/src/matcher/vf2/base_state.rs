@@ -31,7 +31,7 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
     }
 
     pub fn term_in_vertex(&self, v0: &NID0) -> bool {
-        let has_in_count = self.in_map[v0] > 0;
+        let has_in_count = self.in_map.contains_key(v0);
         has_in_count && !self.core_map.contains_key(v0)
     }
     
@@ -40,7 +40,7 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
     }
 
     pub fn term_out_vertex(&self, v0: &NID0) -> bool {
-        let has_out_count = self.out_map[v0] > 0;
+        let has_out_count = self.out_map.contains_key(v0);
         has_out_count && !self.core_map.contains_key(v0)
     }
     
@@ -49,8 +49,8 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
     }
     
     pub fn term_both_vertex(&self, v0: &NID0) -> bool {
-        let has_in_count = self.in_map[v0] > 0; 
-        let has_out_count = self.out_map[v0] > 0;
+        let has_in_count = self.in_map.contains_key(v0); 
+        let has_out_count = self.out_map.contains_key(v0);
         has_in_count && has_out_count && !self.core_map.contains_key(v0)
     }
 
