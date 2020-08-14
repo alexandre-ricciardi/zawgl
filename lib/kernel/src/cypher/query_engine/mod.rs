@@ -70,6 +70,11 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
             request.return_clause = Some(ReturnClause::new());
         }
     }
+    fn enter_where(&mut self) {
+        if let Some(request) = &mut self.request {
+            request.return_clause = Some(ReturnClause::new());
+        }
+    }
     fn enter_function(&mut self) {
         if let Some(request) = &mut self.request {
             if let Some(_) = &mut request.return_clause {

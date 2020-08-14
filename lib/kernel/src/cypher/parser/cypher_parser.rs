@@ -14,6 +14,7 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
                 let mut create_node = Box::new(AstTagNode::new_tag(AstTag::Create));
                 parse_pattern(parser, &mut create_node)?;
                 query_node.append(create_node);
+                parse_where_clause(parser, &mut query_node)?;
                 parse_return(parser, &mut query_node)?;
                 
                 Ok(query_node)
@@ -24,6 +25,7 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
                 let mut match_node = Box::new(AstTagNode::new_tag(AstTag::Match));
                 parse_pattern(parser, &mut match_node)?;
                 query_node.append(match_node);
+                parse_where_clause(parser, &mut query_node)?;
                 parse_return(parser, &mut query_node)?;
                 
                 Ok(query_node)
@@ -39,13 +41,13 @@ fn parse_return(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parse
     if parser.has_next() && parser.check(TokenType::Return) {
         parser.require(TokenType::Return)?;
         let mut ret_node = Box::new(AstTagNode::new_tag(AstTag::Return));
-        parse_expression(parser, &mut ret_node)?;
+        parse_return_expression(parser, &mut ret_node)?;
         parent_node.append(ret_node);
     }
     Ok(())
 }
 
-fn parse_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+fn parse_return_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
     if parser.current_token_type_advance(TokenType::Identifier) {
         let mut item_id = make_ast_token(&parser);
         if parser.current_token_type_advance(TokenType::OpenParenthesis) {
@@ -60,7 +62,7 @@ fn parse_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> P
             parent_node.append(item_node);
         }
         if parser.current_token_type_advance(TokenType::Comma) { 
-            parse_expression(parser, parent_node)?;
+            parse_return_expression(parser, parent_node)?;
         }
     }
     Ok(())
@@ -79,5 +81,20 @@ fn parse_func_args(parser: &mut Parser, parent_node: &mut Box<AstTokenNode>) -> 
             parser.advance();
         }
     }
+    Ok(())
+}
+
+fn parse_where_clause(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    if parser.has_next() && parser.check(TokenType::Where) {
+        parser.require(TokenType::Where)?;
+        let mut ret_node = Box::new(AstTagNode::new_tag(AstTag::Where));
+        parse_expression(parser, &mut ret_node)?;
+        parent_node.append(ret_node);
+    }
+    Ok(())
+}
+
+fn parse_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+
     Ok(())
 }

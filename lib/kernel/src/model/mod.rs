@@ -234,14 +234,25 @@ impl ReturnClause {
     }
 }
 
+pub struct WhereClause {
+    pub expressions: Vec<Expression>,
+}
+
+impl WhereClause {
+    pub fn new() -> Self {
+        WhereClause{expressions: Vec::new()}
+    }
+}
+
 pub struct Request {
     pub pattern: PropertyGraph,
     pub directive: Directive,
     pub return_clause: Option<ReturnClause>,
+    pub where_clause: Option<WhereClause>,
 }
 
 impl Request {
     pub fn new(directive: Directive) -> Self {
-        Request {pattern: PropertyGraph::new(), directive: directive, return_clause: None}
+        Request {pattern: PropertyGraph::new(), directive: directive, return_clause: None, where_clause: None}
     }
 }

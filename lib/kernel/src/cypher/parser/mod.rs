@@ -21,6 +21,7 @@ pub enum AstTag  {
     Label,
     Query,
     Return,
+    Where,
     Function,
     FunctionArg,
     Item,
@@ -44,6 +45,7 @@ pub trait AstVisitor<'g> {
     fn enter_function(&mut self);
     fn enter_function_arg(&mut self);
     fn enter_item(&mut self);
+    fn enter_where(&mut self);
 }
 
 pub trait Ast : fmt::Display {
@@ -121,6 +123,9 @@ impl Ast for AstTagNode {
                     },
                     AstTag::Item => {
                         visitor.enter_item();
+                    },
+                    AstTag::Where => {
+                        visitor.enter_where();
                     }
                 }
             },
@@ -294,5 +299,9 @@ mod test_parser {
     }
     
 
+    #[test]
+    fn test_where_clause_1() {
+        run("CREATE (n:Person:Parent {test: 'Hello', case: 4.99}) WHERE id(n) = 112");
+    }
 }
 
