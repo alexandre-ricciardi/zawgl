@@ -25,6 +25,9 @@ pub enum AstTag  {
     Function,
     FunctionArg,
     Item,
+    AndOperator,
+    OrOperator,
+    EqualityOperator,
 }
 
 pub trait AstVisitor<'g> {
@@ -126,6 +129,15 @@ impl Ast for AstTagNode {
                     },
                     AstTag::Where => {
                         visitor.enter_where();
+                    },
+                    AstTag::AndOperator => {
+
+                    },
+                    AstTag::OrOperator => {
+
+                    },
+                    AstTag::EqualityOperator => {
+                        
                     }
                 }
             },
@@ -258,6 +270,9 @@ fn make_ast_token(parser: &Parser) -> Box<AstTokenNode> {
     Box::new(AstTokenNode::new_token(token_id, token.content.to_owned(), token.token_type ))
 }
 
+fn make_ast_tag(tag: AstTag) -> Box<AstTagNode> {
+    Box::new(AstTagNode::new_tag(tag))
+}
 
 #[cfg(test)]
 mod test_parser {
@@ -271,7 +286,7 @@ mod test_parser {
                 let root = cypher_parser::parse(&mut parser);
                 parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
             },
-            Err(_value) => assert!(false)
+            Err(value) => assert!(false, format!("lexer error: {}", value))
         }
     }
 

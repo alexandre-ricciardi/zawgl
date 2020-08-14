@@ -49,15 +49,11 @@ fn parse_return(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parse
 
 fn parse_return_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
     if parser.current_token_type_advance(TokenType::Identifier) {
-        let mut item_id = make_ast_token(&parser);
-        if parser.current_token_type_advance(TokenType::OpenParenthesis) {
-            let mut func_node = Box::new(AstTagNode::new_tag(AstTag::Function));
-            parse_func_args(parser, &mut item_id)?;
-            func_node.append(item_id);
-            parent_node.append(func_node);
-            parser.require(TokenType::CloseParenthesis)?;
+        if parser.check(TokenType::OpenParenthesis) {
+            parse_function_definition(parser, parent_node)?;
         } else {
-            let mut item_node = Box::new(AstTagNode::new_tag(AstTag::Item));
+            let item_id = make_ast_token(&parser);
+            let mut item_node = make_ast_tag(AstTag::Item);
             item_node.append(item_id);
             parent_node.append(item_node);
         }
@@ -65,6 +61,17 @@ fn parse_return_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode
             parse_return_expression(parser, parent_node)?;
         }
     }
+    Ok(())
+}
+
+fn parse_function_definition(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    let mut item_id = make_ast_token(&parser);
+    parser.require(TokenType::OpenParenthesis)?;
+    let mut func_node = make_ast_tag(AstTag::Function);
+    parse_func_args(parser, &mut item_id)?;
+    func_node.append(item_id);
+    parent_node.append(func_node);
+    parser.require(TokenType::CloseParenthesis)?;
     Ok(())
 }
 
@@ -88,13 +95,103 @@ fn parse_where_clause(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) ->
     if parser.has_next() && parser.check(TokenType::Where) {
         parser.require(TokenType::Where)?;
         let mut ret_node = Box::new(AstTagNode::new_tag(AstTag::Where));
-        parse_expression(parser, &mut ret_node)?;
+        parse_boolean_expression(parser, &mut ret_node)?;
         parent_node.append(ret_node);
     }
     Ok(())
 }
 
-fn parse_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
-
+fn parse_boolean_operator(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    if parser.check(TokenType::And) {
+        parser.advance();
+        let mut operator = make_ast_tag(AstTag::AndOperator);
+        parse_boolean_expression(parser, &mut operator)?;
+        parent_node.append(operator);
+    } else if parser.check(TokenType::Or) {
+        parser.advance();
+        let mut operator = make_ast_tag(AstTag::OrOperator);
+        parse_boolean_expression(parser, &mut operator)?;
+        parent_node.append(operator);
+    }
+    
     Ok(())
+}
+
+fn parse_boolean_expression_terminal(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    match parser.get_current_token_type() {
+        TokenType::Integer => {
+            parser.advance();
+            parent_node.append(make_ast_token(parser));
+            Ok(())
+        },
+        TokenType::Float => {
+            parser.advance();
+            parent_node.append(make_ast_token(parser));
+            Ok(())
+        },
+        TokenType::True | TokenType::False => {
+            parser.advance();
+            parent_node.append(make_ast_token(parser));
+            Ok(())
+        },
+        TokenType::Identifier => {
+            parser.advance();
+            parse_function_definition(parser, parent_node)?;
+            Ok(())
+        },
+        TokenType::OpenParenthesis => {
+            parser.advance();
+            parse_boolean_expression(parser, parent_node)?;
+            parser.require(TokenType::CloseParenthesis)?;
+            Ok(())
+        },
+        _ => {
+            Err(ParserError::SyntaxError(parser.index))
+        }
+    }
+}
+
+fn parse_boolean_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    match parser.get_current_token_type() {
+        TokenType::Integer => {
+            parser.advance();
+            parser.require(TokenType::Equals)?;
+            let mut eqop = make_ast_tag(AstTag::EqualityOperator);
+            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            parse_boolean_operator(parser, &mut eqop)
+        },
+        TokenType::Float => {
+            parser.advance();
+            parser.require(TokenType::Equals)?;
+            let mut eqop = make_ast_tag(AstTag::EqualityOperator);
+            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            parse_boolean_operator(parser, &mut eqop)
+        },
+        TokenType::True | TokenType::False => {
+            parser.advance();
+            parser.require(TokenType::Equals)?;
+            let mut eqop = make_ast_tag(AstTag::EqualityOperator);
+            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            parse_boolean_operator(parser, &mut eqop)
+        },
+        TokenType::Identifier => {
+            parser.advance();
+            parse_function_definition(parser, parent_node)?;
+            parser.require(TokenType::Equals)?;
+            let mut eqop = make_ast_tag(AstTag::EqualityOperator);
+            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            parse_boolean_operator(parser, &mut eqop)?;
+            parent_node.append(eqop);
+            Ok(())
+        },
+        TokenType::OpenParenthesis => {
+            parser.advance();
+            parse_boolean_expression(parser, parent_node)?;
+            parser.require(TokenType::CloseParenthesis)?;
+            parse_boolean_operator(parser, parent_node)
+        },
+        _ => {
+            Err(ParserError::SyntaxError(parser.index))
+        }
+    }
 }

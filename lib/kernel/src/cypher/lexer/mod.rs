@@ -36,6 +36,7 @@ pub enum TokenType {
     UndirectedRel,
     Pipe,
     StringType,
+    Equals,
 }
 
 
@@ -130,7 +131,7 @@ impl <'a> Lexer<'a> {
                             (TokenType::LeftSourceRel, "-["), (TokenType::RightTargetRel, "]->"),
                             (TokenType::LeftTargetRel, "<-["), (TokenType::RightSourceRel, "]-"),
                             (TokenType::UndirectedRel, "{"), (TokenType::Create, "create"),
-                            (TokenType::Comma, ","),
+                            (TokenType::Comma, ","), (TokenType::Equals, "="),
                             (TokenType::Pipe, "|"), (TokenType::Minus, "-")],
             input: input, position: 0, line: 0, column: 0, lookahead: 0}
     }
@@ -191,7 +192,7 @@ impl <'a> Lexer<'a> {
     }
 
     pub fn has_next(&self) -> bool {
-        self.position < self.input.len() - 1
+        self.position + self.lookahead < self.input.len()
     }
 
     pub fn get_tokens(&mut self) -> LexerResult<Vec<Token<'a>>> {
