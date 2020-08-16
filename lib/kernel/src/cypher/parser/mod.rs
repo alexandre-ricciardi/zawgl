@@ -1,14 +1,17 @@
 pub mod error;
 pub mod parser_utils;
-pub mod pattern_parser_delegate;
-pub mod properties_parser_delegate;
+mod pattern_parser_delegate;
+mod properties_parser_delegate;
+mod common_parser_delegate;
+mod return_clause_parser_delegate;
+mod where_clause_parser_delegate;
 pub mod cypher_parser;
 
 use super::lexer::*;
 use self::error::*;
 use std::fmt;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AstTag  {
     Create,
     Match,
@@ -28,6 +31,7 @@ pub enum AstTag  {
     AndOperator,
     OrOperator,
     EqualityOperator,
+    ItemPropertyIdentifier,
 }
 
 pub trait AstVisitor<'g> {
@@ -138,6 +142,9 @@ impl Ast for AstTagNode {
                     },
                     AstTag::EqualityOperator => {
                         
+                    },
+                    AstTag::ItemPropertyIdentifier => {
+
                     }
                 }
             },
@@ -316,7 +323,7 @@ mod test_parser {
 
     #[test]
     fn test_where_clause_1() {
-        run("CREATE (n:Person:Parent {test: 'Hello', case: 4.99}) WHERE id(n) = 112");
+        run("CREATE (n:Person:Parent {test: 'Hello', case: 4.99}) WHERE id(n) = 112 AND n.test = 'hello' OR n.case = 123.9");
     }
 }
 

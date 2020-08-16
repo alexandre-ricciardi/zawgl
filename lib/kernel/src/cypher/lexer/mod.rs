@@ -37,6 +37,7 @@ pub enum TokenType {
     Pipe,
     StringType,
     Equals,
+    Dot,
 }
 
 
@@ -122,7 +123,7 @@ impl <'a> Lexer<'a> {
         Lexer {
             keywords: vec![(TokenType::True, "true"), (TokenType::False, "false"),
                             (TokenType::And, "and"), (TokenType::Or, "or"),
-                            (TokenType::Plus, "+"),
+                            (TokenType::Plus, "+"), (TokenType::Dot, "."),
                             (TokenType::Divide, "/"), (TokenType::Mult, "*"),
                             (TokenType::Match, "match"), (TokenType::Where, "where"),
                             (TokenType::Return, "return"), (TokenType::CloseParenthesis, ")"),
