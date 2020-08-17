@@ -6,7 +6,7 @@ use super::common_parser_delegate::*;
 pub fn parse_where_clause(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
     if parser.check(TokenType::Where) {
         parser.require(TokenType::Where)?;
-        let mut where_node = Box::new(AstTagNode::new_tag(AstTag::Where));
+        let mut where_node = make_ast_tag(AstTag::Where);
         where_node.append(parse_boolean_expression(parser)?);
         parent_node.append(where_node);
     }
@@ -43,36 +43,29 @@ fn parse_boolean_operator(parser: &mut Parser, prev_expr: Box<AstTagNode>) -> Pa
 
 fn parse_boolean_expression_terminal(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
     match parser.get_current_token_type() {
-        TokenType::Integer => {
-            parser.advance();
-            parent_node.append(make_ast_token(parser));
-            Ok(())
-        },
-        TokenType::Float => {
-            parser.advance();
-            parent_node.append(make_ast_token(parser));
-            Ok(())
-        },
-        TokenType::True | TokenType::False => {
+        TokenType::Integer | TokenType::Float | TokenType::True | TokenType::False | TokenType::StringType => {
             parser.advance();
             parent_node.append(make_ast_token(parser));
             Ok(())
         },
         TokenType::Identifier => {
             parser.advance();
-            let func = parse_function_definition(parser)?;
-            parent_node.append(func);
-            Ok(())
-        },
-        TokenType::OpenParenthesis => {
-            parser.advance();
-            parse_boolean_expression(parser)?;
-            parser.require(TokenType::CloseParenthesis)?;
-            Ok(())
-        },
-        TokenType::StringType => {
-            parser.advance();
-            parent_node.append(make_ast_token(parser));
+            if parser.check(TokenType::OpenParenthesis) {
+                let func = parse_function_definition(parser)?;
+                parent_node.append(func);
+            } else if parser.check(TokenType::Dot) {
+                let mut item_prop = make_ast_tag(AstTag::ItemPropertyIdentifier);
+                item_prop.append(make_ast_token(parser));
+                parser.advance();
+                if parser.check(TokenType::Identifier) {
+                    parser.advance();
+                    item_prop.append(make_ast_token(parser));
+                } else {
+                    return Err(ParserError::SyntaxError(parser.index))
+                }
+            } else {
+                return Err(ParserError::SyntaxError(parser.index))
+            }
             Ok(())
         },
         _ => {
