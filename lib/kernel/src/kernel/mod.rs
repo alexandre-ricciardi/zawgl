@@ -48,10 +48,10 @@ fn process_return_clause(return_clause: &ReturnClause, result: &PropertyGraph) -
     let mut res = Document::new();
     for expr in &return_clause.expressions {
         match expr {
-            Expression::Item(item) => {
+            ReturnExpression::Item(item) => {
                 res.insert(item, evaluate_item(result, item)?);
             }
-            Expression::FunctionCall(func_call) => {
+            ReturnExpression::FunctionCall(func_call) => {
                 res.insert(&func_call.name, evaluate_function_call(result, func_call)?);
             }
         }

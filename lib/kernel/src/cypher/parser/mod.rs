@@ -34,7 +34,7 @@ pub enum AstTag  {
     ItemPropertyIdentifier,
 }
 
-pub trait AstVisitor<'g> {
+pub trait AstVisitor {
     fn enter_create(&mut self, node: &AstTagNode);
     fn enter_match(&mut self, node: &AstTagNode);
     fn enter_node(&mut self, node: &AstTagNode);
@@ -52,13 +52,14 @@ pub trait AstVisitor<'g> {
     fn enter_function(&mut self);
     fn enter_function_arg(&mut self);
     fn enter_item(&mut self);
-    fn enter_where(&mut self);
+    fn enter_where(&mut self, node: &AstTagNode);
 }
 
 pub trait Ast : fmt::Display {
     fn append(&mut self, ast: Box<dyn Ast>);
     fn accept(&self, visitor: &mut dyn AstVisitor);
     fn get_childs(&self) -> &Vec<Box<dyn Ast>>;
+    fn clone_ast(&self) -> Box<dyn Ast>;
 }
 
 pub struct AstTokenNode {
@@ -80,6 +81,9 @@ impl AstTagNode {
     pub fn new_tag(ast_tag: AstTag) -> Self {
         AstTagNode {childs: Vec::new(), ast_tag: Some(ast_tag)}
     }
+    pub fn new_option_tag(ast_tag: Option<AstTag>) -> Self {
+        AstTagNode {childs: Vec::new(), ast_tag: ast_tag}
+    }
 }
 
 impl Ast for AstTagNode {
@@ -94,21 +98,21 @@ impl Ast for AstTagNode {
             Some(ast_tag) => {
                 match ast_tag {
                     AstTag::Create => {
-                        visitor.enter_create(&self);
+                        visitor.enter_create(self);
                     },
                     AstTag::Match => {
-                        visitor.enter_match(&self);
+                        visitor.enter_match(self);
                     },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |
                     AstTag::RelUndirected => {
-                        visitor.enter_relationship(&self);
+                        visitor.enter_relationship(self);
                     },
                     AstTag::Node => {
-                        visitor.enter_node(&self);
+                        visitor.enter_node(self);
                     },
                     AstTag::Property => {
-                        visitor.enter_property(&self);
+                        visitor.enter_property(self);
                     },
                     AstTag::Variable => {
                         visitor.enter_variable();
@@ -132,7 +136,7 @@ impl Ast for AstTagNode {
                         visitor.enter_item();
                     },
                     AstTag::Where => {
-                        visitor.enter_where();
+                        visitor.enter_where(self);
                     },
                     AstTag::AndOperator => {
 
@@ -151,6 +155,14 @@ impl Ast for AstTagNode {
             None => {}
         }
         
+    }
+    
+    fn clone_ast(&self) -> Box<dyn Ast> {
+        let mut root = Box::new(AstTagNode::new_option_tag(self.ast_tag));
+        for child in &self.childs {
+            root.append(child.clone_ast());
+        }
+        root
     }
 }
 
@@ -189,6 +201,14 @@ impl Ast for AstTokenNode {
             TokenType::Identifier => visitor.enter_identifier(&self.token_value),
             _ => {}
         }
+    }
+
+    fn clone_ast(&self) -> Box<dyn Ast> {
+        let mut root = Box::new(AstTokenNode::new_token(self.token_id, self.token_value.clone(), self.token_type));
+        for child in &self.childs {
+            root.append(child.clone_ast());
+        }
+        root
     }
 }
 

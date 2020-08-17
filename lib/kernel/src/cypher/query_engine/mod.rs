@@ -53,7 +53,7 @@ struct CypherAstVisitor {
     id_type: Option<IdentifierType>
 }
 
-impl <'g> CypherAstVisitor {
+impl CypherAstVisitor {
     fn new() -> Self {
         CypherAstVisitor { request: None, curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
             curr_property_id: None, state: VisitorState::Init, curr_both_ways_property_ids: None,
@@ -61,7 +61,7 @@ impl <'g> CypherAstVisitor {
     }
 }
 
-impl <'g> AstVisitor<'g> for CypherAstVisitor {
+impl AstVisitor for CypherAstVisitor {
     fn enter_query(&mut self) {
         
     }
@@ -70,9 +70,9 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
             request.return_clause = Some(ReturnClause::new());
         }
     }
-    fn enter_where(&mut self) {
+    fn enter_where(&mut self, node: &AstTagNode) {
         if let Some(request) = &mut self.request {
-            request.return_clause = Some(ReturnClause::new());
+            request.where_clause = Some(WhereClause::new(node.clone_ast()));
         }
     }
     fn enter_function(&mut self) {
@@ -458,7 +458,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                 VisitorState::FunctionCall => {
                     if let Some(req) = &mut self.request {
                         if let Some(ret) = &mut req.return_clause {
-                            ret.expressions.push(Expression::FunctionCall(FunctionCall::new(key)));
+                            ret.expressions.push(ReturnExpression::FunctionCall(FunctionCall::new(key)));
                         }
                     }
                 },
@@ -466,7 +466,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                     if let Some(req) = &mut self.request {
                         if let Some(ret) = &mut req.return_clause {
                             if let Some(expr) = ret.expressions.last_mut() {
-                                if let Expression::FunctionCall(func_call) = expr {
+                                if let ReturnExpression::FunctionCall(func_call) = expr {
                                     func_call.args.push(String::from(key));
                                 }
                             }
@@ -476,7 +476,7 @@ impl <'g> AstVisitor<'g> for CypherAstVisitor {
                 VisitorState::ReturnItem => {
                     if let Some(req) = &mut self.request {
                         if let Some(ret) = &mut req.return_clause {
-                            ret.expressions.push(Expression::Item(String::from(key)));
+                            ret.expressions.push(ReturnExpression::Item(String::from(key)));
                         }
                     }
                 }

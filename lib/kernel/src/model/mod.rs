@@ -2,6 +2,7 @@ use super::graph::*;
 pub mod init;
 use std::hash::Hash;
 use std::hash::Hasher;
+use super::cypher::parser::{AstTagNode, Ast};
 
 
 #[derive(Debug, Clone)]
@@ -219,13 +220,13 @@ impl FunctionCall {
     }
 }
 
-pub enum Expression {
+pub enum ReturnExpression {
     FunctionCall(FunctionCall),
     Item(String),
 }
 
 pub struct ReturnClause {
-    pub expressions: Vec<Expression>,
+    pub expressions: Vec<ReturnExpression>,
 }
 
 impl ReturnClause {
@@ -235,12 +236,12 @@ impl ReturnClause {
 }
 
 pub struct WhereClause {
-    pub expressions: Vec<Expression>,
+    pub expressions: Box<dyn Ast>,
 }
 
 impl WhereClause {
-    pub fn new() -> Self {
-        WhereClause{expressions: Vec::new()}
+    pub fn new(ast: Box<dyn Ast>) -> Self {
+        WhereClause{expressions: ast}
     }
 }
 

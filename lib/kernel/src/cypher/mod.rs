@@ -1,5 +1,5 @@
 mod lexer;
-mod parser;
+pub mod parser;
 pub mod query_engine;
 
 #[cfg(test)]
