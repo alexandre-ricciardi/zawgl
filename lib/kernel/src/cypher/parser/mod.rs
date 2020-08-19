@@ -35,29 +35,36 @@ pub enum AstTag  {
 }
 
 pub trait AstVisitor {
-    fn enter_create(&mut self, node: &AstTagNode);
-    fn enter_match(&mut self, node: &AstTagNode);
-    fn enter_node(&mut self, node: &AstTagNode);
-    fn enter_relationship(&mut self, node: &AstTagNode);
-    fn enter_property(&mut self, node: &AstTagNode);
-    fn enter_integer_value(&mut self, value: Option<i64>);
-    fn enter_float_value(&mut self, value: Option<f64>);
-    fn enter_string_value(&mut self, value: Option<&str>);
-    fn enter_bool_value(&mut self, value: Option<bool>);
-    fn enter_identifier(&mut self, key: &str);
-    fn enter_variable(&mut self);
-    fn enter_label(&mut self);
-    fn enter_query(&mut self);
-    fn enter_return(&mut self);
-    fn enter_function(&mut self);
-    fn enter_function_arg(&mut self);
-    fn enter_item(&mut self);
-    fn enter_where(&mut self, node: &AstTagNode);
+    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult<bool>;
+    fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult<bool>;
+    fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult<bool>;
+    fn enter_bool_value(&mut self, value: Option<bool>) -> AstVisitorResult<bool>;
+    fn enter_identifier(&mut self, key: &str) -> AstVisitorResult<bool>;
+    fn enter_variable(&mut self) -> AstVisitorResult<bool>;
+    fn enter_label(&mut self) -> AstVisitorResult<bool>;
+    fn enter_query(&mut self) -> AstVisitorResult<bool>;
+    fn enter_return(&mut self) -> AstVisitorResult<bool>;
+    fn enter_function(&mut self) -> AstVisitorResult<bool>;
+    fn enter_function_arg(&mut self) -> AstVisitorResult<bool>;
+    fn enter_item(&mut self) -> AstVisitorResult<bool>;
+    fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
 }
+
+#[derive(Debug, Clone)]
+pub enum AstVisitorError {
+    SyntaxError,
+}
+
+pub type AstVisitorResult<T> = std::result::Result<T, AstVisitorError>;
 
 pub trait Ast : fmt::Display {
     fn append(&mut self, ast: Box<dyn Ast>);
-    fn accept(&self, visitor: &mut dyn AstVisitor);
+    fn accept(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult<bool>;
     fn get_childs(&self) -> &Vec<Box<dyn Ast>>;
     fn clone_ast(&self) -> Box<dyn Ast>;
 }
@@ -93,66 +100,59 @@ impl Ast for AstTagNode {
     fn get_childs(&self) -> &Vec<Box<dyn Ast>> {
         &self.childs
     }
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
+    fn accept(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult<bool> {
         match self.ast_tag.as_ref() {
             Some(ast_tag) => {
                 match ast_tag {
                     AstTag::Create => {
-                        visitor.enter_create(self);
+                        visitor.enter_create(self)
                     },
                     AstTag::Match => {
-                        visitor.enter_match(self);
+                        visitor.enter_match(self)
                     },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |
                     AstTag::RelUndirected => {
-                        visitor.enter_relationship(self);
+                        visitor.enter_relationship(self)
                     },
                     AstTag::Node => {
-                        visitor.enter_node(self);
+                        visitor.enter_node(self)
                     },
                     AstTag::Property => {
-                        visitor.enter_property(self);
+                        visitor.enter_property(self)
                     },
                     AstTag::Variable => {
-                        visitor.enter_variable();
+                        visitor.enter_variable()
                     },
                     AstTag::Label => {
-                        visitor.enter_label();
+                        visitor.enter_label()
                     },
                     AstTag::Query => {
-                        visitor.enter_query();
+                        visitor.enter_query()
                     },
                     AstTag::Return => {
-                        visitor.enter_return();
+                        visitor.enter_return()
                     },
                     AstTag::Function => {
-                        visitor.enter_function();
+                        visitor.enter_function()
                     },
                     AstTag::FunctionArg => {
-                        visitor.enter_function_arg();
+                        visitor.enter_function_arg()
                     },
                     AstTag::Item => {
-                        visitor.enter_item();
+                        visitor.enter_item()
                     },
                     AstTag::Where => {
-                        visitor.enter_where(self);
+                        visitor.enter_where(self)
                     },
-                    AstTag::AndOperator => {
-
-                    },
-                    AstTag::OrOperator => {
-
-                    },
-                    AstTag::EqualityOperator => {
-                        
-                    },
-                    AstTag::ItemPropertyIdentifier => {
-
+                    _ => {
+                        Ok(true)
                     }
                 }
             },
-            None => {}
+            None => {
+                Ok(true)
+            }
         }
         
     }
@@ -179,27 +179,29 @@ impl Ast for AstTokenNode {
     fn get_childs(&self) -> &Vec<Box<dyn Ast>> {
         &self.childs
     }
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
+    fn accept(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult<bool> {
         match self.token_type {
             TokenType::StringType => {
                 let sval = self.token_value.get(1..self.token_value.len() -1);
-                visitor.enter_string_value(sval);
+                visitor.enter_string_value(sval)
             },
             TokenType::Float => {
                 let res = self.token_value.parse::<f64>().ok();
-                visitor.enter_float_value(res);
+                visitor.enter_float_value(res)
             },
             TokenType::Integer => {
                 let res = self.token_value.parse::<i64>().ok();
-                visitor.enter_integer_value(res);
+                visitor.enter_integer_value(res)
             },
             TokenType::True |
             TokenType::False => {
                 let res = self.token_value.parse::<bool>().ok();
-                visitor.enter_bool_value(res);
+                visitor.enter_bool_value(res)
             },
             TokenType::Identifier => visitor.enter_identifier(&self.token_value),
-            _ => {}
+            _ => {
+                Ok(true)
+            }
         }
     }
 
@@ -230,11 +232,14 @@ impl fmt::Display for AstTagNode {
     }
 }
 
-pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) {
-    ast.accept(visitor);
-    for child in ast.get_childs() {
-        walk_ast(visitor, &child);
+pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) -> AstVisitorResult<()>  {
+    let res = ast.accept(visitor)?;
+    if res {
+        for child in ast.get_childs() {
+            walk_ast(visitor, &child)?;
+        }
     }
+    Ok(())
 }
 
 pub struct Parser<'a>  {

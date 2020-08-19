@@ -62,43 +62,50 @@ impl CypherAstVisitor {
 }
 
 impl AstVisitor for CypherAstVisitor {
-    fn enter_query(&mut self) {
-        
+    fn enter_query(&mut self) -> AstVisitorResult<bool> {
+        Ok(true)
     }
-    fn enter_return(&mut self) {
+    fn enter_return(&mut self) -> AstVisitorResult<bool> {
         if let Some(request) = &mut self.request {
             request.return_clause = Some(ReturnClause::new());
         }
+        Ok(true)
     }
-    fn enter_where(&mut self, node: &AstTagNode) {
+    fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let Some(request) = &mut self.request {
             request.where_clause = Some(WhereClause::new(node.clone_ast()));
         }
+        Ok(false)
     }
-    fn enter_function(&mut self) {
+    fn enter_function(&mut self) -> AstVisitorResult<bool> {
         if let Some(request) = &mut self.request {
             if let Some(_) = &mut request.return_clause {
                 self.state = VisitorState::FunctionCall;
             }
         }
+        Ok(true)
     }
-    fn enter_function_arg(&mut self) {
+    fn enter_function_arg(&mut self) -> AstVisitorResult<bool> {
         if self.state == VisitorState::FunctionCall {
             self.state = VisitorState::FunctionArg;
         }
+        Ok(true)
     }
-    fn enter_item(&mut self) {
+    fn enter_item(&mut self) -> AstVisitorResult<bool> {
         self.state = VisitorState::ReturnItem;
+        Ok(true)
     }
-    fn enter_create(&mut self, node: &AstTagNode) {
+    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         self.request = Some(Request::new(Directive::CREATE));
         self.state = VisitorState::DirectiveCreate;
+        Ok(true)
     }
-    fn enter_match(&mut self, node: &AstTagNode) {
+    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         self.request = Some(Request::new(Directive::MATCH));
         self.state = VisitorState::DirectiveMatch;
+        Ok(true)
     }
-    fn enter_node(&mut self, node: &AstTagNode) {
+    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         
         match self.state {
             VisitorState::DirectiveCreate |
@@ -109,8 +116,9 @@ impl AstVisitor for CypherAstVisitor {
             _ => {}
         }    
         self.state = VisitorState::Node;
+        Ok(true)
     }
-    fn enter_relationship(&mut self, node: &AstTagNode) {
+    fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         
         let prev_node = self.curr_node;
         let pnode = Node::new();
@@ -138,8 +146,9 @@ impl AstVisitor for CypherAstVisitor {
                 _ => None
             }
         });
+        Ok(true)
     }
-    fn enter_property(&mut self, node: &AstTagNode) {
+    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         match self.state {
             VisitorState::Node => self.state = VisitorState::NodeProperty,
             VisitorState::RelationshipRL |
@@ -184,10 +193,11 @@ impl AstVisitor for CypherAstVisitor {
                 })
             }
         }
+        Ok(true)
         
             
     }
-    fn enter_integer_value(&mut self, value: Option<i64>) {
+    fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult<bool> {
         if let Some(req) = &mut self.request {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
@@ -227,8 +237,9 @@ impl AstVisitor for CypherAstVisitor {
                 _ => {}
             }
         }
+        Ok(true)
     }
-    fn enter_float_value(&mut self, value: Option<f64>) {
+    fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult<bool> {
         if let Some(req) = &mut self.request {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
@@ -268,8 +279,9 @@ impl AstVisitor for CypherAstVisitor {
                 _ => {}
             }
         }
+        Ok(true)
     }
-    fn enter_string_value(&mut self, value: Option<&str>) {
+    fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult<bool> {
         if let Some(req) = &mut self.request {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
@@ -309,8 +321,9 @@ impl AstVisitor for CypherAstVisitor {
                 _ => {}
             }
         }
+        Ok(true)
     }
-    fn enter_bool_value(&mut self, value: Option<bool>) {
+    fn enter_bool_value(&mut self, value: Option<bool>) -> AstVisitorResult<bool> {
         if let Some(req) = &mut self.request {
             match self.state {
                 VisitorState::DirectedRelationshipProperty => {
@@ -350,17 +363,20 @@ impl AstVisitor for CypherAstVisitor {
                 _ => {}
             }
         }
+        Ok(true)
     }
 
-    fn enter_label(&mut self) {
+    fn enter_label(&mut self) -> AstVisitorResult<bool> {
         self.id_type = Some(IdentifierType::Label);
+        Ok(true)
     }
 
-    fn enter_variable(&mut self) {
+    fn enter_variable(&mut self) -> AstVisitorResult<bool> {
         self.id_type = Some(IdentifierType::Variable);
+        Ok(true)
     }
 
-    fn enter_identifier(&mut self, key: &str) {
+    fn enter_identifier(&mut self, key: &str) -> AstVisitorResult<bool> {
         self.curr_identifier = Some(String::from(key));
         if let Some(req) = &mut self.request {
             match self.state {
@@ -483,6 +499,7 @@ impl AstVisitor for CypherAstVisitor {
                 _ => {}
             }
         }
+        Ok(true)
         
     }
 }

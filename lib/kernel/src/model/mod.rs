@@ -2,7 +2,7 @@ use super::graph::*;
 pub mod init;
 use std::hash::Hash;
 use std::hash::Hasher;
-use super::cypher::parser::{AstTagNode, Ast};
+use super::cypher::parser::Ast;
 
 
 #[derive(Debug, Clone)]
@@ -243,6 +243,19 @@ impl WhereClause {
     pub fn new(ast: Box<dyn Ast>) -> Self {
         WhereClause{expressions: ast}
     }
+}
+
+pub enum Operator {
+    Equal,
+    Inferior,
+    Superior,
+    InferiorOrEqual,
+    SuperiorOrEqual,
+}
+pub struct BoolCondition {
+    pub first_member: Box<dyn Ast>,
+    pub second_member: Box<dyn Ast>,
+    pub operator: Operator,
 }
 
 pub struct Request {
