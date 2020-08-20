@@ -14,4 +14,4 @@ mod repository;
 mod matcher;
 mod graph_engine;
 
-pub mod kernel;
+pub mod core;

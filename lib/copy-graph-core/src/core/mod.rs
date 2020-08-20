@@ -6,14 +6,14 @@ use super::model::*;
 use bson::Document;
 
 
-pub struct DbKernel<'a> {
+pub struct GraphStore<'a> {
     ctx: InitContext<'a>,
 }
 
-impl <'a> DbKernel<'a> {
+impl <'a> GraphStore<'a> {
     pub fn new(dir: &'a str) -> Self {
         let ctx = InitContext::new(dir);
-        DbKernel{ctx: ctx}
+        GraphStore{ctx: ctx}
     }
 
     pub fn process_cypher_query(&mut self, query: &str) -> Option<Document> {

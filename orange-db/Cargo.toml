@@ -1,7 +1,0 @@
-[package]
-name = "orange_db"
-version = "0.1.0"
-authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]
-
-[dependencies]
-kernel = { path = "../lib/kernel" }

@@ -1,10 +1,10 @@
 [package]
-name = "kernel"
+name = "copy_graph_core"
 version = "0.1.0"
-authors = ["Alexandre RICCIARDI <alexandre.ricciardi@liteapps.fr>"]
+authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
 
 [lib]
-name = "kernel"
+name = "copy_graph_core"
 
 [dependencies]
 log = "0.4"

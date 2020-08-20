@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "lib/kernel",
-    "lib/core",
-    "orange-db",
+    "lib/copy-graph-core",
+    "cpg",
 ]

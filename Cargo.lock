@@ -55,13 +55,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "core"
+name = "copy_graph_core"
 version = "0.1.0"
 dependencies = [
- "kernel",
+ "bson",
  "log",
  "serde",
  "toml",
+]
+
+[[package]]
+name = "copy_graph_db"
+version = "0.1.0"
+dependencies = [
+ "copy_graph_core",
 ]
 
 [[package]]
@@ -107,16 +114,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc6f3ad7b9d11a0c00842ff8de1b60ee58661048eb8049ed33c73594f359d7e6"
 
 [[package]]
-name = "kernel"
-version = "0.1.0"
-dependencies = [
- "bson",
- "log",
- "serde",
- "toml",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -160,13 +157,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac267bcc07f48ee5f8935ab0d24f316fb722d7a1292e2913f0cc196b29ffd611"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "orange_db"
-version = "0.1.0"
-dependencies = [
- "kernel",
 ]
 
 [[package]]

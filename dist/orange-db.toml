@@ -1,7 +1,0 @@
-db_dir = "C:\\Temp"
-[stores]
-nodes_store = "nodes.db"
-relationships_store = "relationships.db"
-properties_store = "properties.db"
-dynamic_store = "dyn.db"
-nodes_labels_index = "nodes-index.db"
