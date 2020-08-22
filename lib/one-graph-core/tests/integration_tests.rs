@@ -1,6 +1,6 @@
-extern crate copy_graph_core;
+extern crate one_graph_core;
 
-use copy_graph_core::core::*;
+use one_graph_core::core::*;
 
 #[test]
 fn create_graph() {

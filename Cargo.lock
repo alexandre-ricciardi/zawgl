@@ -55,23 +55,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "copy_graph_core"
-version = "0.1.0"
-dependencies = [
- "bson",
- "log",
- "serde",
- "toml",
-]
-
-[[package]]
-name = "copy_graph_db"
-version = "0.1.0"
-dependencies = [
- "copy_graph_core",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -157,6 +140,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac267bcc07f48ee5f8935ab0d24f316fb722d7a1292e2913f0cc196b29ffd611"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "one-graph-core"
+version = "0.1.0"
+dependencies = [
+ "bson",
+ "log",
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "one-graph-db"
+version = "0.1.0"
+dependencies = [
+ "one-graph-core",
 ]
 
 [[package]]

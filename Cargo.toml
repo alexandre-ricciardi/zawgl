@@ -1,5 +1,5 @@
 [workspace]
 members = [
-    "lib/copy-graph-core",
-    "cpg",
+    "lib/one-graph-core",
+    "og",
 ]
