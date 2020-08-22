@@ -265,9 +265,9 @@ mod test_prop_repo {
     use super::*;
     #[test]
     fn test_save_load_0() {
-        std::fs::remove_file("C:\\Temp\\prop_repo_dyn_0.db");
-        std::fs::remove_file("C:\\Temp\\prop_repo_prop_0.db");
-        let mut pr = PropertiesRespository::new("C:\\Temp\\prop_repo_prop_0.db", "C:\\Temp\\prop_repo_dyn_0.db");
+        std::fs::remove_file("tmp/prop_repo_dyn_0.db");
+        std::fs::remove_file("tmp/prop_repo_prop_0.db");
+        let mut pr = PropertiesRespository::new("tmp/prop_repo_prop_0.db", "tmp/prop_repo_dyn_0.db");
         let mut prop = Property::new();
         prop.set_name("qsfsqdf");
         prop.set_value(Some(PropertyValue::PString(String::from("qgkfdgsdf"))));
@@ -279,9 +279,9 @@ mod test_prop_repo {
 
     #[test]
     fn test_save_load_1() {
-        std::fs::remove_file("C:\\Temp\\prop_repo_dyn_1.db");
-        std::fs::remove_file("C:\\Temp\\prop_repo_prop_1.db");
-        let mut pr = PropertiesRespository::new("C:\\Temp\\prop_repo_prop_1.db", "C:\\Temp\\prop_repo_dyn_1.db");
+        std::fs::remove_file("tmp/prop_repo_dyn_1.db");
+        std::fs::remove_file("tmp/prop_repo_prop_1.db");
+        let mut pr = PropertiesRespository::new("tmp/prop_repo_prop_1.db", "tmp/prop_repo_dyn_1.db");
         let mut prop = Property::new();
         prop.set_name("qsfsqdfqsdfq");
         prop.set_value(Some(PropertyValue::PString(String::from("qgkfdgsdf"))));
@@ -293,9 +293,9 @@ mod test_prop_repo {
 
     #[test]
     fn test_save_load_2() {
-        std::fs::remove_file("C:\\Temp\\prop_repo_dyn_2.db");
-        std::fs::remove_file("C:\\Temp\\prop_repo_prop_2.db");
-        let mut pr = PropertiesRespository::new("C:\\Temp\\prop_repo_prop_2.db", "C:\\Temp\\prop_repo_dyn_2.db");
+        std::fs::remove_file("tmp/prop_repo_dyn_2.db");
+        std::fs::remove_file("tmp/prop_repo_prop_2.db");
+        let mut pr = PropertiesRespository::new("tmp/prop_repo_prop_2.db", "tmp/prop_repo_dyn_2.db");
         let mut prop = Property::new();
         prop.set_name("qsfsqdfqsdfqdhgfdhgdfhgdfhqzerqzerqzregdfqsfdqsfderhryjsrrefqzeqgdsfdfsdrrdsredfsqer");
         prop.set_value(Some(PropertyValue::PString(String::from("qgkfdgsdfqerqzerqzerqzerqzerqzerqzerarthdtrsdqeqtrshsreqsgstreq"))));

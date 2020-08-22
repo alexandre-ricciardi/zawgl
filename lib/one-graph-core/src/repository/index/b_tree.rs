@@ -190,7 +190,7 @@ mod test_b_tree {
     use super::*;
     #[test]
     fn test_insert() {
-        let file = "C:\\Temp\\test_b_tree_insert.db";
+        let file = "tmp/test_b_tree_insert.db";
         std::fs::remove_file(file);
         let mut index = BTreeIndex::new(file);
         let key = "a short key";
@@ -229,7 +229,7 @@ mod test_b_tree {
 
     #[test]
     fn test_root_split() {
-        let file = "C:\\Temp\\test_b_tree_root_split.db";
+        let file = "tmp/test_b_tree_root_split.db";
         std::fs::remove_file(file);
         let mut index = BTreeIndex::new(file);
 

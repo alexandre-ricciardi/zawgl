@@ -35,8 +35,8 @@ mod test_relationship_store {
     }
     #[test]
     fn test_create_relationship_0() {
-        clean("C:\\Temp\\relationships.db");
-        let mut store = RelationshipsStore::new("C:\\Temp\\relationships.db");
+        clean("tmp/relationships.db");
+        let mut store = RelationshipsStore::new("tmp/relationships.db");
         let rr = RelationshipRecord {
             source: 45465,
             target: 9871321,

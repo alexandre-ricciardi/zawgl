@@ -30,12 +30,12 @@ impl NodesStore {
 mod test_nodes_store {
     use super::*;
     fn clean() {
-        std::fs::remove_file("C:\\Temp\\nodes.db");
+        std::fs::remove_file("tmp/nodes.db");
     }
     #[test]
     fn test_create_node_0() {
         clean();
-        let mut store = NodesStore::new("C:\\Temp\\nodes.db");
+        let mut store = NodesStore::new("tmp/nodes.db");
         let nr = NodeRecord {
             first_inbound_edge: 11287665,
             first_outbound_edge: 87687554,

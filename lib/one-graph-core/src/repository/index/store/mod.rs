@@ -587,7 +587,7 @@ mod test_btree_node_store {
     use super::*;
     #[test]
     fn test_create() {
-        let file = "C:\\Temp\\test_btree_node_store_create.db";
+        let file = "tmp/test_btree_node_store_create.db";
         let long_key = "blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
         blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6";
         std::fs::remove_file(file);
@@ -625,7 +625,7 @@ mod test_btree_node_store {
 
     #[test]
     fn test_update_ptrs() {
-        let file = "C:\\Temp\\test_btree_node_store_update_ptrs.db";
+        let file = "tmp/test_btree_node_store_update_ptrs.db";
         std::fs::remove_file(file);
         let mut store = BTreeNodeStore::new(file);
 

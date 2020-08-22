@@ -4,7 +4,7 @@ use one_graph_core::core::*;
 
 #[test]
 fn create_graph() {
-    let dir = "C:\\Temp\\create_graph";
+    let dir = "tmp/create_graph";
     std::fs::remove_dir_all(dir);
     std::fs::create_dir_all(dir);
     let mut store = GraphStore::new(dir);
