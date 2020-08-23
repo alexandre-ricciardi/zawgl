@@ -188,11 +188,11 @@ impl BTreeIndex {
 #[cfg(test)]
 mod test_b_tree {
     use super::*;
+    use super::super::super::super::test_utils::*;
     #[test]
     fn test_insert() {
-        let file = "tmp/test_b_tree_insert.db";
-        std::fs::remove_file(file);
-        let mut index = BTreeIndex::new(file);
+        let file = build_file_path_and_rm_old("b_tree", "test_insert.db").unwrap();
+        let mut index = BTreeIndex::new(&file);
         let key = "a short key";
         index.insert(key, 42);
         let long_key = "a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key ";
@@ -229,9 +229,8 @@ mod test_b_tree {
 
     #[test]
     fn test_root_split() {
-        let file = "tmp/test_b_tree_root_split.db";
-        std::fs::remove_file(file);
-        let mut index = BTreeIndex::new(file);
+        let file = build_file_path_and_rm_old("b_tree", "test_root_split.db").unwrap();
+        let mut index = BTreeIndex::new(&file);
 
         for i in 0..1000 {
             index.insert(&format!("key # {}", i), i);

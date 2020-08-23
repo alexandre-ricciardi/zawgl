@@ -5,6 +5,7 @@ extern crate toml;
 #[macro_use]
 extern crate bson;
 
+pub mod test_utils;
 mod config;
 mod buf_config;
 mod cypher;

@@ -30,13 +30,11 @@ impl RelationshipsStore {
 #[cfg(test)]
 mod test_relationship_store {
     use super::*;
-    fn clean(file: &str) {
-        std::fs::remove_file(file);
-    }
+    use super::super::super::super::test_utils::*;
     #[test]
     fn test_create_relationship_0() {
-        clean("tmp/relationships.db");
-        let mut store = RelationshipsStore::new("tmp/relationships.db");
+        let file = build_file_path_and_rm_old("test_relationship_store", "test_create_relationship_0.db").unwrap();
+        let mut store = RelationshipsStore::new(&file);
         let rr = RelationshipRecord {
             source: 45465,
             target: 9871321,

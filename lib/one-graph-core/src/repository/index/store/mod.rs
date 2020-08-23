@@ -584,14 +584,14 @@ impl CellChangeContext {
 
 #[cfg(test)]
 mod test_btree_node_store {
-    use super::*;
+    use super::*;    
+    use super::super::super::super::test_utils::*;
     #[test]
     fn test_create() {
-        let file = "tmp/test_btree_node_store_create.db";
+        let file = build_file_path_and_rm_old("b_tree_nodes", "test_create.db").unwrap();
         let long_key = "blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
         blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6";
-        std::fs::remove_file(file);
-        let mut store = BTreeNodeStore::new(file);
+        let mut store = BTreeNodeStore::new(&file);
         let mut cells = Vec::new();
         cells.push(Cell::new_ptr("blabla1", Some(1)));
         cells.push(Cell::new_ptr("blabla2", Some(2)));
@@ -604,7 +604,7 @@ mod test_btree_node_store {
         store.create(&mut node);
         store.sync();
 
-        let mut load_store = BTreeNodeStore::new(file);
+        let mut load_store = BTreeNodeStore::new(&file);
         let load =  node.get_id().and_then(|id| load_store.retrieve_node(id));
 
         if let Some(loaded) = &load {
@@ -625,9 +625,8 @@ mod test_btree_node_store {
 
     #[test]
     fn test_update_ptrs() {
-        let file = "tmp/test_btree_node_store_update_ptrs.db";
-        std::fs::remove_file(file);
-        let mut store = BTreeNodeStore::new(file);
+        let file = build_file_path_and_rm_old("b_tree_nodes", "test_update_ptrs.db").unwrap();
+        let mut store = BTreeNodeStore::new(&file);
 
         let long_key = "blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3";
         let mut cells = Vec::new();
@@ -641,7 +640,7 @@ mod test_btree_node_store {
         store.create(&mut node);
         store.sync();
 
-        let mut load_store = BTreeNodeStore::new(file);
+        let mut load_store = BTreeNodeStore::new(&file);
         let mut loaded =  node.get_id().and_then(|id| load_store.retrieve_node(id));
 
         if let Some(load) = &mut loaded {

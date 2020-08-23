@@ -263,11 +263,12 @@ fn extract_value(skip: usize, prop_type: u8, data: &[u8]) -> Option<PropertyValu
 #[cfg(test)]
 mod test_prop_repo {
     use super::*;
+    use super::super::super::test_utils::*;
     #[test]
     fn test_save_load_0() {
-        std::fs::remove_file("tmp/prop_repo_dyn_0.db");
-        std::fs::remove_file("tmp/prop_repo_prop_0.db");
-        let mut pr = PropertiesRespository::new("tmp/prop_repo_prop_0.db", "tmp/prop_repo_dyn_0.db");
+        let dyn_file = build_file_path_and_rm_old("test_save_load_0", "dyn.db").unwrap();
+        let prop_file = build_file_path_and_rm_old("test_save_load_0", "prop.db").unwrap();
+        let mut pr = PropertiesRespository::new(&prop_file, &dyn_file);
         let mut prop = Property::new();
         prop.set_name("qsfsqdf");
         prop.set_value(Some(PropertyValue::PString(String::from("qgkfdgsdf"))));
@@ -279,9 +280,9 @@ mod test_prop_repo {
 
     #[test]
     fn test_save_load_1() {
-        std::fs::remove_file("tmp/prop_repo_dyn_1.db");
-        std::fs::remove_file("tmp/prop_repo_prop_1.db");
-        let mut pr = PropertiesRespository::new("tmp/prop_repo_prop_1.db", "tmp/prop_repo_dyn_1.db");
+        let dyn_file = build_file_path_and_rm_old("test_save_load_1", "dyn.db").unwrap();
+        let prop_file = build_file_path_and_rm_old("test_save_load_1", "prop.db").unwrap();
+        let mut pr = PropertiesRespository::new(&prop_file, &dyn_file);
         let mut prop = Property::new();
         prop.set_name("qsfsqdfqsdfq");
         prop.set_value(Some(PropertyValue::PString(String::from("qgkfdgsdf"))));
@@ -293,9 +294,9 @@ mod test_prop_repo {
 
     #[test]
     fn test_save_load_2() {
-        std::fs::remove_file("tmp/prop_repo_dyn_2.db");
-        std::fs::remove_file("tmp/prop_repo_prop_2.db");
-        let mut pr = PropertiesRespository::new("tmp/prop_repo_prop_2.db", "tmp/prop_repo_dyn_2.db");
+        let dyn_file = build_file_path_and_rm_old("test_save_load_2", "dyn.db").unwrap();
+        let props_file = build_file_path_and_rm_old("test_save_load_2", "prop.db").unwrap();
+        let mut pr = PropertiesRespository::new(&props_file, &dyn_file);
         let mut prop = Property::new();
         prop.set_name("qsfsqdfqsdfqdhgfdhgdfhgdfhqzerqzerqzregdfqsfdqsfderhryjsrrefqzeqgdsfdfsdrrdsredfsqer");
         prop.set_value(Some(PropertyValue::PString(String::from("qgkfdgsdfqerqzerqzerqzerqzerqzerqzerarthdtrsdqeqtrshsreqsgstreq"))));

@@ -67,13 +67,11 @@ impl DynamicStore {
 #[cfg(test)]
 mod test_dyn_store {
     use super::*;
-    fn clean(file: &str) {
-        std::fs::remove_file(file);
-    }
+    use super::super::super::super::test_utils::*;
     #[test]
     fn test_dyn_short() {
-        clean("tmp/dyn.db");
-        let mut ds = DynamicStore::new("tmp/dyn.db");
+        let file = build_file_path_and_rm_old("test_dyn_store", "test_dyn_short.db").unwrap();
+        let mut ds = DynamicStore::new(&file);
         let short = b"qsdfqsdfqsdf";
         let id = ds.save_data(short).unwrap();
         let data = ds.load_data(id).unwrap();
@@ -82,8 +80,8 @@ mod test_dyn_store {
 
     #[test]
     fn test_dyn_long() {
-        clean("tmp/dyn_long.db");
-        let mut ds = DynamicStore::new("tmp/dyn_long.db");
+        let file = build_file_path_and_rm_old("test_dyn_store", "test_dyn_long.db").unwrap();
+        let mut ds = DynamicStore::new(&file);
         let long = b"qsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnec
         qfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqsh
         dfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqel";
