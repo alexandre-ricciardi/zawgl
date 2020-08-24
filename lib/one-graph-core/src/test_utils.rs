@@ -6,6 +6,18 @@ const UNIX_TEST_DIR: &str = "/tmp";
 const UNIX_SEPARATOR: &str = "/";
 const WIN_SEPARATOR: &str = "\\";
 
+pub fn build_dir_path_and_rm_old(dir_name: &str) -> std::io::Result<String> {
+    let dir;
+    if cfg!(target_os = "linux") {
+        dir = format!("{}/{}", UNIX_TEST_DIR, dir_name);
+    } else {
+        dir = format!("{}\\{}", WIN_TEST_DIR, dir_name);
+    }
+    std::fs::remove_dir_all(&dir)?;
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
 pub fn build_file_path_and_rm_old(dir_name: &str, file_name: &str) -> std::io::Result<String> {
     let dir;
     if cfg!(target_os = "linux") {
