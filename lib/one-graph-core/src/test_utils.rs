@@ -13,7 +13,11 @@ pub fn build_dir_path_and_rm_old(dir_name: &str) -> std::io::Result<String> {
     } else {
         dir = format!("{}\\{}", WIN_TEST_DIR, dir_name);
     }
-    std::fs::remove_dir_all(&dir)?;
+    let path = Path::new(&dir);
+    if path.exists() {
+        std::fs::remove_dir_all(&dir)?;
+    }
+    
     std::fs::create_dir_all(&dir)?;
     Ok(dir)
 }
