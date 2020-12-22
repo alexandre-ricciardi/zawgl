@@ -2,6 +2,12 @@
 name = "one-graph-db"
 version = "0.1.0"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+edition = "2018"
 
 [dependencies]
 one-graph-core = { path = "../lib/one-graph-core" }
+tokio-tungstenite = "*"
+tokio = { version = "0.3", features = ["full"] }
+tungstenite = "*"
+futures-util = "0.3.8"
+log = "0.4"
