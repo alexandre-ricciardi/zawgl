@@ -19,10 +19,10 @@ public class AppTest {
         App classUnderTest = new App();
 
         final Cluster cluster = Cluster.build("localhost")
-        .port(8083)
+        .port(8182)
         .maxInProcessPerConnection(32)
         .maxSimultaneousUsagePerConnection(32)
-        .serializer(Serializers.GRAPHBINARY_V1D0)
+        .serializer(Serializers.GRAPHSON_V3D0)
         .create();
         try {
             final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
