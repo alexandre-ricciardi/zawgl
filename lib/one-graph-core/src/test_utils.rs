@@ -8,7 +8,7 @@ const WIN_SEPARATOR: &str = "\\";
 
 pub fn build_dir_path_and_rm_old(dir_name: &str) -> std::io::Result<String> {
     let dir;
-    if cfg!(target_os = "linux") {
+    if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         dir = format!("{}/{}", UNIX_TEST_DIR, dir_name);
     } else {
         dir = format!("{}\\{}", WIN_TEST_DIR, dir_name);
@@ -24,14 +24,14 @@ pub fn build_dir_path_and_rm_old(dir_name: &str) -> std::io::Result<String> {
 
 pub fn build_file_path_and_rm_old(dir_name: &str, file_name: &str) -> std::io::Result<String> {
     let dir;
-    if cfg!(target_os = "linux") {
+    if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         dir = format!("{}/{}", UNIX_TEST_DIR, dir_name);
     } else {
         dir = format!("{}\\{}", WIN_TEST_DIR, dir_name);
     }
     std::fs::create_dir_all(&dir)?;
     let file;
-    if cfg!(target_os = "linux") {
+    if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         file = format!("{}/{}", &dir, file_name);
     } else {
         file = format!("{}\\{}", &dir, file_name);
