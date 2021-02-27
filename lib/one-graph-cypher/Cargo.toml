@@ -1,0 +1,14 @@
+[package]
+name = "one-graph-cypher"
+version = "0.1.0"
+authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+edition = "2018"
+
+[lib]
+name = "one_graph_cypher"
+
+[dependencies]
+one-graph-core = { path = "../one-graph-core" }
+log = "0.4"
+simple_logger = "1.11.0"
+serde_json = "1.0"
