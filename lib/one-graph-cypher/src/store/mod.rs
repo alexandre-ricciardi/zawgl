@@ -1,6 +1,7 @@
-use super::model::init::InitContext;
+use one_graph_core::model::init::InitContext;
+use one_graph_core::model::*;
 use super::cypher::query_engine::process_cypher_query;
-use super::graph_engine::GraphEngine;
+use one_graph_core::graph_engine::GraphEngine;
 use super::model::*;
 
 use bson::Document;

@@ -1,8 +1,9 @@
 use super::*;
 use super::super::model::*;
 use super::parser::*;
-use super::super::graph::traits::{GraphContainerTrait};
-use super::super::graph::*;
+use one_graph_core::graph::traits::{GraphContainerTrait};
+use one_graph_core::graph::*;
+use one_graph_core::model::*;
 
 pub fn process_cypher_query(query: &str) -> Option<Request> {
     let mut lexer = lexer::Lexer::new(query);

@@ -17,7 +17,7 @@ pub fn handle_gremlin_json_request(value: &Value) -> Option<()> {
     for expr in step_bytecode {
         for v in get_json_array(&expr)? {
             if v.as_str() == Some("V") {
-
+                
             }
         }
     }

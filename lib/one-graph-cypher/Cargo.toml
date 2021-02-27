@@ -12,3 +12,5 @@ one-graph-core = { path = "../one-graph-core" }
 log = "0.4"
 simple_logger = "1.11.0"
 serde_json = "1.0"
+serde = { version = "1.0.105", features = ["derive"] }
+bson = "1.0.0"

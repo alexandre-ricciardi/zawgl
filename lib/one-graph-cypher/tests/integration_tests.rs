@@ -1,6 +1,6 @@
 extern crate one_graph_core;
 
-use one_graph_core::core::*;
+use one_graph_cypher::store::GraphStore;
 use one_graph_core::test_utils::*;
 
 #[test]

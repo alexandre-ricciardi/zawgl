@@ -8,11 +8,8 @@ extern crate bson;
 pub mod test_utils;
 mod config;
 mod buf_config;
-mod cypher;
-mod graph;
-mod model;
+pub mod graph;
+pub mod model;
 mod repository;
 mod matcher;
-mod graph_engine;
-
-pub mod core;
+pub mod graph_engine;
