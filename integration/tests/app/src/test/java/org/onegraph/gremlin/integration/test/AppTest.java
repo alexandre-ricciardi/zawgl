@@ -3,9 +3,6 @@
  */
 package org.onegraph.gremlin.integration.test;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
-
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
@@ -13,17 +10,14 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Test;
 
 public class AppTest {
-    @Test public void testAppHasAGreeting() {
-        App classUnderTest = new App();
+    @Test 
+    public void testAppHasAGreeting() {
 
-        final Cluster cluster = Cluster.build("localhost")
-        .port(8182)
-        .maxInProcessPerConnection(32)
-        .maxSimultaneousUsagePerConnection(32)
-        .serializer(Serializers.GRAPHSON_V3D0)
-        .create();
+        final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
             List<Object> verticesWithNamePumba = g.V().has("name", "pumba").out("friendOf").id().toList();
@@ -32,6 +26,29 @@ public class AppTest {
             cluster.close();
         }
 
-        assertNotNull("app should shave a greeting", classUnderTest.getGreeting());
+    }
+
+    @Test
+    public void testCreateVertex() {
+        final Cluster cluster = createCluster();
+        try {
+            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+            Vertex v1 = g.addV("person").property("name","marko").next();
+            Vertex v2 = g.addV("person").property("name","stephen").next();
+            g.V(v1).addE("knows").to(v2).property("weight",0.75).iterate();
+            System.out.println(v1);
+        } finally {
+            cluster.close();
+        }
+    }
+
+    private Cluster createCluster() {
+        final Cluster cluster = Cluster.build("localhost")
+        .port(8182)
+        .maxInProcessPerConnection(32)
+        .maxSimultaneousUsagePerConnection(32)
+        .serializer(Serializers.GRAPHSON_V3D0)
+        .create();
+        return cluster;
     }
 }

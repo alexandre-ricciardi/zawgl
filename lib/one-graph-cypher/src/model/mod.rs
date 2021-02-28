@@ -1,5 +1,12 @@
 use super::cypher::parser::Ast;
-use one_graph_core::model::{Directive, PropertyGraph};
+use one_graph_core::model::PropertyGraph;
+
+
+pub enum Directive {
+    CREATE,
+    MATCH,
+    DELETE
+}
 
 pub struct FunctionCall {
     pub name: String,

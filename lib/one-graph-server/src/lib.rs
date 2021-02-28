@@ -1,4 +1,6 @@
 extern crate one_graph_core;
+extern crate one_graph_gremlin;
+
 extern crate log;
 
 extern crate tokio_tungstenite;
@@ -19,7 +21,8 @@ use simple_logger::SimpleLogger;
 use serde_json::Value;
 use std::result::Result;
 
-mod json_gremlin_request_handler;
+use one_graph_gremlin::gremlin_handler::handle_gremlin_json_request;
+
 mod result;
 use self::result::ServerError;
 
@@ -53,7 +56,7 @@ async fn handle_connection(peer: SocketAddr, stream: TcpStream) -> Result<(), Se
                     let text_msg = msg.to_text().map_err(ServerError::WebsocketError)?;
                     let json_msg = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json").ok_or(ServerError::HeaderError)?;
                     let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                    json_gremlin_request_handler::handle_gremlin_json_request(&v);
+                    handle_gremlin_json_request(&v);
                 }
                 // if msg.is_text() || msg.is_binary() {
                 //     ws_sender.send(msg).await.map_err(ServerError::WebsocketError)?;

@@ -52,13 +52,6 @@ impl PartialEq for PropertyValue {
 }
 impl Eq for PropertyValue {}
 
-
-pub enum Directive {
-    CREATE,
-    MATCH,
-    DELETE
-}
-
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Property {
     id: Option<u64>,

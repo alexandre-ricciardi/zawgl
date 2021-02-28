@@ -644,6 +644,7 @@ dependencies = [
  "gremlin-client",
  "log 0.4.11",
  "one-graph-core",
+ "one-graph-gremlin",
  "serde_json",
  "simple_logger",
  "tokio",
