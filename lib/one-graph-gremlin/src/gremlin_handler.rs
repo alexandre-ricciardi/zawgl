@@ -15,9 +15,17 @@ pub fn handle_gremlin_json_request(value: &Value) -> Option<()> {
     let steps = &gremlin[1];
     let step_bytecode = get_json_array(&steps["@value"]["step"])?;
     for expr in step_bytecode {
-        for v in get_json_array(&expr)? {
-            if v.as_str() == Some("V") {
+        let a_expr = get_json_array(&expr)?;
+        let first = &a_expr[0];
+        match first.as_str()? {
+            "V" => {
+
+            },
+            "addV" => {
                 
+            },
+            _ => {
+
             }
         }
     }
