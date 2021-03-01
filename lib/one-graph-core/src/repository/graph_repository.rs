@@ -137,6 +137,11 @@ impl GraphRepository {
         Some(pg)
     }
 
+    pub fn create_node(&mut self, node: &Node) -> Option<Node> {
+        let mut nr = NodeRecord::new();
+        
+    }
+
     pub fn create(&mut self, pgraph: &PropertyGraph) -> Option<PropertyGraph> {
         let mut map_nodes = HashMap::new();
         let mut node_index = 0;

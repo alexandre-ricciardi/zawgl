@@ -40,6 +40,10 @@ impl GraphEngine {
         self.repository.borrow_mut().create(graph)
     }
 
+    pub fn create_node(&mut self, node: & Node) -> Option<Node> {
+        self.repository.borrow_mut().create(pgraph)
+    }
+
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
         let mut graph_proxy = GraphProxy::new(self.repository.clone(), extract_nodes_labels(pattern));
         let mut res = Vec::new();
