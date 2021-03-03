@@ -37,11 +37,11 @@ impl GraphEngine {
     }
 
     pub fn create_graph(&mut self, graph: &PropertyGraph) -> Option<PropertyGraph> {
-        self.repository.borrow_mut().create(graph)
+        self.repository.borrow_mut().create_graph(graph)
     }
 
-    pub fn create_node(&mut self, node: & Node) -> Option<Node> {
-        self.repository.borrow_mut().create(pgraph)
+    pub fn create_node(&mut self, node: &Node) -> Option<Node> {
+        self.repository.borrow_mut().create_node(node)
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {

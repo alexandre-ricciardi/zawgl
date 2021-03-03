@@ -1,4 +1,6 @@
 use serde_json::Value;
+use one_graph_core::graph_engine::GraphEngine;
+use one_graph_core::model::init::InitContext;
 
 fn get_json_array(value: &Value) -> Option<&Vec<Value>> {
     match &value {
@@ -10,6 +12,8 @@ fn get_json_array(value: &Value) -> Option<&Vec<Value>> {
 }
 
 pub fn handle_gremlin_json_request(value: &Value) -> Option<()> {
+    let ctx = InitContext::new(dir);
+    let engine = GraphEngine::new(&ctx);
     let args = &value["args"];
     let gremlin = &args["@value"];
     let steps = &gremlin[1];

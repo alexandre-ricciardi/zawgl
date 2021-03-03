@@ -139,10 +139,17 @@ impl GraphRepository {
 
     pub fn create_node(&mut self, node: &Node) -> Option<Node> {
         let mut nr = NodeRecord::new();
-        
+        nr.next_prop_id = self.properties_repository.create_list(node.get_properties_ref())?;
+        let nid = self.nodes_store.create(&nr)?;
+        for label in node.get_labels_ref() {
+            self.nodes_labels_index.insert(label, nid);
+        }
+        let mut res = node.clone();
+        res.set_id(Some(nid));
+        Some(res)
     }
 
-    pub fn create(&mut self, pgraph: &PropertyGraph) -> Option<PropertyGraph> {
+    pub fn create_graph(&mut self, pgraph: &PropertyGraph) -> Option<PropertyGraph> {
         let mut map_nodes = HashMap::new();
         let mut node_index = 0;
         let mut node_records = Vec::new();
