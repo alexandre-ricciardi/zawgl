@@ -9,8 +9,10 @@ import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.junit.Test;
 
 public class AppTest {
@@ -41,6 +43,20 @@ public class AppTest {
             cluster.close();
         }
     }
+
+    @Test
+    public void testCreateEdge() {
+        final Cluster cluster = createCluster();
+        try {
+            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+            var v1 = g.V().has("name", P.within("marko", "vadas", "josh")).as("person").
+            V().has("name", P.within("lop", "ripple")).addE("uses").from("person").next();
+            System.out.println(v1);
+        } finally {
+            cluster.close();
+        }
+    }
+    
 
     private Cluster createCluster() {
         final Cluster cluster = Cluster.build("localhost")

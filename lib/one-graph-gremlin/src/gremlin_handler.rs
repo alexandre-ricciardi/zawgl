@@ -12,21 +12,22 @@ fn get_json_array(value: &Value) -> Option<&Vec<Value>> {
 }
 
 pub fn handle_gremlin_json_request(value: &Value) -> Option<()> {
-    let ctx = InitContext::new(dir);
-    let engine = GraphEngine::new(&ctx);
     let args = &value["args"];
     let gremlin = &args["@value"];
     let steps = &gremlin[1];
-    let step_bytecode = get_json_array(&steps["@value"]["step"])?;
-    for expr in step_bytecode {
-        let a_expr = get_json_array(&expr)?;
-        let first = &a_expr[0];
+    let bytecode = get_json_array(&steps["@value"]["step"])?;
+    for step in bytecode {
+        let elts = get_json_array(&step)?;
+        let first = &elts[0];
         match first.as_str()? {
             "V" => {
-
+                //match_v_step(elts.get(1)?);
             },
             "addV" => {
-                
+                //add_v_step(elts);
+            },
+            "property" => {
+                //property_step(elts);
             },
             _ => {
 
