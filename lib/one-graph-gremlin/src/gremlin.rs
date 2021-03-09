@@ -2,7 +2,7 @@ pub enum Step {
     AddV(AddVStep),
     V(MatchVStep),
     Has(HasPropertyStep),
-
+    Empty,
 }
 
 pub struct AddVStep {

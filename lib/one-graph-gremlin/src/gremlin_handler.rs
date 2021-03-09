@@ -21,22 +21,56 @@ pub fn handle_gremlin_json_request(value: &Value) -> Option<()> {
     for step in bytecode {
         let elts = get_json_array(&step)?;
         let first = &elts[0];
-        match first.as_str()? {
+        let gremlin_step = match first.as_str()? {
             "V" => {
-                let vid = 
-                gremlin.steps.push(Steps::MatchVStep())
-                //match_v_step(elts.get(1)?);
+                match_v(elts)?
             },
             "addV" => {
-                //add_v_step(elts);
+                add_v(elts)?
             },
-            "property" => {
-                //property_step(elts);
+            "has" => {
+                has_property(elts)?
             },
             _ => {
-
+                Step::Empty
             }
-        }
+        };
     }
     Some(())
+}
+
+fn match_v(json_step: &Vec<Value>) -> Option<Step> {
+    let vid = json_step.get(1)?.as_str()?;
+    Some(Step::V(MatchVStep{vid: String::from(vid)}))
+}
+
+fn add_v(json_step: &Vec<Value>) -> Option<Step> {
+    let label = json_step.get(1)?.as_str()?;
+    Some(Step::AddV(AddVStep{label: String::from(label)}))
+}
+
+fn has_property(json_step: &Vec<Value>) -> Option<Step> {
+    let name = json_step.get(1)?.as_str()?;
+    Some(Step::Has(HasPropertyStep{
+        property_name: String::from(name),
+        predicate: build_predicate(json_step.get(2)?)?}))
+}
+
+fn build_predicate(json_predicate: &Value) -> Option<Predicate> {
+    match json_predicate {
+        Value::String(sval) => {
+            Some(Predicate::Value(String::from(sval)))
+        },
+        Value::Object(pobj) => {
+            let p = pobj.get("@value")?.as_object()?;
+            match p.get("predicate")?.as_str()? {
+                "within" => {
+                    
+                }
+            }
+        },
+        _ => {
+            None
+        }
+    }
 }
