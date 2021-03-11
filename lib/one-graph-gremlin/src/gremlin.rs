@@ -5,6 +5,17 @@ pub enum Step {
     Empty,
 }
 
+pub enum GValue {
+    Integer(i32),
+    Long(i64),
+    String(String),
+    Boolean(bool),
+}
+
+pub struct GList {
+    pub values: Vec<GValue>,
+}
+
 pub struct AddVStep {
     pub label: String,
 }
@@ -24,7 +35,7 @@ pub enum Predicate {
 }
 
 pub struct WithinPredicate {
-    pub value: Vec<String>,
+    pub value: Vec<GValue>,
 }
 
 pub struct Gremlin {

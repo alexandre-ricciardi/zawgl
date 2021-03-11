@@ -2,6 +2,7 @@ use serde_json::Value;
 use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::init::InitContext;
 use super::gremlin::*;
+use serde_json::Map;
 
 fn get_json_array(value: &Value) -> Option<&Vec<Value>> {
     match &value {
@@ -65,12 +66,47 @@ fn build_predicate(json_predicate: &Value) -> Option<Predicate> {
             let p = pobj.get("@value")?.as_object()?;
             match p.get("predicate")?.as_str()? {
                 "within" => {
-                    
-                }
+                    let pvalue = p.get("value")?;
+                    match pvalue {
+                        Value::Object(plist) => {
+                            None
+                        },
+                        _ => None
+                    }
+                },
+                _ => None
             }
+            None
         },
         _ => {
             None
         }
+    }
+}
+
+fn build_gremlin_list(json: &Value) -> Option<GList> {
+    let obj_type = json.get("@type")?.as_str()?;
+    if obj_type == "g:List" {
+        let mut list = GList{values: Vec::new()};
+        let array = json.get("@value")?.as_array()?;
+        for elt in array {
+            match elt {
+                Value::Object(item) => {
+                    list.values.push(build_gremlin_value(item)?);
+                },
+                _ => {}
+            }
+        }
+        Some(list)
+    } else {
+        None
+    }
+}
+
+fn build_gremlin_value(obj: &Map<String, Value>) -> Option<GValue> {
+    let val = obj.get("@value")?;
+    match obj.get("@type")?.as_str()? {
+        "g:Int32" => Some(GValue::Long(val.as_i64()?)),
+        _ => None
     }
 }
