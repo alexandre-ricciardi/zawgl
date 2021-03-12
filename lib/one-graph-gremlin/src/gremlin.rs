@@ -2,6 +2,7 @@ pub enum Step {
     AddV(String),
     V(Option<GValue>),
     Has(String, Predicate),
+    AddE
     Empty,
 }
 
