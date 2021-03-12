@@ -21,7 +21,7 @@ use simple_logger::SimpleLogger;
 use serde_json::Value;
 use std::result::Result;
 
-use one_graph_gremlin::gremlin_handler::handle_gremlin_json_request;
+use one_graph_gremlin::json_gremlin_handler::handle_gremlin_json_request;
 
 mod result;
 use self::result::ServerError;

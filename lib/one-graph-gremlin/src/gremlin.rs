@@ -1,41 +1,25 @@
 pub enum Step {
-    AddV(AddVStep),
-    V(MatchVStep),
-    Has(HasPropertyStep),
+    AddV(String),
+    V(Option<GValue>),
+    Has(String, Predicate),
     Empty,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum GValue {
-    Integer(i32),
-    Long(i64),
+    Integer(i64),
     String(String),
     Boolean(bool),
 }
-
+#[derive(Debug, PartialEq)]
 pub struct GList {
     pub values: Vec<GValue>,
 }
 
-pub struct AddVStep {
-    pub label: String,
-}
-
-pub struct MatchVStep {
-    pub vid: String,
-}
-
-pub struct HasPropertyStep {
-    pub property_name: String,
-    pub predicate: Predicate,
-}
-
+#[derive(Debug, PartialEq)]
 pub enum Predicate {
-    Value(String),
-    Within(WithinPredicate),
-}
-
-pub struct WithinPredicate {
-    pub value: Vec<GValue>,
+    Value(GValue),
+    Within(GList),
 }
 
 pub struct Gremlin {

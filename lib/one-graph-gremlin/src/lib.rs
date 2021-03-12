@@ -1,2 +1,2 @@
 mod gremlin;
-pub mod gremlin_handler;
+pub mod json_gremlin_handler;
