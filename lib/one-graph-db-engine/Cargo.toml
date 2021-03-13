@@ -1,0 +1,14 @@
+[package]
+name = "one-graph-db-engine"
+version = "0.1.0"
+authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+edition = "2018"
+
+[lib]
+name = "one_graph_db_engine"
+
+[dependencies]
+log = "0.4"
+simple_logger = "1.11.0"
+one-graph-core = { path = "../one-graph-core" }
+one-graph-gremlin = { path = "../one-graph-gremlin" }

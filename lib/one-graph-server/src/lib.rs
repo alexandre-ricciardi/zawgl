@@ -1,4 +1,3 @@
-extern crate one_graph_core;
 extern crate one_graph_gremlin;
 
 extern crate log;

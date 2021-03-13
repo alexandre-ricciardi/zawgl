@@ -343,6 +343,6 @@ mod test_gremlin_json {
         "#;
         let value: Value = serde_json::from_str(json).expect("json gremlin request");
         let g = parse_gremlin_json_request(&value).expect("gremlin request");
-
+        assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.request_id);
     }
 }

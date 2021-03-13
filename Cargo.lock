@@ -627,6 +627,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "one-graph-db-engine"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "one-graph-core",
+ "one-graph-gremlin",
+ "simple_logger",
+]
+
+[[package]]
 name = "one-graph-gremlin"
 version = "0.1.0"
 dependencies = [
@@ -642,7 +652,7 @@ dependencies = [
  "futures-util",
  "gremlin-client",
  "log 0.4.11",
- "one-graph-core",
+ "one-graph-db-engine",
  "one-graph-gremlin",
  "serde_json",
  "simple_logger",
