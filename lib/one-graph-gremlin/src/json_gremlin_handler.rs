@@ -35,7 +35,7 @@ pub fn handle_gremlin_json_request(value: &Value) -> Option<()> {
     Some(())
 }
 
-fn add_e(json: &Vec<Value>) -> Option<Step> {
+fn add_e(json_step: &Vec<Value>) -> Option<Step> {
     let label = json_step.get(1)?.as_str()?;
     Some(Step::AddE(String::from(label)))
 }
@@ -190,6 +190,46 @@ mod test_gremlin_json {
             },
             _ => {
                 assert!(false)
+            }
+        }
+    }
+
+    #[test]
+    fn test_build_has_str_predicate() {
+        let json = r#"
+            [
+                "has",
+                "name",
+                {
+                    "@type": "g:P",
+                    "@value": {
+                        "predicate": "within",
+                        "value": {
+                            "@type": "g:List",
+                            "@value": [
+                            "lop",
+                            "ripple"
+                            ]
+                        }
+                    }
+                }
+            ]"#;
+        let value: Value = serde_json::from_str(json).expect("json has predicate");
+        let has = has_property(value.as_array().expect("step list")).expect("has prop");
+        match &has {
+            Step::Has(prop_name, predicate) => {
+                assert_eq!("name", prop_name);
+                match predicate {
+                    Predicate::Within(list) => {
+                        assert_eq!(GValue::String(String::from("ripple")), list.values[1]);
+                    },
+                    _ => {
+                        assert!(false);
+                    }
+                }
+            },
+            _ => {
+                assert!(false);
             }
         }
     }
