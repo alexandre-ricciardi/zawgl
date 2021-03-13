@@ -49,8 +49,8 @@ public class AppTest {
         final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
-            var v1 = g.V().has("name", P.within(1, 2, 3)).as("person").
-            V().has("name", P.within("lop", "ripple")).addE("uses").from("person").next();
+            var v1 = g.V().has("name", P.within("marko", "stephen")).as("person").
+            V().has("name", P.within("stephen")).addE("uses").from("person").next();
             System.out.println(v1);
         } finally {
             cluster.close();
