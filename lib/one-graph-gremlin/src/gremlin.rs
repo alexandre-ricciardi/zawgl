@@ -3,6 +3,8 @@ pub enum Step {
     V(Option<GValue>),
     Has(String, Predicate),
     AddE(String),
+    As(String),
+    From(String),
     Empty,
 }
 
@@ -24,5 +26,6 @@ pub enum Predicate {
 }
 
 pub struct Gremlin {
+    pub request_id: String,
     pub steps: Vec<Step>,
 }

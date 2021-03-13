@@ -20,10 +20,10 @@ use tokio_tungstenite::{accept_async, tungstenite::Error};
 use simple_logger::SimpleLogger;
 use serde_json::Value;
 use std::result::Result;
-
-use one_graph_gremlin::json_gremlin_handler::handle_gremlin_json_request;
-
+use self::json_gremlin_request_handler::*;
 mod result;
+mod json_gremlin_request_handler;
+
 use self::result::ServerError;
 
 

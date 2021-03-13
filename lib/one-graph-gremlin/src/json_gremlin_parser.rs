@@ -1,15 +1,14 @@
 use serde_json::Value;
-use one_graph_core::graph_engine::GraphEngine;
-use one_graph_core::model::init::InitContext;
 use super::gremlin::*;
 use serde_json::Map;
 
-pub fn handle_gremlin_json_request(value: &Value) -> Option<()> {
+pub fn parse_gremlin_json_request(value: &Value) -> Option<Gremlin> {
     let args = &value["args"];
+    let req_id = value.get("requestId")?.as_str()?;
     let gremlin = &args["@value"];
     let steps = &gremlin[1];
     let bytecode = steps["@value"]["step"].as_array()?;
-    let mut gremlin = Gremlin{steps: Vec::new()};
+    let mut gremlin = Gremlin{request_id: String::from(req_id), steps: Vec::new()};
     for step in bytecode {
         let elts = step.as_array()?;
         let first = &elts[0];
@@ -26,13 +25,29 @@ pub fn handle_gremlin_json_request(value: &Value) -> Option<()> {
             "addE" => {
                 add_e(elts)?
             },
+            "as" => {
+                as_step(elts)?
+            },
+            "from" => {
+                from_step(elts)?
+            }
             _ => {
                 Step::Empty
             }
         };
         gremlin.steps.push(gremlin_step);
     }
-    Some(())
+    Some(gremlin)
+}
+
+fn from_step(json_step: &Vec<Value>) -> Option<Step> {
+    let var = json_step.get(1)?.as_str()?;
+    Some(Step::From(String::from(var)))
+}
+
+fn as_step(json_step: &Vec<Value>) -> Option<Step> {
+    let var = json_step.get(1)?.as_str()?;
+    Some(Step::As(String::from(var)))
 }
 
 fn add_e(json_step: &Vec<Value>) -> Option<Step> {
@@ -232,5 +247,102 @@ mod test_gremlin_json {
                 assert!(false);
             }
         }
+    }
+
+    #[test]
+    fn test_parse_gremlin_request() {
+        let json = r#"
+        {
+            "requestId": "9bacba37-9dea-4be3-8fa4-9db886a7de0e",
+            "op": "bytecode",
+            "processor": "traversal",
+            "args": {
+              "@type": "g:Map",
+              "@value": [
+                "gremlin",
+                {
+                  "@type": "g:Bytecode",
+                  "@value": {
+                    "step": [
+                      [
+                        "V"
+                      ],
+                      [
+                        "has",
+                        "name",
+                        {
+                          "@type": "g:P",
+                          "@value": {
+                            "predicate": "within",
+                            "value": {
+                              "@type": "g:List",
+                              "@value": [
+                                {
+                                  "@type": "g:Int32",
+                                  "@value": 1
+                                },
+                                {
+                                  "@type": "g:Int32",
+                                  "@value": 2
+                                },
+                                {
+                                  "@type": "g:Int32",
+                                  "@value": 3
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      [
+                        "as",
+                        "person"
+                      ],
+                      [
+                        "V"
+                      ],
+                      [
+                        "has",
+                        "name",
+                        {
+                          "@type": "g:P",
+                          "@value": {
+                            "predicate": "within",
+                            "value": {
+                              "@type": "g:List",
+                              "@value": [
+                                "lop",
+                                "ripple"
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      [
+                        "addE",
+                        "uses"
+                      ],
+                      [
+                        "from",
+                        "person"
+                      ]
+                    ]
+                  }
+                },
+                "aliases",
+                {
+                  "@type": "g:Map",
+                  "@value": [
+                    "g",
+                    "g"
+                  ]
+                }
+              ]
+            }
+        }
+        "#;
+        let value: Value = serde_json::from_str(json).expect("json gremlin request");
+        let g = parse_gremlin_json_request(&value).expect("gremlin request");
+
     }
 }
