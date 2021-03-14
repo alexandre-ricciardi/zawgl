@@ -35,6 +35,7 @@ async fn accept_connection(peer: SocketAddr, stream: TcpStream) {
             },
             ServerError::ParsingError(err_msg) => error!("Parsing error: {}", err_msg),
             ServerError::HeaderError => error!("wrong header"),
+            ServerError::GremlinError => error!("parsing gremlin request"),
         }
         
     }
@@ -55,7 +56,7 @@ async fn handle_connection(peer: SocketAddr, stream: TcpStream) -> Result<(), Se
                     let text_msg = msg.to_text().map_err(ServerError::WebsocketError)?;
                     let json_msg = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json").ok_or(ServerError::HeaderError)?;
                     let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                    let reply = handle_gremlin_json_request(&v)?;
+                    let reply = handle_gremlin_json_request(&v).ok_or(ServerError::GremlinError)?;
                     ws_sender.send(msg).await.map_err(ServerError::WebsocketError)?;
                 }
                 // if msg.is_text() || msg.is_binary() {

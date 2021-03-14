@@ -2,13 +2,13 @@ use serde_json::Value;
 use super::gremlin::*;
 use serde_json::Map;
 
-pub fn parse_gremlin_json_request(value: &Value) -> Option<Gremlin> {
+pub fn parse_gremlin_json_request(value: &Value) -> Option<GremlinRequest> {
     let args = &value["args"];
     let req_id = value.get("requestId")?.as_str()?;
     let gremlin = &args["@value"];
     let steps = &gremlin[1];
     let bytecode = steps["@value"]["step"].as_array()?;
-    let mut gremlin = Gremlin{request_id: String::from(req_id), steps: Vec::new()};
+    let mut gremlin = GremlinRequest{request_id: String::from(req_id), steps: Vec::new()};
     for step in bytecode {
         let elts = step.as_array()?;
         let first = &elts[0];

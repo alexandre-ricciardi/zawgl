@@ -25,7 +25,11 @@ pub enum Predicate {
     Within(GList),
 }
 
-pub struct Gremlin {
+pub struct GremlinRequest {
     pub request_id: String,
     pub steps: Vec<Step>,
+}
+
+pub struct GremlinResponse {
+    pub request_id: String,
 }

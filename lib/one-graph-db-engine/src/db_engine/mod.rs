@@ -5,7 +5,7 @@ pub struct GraphDatabaseEngine {
 }
 
 impl GraphDatabaseEngine {
-    fn handle_gremlin_request(gremlin: Gremlin) -> Option<Gremlin> {
+    fn handle_gremlin_request(gremlin: &GremlinRequest) -> Option<GremlinResponse> {
         None
     }
 }
