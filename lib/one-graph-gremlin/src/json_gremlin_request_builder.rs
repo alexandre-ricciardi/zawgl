@@ -2,7 +2,7 @@ use serde_json::Value;
 use super::gremlin::*;
 use serde_json::Map;
 
-pub fn parse_gremlin_json_request(value: &Value) -> Option<GremlinRequest> {
+pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> {
     let args = &value["args"];
     let req_id = value.get("requestId")?.as_str()?;
     let gremlin = &args["@value"];
@@ -118,8 +118,9 @@ fn build_gremlin_list(json: &Value) -> Option<GList> {
 fn build_gremlin_value(obj: &Map<String, Value>) -> Option<GValue> {
     let val = obj.get("@value")?;
     match obj.get("@type")?.as_str()? {
-        "g:Int32" => Some(GValue::Integer(val.as_i64()?)),
-        _ => None
+      "g:Int32" => Some(GValue::Integer(GInteger::I32(val.as_i64()?))),
+      "g:Int64" => Some(GValue::Integer(GInteger::I64(val.as_i64()?))),
+      _ => None
     }
 }
 
@@ -151,7 +152,7 @@ mod test_gremlin_json {
         "#;
         let value: Value = serde_json::from_str(json).expect("json g list");
         let glist = build_gremlin_list(&value).expect("glist");
-        assert_eq!(GValue::Integer(1), glist.values[0]);
+        assert_eq!(GValue::I32(1), glist.values[0]);
     }
 
     #[test]
@@ -201,7 +202,7 @@ mod test_gremlin_json {
         let predicate = build_predicate(&value).expect("predicate");
         match &predicate {
             Predicate::Within(l) => {
-                assert_eq!(GValue::Integer(2), l.values[1]);
+                assert_eq!(GValue::I32(2), l.values[1]);
             },
             _ => {
                 assert!(false)
@@ -342,7 +343,7 @@ mod test_gremlin_json {
         }
         "#;
         let value: Value = serde_json::from_str(json).expect("json gremlin request");
-        let g = parse_gremlin_json_request(&value).expect("gremlin request");
+        let g = build_gremlin_request_from_json(&value).expect("gremlin request");
         assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.request_id);
     }
 }
