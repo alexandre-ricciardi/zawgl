@@ -93,7 +93,7 @@ fn build_within_predicate(json: &Map<String, Value>) -> Option<Predicate> {
     Some(Predicate::Within(build_gremlin_list(json.get("value")?)?))
 }
 
-fn build_gremlin_list(json: &Value) -> Option<GList> {
+fn build_gremlin_list(json: &Value) -> Option<GList<GValue>> {
     let obj_type = json.get("@type")?.as_str()?;
     if obj_type == "g:List" {
         let mut list = GList{values: Vec::new()};
@@ -152,7 +152,7 @@ mod test_gremlin_json {
         "#;
         let value: Value = serde_json::from_str(json).expect("json g list");
         let glist = build_gremlin_list(&value).expect("glist");
-        assert_eq!(GValue::I32(1), glist.values[0]);
+        assert_eq!(GValue::Integer(GInteger::I32(1)), glist.values[0]);
     }
 
     #[test]
@@ -202,7 +202,7 @@ mod test_gremlin_json {
         let predicate = build_predicate(&value).expect("predicate");
         match &predicate {
             Predicate::Within(l) => {
-                assert_eq!(GValue::I32(2), l.values[1]);
+                assert_eq!(GValue::Integer(GInteger::I32(2)), l.values[1]);
             },
             _ => {
                 assert!(false)

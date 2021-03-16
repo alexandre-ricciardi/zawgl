@@ -22,23 +22,23 @@ pub enum GInteger {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct GList {
-    pub values: Vec<GValue>,
+pub struct GList<T> {
+    pub values: Vec<T>,
 }
 
 pub struct GEdge {
-    pub id: GValue,
+    pub id: i64,
     pub label: String,
     pub in_v_label: String,
     pub out_v_abel: String,
-    pub in_v: GValue,
-    pub out_v: GValue,
+    pub in_v: i64,
+    pub out_v: i64,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Predicate {
     Value(GValue),
-    Within(GList),
+    Within(GList<GValue>),
 }
 
 pub struct GremlinRequest {
@@ -54,4 +54,19 @@ pub struct GremlinResponse {
 pub struct Status {
     pub message: String,
     pub code: i32,
+}
+
+pub struct GTraverser {
+    bulk: i64,
+    value: GItem,
+}
+
+pub struct GVertex {
+    id: i64,
+    label: String,
+}
+
+pub enum GItem {
+    Vertex(GVertex),
+    Edge(GEdge),
 }
