@@ -1,3 +1,6 @@
+use serde_json::Value;
+use serde_json::json;
+
 pub enum Step {
     AddV(String),
     V(Option<GValue>),
@@ -20,6 +23,22 @@ pub enum GInteger {
     I64(i64),
     I32(i64),
 }
+
+#[derive(Debug, PartialEq)]
+pub struct GI64(i64);
+
+impl GI64 {
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "@type": "g:Int64",
+            "@value": self.0,
+        })
+    }
+}
+#[derive(Debug, PartialEq)]
+pub struct GI32(i64);
+
+
 
 #[derive(Debug, PartialEq)]
 pub struct GList<T> {
@@ -62,11 +81,23 @@ pub struct GTraverser {
 }
 
 pub struct GVertex {
-    id: i64,
+    id: GI64,
     label: String,
 }
 
 pub enum GItem {
     Vertex(GVertex),
     Edge(GEdge),
+}
+
+impl GVertex {
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "@type": "g:Vertex",
+            "@value": {
+                "id": self.id.to_json(),
+                "label": self.label,
+            }
+        })
+    }
 }

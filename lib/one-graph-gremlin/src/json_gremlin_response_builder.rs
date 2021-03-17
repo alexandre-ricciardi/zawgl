@@ -14,8 +14,6 @@ pub fn build_json_gremlin_response(gremlin: &GremlinResponse) -> Option<Value> {
             "meta": null
         }
     });
-
     
-    //json_res["result"]["data"] = 
     Some(json_res)
 }
