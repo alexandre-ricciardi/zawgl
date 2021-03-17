@@ -1,5 +1,11 @@
+use std::collections::HashMap;
+
 use serde_json::Value;
 use serde_json::json;
+
+pub trait ToJson {
+    fn to_json(&self) -> serde_json::Value;
+}
 
 pub enum Step {
     AddV(String),
@@ -20,14 +26,14 @@ pub enum GValue {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum GInteger {
-    I64(i64),
-    I32(i32),
+    I64(GInt64),
+    I32(GI32),
 }
 
 #[derive(Debug, PartialEq)]
-pub struct GI64(i64);
+pub struct GInt64(i64);
 
-impl GI64 {
+impl GInt64 {
     fn to_json(&self) -> serde_json::Value {
         json!({
             "@type": "g:Int64",
@@ -41,8 +47,12 @@ pub struct GI32(i64);
 
 
 #[derive(Debug, PartialEq)]
-pub struct GList<T> {
+pub struct GList<T: ToJson> {
     pub values: Vec<T>,
+}
+
+impl <T: ToJson> ToJson for GList<T> {
+
 }
 
 pub struct GEdge {
@@ -68,26 +78,70 @@ pub struct GremlinRequest {
 pub struct GremlinResponse {
     pub request_id: String,
     pub status: Status,
+    result: GResult,
+}
+
+impl ToJson for GremlinResponse {
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "requestId": self.request_id,
+            "status": self.status.to_json(),
+            "result": self.result.to_json(),
+        })
+    }
 }
 
 pub struct Status {
     pub message: String,
     pub code: i32,
+    attributes: GMap,
+}
+
+impl Status {
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "message": self.message,
+            "code": self.code,
+            "attributes": self.attributes.to_json(),
+        })
+    }
 }
 
 pub struct GTraverser {
-    bulk: i64,
+    bulk: GInt64,
     value: GItem,
 }
 
+impl ToJson for GTraverser {
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "bulk": self.bulk.to_json(),
+            "value": self.value.to_json(),
+        })
+    }
+}
+
 pub struct GVertex {
-    id: GI64,
+    id: GInt64,
     label: String,
 }
 
 pub enum GItem {
     Vertex(GVertex),
     Edge(GEdge),
+}
+
+impl ToJson for GItem {
+    fn to_json(&self) -> serde_json::Value {
+        match self {
+            GItem::Vertex(v) => {
+                v.to_json()
+            },
+            GItem::Edge(e) => {
+                e.to_json()
+            }
+        }
+    }
 }
 
 impl GVertex {
@@ -99,5 +153,31 @@ impl GVertex {
                 "label": self.label,
             }
         })
+    }
+}
+
+pub struct GMap {
+    map: HashMap<String, String>,
+}
+
+impl GMap {
+    fn to_json(&self) -> serde_json::Value {
+        let mut res = Vec::new();
+        for e in self.map {
+            res.push(e.0);
+            res.push(e.1);
+        }
+        json!(res)
+    }
+}
+
+pub struct GResult {
+    data: GList<GTraverser>,
+    meta: GMap,
+}
+
+impl GResult {
+    fn to_json(&self) -> serde_json::Value {
+    
     }
 }

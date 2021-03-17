@@ -118,7 +118,7 @@ fn build_gremlin_list(json: &Value) -> Option<GList<GValue>> {
 fn build_gremlin_value(obj: &Map<String, Value>) -> Option<GValue> {
     let val = obj.get("@value")?;
     match obj.get("@type")?.as_str()? {
-      "g:Int32" => Some(GValue::Integer(GInteger::I32(val.as_i64()?))),
+      "g:Int32" => Some(GValue::Integer(GInteger::I32(val.as_i64()? as i32))),
       "g:Int64" => Some(GValue::Integer(GInteger::I64(val.as_i64()?))),
       _ => None
     }
@@ -127,7 +127,7 @@ fn build_gremlin_value(obj: &Map<String, Value>) -> Option<GValue> {
 fn build_gremlin_integer(obj: &Map<String, Value>) -> Option<GInteger> {
   let val = obj.get("@value")?;
   match obj.get("@type")?.as_str()? {
-    "g:Int32" => Some(GInteger::I32(val.as_i64()?)),
+    "g:Int32" => Some(GInteger::I32(val.as_i64()? as i32)),
     "g:Int64" => Some(GInteger::I64(val.as_i64()?)),
     _ => None
   }
