@@ -8,17 +8,17 @@ pub enum Step {
     Empty,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum GValue {
     Integer(GInteger),
     String(String),
     Bool(bool),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum GInteger {
     I64(i64),
-    I32(i64),
+    I32(i32),
 }
 
 #[derive(Debug, PartialEq)]
