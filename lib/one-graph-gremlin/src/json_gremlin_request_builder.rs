@@ -1,6 +1,6 @@
-use serde_json::Value;
 use super::gremlin::*;
 use serde_json::Map;
+use serde_json::Value;
 
 pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> {
     let args = &value["args"];
@@ -32,7 +32,7 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> 
                 from_step(elts)?
             }
             _ => {
-                Step::Empty
+                GStep::Empty
             }
         };
         gremlin.steps.push(gremlin_step);
@@ -40,33 +40,33 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> 
     Some(gremlin)
 }
 
-fn from_step(json_step: &Vec<Value>) -> Option<Step> {
+fn from_step(json_step: &Vec<Value>) -> Option<GStep> {
     let var = json_step.get(1)?.as_str()?;
-    Some(Step::From(String::from(var)))
+    Some(GStep::From(String::from(var)))
 }
 
-fn as_step(json_step: &Vec<Value>) -> Option<Step> {
+fn as_step(json_step: &Vec<Value>) -> Option<GStep> {
     let var = json_step.get(1)?.as_str()?;
-    Some(Step::As(String::from(var)))
+    Some(GStep::As(String::from(var)))
 }
 
-fn add_e(json_step: &Vec<Value>) -> Option<Step> {
+fn add_e(json_step: &Vec<Value>) -> Option<GStep> {
     let label = json_step.get(1)?.as_str()?;
-    Some(Step::AddE(String::from(label)))
+    Some(GStep::AddE(String::from(label)))
 }
 
-fn match_v(json_step: &Vec<Value>) -> Option<Step> {
-    json_step.get(1).map(|v| Step::V(v.as_str().map(|sval| GValue::String(String::from(sval))))).or(Some(Step::V(None)))
+fn match_v(json_step: &Vec<Value>) -> Option<GStep> {
+    json_step.get(1).map(|v| GStep::V(v.as_str().map(|sval| GValue::String(String::from(sval))))).or(Some(GStep::V(None)))
 }
 
-fn add_v(json_step: &Vec<Value>) -> Option<Step> {
+fn add_v(json_step: &Vec<Value>) -> Option<GStep> {
     let label = json_step.get(1)?.as_str()?;
-    Some(Step::AddV(String::from(label)))
+    Some(GStep::AddV(String::from(label)))
 }
 
-fn has_property(json_step: &Vec<Value>) -> Option<Step> {
+fn has_property(json_step: &Vec<Value>) -> Option<GStep> {
     let name = json_step.get(1)?.as_str()?;
-    Some(Step::Has(String::from(name), build_predicate(json_step.get(2)?)?))
+    Some(GStep::Has(String::from(name), build_predicate(json_step.get(2)?)?))
 }
 
 fn build_predicate(json_predicate: &Value) -> Option<Predicate> {
@@ -118,8 +118,8 @@ fn build_gremlin_list(json: &Value) -> Option<GList<GValue>> {
 fn build_gremlin_value(obj: &Map<String, Value>) -> Option<GValue> {
     let val = obj.get("@value")?;
     match obj.get("@type")?.as_str()? {
-      "g:Int32" => Some(GValue::Integer(GInteger::I32(val.as_i64()? as i32))),
-      "g:Int64" => Some(GValue::Integer(GInteger::I64(val.as_i64()?))),
+      "g:Int32" => Some(GValue::Integer(GInteger::I32(GInt32(val.as_i64()? as i32)))),
+      "g:Int64" => Some(GValue::Integer(GInteger::I64(GInt64(val.as_i64()?)))),
       _ => None
     }
 }
@@ -127,8 +127,8 @@ fn build_gremlin_value(obj: &Map<String, Value>) -> Option<GValue> {
 fn build_gremlin_integer(obj: &Map<String, Value>) -> Option<GInteger> {
   let val = obj.get("@value")?;
   match obj.get("@type")?.as_str()? {
-    "g:Int32" => Some(GInteger::I32(val.as_i64()? as i32)),
-    "g:Int64" => Some(GInteger::I64(val.as_i64()?)),
+    "g:Int32" => Some(GInteger::I32(GInt32(val.as_i64()? as i32))),
+    "g:Int64" => Some(GInteger::I64(GInt64(val.as_i64()?))),
     _ => None
   }
 }
@@ -161,7 +161,7 @@ mod test_gremlin_json {
         "#;
         let value: Value = serde_json::from_str(json).expect("json g list");
         let glist = build_gremlin_list(&value).expect("glist");
-        assert_eq!(GValue::Integer(GInteger::I32(1)), glist.values[0]);
+        assert_eq!(GValue::Integer(GInteger::I32(GInt32(1))), glist.values[0]);
     }
 
     #[test]
@@ -211,7 +211,7 @@ mod test_gremlin_json {
         let predicate = build_predicate(&value).expect("predicate");
         match &predicate {
             Predicate::Within(l) => {
-                assert_eq!(GValue::Integer(GInteger::I32(2)), l.values[1]);
+                assert_eq!(GValue::Integer(GInteger::I32(GInt32(2))), l.values[1]);
             },
             _ => {
                 assert!(false)
@@ -242,7 +242,7 @@ mod test_gremlin_json {
         let value: Value = serde_json::from_str(json).expect("json has predicate");
         let has = has_property(value.as_array().expect("step list")).expect("has prop");
         match &has {
-            Step::Has(prop_name, predicate) => {
+            GStep::Has(prop_name, predicate) => {
                 assert_eq!("name", prop_name);
                 match predicate {
                     Predicate::Within(list) => {

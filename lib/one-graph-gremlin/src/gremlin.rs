@@ -7,7 +7,7 @@ pub trait ToJson {
     fn to_json(&self) -> serde_json::Value;
 }
 
-pub enum Step {
+pub enum GStep {
     AddV(String),
     V(Option<GValue>),
     Has(String, Predicate),
@@ -24,14 +24,43 @@ pub enum GValue {
     Bool(bool),
 }
 
+impl ToJson for GValue {
+    fn to_json(&self) -> serde_json::Value {
+        match self {
+            GValue::Integer(v) => {
+                v.to_json()
+            },
+            GValue::String(v) => {
+                json!(v)
+            },
+            GValue::Bool(v) => {
+                json!(v)
+            }
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum GInteger {
     I64(GInt64),
-    I32(GI32),
+    I32(GInt32),
 }
 
-#[derive(Debug, PartialEq)]
-pub struct GInt64(i64);
+impl ToJson for GInteger {
+    fn to_json(&self) -> serde_json::Value {
+        match self {
+            GInteger::I64(v) => {
+                v.to_json()
+            },
+            GInteger::I32(v) => {
+                v.to_json()
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct GInt64(pub i64);
 
 impl GInt64 {
     fn to_json(&self) -> serde_json::Value {
@@ -41,9 +70,17 @@ impl GInt64 {
         })
     }
 }
-#[derive(Debug, PartialEq)]
-pub struct GI32(i64);
+#[derive(Debug, PartialEq, Eq)]
+pub struct GInt32(pub i32);
 
+impl GInt32 {
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "@type": "g:Int32",
+            "@value": self.0,
+        })
+    }
+}
 
 
 #[derive(Debug, PartialEq)]
@@ -52,16 +89,35 @@ pub struct GList<T: ToJson> {
 }
 
 impl <T: ToJson> ToJson for GList<T> {
-
+    fn to_json(&self) -> serde_json::Value {
+        let mut array = Vec::new();
+        for e in &self.values {
+            array.push(e.to_json());
+        }
+        json!(array)
+    }
 }
 
 pub struct GEdge {
-    pub id: i64,
+    pub id: GInt64,
     pub label: String,
     pub in_v_label: String,
     pub out_v_abel: String,
-    pub in_v: i64,
-    pub out_v: i64,
+    pub in_v: GInt64,
+    pub out_v: GInt64,
+}
+
+impl ToJson for GEdge {
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "id": self.id.to_json(),
+            "label": self.label,
+            "inVLabel": self.in_v_label,
+            "outVLabel": self.out_v_abel,
+            "inV": self.in_v.to_json(),
+            "outV": self.out_v.to_json()
+        })
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -72,13 +128,13 @@ pub enum Predicate {
 
 pub struct GremlinRequest {
     pub request_id: String,
-    pub steps: Vec<Step>,
+    pub steps: Vec<GStep>,
 }
 
 pub struct GremlinResponse {
     pub request_id: String,
-    pub status: Status,
-    result: GResult,
+    pub status: GStatus,
+    pub result: GResult,
 }
 
 impl ToJson for GremlinResponse {
@@ -91,13 +147,13 @@ impl ToJson for GremlinResponse {
     }
 }
 
-pub struct Status {
+pub struct GStatus {
     pub message: String,
     pub code: i32,
-    attributes: GMap,
+    pub attributes: GMap,
 }
 
-impl Status {
+impl GStatus {
     fn to_json(&self) -> serde_json::Value {
         json!({
             "message": self.message,
@@ -108,8 +164,8 @@ impl Status {
 }
 
 pub struct GTraverser {
-    bulk: GInt64,
-    value: GItem,
+    pub bulk: GInt64,
+    pub value: GItem,
 }
 
 impl ToJson for GTraverser {
@@ -122,8 +178,8 @@ impl ToJson for GTraverser {
 }
 
 pub struct GVertex {
-    id: GInt64,
-    label: String,
+    pub id: GInt64,
+    pub label: String,
 }
 
 pub enum GItem {
@@ -157,13 +213,13 @@ impl GVertex {
 }
 
 pub struct GMap {
-    map: HashMap<String, String>,
+    pub map: HashMap<String, String>,
 }
 
 impl GMap {
     fn to_json(&self) -> serde_json::Value {
         let mut res = Vec::new();
-        for e in self.map {
+        for e in &self.map {
             res.push(e.0);
             res.push(e.1);
         }
@@ -172,12 +228,15 @@ impl GMap {
 }
 
 pub struct GResult {
-    data: GList<GTraverser>,
-    meta: GMap,
+    pub data: GList<GTraverser>,
+    pub meta: GMap,
 }
 
 impl GResult {
     fn to_json(&self) -> serde_json::Value {
-    
+        json!({
+            "data": self.data.to_json(),
+            "meta": self.meta.to_json()
+        })
     }
 }
