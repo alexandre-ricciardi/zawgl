@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use std::convert::TryFrom;
 use serde_json::Value;
 use serde_json::json;
 
@@ -35,6 +35,31 @@ impl ToJson for GValue {
             },
             GValue::Bool(v) => {
                 json!(v)
+            }
+        }
+    }
+}
+
+impl TryFrom<GValue> for u64 {
+    type Error = &'static str;
+
+    fn try_from(value: GValue) -> Result<Self, Self::Error> {
+        match &value {
+            GValue::Integer(v) => {
+                match v {
+                    GInteger::I32(ivalue) => {
+                        Ok(ivalue.0 as u64)
+                    },
+                    GInteger::I64(ivalue) => {
+                        u64::try_from(ivalue.0).map_err(|_| "Error casting to unsigned integer")
+                    }
+                }
+            },
+            GValue::String(sv) => {
+                sv.parse().map_err(|_| "Error parsing integer")
+            }
+            _ => {
+                Err("Cannot parse GValue as Integer")
             }
         }
     }
