@@ -14,9 +14,9 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - name: Build integration tests
-      with:
-        java-version: 11
       run: |
           target/debug/one-graph-db
           cd integration/tests
           gradle check
+      with:
+        java-version: 11
