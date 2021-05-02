@@ -13,3 +13,7 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+    - name: Build integration tests
+      run: |
+          cd integration/tests
+          gradle test
