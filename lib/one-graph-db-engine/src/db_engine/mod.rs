@@ -1,30 +1,28 @@
 use one_graph_gremlin::gremlin::*;
-use one_graph_core::model::*;
+use one_graph_core::model::init::InitContext;
 
-use self::gremlin_state::StateContext;
+use self::gremlin_state::*;
 
 pub mod gremlin_state;
+mod match_out_edge_state;
 
-pub struct GraphDatabaseEngine {
-    
+
+
+pub struct GraphDatabaseEngine<'a> {
+    conf: InitContext<'a>,
 }
 
-impl GraphDatabaseEngine {
-    fn handle_gremlin_request(gremlin: &GremlinRequest) -> Option<GremlinResponse> {
-        let mut pattern = PropertyGraph::new();
-        let mut gremlin_state = StateContext::new();
+impl <'a> GraphDatabaseEngine<'a> {
+    pub fn new(ctx: InitContext<'a>) -> Self {
+        GraphDatabaseEngine{conf: ctx}
+    }
+
+    pub fn handle_gremlin_request(&mut self, gremlin: &GremlinRequest) -> Option<GremlinResponse> {
+        let mut gremlin_state = GremlinStateMachine::new();
         for step in &gremlin.steps {
             match step {
                 GStep::V(id) => {
-                    match id {
-                        Some(val) => {
-                            let n = Node::new();
-                            
-                        },
-                        None => {
-
-                        }
-                    }
+                    gremlin_state = GremlinStateMachine::new_match_vertex_state(gremlin_state, id);
                 },
                 _ => {}
             }

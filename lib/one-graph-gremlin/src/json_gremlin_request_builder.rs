@@ -25,6 +25,12 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> 
             "addE" => {
                 add_e(elts)?
             },
+            "E" => {
+                match_e(elts)?
+            },
+            "outE" => {
+                match_out_e(elts)?
+            },
             "as" => {
                 as_step(elts)?
             },
@@ -58,6 +64,17 @@ fn add_e(json_step: &Vec<Value>) -> Option<GStep> {
 fn match_v(json_step: &Vec<Value>) -> Option<GStep> {
     json_step.get(1).map(|v| GStep::V(v.as_str().map(|sval| GValue::String(String::from(sval))))).or(Some(GStep::V(None)))
 }
+
+fn match_e(json_step: &Vec<Value>) -> Option<GStep> {
+  json_step.get(1).map(|v| GStep::E(v.as_str().map(|sval| GValue::String(String::from(sval))))).or(Some(GStep::V(None)))
+}
+
+
+fn match_out_e(json_step: &Vec<Value>) -> Option<GStep> {
+  let var = json_step.get(1)?.as_str()?;
+  Some(GStep::OutE(String::from(var)))
+}
+
 
 fn add_v(json_step: &Vec<Value>) -> Option<GStep> {
     let label = json_step.get(1)?.as_str()?;

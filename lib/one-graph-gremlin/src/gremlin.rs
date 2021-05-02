@@ -12,12 +12,14 @@ pub enum GStep {
     V(Option<GValue>),
     Has(String, Predicate),
     AddE(String),
+    E(Option<GValue>),
+    OutE(String),
     As(String),
     From(String),
     Empty,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum GValue {
     Integer(GInteger),
     String(String),
@@ -65,7 +67,7 @@ impl TryFrom<GValue> for u64 {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GInteger {
     I64(GInt64),
     I32(GInt32),
@@ -84,7 +86,7 @@ impl ToJson for GInteger {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct GInt64(pub i64);
 
 impl GInt64 {
@@ -95,7 +97,7 @@ impl GInt64 {
         })
     }
 }
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct GInt32(pub i32);
 
 impl GInt32 {
