@@ -18,8 +18,5 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
-    - name: Build integration tests
-      run: |
-          target/debug/one-graph-db
-          cd integration/tests
-          gradle check
+    - name: Run integration tests
+      run: sh integration/scripts/launch.sh
