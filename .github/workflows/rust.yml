@@ -5,7 +5,7 @@ on: [push]
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v1
@@ -14,6 +14,9 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - name: Build integration tests
+      with:
+        java-version: 11
       run: |
+          target/debug/one-graph-db
           cd integration/tests
-          gradle test
+          gradle check
