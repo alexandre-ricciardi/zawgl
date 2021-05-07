@@ -13,7 +13,7 @@ pub enum GStep {
     Has(String, Predicate),
     AddE(String),
     E(Option<GValue>),
-    OutE(String),
+    OutE(Vec<String>),
     As(String),
     From(String),
     Empty,

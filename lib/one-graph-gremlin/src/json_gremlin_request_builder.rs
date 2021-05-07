@@ -71,8 +71,11 @@ fn match_e(json_step: &Vec<Value>) -> Option<GStep> {
 
 
 fn match_out_e(json_step: &Vec<Value>) -> Option<GStep> {
-  let var = json_step.get(1)?.as_str()?;
-  Some(GStep::OutE(String::from(var)))
+  let mut labels = Vec::new();
+  for value in &json_step[1..] {
+    labels.push(String::from(value.as_str()?));
+  }
+  Some(GStep::OutE(labels))
 }
 
 

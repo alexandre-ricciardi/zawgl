@@ -24,6 +24,9 @@ impl <'a> GraphDatabaseEngine<'a> {
                 GStep::V(id) => {
                     gremlin_state = GremlinStateMachine::new_match_vertex_state(gremlin_state, id);
                 },
+                GStep::OutE(labels) => {
+                    gremlin_state = GremlinStateMachine::new(gremlin_state, id);
+                },
                 _ => {}
             }
         }

@@ -77,26 +77,25 @@ impl StateContext {
 }
 
 pub struct GremlinStateMachine {
-    state: Box<dyn State>,
     context: StateContext,
 }
 
 impl GremlinStateMachine {
     pub fn new() -> Self {
-        GremlinStateMachine{state: Box::new(InitState::new()), context: StateContext::new()}
+        GremlinStateMachine{context: StateContext::new()}
     }
 
     pub fn new_match_vertex_state(mut previous: GremlinStateMachine, gid: &Option<GValue>) -> Self {
         let vid = gid.as_ref().and_then(|value| u64::try_from(value.clone()).ok());
         let mut state = MatchVertexState::new(vid);
         state.handle_match_vertex(&mut previous.context, vid);
-        GremlinStateMachine{state: Box::new(state), context: previous.context}
+        GremlinStateMachine{context: previous.context}
     }
 
     pub fn new_match_edge_state(mut previous: GremlinStateMachine, gid: &Option<GValue>) -> Self {
         let vid = gid.as_ref().and_then(|value| u64::try_from(value.clone()).ok());
         let mut state = MatchOutEdgeState::new(vid);
         state.handle_match_vertex(&mut previous.context, vid);
-        GremlinStateMachine{state: Box::new(state), context: previous.context}
+        GremlinStateMachine{context: previous.context}
     }
 }
