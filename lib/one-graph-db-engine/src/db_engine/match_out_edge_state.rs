@@ -1,29 +1,24 @@
 use super::{StateContext, State};
 use one_graph_core::model::*;
+use one_graph_gremlin::gremlin::*;
+use super::gremlin_state::*;
 
 pub struct MatchOutEdgeState {
-    vid: Option<u64>,
+    labels: Vec<String>,
 }
 
 impl MatchOutEdgeState {
-    pub fn new(vid: Option<u64>) -> Self {
-        MatchOutEdgeState{vid: vid}
+    pub fn new(labels: &Vec<String>) -> Self {
+        MatchOutEdgeState{labels: labels.clone()}
     }
 }
 impl State for MatchOutEdgeState {
     
-    fn handle_match_vertex(&self, context: &mut StateContext, vid: Option<u64>) {
-        let mut n = Node::new();
-        n.set_id(vid);
-        context.pattern.add_node(n);
-    }
-    fn handle_add_vertex(&mut self, label: &str) {
-
-    }
-    fn handle_add_edge(&mut self, label: &str) {
-
-    }
-    fn handle_alias(&mut self, name: &str) {
-
+    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+        match step {
+            _ => {
+                Err(StateError::Invalid)
+            }
+        }
     }
 }

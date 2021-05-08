@@ -20,15 +20,7 @@ impl <'a> GraphDatabaseEngine<'a> {
     pub fn handle_gremlin_request(&mut self, gremlin: &GremlinRequest) -> Option<GremlinResponse> {
         let mut gremlin_state = GremlinStateMachine::new();
         for step in &gremlin.steps {
-            match step {
-                GStep::V(id) => {
-                    gremlin_state = GremlinStateMachine::new_match_vertex_state(gremlin_state, id);
-                },
-                GStep::OutE(labels) => {
-                    gremlin_state = GremlinStateMachine::new(gremlin_state, id);
-                },
-                _ => {}
-            }
+            gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, step)?;
         }
         None
     }
