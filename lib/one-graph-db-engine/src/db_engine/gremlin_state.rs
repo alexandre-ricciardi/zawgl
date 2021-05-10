@@ -9,10 +9,7 @@ pub enum StateError {
 }
 
 pub trait State {
-    fn handle_match_vertex(&self, context: &mut StateContext, vid: Option<u64>);
-    fn handle_add_vertex(&mut self, label: &str);
-    fn handle_add_edge(&mut self, label: &str);
-    fn handle_alias(&mut self, name: &str);
+    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError>;
 }
 
 struct MatchVertexState {
@@ -20,49 +17,51 @@ struct MatchVertexState {
 }
 
 impl MatchVertexState {
-    fn new(vid: Option<u64>) -> Self {
+    fn new(gid: &Option<GValue>) -> Self {
+        let vid = gid.as_ref().and_then(|value| u64::try_from(value.clone()).ok());
         MatchVertexState{vid: vid}
     }
 }
+
 impl State for MatchVertexState {
     
-    fn handle_match_vertex(&self, context: &mut StateContext, vid: Option<u64>) {
+    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         let mut n = Node::new();
-        n.set_id(vid);
+        n.set_id(self.vid);
         context.pattern.add_node(n);
-    }
-    fn handle_add_vertex(&mut self, label: &str) {
 
-    }
-    fn handle_add_edge(&mut self, label: &str) {
-
-    }
-    fn handle_alias(&mut self, name: &str) {
-
+        match step {
+            GStep::OutE(labels) => {
+                Ok(Box::new(MatchOutEdgeState::new(labels)))
+            }
+            _ => {
+                Err(StateError::Invalid)
+            }
+        }
     }
 }
 
-struct InitState {
+
+
+pub struct InitState {
 }
 
 impl InitState {
-    fn new() -> Self {
+    pub fn new() -> Self {
         InitState{}
     }
 }
 impl State for InitState {
     
-    fn handle_match_vertex(&self, context: &mut StateContext, vid: Option<u64>) {
-
-    }
-    fn handle_add_vertex(&mut self, label: &str) {
-
-    }
-    fn handle_add_edge(&mut self, label: &str) {
-
-    }
-    fn handle_alias(&mut self, name: &str) {
-
+    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+        match step {
+            GStep::V(vid) => {
+                Ok(Box::new(MatchVertexState::new(vid)))
+            }
+            _ => {
+                Err(StateError::Invalid)
+            }
+        }
     }
 }
 
@@ -77,26 +76,17 @@ impl StateContext {
 }
 
 pub struct GremlinStateMachine {
-    state: Box<dyn State>,
     context: StateContext,
+    state: Box<dyn State>,
 }
 
 impl GremlinStateMachine {
     pub fn new() -> Self {
-        GremlinStateMachine{state: Box::new(InitState::new()), context: StateContext::new()}
+        GremlinStateMachine{context: StateContext::new(), state: Box::new(InitState::new())}
     }
 
-    pub fn new_match_vertex_state(mut previous: GremlinStateMachine, gid: &Option<GValue>) -> Self {
-        let vid = gid.as_ref().and_then(|value| u64::try_from(value.clone()).ok());
-        let mut state = MatchVertexState::new(vid);
-        state.handle_match_vertex(&mut previous.context, vid);
-        GremlinStateMachine{state: Box::new(state), context: previous.context}
-    }
-
-    pub fn new_match_edge_state(mut previous: GremlinStateMachine, gid: &Option<GValue>) -> Self {
-        let vid = gid.as_ref().and_then(|value| u64::try_from(value.clone()).ok());
-        let mut state = MatchOutEdgeState::new(vid);
-        state.handle_match_vertex(&mut previous.context, vid);
-        GremlinStateMachine{state: Box::new(state), context: previous.context}
+    pub fn new_step_state(mut previous: GremlinStateMachine, step: &GStep) -> Option<Self> {
+        let new_state = previous.state.handle_step(step, &mut previous.context).ok()?;
+        Some(GremlinStateMachine{context: previous.context, state: new_state})
     }
 }
