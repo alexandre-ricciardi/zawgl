@@ -31,6 +31,18 @@ public class AppTest {
     }
 
     @Test
+    public void testMatchEdge() {
+        final Cluster cluster = createCluster();
+        try {
+            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+            Vertex v1 = g.V("person", "slave").outE("hasFriend", "contains").V().next();
+            System.out.println(v1);
+        } finally {
+            cluster.close();
+        }
+    }
+
+    @Test
     public void testCreateVertex() {
         final Cluster cluster = createCluster();
         try {
