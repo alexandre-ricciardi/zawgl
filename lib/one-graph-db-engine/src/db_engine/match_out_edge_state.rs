@@ -15,6 +15,7 @@ impl MatchOutEdgeState {
 impl State for MatchOutEdgeState {
     
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+        
         match step {
             _ => {
                 Err(StateError::Invalid)

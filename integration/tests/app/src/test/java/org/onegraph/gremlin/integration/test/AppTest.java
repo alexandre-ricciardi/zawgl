@@ -34,7 +34,7 @@ public class AppTest {
         final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
-            Vertex v1 = g.V("person", "slave").outE("hasFriend", "contains").V().next();
+            Vertex v1 = g.V(1).outE("hasFriend", "contains").V().next();
             System.out.println(v1);
         } finally {
             cluster.close();

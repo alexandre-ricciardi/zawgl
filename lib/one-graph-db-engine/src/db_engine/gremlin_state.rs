@@ -1,5 +1,6 @@
 use one_graph_gremlin::gremlin::*;
 use one_graph_core::model::*;
+use one_graph_core::graph::*;
 use std::convert::TryFrom;
 use super::match_out_edge_state::MatchOutEdgeState;
 
@@ -28,8 +29,7 @@ impl State for MatchVertexState {
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         let mut n = Node::new();
         n.set_id(self.vid);
-        context.pattern.add_node(n);
-
+        context.node_index = Some(context.pattern.add_node(n));
         match step {
             GStep::OutE(labels) => {
                 Ok(Box::new(MatchOutEdgeState::new(labels)))
@@ -67,11 +67,12 @@ impl State for InitState {
 
 pub struct StateContext {
     pub pattern: PropertyGraph,
+    pub node_index: Option<NodeIndex>,
 }
 
 impl StateContext {
     pub fn new() -> Self {
-        StateContext{pattern: PropertyGraph::new()}
+        StateContext{pattern: PropertyGraph::new(), node_index: None}
     }
 }
 
