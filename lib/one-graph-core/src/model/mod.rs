@@ -189,6 +189,11 @@ impl Relationship {
     pub fn set_properties(&mut self, properties: Vec<Property>) {
         self.properties = properties;
     }
+
+    pub fn set_labels(&mut self, labels: Vec<String>) {
+        self.labels = labels;
+    }
+
     pub fn get_labels_ref(&self) -> &Vec<String> {
         &self.labels
     }
