@@ -7,6 +7,7 @@ pub trait ToJson {
     fn to_json(&self) -> serde_json::Value;
 }
 
+#[derive(Debug, Clone)]
 pub enum GStep {
     AddV(String),
     V(Option<GValue>),
@@ -110,7 +111,7 @@ impl GInt32 {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GList<T: ToJson> {
     pub values: Vec<T>,
 }
@@ -147,7 +148,7 @@ impl ToJson for GEdge {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Predicate {
     Value(GValue),
     Within(GList<GValue>),

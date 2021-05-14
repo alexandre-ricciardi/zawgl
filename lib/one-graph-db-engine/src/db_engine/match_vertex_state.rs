@@ -21,13 +21,28 @@ impl State for MatchVertexState {
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         let mut n = Node::new();
         n.set_id(self.vid);
-        let nid = context.pattern.add_node(n);
-        if let (Some(node_index), Some(relationship_labels)) = (context.node_index, &context.relationship_labels) {
-            let mut rel = Relationship::new();
-            rel.set_labels(relationship_labels.clone());
-            context.pattern.add_relationship(rel, node_index, nid);
+        
+        match &context.previous_step {
+            GStep::Empty => {
+                let mut pattern = PropertyGraph::new();
+                let nid = pattern.add_node(n);
+                context.patterns.push(pattern);
+                context.node_index = Some(nid);
+            }
+            GStep::OutE(labels) => {
+                if let Some(node_index) = context.node_index {
+                    let mut rel = Relationship::new();
+                    rel.set_labels(labels.clone());
+                    let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
+                    let nid = pattern.add_node(n);
+                    pattern.add_relationship(rel, node_index, nid);
+                }
+            }
+            _ => {
+
+            }
         }
-        context.node_index = Some(nid);
+        context.previous_step = step.clone();
         match step {
             GStep::OutE(labels) => {
                 Ok(Box::new(MatchOutEdgeState::new(labels)))

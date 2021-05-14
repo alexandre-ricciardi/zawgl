@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use one_graph_gremlin::gremlin::*;
 use one_graph_core::model::*;
 use one_graph_core::graph::*;
@@ -23,7 +25,7 @@ impl InitState {
 }
 impl State for InitState {
     
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn handle_step(&self, step: &GStep, _context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
@@ -36,14 +38,15 @@ impl State for InitState {
 }
 
 pub struct StateContext {
-    pub pattern: PropertyGraph,
+    pub patterns: Vec<PropertyGraph>,
     pub node_index: Option<NodeIndex>,
-    pub relationship_labels: Option<Vec<String>>,
+    pub previous_step: GStep,
+    pub node_aliases: HashMap<String, NodeIndex>,
 }
 
 impl StateContext {
     pub fn new() -> Self {
-        StateContext{pattern: PropertyGraph::new(), node_index: None, relationship_labels: None}
+        StateContext{patterns: Vec::new(), node_index: None, previous_step: GStep::Empty, node_aliases: HashMap::new()}
     }
 }
 

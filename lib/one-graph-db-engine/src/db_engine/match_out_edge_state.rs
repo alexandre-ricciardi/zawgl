@@ -15,7 +15,6 @@ impl MatchOutEdgeState {
 impl State for MatchOutEdgeState {
     
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
-        context.relationship_labels = Some(self.labels.clone());
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))

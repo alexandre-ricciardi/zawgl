@@ -28,6 +28,7 @@ impl <'a> GraphDatabaseEngine<'a> {
         gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &GStep::Empty)?;
         let ctx = gremlin_state.get_context();
         let graph_engine = GraphEngine::new(&self.conf);
+        
         None
     }
 }
