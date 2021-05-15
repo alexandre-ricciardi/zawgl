@@ -1,4 +1,4 @@
-use super::{StateContext, State};
+use super::{State, StateContext, alias_vertex_state::AliasVertexState};
 use one_graph_core::model::*;
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
@@ -14,6 +14,16 @@ impl MatchVertexState {
         let vid = gid.as_ref().and_then(|value| u64::try_from(value.clone()).ok());
         MatchVertexState{vid: vid}
     }
+
+
+    
+}
+
+fn init_pattern(context: &mut StateContext, n: Node) {
+    let mut pattern = PropertyGraph::new();
+    let nid = pattern.add_node(n);
+    context.patterns.push(pattern);
+    context.node_index = Some(nid);
 }
 
 impl State for MatchVertexState {
@@ -23,11 +33,11 @@ impl State for MatchVertexState {
         n.set_id(self.vid);
         
         match &context.previous_step {
+            GStep::As(_alias) => {
+                init_pattern(context, n);
+            }
             GStep::Empty => {
-                let mut pattern = PropertyGraph::new();
-                let nid = pattern.add_node(n);
-                context.patterns.push(pattern);
-                context.node_index = Some(nid);
+                init_pattern(context, n);
             }
             GStep::OutE(labels) => {
                 if let Some(node_index) = context.node_index {
@@ -36,6 +46,7 @@ impl State for MatchVertexState {
                     let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
                     let nid = pattern.add_node(n);
                     pattern.add_relationship(rel, node_index, nid);
+                    context.node_index = Some(nid);
                 }
             }
             _ => {
@@ -46,6 +57,9 @@ impl State for MatchVertexState {
         match step {
             GStep::OutE(labels) => {
                 Ok(Box::new(MatchOutEdgeState::new(labels)))
+            }
+            GStep::As(alias) => {
+                Ok(Box::new(AliasVertexState::new(alias)))
             }
             _ => {
                 Err(StateError::Invalid)
