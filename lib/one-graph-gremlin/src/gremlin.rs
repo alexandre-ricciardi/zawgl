@@ -17,6 +17,7 @@ pub enum GStep {
     OutE(Vec<String>),
     As(String),
     From(String),
+    Match(Vec<Vec<GStep>>),
     Empty,
 }
 

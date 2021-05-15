@@ -7,6 +7,7 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> 
     let req_id = value["requestId"].as_str()?;
     let op = value["op"].as_str()?;
     let processor = value["processor"].as_str()?;
+    
     if op == "bytecode" && processor == "traversal" {
       let gtype = args["@type"].as_str()?;
       if gtype == "g:Map" {
@@ -14,21 +15,26 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> 
         let gremlin_tag = gmap_value[0].as_str()?;
         if gremlin_tag == "gremlin" {
           let bytecode = &gmap_value[1];
-          let bytecode_type = bytecode["@type"].as_str()?;
-          if bytecode_type == "g:Bytecode" {
-            let bytecode_value = &bytecode["@value"];
-            let steps = bytecode_value["step"].as_array()?;
-            let mut gremlin = GremlinRequest{request_id: String::from(req_id), steps: Vec::new()};
-            for step in steps {
-                let gremlin_step = build_gremlin_step(step)?;
-                gremlin.steps.push(gremlin_step);
-            }
-            return Some(gremlin)
-          }
+          let gremlin_steps = build_gremlin_bytecode(bytecode)?;
+          return Some(GremlinRequest{request_id: String::from(req_id), steps: gremlin_steps})
         }
       }
     }
     None
+}
+
+fn build_gremlin_bytecode(bytecode: &Value) -> Option<Vec<GStep>> {
+  let mut gremlin_steps = Vec::new();
+  let bytecode_type = bytecode["@type"].as_str()?;
+  if bytecode_type == "g:Bytecode" {
+    let bytecode_value = &bytecode["@value"];
+    let steps = bytecode_value["step"].as_array()?;
+    for step in steps {
+        let gremlin_step = build_gremlin_step(step)?;
+        gremlin_steps.push(gremlin_step);
+    }
+  }
+  Some(gremlin_steps)
 }
 
 fn build_gremlin_step(step: &Value) -> Option<GStep> {
@@ -59,11 +65,18 @@ fn build_gremlin_step(step: &Value) -> Option<GStep> {
       "from" => {
           from_step(elts)?
       }
+      "match" => {
+          match_step(elts)?
+      }
       _ => {
           GStep::Empty
       }
   };
   Some(gremlin_step)
+}
+
+fn match_step(json_step: &Vec<Value>) -> Option<GStep> {
+  
 }
 
 fn from_step(json_step: &Vec<Value>) -> Option<GStep> {
