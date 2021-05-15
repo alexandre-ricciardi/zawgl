@@ -10,6 +10,7 @@ mod match_out_edge_state;
 mod match_vertex_state;
 mod alias_vertex_state;
 mod add_edge_state;
+mod match_state;
 
 
 
@@ -28,7 +29,7 @@ impl <'a> GraphDatabaseEngine<'a> {
             gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, step)?;
         }
         gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &GStep::Empty)?;
-        let ctx = gremlin_state.get_context();
+        let ctx = gremlin_state.context;
         let graph_engine = GraphEngine::new(&self.conf);
         
         None

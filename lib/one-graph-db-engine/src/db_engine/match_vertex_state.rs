@@ -3,6 +3,7 @@ use one_graph_core::model::*;
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
 use super::match_out_edge_state::MatchOutEdgeState;
+use super::match_state::MatchState;
 use std::convert::TryFrom;
 
 pub struct MatchVertexState {
@@ -60,6 +61,9 @@ impl State for MatchVertexState {
             }
             GStep::As(alias) => {
                 Ok(Box::new(AliasVertexState::new(alias)))
+            }
+            GStep::Match(bytecodes) => {
+                Ok(Box::new(MatchState::new(bytecodes)))
             }
             _ => {
                 Err(StateError::Invalid)
