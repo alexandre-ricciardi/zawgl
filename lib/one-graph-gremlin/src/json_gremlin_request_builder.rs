@@ -76,7 +76,11 @@ fn build_gremlin_step(step: &Value) -> Option<GStep> {
 }
 
 fn match_step(json_step: &Vec<Value>) -> Option<GStep> {
-  
+  let mut bytecodes = Vec::new();
+  for bc in &json_step[1..] {
+    bytecodes.push(build_gremlin_bytecode(bc)?)
+  } 
+  Some(GStep::Match(bytecodes))
 }
 
 fn from_step(json_step: &Vec<Value>) -> Option<GStep> {
@@ -546,6 +550,6 @@ mod test_gremlin_json {
       "#;
       let value: Value = serde_json::from_str(json).expect("json gremlin request");
       let g = build_gremlin_request_from_json(&value).expect("gremlin request");
-      assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.request_id);
+      assert_eq!("e9ec71b5-7c44-4d9e-b1c9-f1268d64e2d4", g.request_id);
     }
 }

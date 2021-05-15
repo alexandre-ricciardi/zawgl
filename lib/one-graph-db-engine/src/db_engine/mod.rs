@@ -9,6 +9,7 @@ pub mod gremlin_state;
 mod match_out_edge_state;
 mod match_vertex_state;
 mod alias_vertex_state;
+mod add_edge_state;
 
 
 
