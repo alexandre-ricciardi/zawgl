@@ -4,46 +4,66 @@ use serde_json::Value;
 
 pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> {
     let args = &value["args"];
-    let req_id = value.get("requestId")?.as_str()?;
-    let gremlin = &args["@value"];
-    let steps = &gremlin[1];
-    let bytecode = steps["@value"]["step"].as_array()?;
-    let mut gremlin = GremlinRequest{request_id: String::from(req_id), steps: Vec::new()};
-    for step in bytecode {
-        let elts = step.as_array()?;
-        let first = &elts[0];
-        let gremlin_step = match first.as_str()? {
-            "V" => {
-                match_v(elts)?
-            },
-            "addV" => {
-                add_v(elts)?
-            },
-            "has" => {
-                has_property(elts)?
-            },
-            "addE" => {
-                add_e(elts)?
-            },
-            "E" => {
-                match_e(elts)?
-            },
-            "outE" => {
-                match_out_e(elts)?
-            },
-            "as" => {
-                as_step(elts)?
-            },
-            "from" => {
-                from_step(elts)?
+    let req_id = value["requestId"].as_str()?;
+    let op = value["op"].as_str()?;
+    let processor = value["processor"].as_str()?;
+    if op == "bytecode" && processor == "traversal" {
+      let gtype = args["@type"].as_str()?;
+      if gtype == "g:Map" {
+        let gmap_value = &args["@value"];
+        let gremlin_tag = gmap_value[0].as_str()?;
+        if gremlin_tag == "gremlin" {
+          let bytecode = &gmap_value[1];
+          let bytecode_type = bytecode["@type"].as_str()?;
+          if bytecode_type == "g:Bytecode" {
+            let bytecode_value = &bytecode["@value"];
+            let steps = bytecode_value["step"].as_array()?;
+            let mut gremlin = GremlinRequest{request_id: String::from(req_id), steps: Vec::new()};
+            for step in steps {
+                let gremlin_step = build_gremlin_step(step)?;
+                gremlin.steps.push(gremlin_step);
             }
-            _ => {
-                GStep::Empty
-            }
-        };
-        gremlin.steps.push(gremlin_step);
+            return Some(gremlin)
+          }
+        }
+      }
     }
-    Some(gremlin)
+    None
+}
+
+fn build_gremlin_step(step: &Value) -> Option<GStep> {
+  let elts = step.as_array()?;
+  let first = &elts[0];
+  let gremlin_step = match first.as_str()? {
+      "V" => {
+          match_v(elts)?
+      },
+      "addV" => {
+          add_v(elts)?
+      },
+      "has" => {
+          has_property(elts)?
+      },
+      "addE" => {
+          add_e(elts)?
+      },
+      "E" => {
+          match_e(elts)?
+      },
+      "outE" => {
+          match_out_e(elts)?
+      },
+      "as" => {
+          as_step(elts)?
+      },
+      "from" => {
+          from_step(elts)?
+      }
+      _ => {
+          GStep::Empty
+      }
+  };
+  Some(gremlin_step)
 }
 
 fn from_step(json_step: &Vec<Value>) -> Option<GStep> {
@@ -374,5 +394,145 @@ mod test_gremlin_json {
         let value: Value = serde_json::from_str(json).expect("json gremlin request");
         let g = build_gremlin_request_from_json(&value).expect("gremlin request");
         assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.request_id);
+    }
+
+    #[test]
+    fn test_parse_match_request() {
+      let json = r#"
+      {
+        "requestId": "e9ec71b5-7c44-4d9e-b1c9-f1268d64e2d4",
+        "op": "bytecode",
+        "processor": "traversal",
+        "args": {
+          "@type": "g:Map",
+          "@value": [
+            "gremlin",
+            {
+              "@type": "g:Bytecode",
+              "@value": {
+                "step": [
+                  [
+                    "V"
+                  ],
+                  [
+                    "match",
+                    {
+                      "@type": "g:Bytecode",
+                      "@value": {
+                        "step": [
+                          [
+                            "as",
+                            "a"
+                          ],
+                          [
+                            "out",
+                            "knows"
+                          ],
+                          [
+                            "as",
+                            "b"
+                          ]
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "g:Bytecode",
+                      "@value": {
+                        "step": [
+                          [
+                            "as",
+                            "a"
+                          ],
+                          [
+                            "out",
+                            "created"
+                          ],
+                          [
+                            "as",
+                            "c"
+                          ]
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "g:Bytecode",
+                      "@value": {
+                        "step": [
+                          [
+                            "as",
+                            "b"
+                          ],
+                          [
+                            "out",
+                            "created"
+                          ],
+                          [
+                            "as",
+                            "c"
+                          ]
+                        ]
+                      }
+                    }
+                  ],
+                  [
+                    "addE",
+                    "friendlyCollaborator"
+                  ],
+                  [
+                    "from",
+                    "a"
+                  ],
+                  [
+                    "to",
+                    "b"
+                  ],
+                  [
+                    "property",
+                    "id",
+                    {
+                      "@type": "g:Int32",
+                      "@value": 23
+                    }
+                  ],
+                  [
+                    "property",
+                    "project",
+                    {
+                      "@type": "g:Bytecode",
+                      "@value": {
+                        "step": [
+                          [
+                            "select",
+                            "c"
+                          ],
+                          [
+                            "values",
+                            "name"
+                          ]
+                        ]
+                      }
+                    }
+                  ],
+                  [
+                    "none"
+                  ]
+                ]
+              }
+            },
+            "aliases",
+            {
+              "@type": "g:Map",
+              "@value": [
+                "g",
+                "g"
+              ]
+            }
+          ]
+        }
+      }
+      "#;
+      let value: Value = serde_json::from_str(json).expect("json gremlin request");
+      let g = build_gremlin_request_from_json(&value).expect("gremlin request");
+      assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.request_id);
     }
 }

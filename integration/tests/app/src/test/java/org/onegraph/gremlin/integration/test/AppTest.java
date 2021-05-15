@@ -10,6 +10,7 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Test;
@@ -27,6 +28,24 @@ public class AppTest {
             cluster.close();
         }
 
+    }
+
+    @Test
+    public void testMatch() {
+        
+                 final Cluster cluster = createCluster();
+        try {
+            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+            var v1 = g.V().match(
+                __.as("a").out("knows").as("b"),
+                __.as("a").out("created").as("c"),
+                __.as("b").out("created").as("c")).
+              addE("friendlyCollaborator").from("a").to("b").
+                property("id",23).property("project", __.select("c").values("name")).iterate();
+            System.out.println(v1);
+        } finally {
+            cluster.close();
+        }
     }
 
     @Test
