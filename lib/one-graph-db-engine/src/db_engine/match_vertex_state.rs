@@ -4,6 +4,7 @@ use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
 use super::match_out_edge_state::MatchOutEdgeState;
 use super::match_state::MatchState;
+use super::add_edge_state::AddEdgeState;
 use std::convert::TryFrom;
 
 pub struct MatchVertexState {
@@ -68,6 +69,9 @@ impl State for MatchVertexState {
             }
             GStep::Match(bytecodes) => {
                 Ok(Box::new(MatchState::new(bytecodes)))
+            }
+            GStep::AddE(label) => {
+                Ok(Box::new(AddEdgeState::new(label)))
             }
             _ => {
                 Err(StateError::Invalid)

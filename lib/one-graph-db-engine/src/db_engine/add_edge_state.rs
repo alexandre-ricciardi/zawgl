@@ -3,12 +3,12 @@ use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
 
 pub struct AddEdgeState {
-    labels: Vec<String>,
+    label: String,
 }
 
 impl AddEdgeState {
-    pub fn new(labels: &Vec<String>) -> Self {
-        AddEdgeState{labels: labels.clone()}
+    pub fn new(label: &str) -> Self {
+        AddEdgeState{label: String::from(label)}
     }
 }
 impl State for AddEdgeState {

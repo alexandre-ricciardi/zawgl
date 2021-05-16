@@ -8,11 +8,23 @@ pub struct FromState {
 
 impl FromState {
     pub fn new(alias: &str) -> Self {
-        FromState{alias: alias.clone()}
+        FromState{alias: String::from(alias)}
     }
 }
 impl State for FromState {
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+
+
+    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
+        match &context.previous_step {
+            GStep::AddE(label) => {
+
+            }
+            _ => {} 
+        }
+        Ok(())
+    }
+
+    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         
         match step {
             GStep::V(vid) => {

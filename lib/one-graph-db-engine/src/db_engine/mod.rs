@@ -11,7 +11,7 @@ mod match_vertex_state;
 mod alias_vertex_state;
 mod add_edge_state;
 mod match_state;
-
+mod from_state;
 
 
 pub struct GraphDatabaseEngine<'a> {
