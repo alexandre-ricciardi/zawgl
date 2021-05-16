@@ -29,7 +29,7 @@ fn init_pattern(context: &mut StateContext, n: Node) {
 
 impl State for MatchVertexState {
     
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
         let mut n = Node::new();
         n.set_id(self.vid);
         
@@ -54,7 +54,11 @@ impl State for MatchVertexState {
 
             }
         }
-        context.previous_step = step.clone();
+        Ok(())
+    }
+
+    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+        
         match step {
             GStep::OutE(labels) => {
                 Ok(Box::new(MatchOutEdgeState::new(labels)))

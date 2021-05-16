@@ -11,7 +11,8 @@ pub enum StateError {
 }
 
 pub trait State {
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError>;
+    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError>;
+    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError>;
 }
 
 
@@ -25,7 +26,11 @@ impl InitState {
 }
 impl State for InitState {
     
-    fn handle_step(&self, step: &GStep, _context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn handle_step(&self, step: &GStep, _context: &mut StateContext) -> Result<(), StateError> {
+        Ok(())
+    }
+
+    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
@@ -61,7 +66,9 @@ impl GremlinStateMachine {
     }
     
     pub fn new_step_state(mut previous: GremlinStateMachine, step: &GStep) -> Option<Self> {
-        let new_state = previous.state.handle_step(step, &mut previous.context).ok()?;
+        previous.state.handle_step(step, &mut previous.context).ok()?;
+        let new_state = previous.state.create_state(step, &mut previous.context).ok()?;
+        previous.context.previous_step = step.clone();
         Some(GremlinStateMachine{context: previous.context, state: new_state})
     }
 }

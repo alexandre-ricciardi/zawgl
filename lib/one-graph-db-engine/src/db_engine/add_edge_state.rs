@@ -12,7 +12,12 @@ impl AddEdgeState {
     }
 }
 impl State for AddEdgeState {
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
+
+        Ok(())
+    }
+
+    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
