@@ -18,20 +18,36 @@ pub struct GraphDatabaseEngine<'a> {
     conf: InitContext<'a>,
 }
 
+fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMachine) -> Option<GremlinStateMachine> {
+    for step in steps {
+        match step {
+            GStep::Match(bytecodes) => {
+                for bc in bytecodes {
+                    gremlin_state = iterate_gremlin_steps(bc, gremlin_state)?;
+                }
+            }
+            _ => {
+                gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, step)?;
+            }
+        }
+    }
+    gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &GStep::Empty)?;
+    Some(gremlin_state)
+}
+
 impl <'a> GraphDatabaseEngine<'a> {
     pub fn new(ctx: InitContext<'a>) -> Self {
         GraphDatabaseEngine{conf: ctx}
     }
 
+
     pub fn handle_gremlin_request(&mut self, gremlin: &GremlinRequest) -> Option<GremlinResponse> {
         let mut gremlin_state = GremlinStateMachine::new();
-        for step in &gremlin.steps {
-            gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, step)?;
-        }
-        gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &GStep::Empty)?;
+        gremlin_state = iterate_gremlin_steps(&gremlin.steps, gremlin_state)?;
         let ctx = gremlin_state.context;
         let graph_engine = GraphEngine::new(&self.conf);
         
         None
     }
+
 }

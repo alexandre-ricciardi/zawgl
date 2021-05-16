@@ -15,15 +15,6 @@ impl MatchState {
 impl State for MatchState {
     
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
-        let mut gremlin_state = GremlinStateMachine::new();
-        for bytecode in &self.bytecodes {
-            for step in bytecode {
-                gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, step).ok_or(StateError::Invalid)?;
-            }
-            gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &GStep::Empty).ok_or(StateError::Invalid)?;
-        }
-        context.match_states_contexts.push(gremlin_state.context);
-
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))

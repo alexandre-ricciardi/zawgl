@@ -42,12 +42,11 @@ pub struct StateContext {
     pub node_index: Option<NodeIndex>,
     pub previous_step: GStep,
     pub node_aliases: HashMap<String, NodeIndex>,
-    pub match_states_contexts: Vec<StateContext>,
 }
 
 impl StateContext {
     pub fn new() -> Self {
-        StateContext{patterns: Vec::new(), node_index: None, previous_step: GStep::Empty, node_aliases: HashMap::new(), match_states_contexts: Vec::new()}
+        StateContext{patterns: Vec::new(), node_index: None, previous_step: GStep::Empty, node_aliases: HashMap::new()}
     }
 }
 
@@ -60,7 +59,7 @@ impl GremlinStateMachine {
     pub fn new() -> Self {
         GremlinStateMachine{context: StateContext::new(), state: Box::new(InitState::new())}
     }
-
+    
     pub fn new_step_state(mut previous: GremlinStateMachine, step: &GStep) -> Option<Self> {
         let new_state = previous.state.handle_step(step, &mut previous.context).ok()?;
         Some(GremlinStateMachine{context: previous.context, state: new_state})
