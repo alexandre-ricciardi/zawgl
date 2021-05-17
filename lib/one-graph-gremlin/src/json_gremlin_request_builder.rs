@@ -82,7 +82,7 @@ fn set_property_step(json_step: &Vec<Value>) -> Option<GStep> {
   let name = json_step.get(1)?.as_str()?;
   let value = &json_step[2];
   if value.is_object() && value["@type"] == "g:Bytecode" {
-    Some(GStep::SetProperty(String::from(name), build_gremlin_bytecode(value)?))
+    Some(GStep::SetDynProperty(String::from(name), build_gremlin_bytecode(value)?))
   } else {
     Some(GStep::SetProperty(String::from(name), build_gremlin_value(value)?))
   }  

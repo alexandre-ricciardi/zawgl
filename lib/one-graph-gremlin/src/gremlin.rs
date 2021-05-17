@@ -18,6 +18,7 @@ pub enum GStep {
     From(String),
     Match(Vec<Vec<GStep>>),
     SetProperty(String, GValue),
+    SetDynProperty(String, Vec<GStep>),
     Empty,
 }
 
