@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use serde_json::Value;
 use serde_json::json;
 
 pub trait ToJson {
@@ -18,12 +17,14 @@ pub enum GStep {
     As(String),
     From(String),
     Match(Vec<Vec<GStep>>),
+    SetProperty(String, GValue),
     Empty,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum GValue {
     Integer(GInteger),
+    Double(GDouble),
     String(String),
     Bool(bool),
 }
@@ -39,6 +40,9 @@ impl ToJson for GValue {
             },
             GValue::Bool(v) => {
                 json!(v)
+            }
+            GValue::Double(v) => {
+                v.to_json()
             }
         }
     }
@@ -85,6 +89,19 @@ impl ToJson for GInteger {
                 v.to_json()
             }
         }
+    }
+}
+
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct GDouble(pub f64);
+
+impl ToJson for GDouble {
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "@type": "g:Double",
+            "@value": self.0,
+        })
     }
 }
 

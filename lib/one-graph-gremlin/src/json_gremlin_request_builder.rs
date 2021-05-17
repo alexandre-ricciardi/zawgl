@@ -68,11 +68,24 @@ fn build_gremlin_step(step: &Value) -> Option<GStep> {
       "match" => {
           match_step(elts)?
       }
+      "property" => {
+          set_property_step(elts)?
+      }
       _ => {
           GStep::Empty
       }
   };
   Some(gremlin_step)
+}
+
+fn set_property_step(json_step: &Vec<Value>) -> Option<GStep> {
+  let name = json_step.get(1)?.as_str()?;
+  let value = &json_step[2];
+  if value.is_object() && value["@type"] == "g:Bytecode" {
+    Some(GStep::SetProperty(String::from(name), build_gremlin_bytecode(value)?))
+  } else {
+    Some(GStep::SetProperty(String::from(name), build_gremlin_value(value)?))
+  }  
 }
 
 fn match_step(json_step: &Vec<Value>) -> Option<GStep> {
@@ -156,15 +169,7 @@ fn build_gremlin_list(json: &Value) -> Option<GList<GValue>> {
         let mut list = GList{values: Vec::new()};
         let array = json.get("@value")?.as_array()?;
         for elt in array {
-            match elt {
-                Value::Object(item) => {
-                    list.values.push(build_gremlin_value(item)?);
-                },
-                Value::String(sval) => {
-                    list.values.push(GValue::String(String::from(sval)));
-                }
-                _ => {}
-            }
+          list.values.push(build_gremlin_value(elt)?);
         }
         Some(list)
     } else {
@@ -172,11 +177,20 @@ fn build_gremlin_list(json: &Value) -> Option<GList<GValue>> {
     }
 }
 
-fn build_gremlin_value(obj: &Map<String, Value>) -> Option<GValue> {
-    let val = obj.get("@value")?;
-    match obj.get("@type")?.as_str()? {
-      "g:Int32" => Some(GValue::Integer(GInteger::I32(GInt32(val.as_i64()? as i32)))),
-      "g:Int64" => Some(GValue::Integer(GInteger::I64(GInt64(val.as_i64()?)))),
+fn build_gremlin_value(elt: &Value) -> Option<GValue> {
+    match elt {
+      Value::Object(obj) => {
+        let val = obj.get("@value")?;
+        match obj.get("@type")?.as_str()? {
+          "g:Int32" => Some(GValue::Integer(GInteger::I32(GInt32(val.as_i64()? as i32)))),
+          "g:Int64" => Some(GValue::Integer(GInteger::I64(GInt64(val.as_i64()?)))),
+          "g:Double" => Some(GValue::Double(GDouble(val.as_f64()?))),
+          _ => None
+        }
+      },
+      Value::String(sval) => {
+          Some(GValue::String(String::from(sval)))
+      }
       _ => None
     }
 }

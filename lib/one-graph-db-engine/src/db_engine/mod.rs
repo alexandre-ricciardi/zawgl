@@ -6,12 +6,15 @@ use self::gremlin_state::*;
 
 
 pub mod gremlin_state;
+mod utils;
 mod match_out_edge_state;
 mod match_vertex_state;
 mod alias_vertex_state;
 mod add_edge_state;
 mod match_state;
 mod from_state;
+mod add_vertex_state;
+mod set_property_state;
 
 
 pub struct GraphDatabaseEngine<'a> {

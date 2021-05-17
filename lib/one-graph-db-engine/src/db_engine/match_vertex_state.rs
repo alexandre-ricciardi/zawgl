@@ -6,6 +6,7 @@ use super::match_out_edge_state::MatchOutEdgeState;
 use super::match_state::MatchState;
 use super::add_edge_state::AddEdgeState;
 use std::convert::TryFrom;
+use super::utils::*;
 
 pub struct MatchVertexState {
     vid: Option<u64>,
@@ -16,17 +17,8 @@ impl MatchVertexState {
         let vid = gid.as_ref().and_then(|value| u64::try_from(value.clone()).ok());
         MatchVertexState{vid: vid}
     }
-
-
-    
 }
 
-fn init_pattern(context: &mut StateContext, n: Node) {
-    let mut pattern = PropertyGraph::new();
-    let nid = pattern.add_node(n);
-    context.patterns.push(pattern);
-    context.node_index = Some(nid);
-}
 
 impl State for MatchVertexState {
     
