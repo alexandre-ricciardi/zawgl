@@ -31,12 +31,12 @@ fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMach
                 }
             }
             _ => {
-                gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &previous_step)?;
+                gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &previous_step, step)?;
             }
         }
         previous_step = step.clone();
     }
-    gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &previous_step)?;
+    gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &previous_step, &GStep::Empty)?;
     Some(gremlin_state)
 }
 

@@ -95,10 +95,10 @@ impl GremlinStateMachine {
         GremlinStateMachine{context: StateContext::new(), state: Box::new(InitState::new())}
     }
     
-    pub fn new_step_state(mut previous: GremlinStateMachine, step: &GStep) -> Option<Self> {
-        previous.state.handle_step(step, &mut previous.context).ok()?;
-        let new_state = previous.state.create_state(step, &mut previous.context).ok()?;
-        previous.context.previous_step = step.clone();
+    pub fn new_step_state(mut previous: GremlinStateMachine, previous_step: &GStep, current_step: &GStep) -> Option<Self> {
+        previous.state.handle_step(previous_step, &mut previous.context).ok()?;
+        let new_state = previous.state.create_state(current_step, &mut previous.context).ok()?;
+        previous.context.previous_step = previous_step.clone();
         Some(GremlinStateMachine{context: previous.context, state: new_state})
     }
 }
