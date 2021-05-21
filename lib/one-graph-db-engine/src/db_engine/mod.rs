@@ -22,6 +22,7 @@ pub struct GraphDatabaseEngine<'a> {
 }
 
 fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMachine) -> Option<GremlinStateMachine> {
+    let mut previous_step = GStep::Empty;
     for step in steps {
         match step {
             GStep::Match(bytecodes) => {
@@ -30,11 +31,12 @@ fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMach
                 }
             }
             _ => {
-                gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, step)?;
+                gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &previous_step)?;
             }
         }
+        previous_step = step.clone();
     }
-    gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &GStep::Empty)?;
+    gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &previous_step)?;
     Some(gremlin_state)
 }
 

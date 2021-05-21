@@ -566,4 +566,12 @@ mod test_gremlin_json {
       let g = build_gremlin_request_from_json(&value).expect("gremlin request");
       assert_eq!("e9ec71b5-7c44-4d9e-b1c9-f1268d64e2d4", g.request_id);
     }
+
+    #[test]
+    fn test_add_vertex() {
+      let json = r#"{"requestId":"b3a2c6a8-0982-4414-b07f-41ec49009861","op":"bytecode","processor":"traversal","args":{"@type":"g:Map","@value":["gremlin",{"@type":"g:Bytecode","@value":{"step":[["addV","person"],["property","name","marko"],["none"]]}},"aliases",{"@type":"g:Map","@value":["g","g"]}]}}"#;
+      let value: Value = serde_json::from_str(json).expect("json gremlin request");
+      let g = build_gremlin_request_from_json(&value).expect("gremlin request");
+      assert_eq!("b3a2c6a8-0982-4414-b07f-41ec49009861", g.request_id);
+    }
 }

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use one_graph_gremlin::gremlin::*;
 use one_graph_core::model::*;
 use one_graph_core::graph::*;
-use super::match_out_edge_state::MatchOutEdgeState;
+use super::{add_vertex_state::AddVertexState, match_out_edge_state::MatchOutEdgeState};
 use super::match_vertex_state::MatchVertexState;
 #[derive(Debug)]
 pub enum StateError {
@@ -34,6 +34,36 @@ impl State for InitState {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
+            }
+            GStep::AddV(label) => {
+                Ok(Box::new(AddVertexState::new(label)))
+            }
+            _ => {
+                Err(StateError::Invalid)
+            }
+        }
+    }
+}
+
+
+pub struct EndState {
+}
+
+impl EndState {
+    pub fn new() -> Self {
+        EndState{}
+    }
+}
+impl State for EndState {
+    
+    fn handle_step(&self, step: &GStep, _context: &mut StateContext) -> Result<(), StateError> {
+        Ok(())
+    }
+
+    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+        match step {
+            GStep::Empty => {
+                Ok(Box::new(InitState::new()))
             }
             _ => {
                 Err(StateError::Invalid)
