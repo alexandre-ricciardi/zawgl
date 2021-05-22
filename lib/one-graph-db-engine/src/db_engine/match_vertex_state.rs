@@ -25,7 +25,8 @@ impl State for MatchVertexState {
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
         let mut n = Node::new();
         n.set_id(self.vid);
-        
+        n.set_status(Status::Match);
+
         match &context.previous_step {
             GStep::As(_alias) => {
                 init_pattern(context, n);
@@ -37,6 +38,7 @@ impl State for MatchVertexState {
                 if let Some(node_index) = context.node_index {
                     let mut rel = Relationship::new();
                     rel.set_labels(labels.clone());
+                    rel.set_status(Status::Match);
                     let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
                     let nid = pattern.add_node(n);
                     pattern.add_relationship(rel, node_index, nid);

@@ -1,6 +1,6 @@
 use super::graph::*;
 pub mod init;
-use std::hash::Hash;
+use std::{hash::Hash, os::macos::raw::stat};
 use std::hash::Hasher;
 
 #[derive(Debug, Clone)]
@@ -92,18 +92,28 @@ impl Property {
     }
 }
 
+
+#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+pub enum Status {
+    Match,
+    Create,
+    Update,
+    Empty,
+}
+
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Node {
     id: Option<u64>,
     var: Option<String>,
     properties: Vec<Property>,
-    labels: Vec<String>
+    labels: Vec<String>,
+    status: Status,
 }
 
 
 impl Node {
     pub fn new() -> Self {
-        Node {var: None, properties: Vec::new(), labels: Vec::new(), id:None}
+        Node {var: None, properties: Vec::new(), labels: Vec::new(), id:None, status: Status::Empty}
     }
 
     pub fn get_id(&self) -> Option<u64> {
@@ -145,6 +155,13 @@ impl Node {
         &mut self.labels
     }
 
+    pub fn get_status(&self) -> &Status {
+        &self.status
+    }
+
+    pub fn set_status(&mut self, status: Status) {
+        self.status = status;
+    }
 }
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Relationship {
@@ -152,11 +169,12 @@ pub struct Relationship {
     var: Option<String>,
     properties: Vec<Property>,
     labels: Vec<String>,
+    status: Status,
 }
 
 impl Relationship {
     pub fn new() -> Self {
-        Relationship {var: None, properties: Vec::new(), labels: Vec::new(), id: None}
+        Relationship {var: None, properties: Vec::new(), labels: Vec::new(), id: None, status: Status::Empty}
     }
     pub fn get_id(&self) -> Option<u64> {
         self.id
@@ -200,6 +218,14 @@ impl Relationship {
 
     pub fn get_labels_mut(&mut self) -> &mut Vec<String> {
         &mut self.labels
+    }
+
+    pub fn get_status(&self) -> &Status {
+        &self.status
+    }
+
+    pub fn set_status(&mut self, status: Status) {
+        self.status = status;
     }
 }
 

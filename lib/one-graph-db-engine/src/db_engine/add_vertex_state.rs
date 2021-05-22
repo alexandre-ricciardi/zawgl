@@ -1,5 +1,5 @@
 use super::{State, StateContext, match_vertex_state::MatchVertexState, set_property_state::SetPropertyState, utils::init_pattern};
-use one_graph_core::model::Node;
+use one_graph_core::model::{Node, Status};
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
 
@@ -15,6 +15,7 @@ impl AddVertexState {
 impl State for AddVertexState {
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
         let mut n = Node::new();
+        n.set_status(Status::Create);
         n.get_labels_mut().push(self.label.clone());
         match &context.previous_step {
             GStep::Empty => {
