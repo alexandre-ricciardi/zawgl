@@ -62,8 +62,9 @@ async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphD
                     let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                     let gremlin_reply = handle_gremlin_json_request(graph_engine.clone(), &v).ok_or(ServerError::GremlinError)?;
                     let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                    let mut with_prefix = String::from("!application/vnd.gremlin-v3.0+json");
+                    let mut with_prefix = String::from("application/vnd.gremlin-v3.0+json");
                     with_prefix.push_str(&res_msg);
+                    debug!("response msg: {}", res_msg);
                     let response = Message::Text(res_msg);
                     ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
                 }

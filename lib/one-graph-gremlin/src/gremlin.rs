@@ -147,7 +147,10 @@ impl <T: ToJson> ToJson for GList<T> {
         for e in &self.values {
             array.push(e.to_json());
         }
-        json!(array)
+        json!({
+            "@type": "g:List",
+            "@value": array
+        })
     }
 }
 
@@ -224,8 +227,11 @@ pub struct GTraverser {
 impl ToJson for GTraverser {
     fn to_json(&self) -> serde_json::Value {
         json!({
-            "bulk": self.bulk.to_json(),
-            "value": self.value.to_json(),
+            "@type": "g:Traverser",
+            "@value": {
+                "bulk": self.bulk.to_json(),
+                "value": self.value.to_json(),
+            }
         })
     }
 }
@@ -280,7 +286,10 @@ impl GMap {
             res.push(e.0);
             res.push(e.1);
         }
-        json!(res)
+        json!({
+            "@type": "g:Map",
+            "@value": res
+        })
     }
 }
 
