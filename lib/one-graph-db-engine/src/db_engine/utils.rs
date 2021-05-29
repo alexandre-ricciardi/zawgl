@@ -1,4 +1,4 @@
-use one_graph_core::model::{Node, PropertyGraph, PropertyValue};
+use one_graph_core::model::{Node, PropertyGraph, PropertyValue, Status};
 
 use super::gremlin_state::StateContext;
 
@@ -34,4 +34,32 @@ pub fn prop_value_from_gremlin_value(gval: &GValue) -> PropertyValue {
             PropertyValue::PFloat(dval.0)
         }
     }
+}
+
+pub fn is_creation_graph_only(pattern: &PropertyGraph) -> bool {
+    for n in pattern.get_nodes() {
+        match n.get_status() {
+            Status::Create => {}
+            _ => {return false}
+        } 
+    }
+    for r in pattern.get_relationships() {
+        match r.get_status() {
+            Status::Create => {}
+            _ => {return false}
+        } 
+    }
+    return true
+}
+
+pub fn convert_graph_to_gremlin_response(graph: &PropertyGraph, request_id: &str) -> Option<GremlinResponse> {
+    let mut res = GResult::new();
+    for n in graph.get_nodes() {
+        let label = n.get_labels_ref().join(":");
+        let vertex = GVertex{id: GInt64(n.get_id()? as i64), label: label};
+        let traverser = GTraverser{bulk: GInt64(1), value: GItem::Vertex(vertex)};
+        res.data.values.push(traverser);
+    }
+    let attrs = GMap::new();
+    Some(GremlinResponse{request_id: String::from(request_id), status: GStatus{message: String::from(""), code: 200, attributes: attrs}, result: res})
 }

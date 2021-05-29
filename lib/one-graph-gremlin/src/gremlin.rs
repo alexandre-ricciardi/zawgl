@@ -135,7 +135,13 @@ pub struct GList<T: ToJson> {
     pub values: Vec<T>,
 }
 
+impl <T: ToJson> GList<T> {
+    pub fn new() -> Self {
+        GList{values: Vec::new()}
+    }
+}
 impl <T: ToJson> ToJson for GList<T> {
+    
     fn to_json(&self) -> serde_json::Value {
         let mut array = Vec::new();
         for e in &self.values {
@@ -264,6 +270,10 @@ pub struct GMap {
 }
 
 impl GMap {
+    pub fn new() -> Self {
+        GMap{map: HashMap::new()}
+    }
+
     fn to_json(&self) -> serde_json::Value {
         let mut res = Vec::new();
         for e in &self.map {
@@ -280,6 +290,10 @@ pub struct GResult {
 }
 
 impl GResult {
+    pub fn new() -> Self {
+        GResult{data: GList::new(), meta: GMap::new()}
+    }
+
     fn to_json(&self) -> serde_json::Value {
         json!({
             "data": self.data.to_json(),

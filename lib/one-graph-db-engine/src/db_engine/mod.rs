@@ -3,6 +3,8 @@ use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::init::InitContext;
 
 use self::gremlin_state::*;
+use self::utils::convert_graph_to_gremlin_response;
+use self::utils::is_creation_graph_only;
 
 
 pub mod gremlin_state;
@@ -45,13 +47,16 @@ impl <'a> GraphDatabaseEngine<'a> {
         GraphDatabaseEngine{conf: ctx}
     }
 
-
     pub fn handle_gremlin_request(&mut self, gremlin: &GremlinRequest) -> Option<GremlinResponse> {
         let mut gremlin_state = GremlinStateMachine::new();
         gremlin_state = iterate_gremlin_steps(&gremlin.steps, gremlin_state)?;
         let ctx = gremlin_state.context;
-        let graph_engine = GraphEngine::new(&self.conf);
-        
+        let mut graph_engine = GraphEngine::new(&self.conf);
+        for pattern in ctx.patterns {
+            if is_creation_graph_only(&pattern) {
+                return convert_graph_to_gremlin_response(&graph_engine.create_graph(&pattern)?, &gremlin.request_id);
+            }
+        }
         None
     }
 

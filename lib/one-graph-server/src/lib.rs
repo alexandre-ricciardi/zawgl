@@ -12,6 +12,7 @@ extern crate serde_json;
 use futures_util::{
     SinkExt, StreamExt,
 };
+use tungstenite::Message;
 use std::sync::RwLock;
 use std::sync::Arc;
 use log::*;
@@ -59,8 +60,12 @@ async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphD
                     let text_msg = msg.to_text().map_err(ServerError::WebsocketError)?;
                     let json_msg = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json").ok_or(ServerError::HeaderError)?;
                     let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                    let reply = handle_gremlin_json_request(graph_engine.clone(), &v).ok_or(ServerError::GremlinError)?;
-                    ws_sender.send(msg).await.map_err(ServerError::WebsocketError)?;
+                    let gremlin_reply = handle_gremlin_json_request(graph_engine.clone(), &v).ok_or(ServerError::GremlinError)?;
+                    let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                    let mut with_prefix = String::from("!application/vnd.gremlin-v3.0+json");
+                    with_prefix.push_str(&res_msg);
+                    let response = Message::Text(res_msg);
+                    ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
                 }
                 // if msg.is_text() || msg.is_binary() {
                 //     ws_sender.send(msg).await.map_err(ServerError::WebsocketError)?;
