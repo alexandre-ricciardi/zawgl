@@ -16,7 +16,7 @@ impl SetPropertyState {
 impl State for SetPropertyState {
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
         match &context.previous_step {
-            GStep::AddV(label) => {
+            GStep::AddV(_label) => {
                 let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
                 if let Some(nid) = &context.node_index {
                     let n = pattern.get_node_mut(nid);
@@ -27,6 +27,16 @@ impl State for SetPropertyState {
                 }
                 
             },
+            GStep::From(_alias) => {
+                let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
+                if let Some(rid) = &context.relationship_index {
+                    let r = pattern.get_relationship_mut(rid);
+                    let mut prop = Property::new();
+                    prop.set_name(&self.name);
+                    prop.set_value(Some(prop_value_from_gremlin_value(&self.value)));
+                    r.get_properties_mut().push(prop);
+                }
+            }
             _ => {}
         }
         Ok(())

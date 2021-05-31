@@ -13,8 +13,11 @@ pub struct MatchVertexState {
 }
 
 impl MatchVertexState {
-    pub fn new(gid: &Option<GValue>) -> Self {
-        let vid = gid.as_ref().and_then(|value| u64::try_from(value.clone()).ok());
+    pub fn new(gid: &Option<GValueOrVertex>) -> Self {
+        let vid = gid.as_ref().and_then(|value| match value {
+            GValueOrVertex::Value(v) => {u64::try_from(v.clone()).ok()}
+            GValueOrVertex::Vertex(vertex) => {u64::try_from(vertex.id.clone()).ok()}
+        });
         MatchVertexState{vid: vid}
     }
 }

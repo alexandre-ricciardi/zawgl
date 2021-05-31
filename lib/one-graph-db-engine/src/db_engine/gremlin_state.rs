@@ -75,13 +75,16 @@ impl State for EndState {
 pub struct StateContext {
     pub patterns: Vec<PropertyGraph>,
     pub node_index: Option<NodeIndex>,
+    pub relationship_index: Option<EdgeIndex>,
     pub previous_step: GStep,
     pub node_aliases: HashMap<String, NodeIndex>,
+    pub add_edge_label: Option<String>,
 }
 
 impl StateContext {
     pub fn new() -> Self {
-        StateContext{patterns: Vec::new(), node_index: None, previous_step: GStep::Empty, node_aliases: HashMap::new()}
+        StateContext{patterns: Vec::new(), node_index: None, relationship_index: None, previous_step: GStep::Empty,
+             node_aliases: HashMap::new(), add_edge_label: None}
     }
 }
 

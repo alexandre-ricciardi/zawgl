@@ -56,7 +56,8 @@ pub fn convert_graph_to_gremlin_response(graph: &PropertyGraph, request_id: &str
     let mut res = GResult::new();
     for n in graph.get_nodes() {
         let label = n.get_labels_ref().join(":");
-        let vertex = GVertex{id: GInt64(n.get_id()? as i64), label: label};
+        let id = GValue::Integer(GInteger::I64(GInt64(n.get_id()? as i64)));
+        let vertex = GVertex{id: id, label: label};
         let traverser = GTraverser{bulk: GInt64(1), value: GItem::Vertex(vertex)};
         res.data.values.push(traverser);
     }

@@ -9,13 +9,13 @@ pub trait ToJson {
 #[derive(Debug, Clone)]
 pub enum GStep {
     AddV(String),
-    V(Option<GValue>),
+    V(Option<GValueOrVertex>),
     Has(String, Predicate),
     AddE(String),
     E(Option<GValue>),
     OutE(Vec<String>),
     As(String),
-    From(String),
+    From(GValueOrVertex),
     Match(Vec<Vec<GStep>>),
     SetProperty(String, GValue),
     SetDynProperty(String, Vec<GStep>),
@@ -28,6 +28,15 @@ pub enum GValue {
     Double(GDouble),
     String(String),
     Bool(bool),
+}
+
+impl GValue {
+    pub fn as_str(&self) -> Option<&str> {
+        match &self {
+            GValue::String(sval) => {Some(sval)}
+            _ => {None}
+        }
+    }
 }
 
 impl ToJson for GValue {
@@ -236,14 +245,35 @@ impl ToJson for GTraverser {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct GVertex {
-    pub id: GInt64,
+    pub id: GValue,
     pub label: String,
 }
 
 pub enum GItem {
     Vertex(GVertex),
     Edge(GEdge),
+}
+
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum GValueOrVertex {
+    Value(GValue),
+    Vertex(GVertex),
+}
+
+impl ToJson for GValueOrVertex {
+    fn to_json(&self) -> serde_json::Value {
+        match self {
+            GValueOrVertex::Vertex(v) => {
+                v.to_json()
+            },
+            GValueOrVertex::Value(v) => {
+                v.to_json()
+            }
+        }
+    }
 }
 
 impl ToJson for GItem {
@@ -259,7 +289,7 @@ impl ToJson for GItem {
     }
 }
 
-impl GVertex {
+impl ToJson for GVertex {
     fn to_json(&self) -> serde_json::Value {
         json!({
             "@type": "g:Vertex",

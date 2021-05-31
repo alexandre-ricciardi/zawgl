@@ -97,8 +97,8 @@ fn match_step(json_step: &Vec<Value>) -> Option<GStep> {
 }
 
 fn from_step(json_step: &Vec<Value>) -> Option<GStep> {
-    let var = json_step.get(1)?.as_str()?;
-    Some(GStep::From(String::from(var)))
+    let var = json_step.get(1)?;
+    Some(GStep::From(build_value_or_vertex(var)?))
 }
 
 fn as_step(json_step: &Vec<Value>) -> Option<GStep> {
@@ -112,7 +112,37 @@ fn add_e(json_step: &Vec<Value>) -> Option<GStep> {
 }
 
 fn match_v(json_step: &Vec<Value>) -> Option<GStep> {
-    json_step.get(1).map(|v| GStep::V(v.as_str().map(|sval| GValue::String(String::from(sval))))).or(Some(GStep::V(None)))
+  let vid = json_step.get(1);
+  vid.and_then(|v| {
+    Some(GStep::V(build_value_or_vertex(v)))
+  }).or(Some(GStep::V(None)))
+}
+
+fn build_value_or_vertex(elt: &Value) -> Option<GValueOrVertex> {
+  match elt {
+    Value::String(svalue) => {
+      Some(GValueOrVertex::Value(GValue::String(String::from(svalue))))
+    }
+    Value::Object(obj_map) => {
+      if "g:Vertex" == obj_map["@type"] {
+        let vertex = build_vertex(obj_map)?;
+        Some(GValueOrVertex::Vertex(vertex))
+      } else {
+        None
+      }
+    }
+    _ => {
+      None
+    }
+  }
+}
+
+fn build_vertex(obj: &Map<String, Value>) -> Option<GVertex> {
+  let v_value = &obj["@value"];
+  let id = build_gremlin_value(&v_value["id"])?;
+  let label = v_value["label"].as_str()?;
+  let vertex = GVertex{id: id, label: String::from(label)};
+  Some(vertex)
 }
 
 fn match_e(json_step: &Vec<Value>) -> Option<GStep> {

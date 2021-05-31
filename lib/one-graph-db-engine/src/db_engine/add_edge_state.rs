@@ -1,4 +1,4 @@
-use super::{State, StateContext, match_vertex_state::MatchVertexState};
+use super::{State, StateContext, from_state::FromState};
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
 
@@ -13,14 +13,13 @@ impl AddEdgeState {
 }
 impl State for AddEdgeState {
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
-
         Ok(())
     }
 
     fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         match step {
-            GStep::V(vid) => {
-                Ok(Box::new(MatchVertexState::new(vid)))
+            GStep::From(value) => {
+                Ok(Box::new(FromState::new(value).ok_or(StateError::Invalid)?))
             }
             _ => {
                 Err(StateError::Invalid)

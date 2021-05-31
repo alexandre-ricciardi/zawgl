@@ -54,7 +54,9 @@ impl <'a> GraphDatabaseEngine<'a> {
         let mut graph_engine = GraphEngine::new(&self.conf);
         for pattern in ctx.patterns {
             if is_creation_graph_only(&pattern) {
-                return convert_graph_to_gremlin_response(&graph_engine.create_graph(&pattern)?, &gremlin.request_id);
+                let created = graph_engine.create_graph(&pattern)?;
+                graph_engine.sync();
+                return convert_graph_to_gremlin_response(&created, &gremlin.request_id);
             }
         }
         None

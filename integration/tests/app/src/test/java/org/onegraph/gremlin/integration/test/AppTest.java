@@ -65,11 +65,11 @@ public class AppTest {
         final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
-            var v1 = g.addV("person").property("name","marko").iterate();
+            Vertex v1 = g.addV("person").property("name","marko").next();
             System.out.println(v1);
             Vertex v2 = g.addV("person").property("name","stephen").next();
             System.out.println(v2);
-            var res = g.V(v1).addE("knows").to(v2).property("weight",0.75).iterate();
+            var res = g.V(v1).addE("knows").from(v2).property("weight",0.75).iterate();
             System.out.println(res);
         } finally {
             cluster.close();
