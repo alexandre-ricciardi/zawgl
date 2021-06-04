@@ -48,6 +48,17 @@ impl State for MatchVertexState {
                     context.node_index = Some(nid);
                 }
             }
+            GStep::AddE(label) => {
+                if let Some(node_index) = context.node_index {
+                    let mut rel = Relationship::new();
+                    rel.set_labels(vec![label.clone()]);
+                    rel.set_status(Status::Create);
+                    let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
+                    let nid = pattern.add_node(n);
+                    pattern.add_relationship(rel, node_index, nid);
+                    context.node_index = Some(nid);
+                }
+            }
             _ => {
 
             }

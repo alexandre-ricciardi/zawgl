@@ -1,11 +1,12 @@
+use one_graph_core::model::PropertyGraph;
 use one_graph_gremlin::gremlin::*;
 use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::init::InitContext;
 
 use self::gremlin_state::*;
 use self::utils::convert_graph_to_gremlin_response;
-use self::utils::is_creation_graph_only;
-
+use self::utils::get_request_scenario;
+use self::utils::Scenario;
 
 pub mod gremlin_state;
 mod utils;
@@ -52,14 +53,29 @@ impl <'a> GraphDatabaseEngine<'a> {
         gremlin_state = iterate_gremlin_steps(&gremlin.steps, gremlin_state)?;
         let ctx = gremlin_state.context;
         let mut graph_engine = GraphEngine::new(&self.conf);
+        let mut matched_graphs = Vec::new();
         for pattern in ctx.patterns {
-            if is_creation_graph_only(&pattern) {
-                let created = graph_engine.create_graph(&pattern)?;
-                graph_engine.sync();
-                return convert_graph_to_gremlin_response(&created, &gremlin.request_id);
-            }
+            let mut result_graphs = match get_request_scenario(&pattern) {
+                Scenario::CreateOnly => {
+                    let created = graph_engine.create_graph(&pattern)?;
+                    graph_engine.sync();
+                    vec![created]
+                }
+                Scenario::MatchAndCreate => {
+                    let matched = graph_engine.match_pattern(&pattern)?;
+                    graph_engine.sync();
+                    matched
+                }
+                Scenario::MatchOnly => {
+                    let matched = graph_engine.match_pattern(&pattern)?;
+                    graph_engine.sync();
+                    matched
+                }
+                Scenario::Unknown => {vec![PropertyGraph::new()]}
+            };
+            matched_graphs.append(&mut result_graphs);
         }
-        None
+        return convert_graph_to_gremlin_response(&matched_graphs, &gremlin.request_id);
     }
 
 }

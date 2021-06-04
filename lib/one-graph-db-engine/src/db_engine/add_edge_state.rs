@@ -1,4 +1,4 @@
-use super::{State, StateContext, from_state::FromState};
+use super::{State, StateContext, from_state::FromState, match_vertex_state::MatchVertexState};
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
 
@@ -20,6 +20,9 @@ impl State for AddEdgeState {
         match step {
             GStep::From(value) => {
                 Ok(Box::new(FromState::new(value).ok_or(StateError::Invalid)?))
+            }
+            GStep::V(vid) => {
+                Ok(Box::new(MatchVertexState::new(vid)))
             }
             _ => {
                 Err(StateError::Invalid)

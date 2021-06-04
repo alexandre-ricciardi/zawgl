@@ -36,31 +36,57 @@ pub fn prop_value_from_gremlin_value(gval: &GValue) -> PropertyValue {
     }
 }
 
-pub fn is_creation_graph_only(pattern: &PropertyGraph) -> bool {
+pub enum Scenario {
+    CreateOnly,
+    MatchAndCreate,
+    MatchOnly,
+    Unknown,
+}
+
+pub fn get_request_scenario(pattern: &PropertyGraph) -> Scenario {
+    let mut contains_match = false;
+    let mut contains_create = false;
     for n in pattern.get_nodes() {
         match n.get_status() {
-            Status::Create => {}
-            _ => {return false}
+            Status::Create => {contains_create = true;}
+            Status::Match => {contains_match = true;}
+            _ => {}
         } 
     }
     for r in pattern.get_relationships() {
         match r.get_status() {
-            Status::Create => {}
-            _ => {return false}
+            Status::Create => {contains_create = true;}
+            Status::Match => {contains_match = true;}
+            _ => {}
         } 
     }
-    return true
+    if contains_match {
+        if contains_create {
+            Scenario::MatchAndCreate
+        } else {
+            Scenario::MatchOnly
+        }
+    } else {
+        if contains_create {
+            Scenario::CreateOnly
+        } else {
+            Scenario::Unknown
+        }
+    }
 }
 
-pub fn convert_graph_to_gremlin_response(graph: &PropertyGraph, request_id: &str) -> Option<GremlinResponse> {
+pub fn convert_graph_to_gremlin_response(graphs: &Vec<PropertyGraph>, request_id: &str) -> Option<GremlinResponse> {
     let mut res = GResult::new();
-    for n in graph.get_nodes() {
-        let label = n.get_labels_ref().join(":");
-        let id = GValue::Integer(GInteger::I64(GInt64(n.get_id()? as i64)));
-        let vertex = GVertex{id: id, label: label};
-        let traverser = GTraverser{bulk: GInt64(1), value: GItem::Vertex(vertex)};
-        res.data.values.push(traverser);
+    for graph in graphs {
+        for n in graph.get_nodes() {
+            let label = n.get_labels_ref().join(":");
+            let id = GValue::Integer(GInteger::I64(GInt64(n.get_id()? as i64)));
+            let vertex = GVertex{id: id, label: label};
+            let traverser = GTraverser{bulk: GInt64(1), value: GItem::Vertex(vertex)};
+            res.data.values.push(traverser);
+        }
     }
+    
     let attrs = GMap::new();
     Some(GremlinResponse{request_id: String::from(request_id), status: GStatus{message: String::from(""), code: 200, attributes: attrs}, result: res})
 }
