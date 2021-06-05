@@ -1,5 +1,5 @@
 use super::{State, StateContext, match_vertex_state::MatchVertexState, set_property_state::SetPropertyState};
-use one_graph_core::{graph::NodeIndex, model::{Relationship, Status}};
+use one_graph_core::{graph::NodeIndex, model::{Relationship, Status, Node}};
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
 use std::convert::TryFrom;
@@ -35,7 +35,11 @@ impl State for FromState {
                 let target_id = context.node_index;
                 let source_id = match &self.source {
                     Source::Alias(a) => {*context.node_aliases.get(a).ok_or(StateError::Invalid)?}
-                    Source::VertexId(vid) => {NodeIndex::new(*vid as usize)}
+                    Source::VertexId(vid) => {
+                        let mut source = Node::new();
+                        source.set_id(Some(*vid));
+                        pattern.add_node(source)
+                    }
                 };
                 //let target_id = context.node_aliases.get(&self.alias).ok_or(StateError::Invalid)?;
                 if let Some(tid) = target_id {

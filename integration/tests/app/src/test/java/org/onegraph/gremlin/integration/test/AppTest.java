@@ -16,7 +16,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Test;
 
 public class AppTest {
-    @Test 
     public void testAppHasAGreeting() {
 
         final Cluster cluster = createCluster();
@@ -30,7 +29,6 @@ public class AppTest {
 
     }
 
-    @Test
     public void testMatch() {
         
                  final Cluster cluster = createCluster();
@@ -48,7 +46,6 @@ public class AppTest {
         }
     }
 
-    @Test
     public void testMatchEdge() {
         final Cluster cluster = createCluster();
         try {
@@ -76,7 +73,6 @@ public class AppTest {
         }
     }
 
-    @Test
     public void testCreateEdge() {
         final Cluster cluster = createCluster();
         try {
