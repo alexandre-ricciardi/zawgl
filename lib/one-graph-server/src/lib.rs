@@ -68,9 +68,6 @@ async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphD
                     let response = Message::Text(res_msg);
                     ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
                 }
-                // if msg.is_text() || msg.is_binary() {
-                //     ws_sender.send(msg).await.map_err(ServerError::WebsocketError)?;
-                // } 
                 else if msg.is_close() {
                     break;
                 }

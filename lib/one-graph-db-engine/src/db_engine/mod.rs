@@ -3,21 +3,13 @@ use one_graph_gremlin::gremlin::*;
 use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::init::InitContext;
 
-use self::gremlin_state::*;
+use self::gremlin::gremlin_state::*;
 use self::utils::convert_graph_to_gremlin_response;
 use self::utils::get_request_scenario;
 use self::utils::Scenario;
 
-pub mod gremlin_state;
+pub mod gremlin;
 mod utils;
-mod match_out_edge_state;
-mod match_vertex_state;
-mod alias_vertex_state;
-mod add_edge_state;
-mod match_state;
-mod from_state;
-mod add_vertex_state;
-mod set_property_state;
 
 
 pub struct GraphDatabaseEngine<'a> {

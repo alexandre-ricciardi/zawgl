@@ -1,4 +1,8 @@
-use super::{State, StateContext, match_vertex_state::MatchVertexState, set_property_state::SetPropertyState, utils::init_pattern};
+use super::gremlin_state::{State, StateContext};
+use super::match_vertex_state::MatchVertexState;
+use super::set_property_state::SetPropertyState;
+use super::super::utils::init_pattern;
+
 use one_graph_core::model::{Node, Status};
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;

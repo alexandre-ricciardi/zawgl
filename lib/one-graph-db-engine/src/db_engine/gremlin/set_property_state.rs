@@ -1,4 +1,6 @@
-use super::{State, StateContext, match_vertex_state::MatchVertexState, utils::prop_value_from_gremlin_value};
+use super::gremlin_state::{State, StateContext};
+use super::match_vertex_state::MatchVertexState;
+use super::super::utils::prop_value_from_gremlin_value;
 use one_graph_core::{graph::traits::GraphContainerTrait, model::Property};
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;

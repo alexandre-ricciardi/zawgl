@@ -1,6 +1,8 @@
-use super::{State, StateContext, from_state::FromState, match_vertex_state::MatchVertexState};
+use super::gremlin_state::{State, StateContext};
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
+use super::from_state::FromState;
+use super::match_vertex_state::MatchVertexState;
 
 pub struct AddEdgeState {
     label: String,

@@ -1,4 +1,5 @@
-use super::{State, StateContext, match_vertex_state::MatchVertexState};
+use super::gremlin_state::{State, StateContext};
+use super::match_vertex_state::MatchVertexState;
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
 

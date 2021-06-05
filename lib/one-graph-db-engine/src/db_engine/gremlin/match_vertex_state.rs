@@ -1,4 +1,5 @@
-use super::{State, StateContext, alias_vertex_state::AliasVertexState};
+use super::gremlin_state::{State, StateContext};
+use super::alias_vertex_state::AliasVertexState;
 use one_graph_core::model::*;
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
@@ -6,7 +7,7 @@ use super::match_out_edge_state::MatchOutEdgeState;
 use super::match_state::MatchState;
 use super::add_edge_state::AddEdgeState;
 use std::convert::TryFrom;
-use super::utils::*;
+use super::super::utils::*;
 
 pub struct MatchVertexState {
     vid: Option<u64>,

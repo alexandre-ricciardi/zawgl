@@ -1,6 +1,6 @@
 use one_graph_core::model::{Node, PropertyGraph, PropertyValue, Status};
 
-use super::gremlin_state::StateContext;
+use super::gremlin::gremlin_state::StateContext;
 
 use one_graph_gremlin::gremlin::*;
 
