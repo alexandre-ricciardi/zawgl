@@ -66,7 +66,7 @@ public class AppTest {
             System.out.println(v1);
             Vertex v2 = g.addV("person").property("name","stephen").next();
             System.out.println(v2);
-            var res = g.V(v1).addE("knows").from(v2).property("weight",0.75).next();
+            var res = g.V(v1).addE("knows").from(v2).property("weight",0.75).iterate();
             System.out.println(res);
         } finally {
             cluster.close();
