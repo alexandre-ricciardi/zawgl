@@ -8,7 +8,7 @@ use self::utils::convert_graph_to_gremlin_response;
 use self::utils::get_request_scenario;
 use self::utils::Scenario;
 
-pub mod gremlin;
+mod gremlin;
 mod utils;
 
 
