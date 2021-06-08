@@ -1,7 +1,11 @@
 mod model;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
+use crate::graph::EdgeIndex;
+use crate::graph::NodeIndex;
+
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
@@ -49,6 +53,9 @@ impl GraphEngine {
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
+            if n0.get_id() == n1.get_id() {
+                return true;
+            }
             let mut res = true;
             for p0 in n0.get_properties_ref() {
                 if !n1.get_properties_ref().contains(p0) {
@@ -59,6 +66,9 @@ impl GraphEngine {
             res
         },
         |e0, e1| {
+            if e0.get_id() == e1.get_id() {
+                return true;
+            }
             let mut res = true;
             for p0 in e0.get_properties_ref() {
                 if !e1.get_properties_ref().contains(p0) {
@@ -100,7 +110,39 @@ impl GraphEngine {
         Some(res)
     }
 
-   
+    pub fn match_pattern_and_create(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
+        let mut graph_proxy = GraphProxy::new(self.repository.clone(), extract_nodes_labels(pattern));
+
+        let mut match_pattern = PropertyGraph::new();
+        let mut map_nodes_ids = HashMap::new();
+        let mut n_index = 0;
+        for n in pattern.get_nodes() {
+            if *n.get_status() == Status::Match {
+                let pattern_n_index = match_pattern.add_node(n.clone());
+                map_nodes_ids.insert(NodeIndex::new(n_index), pattern_n_index);
+            }
+            n_index += 1;
+        }
+        let mut r_index = 0;
+        for r in pattern.get_relationships() {
+            let e_index = EdgeIndex::new(r_index);
+            let source_index = pattern.get_source_index(&e_index);
+            let target_index = pattern.get_source_index(&e_index);
+            if *r.get_status() == Status::Match {
+                match_pattern.add_relationship(r.clone(), map_nodes_ids[&source_index], map_nodes_ids[&target_index]);
+            }
+            r_index += 1;
+        }
+
+        let res = self.match_pattern(pattern)?;
+
+        for matched_graph in &res {
+            for index in matched_graph.get_nodes_ids() {
+            }
+        }
+        Some(res)
+    }
+
 
     pub fn retrieve_graph() {
 

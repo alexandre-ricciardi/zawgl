@@ -54,7 +54,7 @@ impl <'a> GraphDatabaseEngine<'a> {
                     vec![created]
                 }
                 Scenario::MatchAndCreate => {
-                    let matched = graph_engine.match_pattern(&pattern)?;
+                    let matched = graph_engine.match_pattern_and_create(&pattern)?;
                     graph_engine.sync();
                     matched
                 }
