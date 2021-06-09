@@ -148,6 +148,16 @@ impl GraphRepository {
         res.set_id(Some(nid));
         Some(res)
     }
+    
+
+    pub fn create_relationship(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
+        let mut rr = RelationshipRecord::new(source, target);
+        rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_ref())?;
+        let rid = self.relationships_store.create(&rr)?;
+        let mut res = rel.clone();
+        res.set_id(Some(rid));
+        Some(res)
+    }
 
     pub fn create_graph(&mut self, pgraph: &PropertyGraph) -> Option<PropertyGraph> {
         let mut map_nodes = HashMap::new();

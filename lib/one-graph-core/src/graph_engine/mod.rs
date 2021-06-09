@@ -16,14 +16,6 @@ pub struct GraphEngine {
     repository: Rc<RefCell<GraphRepository>>,
 }
 
-fn extract_nodes_labels(pattern: &PropertyGraph) -> Vec<String> {
-    let mut res = Vec::new();
-    for node in pattern.get_nodes() {
-        node.get_labels_ref().iter().for_each(|l| res.push(l.to_owned()));
-    }
-    res
-}
-
 fn compare_relationships(r0: &Relationship, r1: &Relationship) -> bool {
     let mut res = true;
     for p0 in r0.get_properties_ref() {
@@ -47,9 +39,13 @@ impl GraphEngine {
     pub fn create_node(&mut self, node: &Node) -> Option<Node> {
         self.repository.borrow_mut().create_node(node)
     }
+    
+    pub fn create_relationship(&mut self, rel: &Relationship, source_id: u64, target_id: u64) -> Option<Relationship> {
+        self.repository.borrow_mut().create_relationship(rel, source_id, target_id)
+    }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let mut graph_proxy = GraphProxy::new(self.repository.clone(), extract_nodes_labels(pattern));
+        let mut graph_proxy = GraphProxy::new(self.repository.clone(), pattern);
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
@@ -111,33 +107,35 @@ impl GraphEngine {
     }
 
     pub fn match_pattern_and_create(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let mut graph_proxy = GraphProxy::new(self.repository.clone(), extract_nodes_labels(pattern));
-
         let mut match_pattern = PropertyGraph::new();
         let mut map_nodes_ids = HashMap::new();
-        let mut n_index = 0;
-        for n in pattern.get_nodes() {
+        for nid in pattern.get_nodes_ids() {
+            let n = pattern.get_node_ref(&nid);
             if *n.get_status() == Status::Match {
                 let pattern_n_index = match_pattern.add_node(n.clone());
-                map_nodes_ids.insert(NodeIndex::new(n_index), pattern_n_index);
+                map_nodes_ids.insert(nid, pattern_n_index);
             }
-            n_index += 1;
         }
-        let mut r_index = 0;
-        for r in pattern.get_relationships() {
-            let e_index = EdgeIndex::new(r_index);
-            let source_index = pattern.get_source_index(&e_index);
-            let target_index = pattern.get_source_index(&e_index);
-            if *r.get_status() == Status::Match {
-                match_pattern.add_relationship(r.clone(), map_nodes_ids[&source_index], map_nodes_ids[&target_index]);
+        for re in pattern.get_relationships_and_edges() {
+            let source_index = re.1.source;
+            let target_index = re.1.target;
+            if *re.0.get_status() == Status::Match {
+                match_pattern.add_relationship(re.0.clone(), map_nodes_ids[&source_index], map_nodes_ids[&target_index]);
             }
-            r_index += 1;
         }
 
-        let res = self.match_pattern(pattern)?;
+        let mut res = self.match_pattern(&match_pattern)?;
 
-        for matched_graph in &res {
-            for index in matched_graph.get_nodes_ids() {
+        for matched_graph in &mut res {
+            for re in pattern.get_relationships_and_edges() {
+                if *re.0.get_status() == Status::Create {
+                    let source_index = map_nodes_ids[&re.1.source];
+                    let target_index = map_nodes_ids[&re.1.target];
+                    let source = matched_graph.get_node_ref(&source_index).get_id()?;
+                    let target = matched_graph.get_node_ref(&target_index).get_id()?;
+                    let res = self.create_relationship(re.0, source, target)?;
+                    matched_graph.add_relationship(res, source_index, target_index);
+                }
             }
         }
         Some(res)

@@ -40,6 +40,7 @@ impl State for FromState {
                     Source::VertexId(vid) => {
                         let mut source = Node::new();
                         source.set_id(Some(*vid));
+                        source.set_status(Status::Match);
                         pattern.add_node(source)
                     }
                 };

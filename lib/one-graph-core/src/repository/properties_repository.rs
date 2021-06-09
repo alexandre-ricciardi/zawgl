@@ -48,7 +48,7 @@ fn make_full_inlined_record(prop: &Property) -> Option<records::PropertyRecord> 
                     match value {
                         PropertyValue::PString(sval) => block[skip..skip + sval.len()].copy_from_slice(&sval.clone().into_bytes()),
                         PropertyValue::PInteger(ival) => block[skip..skip + std::mem::size_of::<i64>()].copy_from_slice(&ival.to_be_bytes()),
-                        PropertyValue::PFloat(fval) => block[skip..std::mem::size_of::<f64>()].copy_from_slice(&fval.to_be_bytes()),
+                        PropertyValue::PFloat(fval) => block[skip..skip + std::mem::size_of::<f64>()].copy_from_slice(&fval.to_be_bytes()),
                         PropertyValue::PBool(bval) => block[skip + 2] = *bval as u8,
                     };
                     map_prop_type(prop).map(|ptype| 

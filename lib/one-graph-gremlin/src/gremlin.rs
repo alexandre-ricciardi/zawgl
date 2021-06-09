@@ -175,12 +175,15 @@ pub struct GEdge {
 impl ToJson for GEdge {
     fn to_json(&self) -> serde_json::Value {
         json!({
-            "id": self.id.to_json(),
-            "label": self.label,
-            "inVLabel": self.in_v_label,
-            "outVLabel": self.out_v_abel,
-            "inV": self.in_v.to_json(),
-            "outV": self.out_v.to_json()
+            "@type": "g:Edge",
+            "@value": {
+                "id": self.id.to_json(),
+                "label": self.label,
+                "inVLabel": self.in_v_label,
+                "outVLabel": self.out_v_abel,
+                "inV": self.in_v.to_json(),
+                "outV": self.out_v.to_json()
+            }
         })
     }
 }

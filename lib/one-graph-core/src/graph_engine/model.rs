@@ -308,6 +308,14 @@ impl GrowableGraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy {
 
 }
 
+fn extract_nodes_labels(pattern: &PropertyGraph) -> Vec<String> {
+    let mut res = Vec::new();
+    for node in pattern.get_nodes() {
+        node.get_labels_ref().iter().for_each(|l| res.push(l.to_owned()));
+    }
+    res
+}
+
 fn retrieve_db_nodes_ids(repository: Rc<RefCell<GraphRepository>>, labels: &Vec<String>) -> Vec<ProxyNodeId> {
     let db_node_ids = repository.borrow_mut().fetch_nodes_ids_with_labels(labels);
     let mut res = Vec::new();
@@ -318,8 +326,14 @@ fn retrieve_db_nodes_ids(repository: Rc<RefCell<GraphRepository>>, labels: &Vec<
 }
 
 impl GraphProxy {
-    pub fn new(repo: Rc<RefCell<GraphRepository>>, labels: Vec<String>) -> Self {
-        let ids = retrieve_db_nodes_ids(repo.clone(), &labels);
+    pub fn new(repo: Rc<RefCell<GraphRepository>>, pattern: &PropertyGraph) -> Self {
+        let labels = extract_nodes_labels(pattern);
+        let mut ids = retrieve_db_nodes_ids(repo.clone(), &labels);
+        for n_index in pattern.get_nodes_ids() {
+            if let Some(nid) = pattern.get_node_ref(&n_index).get_id() {
+                ids.push(ProxyNodeId::new_db(nid))
+            }
+        }
         GraphProxy{repository: repo, nodes: Vec::new(),
             relationships: Vec::new(),
             retrieved_nodes_ids: ids, vertices: Rc::new(RefCell::new(Vec::new())),
