@@ -59,6 +59,9 @@ fn build_gremlin_step(step: &Value) -> Option<GStep> {
       "outE" => {
           match_out_e(elts)?
       },
+      "out" => {
+          match_out(elts)?
+      },
       "as" => {
           as_step(elts)?
       },
@@ -158,6 +161,13 @@ fn match_out_e(json_step: &Vec<Value>) -> Option<GStep> {
   Some(GStep::OutE(labels))
 }
 
+fn match_out(json_step: &Vec<Value>) -> Option<GStep> {
+  let mut labels = Vec::new();
+  for value in &json_step[1..] {
+    labels.push(String::from(value.as_str()?));
+  }
+  Some(GStep::Out(labels))
+}
 
 fn add_v(json_step: &Vec<Value>) -> Option<GStep> {
     let label = json_step.get(1)?.as_str()?;

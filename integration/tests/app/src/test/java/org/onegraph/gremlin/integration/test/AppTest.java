@@ -20,7 +20,7 @@ public class AppTest {
 
         final Cluster cluster = createCluster();
         try {
-            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+            final GraphTraversalSource g = createSource(cluster);
             List<Object> verticesWithNamePumba = g.V().has("name", "pumba").out("friendOf").id().toList();
             System.out.println(verticesWithNamePumba);
         } finally {
@@ -33,7 +33,7 @@ public class AppTest {
         
                  final Cluster cluster = createCluster();
         try {
-            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+            final GraphTraversalSource g = createSource(cluster);
             var v1 = g.V().match(
                 __.as("a").out("knows").as("b"),
                 __.as("a").out("created").as("c"),
@@ -49,7 +49,7 @@ public class AppTest {
     public void testMatchEdge() {
         final Cluster cluster = createCluster();
         try {
-            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+            final GraphTraversalSource g = createSource(cluster);
             var v1 = g.V(1).as("source").outE("hasFriend", "contains").V().as("target").V().addE("testEdge").to("target").iterate();
             System.out.println(v1);
         } finally {
@@ -61,22 +61,44 @@ public class AppTest {
     public void testCreateVertex() {
         final Cluster cluster = createCluster();
         try {
-            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
-            Vertex v1 = g.addV("person").property("name","marko").next();
-            System.out.println(v1);
-            Vertex v2 = g.addV("person").property("name","stephen").next();
-            System.out.println(v2);
-            var res = g.V(v1).addE("knows").from(v2).property("weight",0.75).next();
+            final GraphTraversalSource g = createSource(cluster);
+            createVertexAndEdge(g);
+        } finally {
+            cluster.close();
+        }
+    }
+
+    @Test
+    public void testCreateRetrieveVertex() {
+        final Cluster cluster = createCluster();
+        try {
+            final GraphTraversalSource g = createSource(cluster);
+            createVertexAndEdge(g);
+            var res = g.V().out("knows").V().next();
             System.out.println(res);
         } finally {
             cluster.close();
         }
     }
 
+    private GraphTraversalSource createSource(final Cluster cluster) {
+        final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+        return g;
+    }
+
+    private void createVertexAndEdge(final GraphTraversalSource g) {
+        Vertex v1 = g.addV("person").property("name","marko").next();
+        System.out.println(v1);
+        Vertex v2 = g.addV("person").property("name","stephen").next();
+        System.out.println(v2);
+        var res = g.V(v1).addE("knows").from(v2).property("weight",0.75).next();
+        System.out.println(res);
+    }
+
     public void testCreateEdge() {
         final Cluster cluster = createCluster();
         try {
-            final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+            final GraphTraversalSource g = createSource(cluster);
             var v1 = g.V().has("name", P.within("marko", "stephen")).as("person").
             V().has("name", P.within("stephen")).addE("uses").from("person").next();
             System.out.println(v1);
