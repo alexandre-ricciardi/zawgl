@@ -165,7 +165,7 @@ fn match_out_e(json_step: &Vec<Value>) -> Option<GStep> {
 }
 
 fn match_out(json_step: &Vec<Value>) -> Option<Vec<GStep>> {
-  Some(vec![match_out_e(json_step)?, match_in_v(json_step)?]
+  Some(vec![match_out_e(json_step)?, match_in_v()?])
 }
 
 fn match_in_v() -> Option<GStep> {
