@@ -37,45 +37,48 @@ fn build_gremlin_bytecode(bytecode: &Value) -> Option<Vec<GStep>> {
   Some(gremlin_steps)
 }
 
-fn build_gremlin_step(step: &Value) -> Option<GStep> {
+fn build_gremlin_step(step: &Value) -> Option<Vec<GStep>> {
   let elts = step.as_array()?;
   let first = &elts[0];
   let gremlin_step = match first.as_str()? {
       "V" => {
-          match_v(elts)?
+        vec![match_v(elts)?]
+      },
+      "inV" => {
+        vec![match_in_v()?]
       },
       "addV" => {
-          add_v(elts)?
+        vec![add_v(elts)?]
       },
       "has" => {
-          has_property(elts)?
+        vec![has_property(elts)?]
       },
       "addE" => {
-          add_e(elts)?
+        vec![add_e(elts)?]
       },
       "E" => {
-          match_e(elts)?
+        vec![match_e(elts)?]
       },
       "outE" => {
-          match_out_e(elts)?
+        vec![match_out_e(elts)?]
       },
       "out" => {
           match_out(elts)?
       },
       "as" => {
-          as_step(elts)?
+        vec![as_step(elts)?]
       },
       "from" => {
-          from_step(elts)?
+        vec![from_step(elts)?]
       }
       "match" => {
-          match_step(elts)?
+        vec![match_step(elts)?]
       }
       "property" => {
-          set_property_step(elts)?
+        vec![set_property_step(elts)?]
       }
       _ => {
-          GStep::Empty
+        vec![GStep::Empty]
       }
   };
   Some(gremlin_step)
@@ -161,12 +164,12 @@ fn match_out_e(json_step: &Vec<Value>) -> Option<GStep> {
   Some(GStep::OutE(labels))
 }
 
-fn match_out(json_step: &Vec<Value>) -> Option<GStep> {
-  let mut labels = Vec::new();
-  for value in &json_step[1..] {
-    labels.push(String::from(value.as_str()?));
-  }
-  Some(GStep::Out(labels))
+fn match_out(json_step: &Vec<Value>) -> Option<Vec<GStep>> {
+  Some(vec![match_out_e(json_step)?, match_in_v(json_step)?]
+}
+
+fn match_in_v() -> Option<GStep> {
+  Some(GStep::InV)
 }
 
 fn add_v(json_step: &Vec<Value>) -> Option<GStep> {

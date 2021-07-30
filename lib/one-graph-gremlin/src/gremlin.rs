@@ -10,6 +10,7 @@ pub trait ToJson {
 pub enum GStep {
     AddV(String),
     V(Option<GValueOrVertex>),
+    InV,
     Has(String, Predicate),
     AddE(String),
     E(Option<GValue>),

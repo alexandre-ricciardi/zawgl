@@ -15,7 +15,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Test;
 
-public class AppTest {
+public class GremlinTest {
     public void testAppHasAGreeting() {
 
         final Cluster cluster = createCluster();
@@ -74,7 +74,7 @@ public class AppTest {
         try {
             final GraphTraversalSource g = createSource(cluster);
             createVertexAndEdge(g);
-            var res = g.V().out("knows").V().next();
+            var res = g.V().out("knows").next();
             System.out.println(res);
         } finally {
             cluster.close();
