@@ -3,6 +3,7 @@ use super::match_vertex_state::MatchVertexState;
 use one_graph_core::model::*;
 use one_graph_gremlin::gremlin::*;
 use super::gremlin_state::*;
+use super::match_in_vertex_state::*;
 
 pub struct MatchOutEdgeState {
     labels: Vec<String>,
@@ -22,6 +23,9 @@ impl State for MatchOutEdgeState {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
+            }
+            GStep::InV => {
+                Ok(Box::new(MatchInVertexState::new()))
             }
             _ => {
                 Err(StateError::Invalid)
