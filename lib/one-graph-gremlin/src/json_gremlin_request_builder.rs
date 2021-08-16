@@ -30,8 +30,8 @@ fn build_gremlin_bytecode(bytecode: &Value) -> Option<Vec<GStep>> {
     let bytecode_value = &bytecode["@value"];
     let steps = bytecode_value["step"].as_array()?;
     for step in steps {
-        let gremlin_step = build_gremlin_step(step)?;
-        gremlin_steps.push(gremlin_step);
+        let mut gremlin_step = build_gremlin_step(step)?;
+        gremlin_steps.append(&mut gremlin_step);
     }
   }
   Some(gremlin_steps)
