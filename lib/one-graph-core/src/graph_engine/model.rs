@@ -326,21 +326,30 @@ fn retrieve_db_nodes_ids(repository: Rc<RefCell<GraphRepository>>, labels: &Vec<
 }
 
 impl GraphProxy {
-    pub fn new(repo: Rc<RefCell<GraphRepository>>, pattern: &PropertyGraph) -> Self {
+    pub fn new(repo: Rc<RefCell<GraphRepository>>, pattern: &PropertyGraph) -> Option<Self> {
         let labels = extract_nodes_labels(pattern);
         let mut ids = retrieve_db_nodes_ids(repo.clone(), &labels);
         for n_index in pattern.get_nodes_ids() {
             if let Some(nid) = pattern.get_node_ref(&n_index).get_id() {
-                ids.push(ProxyNodeId::new_db(nid))
+                ids.push(ProxyNodeId::new_db(nid));
             }
         }
-        GraphProxy{repository: repo, nodes: Vec::new(),
+        for v in pattern.get_nodes()  {
+            if let Some(nid) = v.get_id() {
+                ids.push(ProxyNodeId::new_db(nid));
+            }
+            if v.get_labels_ref().is_empty() && v.get_id() == None {
+                    ids = repo.borrow_mut().retrieve_all_nodes_ids().map(|v| v.into_iter().map(|id| ProxyNodeId::new_db(id)).collect())?;
+                    break;
+            }
+        }
+        Some(GraphProxy{repository: repo, nodes: Vec::new(),
             relationships: Vec::new(),
             retrieved_nodes_ids: ids, vertices: Rc::new(RefCell::new(Vec::new())),
             edges: Rc::new(RefCell::new(Vec::new())),
             map_vertices: Rc::new(RefCell::new(HashMap::new())),
             map_edges: Rc::new(RefCell::new(HashMap::new())),
-        }
+        })
     }
 
     fn add_edge(&mut self, rel_db_id: u64) -> Option<ProxyRelationshipId> {

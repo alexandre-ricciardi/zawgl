@@ -45,10 +45,18 @@ impl GraphEngine {
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let mut graph_proxy = GraphProxy::new(self.repository.clone(), pattern);
+        let mut graph_proxy = GraphProxy::new(self.repository.clone(), pattern)?;
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
+            if n0.get_id() == None {
+                return true;
+            }
+            for label in n0.get_labels_ref() {
+                if n1.get_labels_ref().contains(label) {
+                    return true;
+                }
+            }
             if n0.get_id() == n1.get_id() {
                 return true;
             }
@@ -62,6 +70,11 @@ impl GraphEngine {
             res
         },
         |e0, e1| {
+            for label in e0.get_labels_ref() {
+                if e1.get_labels_ref().contains(label) {
+                    return true;
+                }
+            }
             if e0.get_id() == e1.get_id() {
                 return true;
             }

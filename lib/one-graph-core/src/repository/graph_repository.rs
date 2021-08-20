@@ -3,6 +3,8 @@ use super::properties_repository::*;
 use super::super::model::*;
 use super::super::repository::index::b_tree::*;
 use self::records::*;
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use super::super::graph::traits::*;
@@ -32,6 +34,10 @@ impl GraphRepository {
             }
         }
         res
+    }
+
+    pub fn retrieve_all_nodes_ids(&mut self) -> Option<Vec<u64>> {
+        self.nodes_store.borrow_mut().retrieve_all_nodes_ids()
     }
 
     pub fn retrieve_node_by_id(&mut self, node_id: u64) -> Option<(Node, DbVertexData)> {

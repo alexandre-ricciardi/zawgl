@@ -57,6 +57,9 @@ impl State for MatchInVertexState {
             GStep::AddE(label) => {
                 Ok(Box::new(AddEdgeState::new(label)))
             }
+            GStep::Empty => {
+                Ok(Box::new(EndState::new()))
+            }
             _ => {
                 Err(StateError::Invalid)
             }

@@ -24,6 +24,10 @@ impl NodesStore {
     pub fn sync(&mut self) {
         self.records_manager.sync();
     }
+
+    pub fn retrieve_all_nodes_ids(&mut self) -> Option<Vec<u64>> {
+        self.records_manager.retrieve_all_records_ids().ok()
+    }
 }
 
 #[cfg(test)]
@@ -45,5 +49,9 @@ mod test_nodes_store {
         assert_eq!(r.first_inbound_edge, 11287665);
         assert_eq!(r.first_outbound_edge, 87687554);
         assert_eq!(r.next_prop_id, 89089807);
+
+        let rids = store.retrieve_all_nodes_ids().unwrap();
+        assert_eq!(1, rids.len());
+        assert_eq!(144, rids[0]);
     }
 }

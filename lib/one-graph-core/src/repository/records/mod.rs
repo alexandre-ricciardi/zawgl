@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::super::buf_config::*;
 
 use super::pager::*;
@@ -500,5 +502,27 @@ impl RecordsManager {
 
     pub fn sync(&mut self) {
         self.pager.sync();
+    }
+
+    pub fn retrieve_all_records_ids(&mut self) -> RecordsManagerResult<Vec<u64>> {
+        let header_page_wrapper = self.get_header_page_wrapper();
+        let page_count = header_page_wrapper.header_page.get_page_count();
+        let nb_records_per_page = self.page_map.nb_records_per_page;
+        let mut res = Vec::new();
+        for pid in 0..page_count {
+            let rpage = self.load_page_wrapper(pid + 1).ok_or(RecordsManagerError::NotFound)?;
+            let free_list = rpage.get_page_free_list();
+            let mut free_list_iter = free_list.iter();
+            for page_record_id in 0..nb_records_per_page {
+                if let Some(free_list_item_id) = free_list_iter.next() {
+                    if page_record_id != *free_list_item_id {
+                        res.push((rpage.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64);
+                    }
+                } else {
+                    res.push((rpage.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64);
+                }
+            }
+        }
+        Ok(res)
     }
 }
