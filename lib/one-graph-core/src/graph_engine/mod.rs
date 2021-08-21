@@ -49,25 +49,29 @@ impl GraphEngine {
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
-            if n0.get_id() == None {
+            if n0.get_id() == None && n0.get_labels_ref().is_empty() {
                 return true;
             }
+            
+            if n0.get_id() != None && n0.get_id() == n1.get_id() {
+                return true;
+            }
+
+            let mut match_labels = true;
             for label in n0.get_labels_ref() {
-                if n1.get_labels_ref().contains(label) {
-                    return true;
-                }
-            }
-            if n0.get_id() == n1.get_id() {
-                return true;
-            }
-            let mut res = true;
-            for p0 in n0.get_properties_ref() {
-                if !n1.get_properties_ref().contains(p0) {
-                    res = false;
+                if !n1.get_labels_ref().contains(label) {
+                    match_labels = false;
                     break;
                 }
             }
-            res
+            let mut match_properties = true;
+            for p0 in n0.get_properties_ref() {
+                if !n1.get_properties_ref().contains(p0) {
+                    match_properties = false;
+                    break;
+                }
+            }
+            match_labels && match_properties
         },
         |e0, e1| {
             for label in e0.get_labels_ref() {
