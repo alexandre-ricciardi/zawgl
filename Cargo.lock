@@ -663,6 +663,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "one-graph-utils"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "one-graph-core",
+ "one-graph-db-engine",
+]
+
+[[package]]
 name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
