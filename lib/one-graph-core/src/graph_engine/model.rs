@@ -334,10 +334,7 @@ impl GraphProxy {
                 ids.push(ProxyNodeId::new_db(nid));
             }
         }
-        for v in pattern.get_nodes()  {
-            if let Some(nid) = v.get_id() {
-                ids.push(ProxyNodeId::new_db(nid));
-            }
+        for v in pattern.get_nodes() {
             if v.get_labels_ref().is_empty() && v.get_id() == None {
                     ids = repo.borrow_mut().retrieve_all_nodes_ids().map(|v| v.into_iter().map(|id| ProxyNodeId::new_db(id)).collect())?;
                     break;

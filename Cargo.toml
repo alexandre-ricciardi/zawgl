@@ -6,4 +6,5 @@ members = [
     "lib/one-graph-db-engine",
     "lib/one-graph-server",
     "og",
+    "utils",
 ]

@@ -1,0 +1,10 @@
+[package]
+name = "one-graph-utils"
+version = "0.1.0"
+authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+edition = "2018"
+
+[dependencies]
+one-graph-core = { path = "../lib/one-graph-core" }
+one-graph-db-engine = { path = "../one-graph-db-engine" }
+log = "0.4"

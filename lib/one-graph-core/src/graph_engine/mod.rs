@@ -3,8 +3,6 @@ mod model;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::graph::EdgeIndex;
-use crate::graph::NodeIndex;
 
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
