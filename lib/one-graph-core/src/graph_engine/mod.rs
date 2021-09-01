@@ -157,8 +157,8 @@ impl GraphEngine {
     }
 
 
-    pub fn retrieve_graph() {
-
+    pub fn retrieve_graph(&mut self) -> Option<GraphProxy> {
+        GraphProxy::new_full(self.repository.clone())
     }
 
     pub fn sync(&mut self) {

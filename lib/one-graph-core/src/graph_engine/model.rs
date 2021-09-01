@@ -349,6 +349,18 @@ impl GraphProxy {
         })
     }
 
+    pub fn new_full(repo: Rc<RefCell<GraphRepository>>) -> Option<Self> {
+        let ids = repo.borrow_mut().retrieve_all_nodes_ids().map(|v| v.into_iter().map(|id| ProxyNodeId::new_db(id)).collect())?;
+
+        Some(GraphProxy{repository: repo, nodes: Vec::new(),
+            relationships: Vec::new(),
+            retrieved_nodes_ids: ids, vertices: Rc::new(RefCell::new(Vec::new())),
+            edges: Rc::new(RefCell::new(Vec::new())),
+            map_vertices: Rc::new(RefCell::new(HashMap::new())),
+            map_edges: Rc::new(RefCell::new(HashMap::new())),
+        })
+    }
+
     fn add_edge(&mut self, rel_db_id: u64) -> Option<ProxyRelationshipId> {
         let db_edge_data = self.repository.borrow_mut().retrieve_edge_data_by_id(rel_db_id)?;
         add_edge(self.edges.clone(), self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), &db_edge_data, rel_db_id)

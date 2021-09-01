@@ -1,4 +1,3 @@
-use one_graph_core::model::PropertyGraph;
 use one_graph_gremlin::gremlin::*;
 use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::init::InitContext;
