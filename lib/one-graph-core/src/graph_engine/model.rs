@@ -401,6 +401,11 @@ impl GraphProxy {
         self.relationships.insert(pid.get_index(), rel.clone());
         Some(pid)
     }
+
+    pub fn get_relationships_ref(&self) -> &Vec<Relationship> {
+        &self.relationships
+    }
+
 }
 
 

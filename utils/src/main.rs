@@ -9,4 +9,9 @@ fn main() {
     let mut graph_engine = GraphEngine::new(&conf);
     let full_graph = graph_engine.retrieve_graph().unwrap();
     print!("{:?}", full_graph.get_nodes_ids());
+    print!("full_graph {");
+    for id in full_graph.get_relationships_ref() {
+        print!("{:?}, ", id);
+
+    }
 }
