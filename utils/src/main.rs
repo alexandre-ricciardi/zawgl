@@ -8,10 +8,10 @@ fn main() {
     let conf = InitContext::new(&main_dir);
     let mut graph_engine = GraphEngine::new(&conf);
     let full_graph = graph_engine.retrieve_graph().unwrap();
-    print!("{:?}", full_graph.get_nodes_ids());
-    print!("full_graph {");
-    for id in full_graph.get_relationships_ref() {
-        print!("{:?}, ", id);
-
+    println!("{:?}", full_graph.get_nodes_ids());
+    println!("full_graph {{");
+    for e in full_graph.get_edges() {
+        println!("{:?} -> {:?}", e.source.store_id, e.target.store_id);
     }
+    println!("}}");
 }

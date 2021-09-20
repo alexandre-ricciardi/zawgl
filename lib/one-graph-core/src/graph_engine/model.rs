@@ -9,8 +9,8 @@ use std::collections::HashMap;
 
 #[derive(Copy, Clone, Debug)]
 pub struct ProxyNodeId {
-    mem_id: usize,
-    store_id: u64,
+    pub mem_id: usize,
+    pub store_id: u64,
 }
 
 impl PartialEq for ProxyNodeId {
@@ -404,6 +404,10 @@ impl GraphProxy {
 
     pub fn get_relationships_ref(&self) -> &Vec<Relationship> {
         &self.relationships
+    }
+
+    pub fn get_edges(&self) -> Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>> {
+        self.edges.borrow().clone()
     }
 
 }
