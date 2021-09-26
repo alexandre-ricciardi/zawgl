@@ -24,6 +24,7 @@ impl FileAccess {
             let bytes_written = self.file.write(&data[written..])?;
             written += bytes_written;
         }
+        self.file.flush()?;
         self.file.sync_all()?;
         Ok(())
     }

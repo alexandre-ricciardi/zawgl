@@ -246,11 +246,11 @@ fn extract_value(skip: usize, prop_type: u8, data: &[u8]) -> Option<PropertyValu
         String::from_utf8(value).ok().map(|v|PropertyValue::PString(v))
     } else if prop_type == 1 {
         let mut bytes = [0u8; std::mem::size_of::<i64>()];
-        bytes.copy_from_slice(&data[skip..std::mem::size_of::<i64>()]);
+        bytes.copy_from_slice(&data[skip..skip+std::mem::size_of::<i64>()]);
         Some(PropertyValue::PInteger(i64::from_be_bytes(bytes)))
     } else if prop_type == 2 {
         let mut bytes = [0u8; std::mem::size_of::<f64>()];
-        bytes.copy_from_slice(&data[skip..std::mem::size_of::<f64>()]);
+        bytes.copy_from_slice(&data[skip..skip+std::mem::size_of::<f64>()]);
         Some(PropertyValue::PFloat(f64::from_be_bytes(bytes)))
     } else if prop_type == 3 {
         Some(PropertyValue::PBool(data[skip + 1] > 0))

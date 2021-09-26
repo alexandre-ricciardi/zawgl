@@ -60,7 +60,6 @@ impl <'a> GraphDatabaseEngine<'a> {
                 }
                 Scenario::MatchOnly => {
                     let matched = graph_engine.match_pattern(&pattern)?;
-                    graph_engine.sync();
                     ResultGraph{ scenario: Scenario::MatchOnly, patterns: matched }
                 }
                 Scenario::Unknown => {ResultGraph{ scenario: Scenario::Unknown, patterns: vec![] }}
