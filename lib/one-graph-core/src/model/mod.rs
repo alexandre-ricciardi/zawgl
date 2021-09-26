@@ -52,7 +52,7 @@ impl PartialEq for PropertyValue {
 }
 impl Eq for PropertyValue {}
 
-#[derive(Hash, Eq, PartialEq, Clone)]
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub struct Property {
     id: Option<u64>,
     name: Option<String>,
@@ -93,7 +93,7 @@ impl Property {
 }
 
 
-#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+#[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Status {
     Match,
     Create,
@@ -101,7 +101,7 @@ pub enum Status {
     Empty,
 }
 
-#[derive(Hash, Eq, PartialEq, Clone)]
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub struct Node {
     id: Option<u64>,
     var: Option<String>,
@@ -163,7 +163,7 @@ impl Node {
         self.status = status;
     }
 }
-#[derive(Hash, Eq, PartialEq, Clone)]
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub struct Relationship {
     id: Option<u64>,
     var: Option<String>,
