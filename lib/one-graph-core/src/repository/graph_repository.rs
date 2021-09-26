@@ -162,6 +162,38 @@ impl GraphRepository {
         let rid = self.relationships_store.create(&rr)?;
         let mut res = rel.clone();
         res.set_id(Some(rid));
+
+        let mut source_record = self.nodes_store.load(source)?;
+        if source_record.first_outbound_edge == 0 {
+            source_record.first_outbound_edge = rid;
+            self.nodes_store.save(source, &source_record)?;
+        } else {
+            let mut rel_record = self.relationships_store.load(source_record.first_outbound_edge)?;
+            let mut current_rr_id = source_record.first_outbound_edge;
+            while rel_record.next_outbound_edge !=0 {
+                current_rr_id = rel_record.next_outbound_edge;
+                rel_record = self.relationships_store.load(rel_record.next_outbound_edge)?;
+            }
+            rel_record.next_outbound_edge = rid;
+            self.relationships_store.save(current_rr_id, &rel_record)?;
+        }
+
+        
+        let mut target_record = self.nodes_store.load(target)?;
+        if target_record.first_inbound_edge == 0 {
+            target_record.first_inbound_edge = rid;
+            self.nodes_store.save(target, &target_record)?;
+        } else {
+            let mut rel_record = self.relationships_store.load(target_record.first_inbound_edge)?;
+            let mut current_rr_id = target_record.first_inbound_edge;
+            while rel_record.next_inbound_edge !=0 {
+                current_rr_id = rel_record.next_inbound_edge;
+                rel_record = self.relationships_store.load(rel_record.next_inbound_edge)?;
+            }
+            rel_record.next_inbound_edge = rid;
+            self.relationships_store.save(current_rr_id, &rel_record)?;
+        }
+
         Some(res)
     }
 
