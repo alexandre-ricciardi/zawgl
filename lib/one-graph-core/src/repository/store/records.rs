@@ -34,12 +34,6 @@ impl NodeRecord {
     }
 }
 
-
-
-
-
-
-
 pub struct RelationshipRecord {
     pub source: u64,
     pub target: u64,

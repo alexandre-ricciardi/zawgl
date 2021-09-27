@@ -3,7 +3,6 @@ use super::properties_repository::*;
 use super::super::model::*;
 use super::super::repository::index::b_tree::*;
 use self::records::*;
-use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::collections::HashSet;

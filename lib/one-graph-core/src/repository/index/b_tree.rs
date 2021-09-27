@@ -250,4 +250,29 @@ mod test_b_tree {
         }
 
     }
+
+    
+    #[test]
+    fn test_root_split_same_key() {
+        let file = build_file_path_and_rm_old("b_tree", "test_root_split_same_key.db").unwrap();
+        let mut index = BTreeIndex::new(&file);
+
+        for i in 0..1000 {
+            index.insert("same key", i);
+        }
+
+        index.sync();
+
+        for i in 0..1000 {
+            let optrs = index.search(&format!("key # {}", i));
+            if let Some(ptrs) = optrs {
+                assert_eq!(ptrs.len(), 1);
+                assert!(ptrs.contains(&i));
+            } else {
+                assert!(false, format!("empty search result for key # {}", i));
+            }
+            
+        }
+
+    }
 }

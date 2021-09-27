@@ -369,8 +369,8 @@ impl BTreeNodeStore {
             data_ptr_offset += NODE_PTR_SIZE;
             data_ptr_count += 1;
             whole_data_ptr_count += 1;
-            if data_ptr_offset > KEY_SIZE {
-                curr_list_ptr_cell.key.copy_from_slice(&data_ptr_count.to_be_bytes());
+            if data_ptr_offset + NODE_PTR_SIZE >= KEY_SIZE {
+                curr_list_ptr_cell.key[..2].copy_from_slice(&data_ptr_count.to_be_bytes());
                 if to_create {
                     cells_to_create.push(curr_list_ptr_cell);
                 } else {
