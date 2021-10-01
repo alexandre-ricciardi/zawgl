@@ -263,16 +263,11 @@ mod test_b_tree {
 
         index.sync();
 
-        for i in 0..1000 {
-            let optrs = index.search(&format!("key # {}", i));
-            if let Some(ptrs) = optrs {
-                assert_eq!(ptrs.len(), 1);
-                assert!(ptrs.contains(&i));
-            } else {
-                assert!(false, format!("empty search result for key # {}", i));
-            }
-            
+        let optrs = index.search("same key");
+        if let Some(ptrs) = optrs {
+            assert_eq!(ptrs.len(), 1000);
+        } else {
+            assert!(false, "empty search result for same key");
         }
-
     }
 }
