@@ -18,11 +18,29 @@ impl NodeRecordPool {
         NodeRecordPool{ records: HashMap::new(), records_manager: record_manager }
     }
 
-    pub fn load_node_record(&mut self, id: u64) -> Option<&mut BNodeRecord> {
+    pub fn load_node_record_clone(&mut self, id: u64) -> Option<BNodeRecord> {
         if !self.records.contains_key(&id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.borrow_mut().load(id, &mut data).ok()?;
-            self.records.insert(id, BNodeRecord::from_bytes(data))?;
+            self.records.insert(id, BNodeRecord::from_bytes(data));
+        }
+        Some(self.records.get(&id)?.clone())
+    }
+
+    pub fn load_node_record_ref(&mut self, id: u64) -> Option<&BNodeRecord> {
+        if !self.records.contains_key(&id) {
+            let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+            self.records_manager.borrow_mut().load(id, &mut data).ok()?;
+            self.records.insert(id, BNodeRecord::from_bytes(data));
+        }
+        Some(self.records.get(&id)?)
+    }
+
+    pub fn load_node_record_mut(&mut self, id: u64) -> Option<&mut BNodeRecord> {
+        if !self.records.contains_key(&id) {
+            let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+            self.records_manager.borrow_mut().load(id, &mut data).ok()?;
+            self.records.insert(id, BNodeRecord::from_bytes(data));
             
         }
         Some(self.records.get_mut(&id)?)
@@ -30,7 +48,7 @@ impl NodeRecordPool {
 
     pub fn create_node_record(&mut self, node_record: BNodeRecord) -> Option<u64> {
         let id = self.records_manager.borrow_mut().create(&node_record.to_bytes()).ok()?;
-        self.records.insert(id, node_record)?;
+        self.records.insert(id, node_record);
         Some(id)
     }
 

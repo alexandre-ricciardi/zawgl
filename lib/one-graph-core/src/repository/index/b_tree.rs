@@ -265,6 +265,7 @@ mod test_b_tree {
 
         let optrs = index.search("same key");
         if let Some(ptrs) = optrs {
+            println!("{:?}", ptrs);
             assert_eq!(ptrs.len(), 1000);
         } else {
             assert!(false, "empty search result for same key");

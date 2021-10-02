@@ -9,7 +9,7 @@ const HAS_NEXT_NODE_FLAG: u8 = 0b0100_0000;
 const IS_OVERFLOW_NODE_FLAG: u8 = 0b0010_0000;
 const IS_ROOT_NODE_FLAG: u8 = 0b0001_0000;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct CellRecord {
     pub header: u8,
     pub node_ptr: u64,
@@ -80,6 +80,7 @@ impl CellRecord {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct BNodeRecord {
     pub header: u8,
     pub next_free_cells_node_ptr: u64,
