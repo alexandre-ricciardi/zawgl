@@ -1,3 +1,5 @@
+use crate::repository::index::model::{CellId, NodeId};
+
 use super::super::super::super::buf_config::*;
 
 const HAS_OVERFLOW_CELL_FLAG: u8 = 0b1000_0000;
@@ -77,6 +79,15 @@ impl CellRecord {
             node_ptr: ptr,
             overflow_cell_ptr: overflow_cell_ptr,
             key: key}
+    }
+
+    pub fn chain_with_cell_location(&mut self, location: (NodeId, CellId)) {
+        self.node_ptr = location.0;
+        self.overflow_cell_ptr = location.1;
+    }
+
+    pub fn get_cell_location(&self) -> (NodeId, CellId) {
+        (self.node_ptr, self.overflow_cell_ptr)
     }
 }
 
