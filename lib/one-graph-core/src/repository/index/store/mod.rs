@@ -4,6 +4,8 @@ mod pool;
 use log::*;
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::repository::store::records::NodeRecord;
+
 use self::records::*;
 use super::super::super::buf_config::*;
 use super::model::*;
@@ -441,20 +443,21 @@ impl BTreeNodeStore {
         self.delete_cell_records(pool, &overflow_cell_records, root_cell_record.node_ptr, root_cell_record.overflow_cell_ptr)
     }
 
-    pub fn save(&mut self, node: &mut BTreeNode) -> Option<()> {
+    fn select_root_node(&mut self, pool: &mut NodeRecordPool, node: &mut BTreeNode) -> Option<NodeId>  {
         let id = node.get_id()?;
-        let mut pool = NodeRecordPool::new(self.records_manager.clone());
+        let main_node_record = pool.load_node_record_mut(id)?;
+        if !node.is_root() {
+            main_node_record.set_is_not_root();
+        } else {
+            self.set_root_node_ptr(id);
+        }
+        Some(id)
+    }
 
+    fn make_cells_change_log(&mut self, pool: &mut NodeRecordPool, node: &BTreeNode, id: NodeId) -> Option<Vec<CellChangeContext>> {
         let mut cells_context = Vec::new();
-
-        {
+        let list_old_ids_to_delete = {
             let main_node_record = pool.load_node_record_mut(id)?;
-            if !node.is_root() {
-                main_node_record.set_is_not_root();
-            } else {
-                self.set_root_node_ptr(id);
-            }
-            
             for index in 0..main_node_record.cells.len() {
                 if main_node_record.cells[index].is_active() {
                     cells_context.push(CellChangeContext::old(index));
@@ -462,42 +465,47 @@ impl BTreeNodeStore {
                     break;
                 }
             }
-        }
-        
-
-        //replay change log
-        let mut list_old_ids_to_delete = Vec::new();
-        for cell_change_log in node.get_node_changes_state().get_list_change_log() {
-            if cell_change_log.is_remove() {
-                let index = cell_change_log.index();
-                let ctx = &cells_context[index];
-                if !ctx.is_added {
-                    list_old_ids_to_delete.push(ctx.old_cell_id)
+            //replay change log
+            let mut list_old_ids_to_delete = Vec::new();
+            for cell_change_log in node.get_node_changes_state().get_list_change_log() {
+                if cell_change_log.is_remove() {
+                    let index = cell_change_log.index();
+                    let ctx = &cells_context[index];
+                    if !ctx.is_added {
+                        list_old_ids_to_delete.push(ctx.old_cell_id)
+                    }
+                    cells_context.remove(index);
+                } else if cell_change_log.is_add() {
+                    let index = cell_change_log.index();
+                    cells_context.insert(index, CellChangeContext::added());
                 }
-                cells_context.remove(index);
-            } else if cell_change_log.is_add() {
-                let index = cell_change_log.index();
-                cells_context.insert(index, CellChangeContext::added());
             }
-        }
 
-        {
-            let main_node_record = pool.load_node_record_mut(id)?;
-    
             //delete old records
             for cell_id in &list_old_ids_to_delete {
                 main_node_record.cells[*cell_id].set_inactive();
             }
+
+            list_old_ids_to_delete
+        };
+        
+
+        let main_node_record = pool.load_node_record_clone(id)?;
+        //delete old records
+        for cell_id in list_old_ids_to_delete {
+            self.delete_cell_records_from_root_cell(pool, &main_node_record.cells[cell_id]);
         }
 
-        {
-            let main_node_record = pool.load_node_record_clone(id)?;
+        Some(cells_context)
+    }
 
-            //delete old records
-            for cell_id in list_old_ids_to_delete {
-                self.delete_cell_records_from_root_cell(&mut pool, &main_node_record.cells[cell_id]);
-            }
-        }
+    pub fn save(&mut self, node: &mut BTreeNode) -> Option<()> {
+        let mut pool = NodeRecordPool::new(self.records_manager.clone());
+        
+        let id = self.select_root_node(&mut pool, node)?;
+
+        let cells_context = self.make_cells_change_log(&mut pool, node, id)?;
+
         {
             let main_node_record = pool.load_node_record_mut(id)?;
             let old_cell_records = main_node_record.cells;
@@ -726,7 +734,6 @@ mod test_btree_node_store {
         reverse_cell_records.push(c0);
         let first_created_loc = store.create_overflow_cells(&mut pool, &mut reverse_cell_records).unwrap();
         //store.update_overflow_cells(&mut pool, cell_records, prev_cell_record)
-
     }
 
     #[test]
