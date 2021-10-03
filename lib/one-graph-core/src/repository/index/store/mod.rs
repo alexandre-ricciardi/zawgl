@@ -530,6 +530,21 @@ impl BTreeNodeStore {
         Some(())
     }
 
+    fn create_new_records(&mut self, pool: &mut NodeRecordPool, node_record_id: NodeId, cells_context: &Vec<CellChangeContext>, node: &mut BTreeNode) -> Option<()> {   
+        //create new records
+        let mut new_cell_id = 0;
+        for ctx in cells_context {
+            if ctx.is_added {
+                let current_cell = node.get_cell_ref(new_cell_id);
+                let cell_records = self.create_cell(pool, current_cell)?;
+                let main_node_record = pool.load_node_record_mut(node_record_id)?;
+                main_node_record.cells[new_cell_id] = cell_records[0];
+            }
+            new_cell_id += 1;
+        }
+        Some(())
+    }
+
     pub fn save(&mut self, node: &mut BTreeNode) -> Option<()> {
         let mut pool = NodeRecordPool::new(self.records_manager.clone());
         
@@ -541,35 +556,7 @@ impl BTreeNodeStore {
 
         self.update_node_record_cells_data_ptr(&mut pool, id, &cells_context, node)?;
         
-           
-        let root_cells = {
-            let mut roots = Vec::new();
-            //create new records
-            let mut new_cell_id = 0;
-            for ctx in &cells_context {
-                if ctx.is_added {
-                    let current_cell = node.get_cell_ref(new_cell_id);
-                    let cell_records = self.create_cell(&mut pool, current_cell)?;
-                    roots.push(cell_records[0]);
-                }
-                new_cell_id += 1;
-            }
-            roots
-        };
-
-        {
-            let main_node_record = pool.load_node_record_mut(id)?;
-            //create new records
-            let mut new_cell_id = 0;
-            let mut root_cell_id = 0;
-            for ctx in &cells_context {
-                if ctx.is_added {
-                    main_node_record.cells[new_cell_id] = root_cells[root_cell_id];
-                    root_cell_id += 1;
-                }
-                new_cell_id += 1;
-            }
-        }
+        self.create_new_records(&mut pool, id, &cells_context, node)?;
 
         pool.save_all_node_records()?;
 
