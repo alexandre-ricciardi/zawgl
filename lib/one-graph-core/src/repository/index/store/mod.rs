@@ -499,6 +499,37 @@ impl BTreeNodeStore {
         Some(cells_context)
     }
 
+    fn move_old_cell_records(&mut self, pool: &mut NodeRecordPool, node_record_id: NodeId, cells_context: &Vec<CellChangeContext>) -> Option<()> {
+        let main_node_record = pool.load_node_record_mut(node_record_id)?;
+        let old_cell_records = main_node_record.cells;
+
+        //move and update old records
+        let mut new_cell_id = 0;
+        for ctx in cells_context {
+            if !ctx.is_added {
+                main_node_record.cells[new_cell_id] = old_cell_records[ctx.old_cell_id];
+            }
+            new_cell_id += 1;
+        }
+        Some(())
+    }
+
+    fn update_node_record_cells_data_ptr(&mut self, pool: &mut NodeRecordPool, node_record_id: NodeId, cells_context: &Vec<CellChangeContext>, node: &mut BTreeNode) -> Option<()> {
+         let main_node_record = pool.load_node_record_clone(node_record_id)?;
+        //move and update old records
+        let mut new_cell_id = 0;
+        for ctx in cells_context {
+            if !ctx.is_added {
+                let current_cell = node.get_cell_ref(new_cell_id);
+                if current_cell.get_change_state().did_list_data_ptr_changed() {
+                    self.update_cell_data_ptrs(pool, &main_node_record.cells[new_cell_id], current_cell.get_data_ptrs_ref())?;
+                }
+            }
+            new_cell_id += 1;
+        }
+        Some(())
+    }
+
     pub fn save(&mut self, node: &mut BTreeNode) -> Option<()> {
         let mut pool = NodeRecordPool::new(self.records_manager.clone());
         
@@ -506,35 +537,11 @@ impl BTreeNodeStore {
 
         let cells_context = self.make_cells_change_log(&mut pool, node, id)?;
 
-        {
-            let main_node_record = pool.load_node_record_mut(id)?;
-            let old_cell_records = main_node_record.cells;
+        self.move_old_cell_records(&mut pool, id, &cells_context)?;
 
-            //move and update old records
-            let mut new_cell_id = 0;
-            for ctx in &cells_context {
-                if !ctx.is_added {
-                    main_node_record.cells[new_cell_id] = old_cell_records[ctx.old_cell_id];
-                }
-                new_cell_id += 1;
-            }
-
-        }
-
-        {
-            let main_node_record = pool.load_node_record_clone(id)?;
-            //move and update old records
-            let mut new_cell_id = 0;
-            for ctx in &cells_context {
-                if !ctx.is_added {
-                    let current_cell = node.get_cell_ref(new_cell_id);
-                    if current_cell.get_change_state().did_list_data_ptr_changed() {
-                        self.update_cell_data_ptrs(&mut pool, &main_node_record.cells[new_cell_id], current_cell.get_data_ptrs_ref())?;
-                    }
-                }
-                new_cell_id += 1;
-            }
-        }
+        self.update_node_record_cells_data_ptr(&mut pool, id, &cells_context, node)?;
+        
+           
         let root_cells = {
             let mut roots = Vec::new();
             //create new records
