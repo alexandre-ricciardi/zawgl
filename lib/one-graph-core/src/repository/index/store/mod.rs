@@ -4,15 +4,13 @@ mod pool;
 use log::*;
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::repository::store::records::NodeRecord;
 
 use self::records::*;
 use super::super::super::buf_config::*;
 use super::model::*;
 use super::super::records::*;
-use self::pool::NodeRecordPool;
+use self::pool::*;
 
-type CellPos = (NodeId, CellId);
 
 pub struct BTreeNodeStore {
     records_manager: Rc<RefCell<RecordsManager>>,
@@ -171,8 +169,10 @@ impl BTreeNodeStore {
         Some(id)
     }
 
-    fn create_overflow_cells(&mut self, pool: &mut NodeRecordPool, reverse_cell_records: &mut [CellRecord]) -> Option<CellPos> {
+    fn create_overflow_cells(&mut self, pool: &mut NodeRecordPool, reverse_cell_records: &mut [CellRecord]) -> Option<BtreeCellLoc> {
 
+        let free_cell_iter = pool.free_cell_iter();
+        
         let mut free_cells_node_record_id = self.load_or_create_free_cells_overflow_node(pool)?;
         let mut reverse_cell_id = 0;
         let mut curr_cell_id: usize = 0;
