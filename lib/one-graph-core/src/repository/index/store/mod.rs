@@ -3,7 +3,7 @@ mod pool;
 
 use log::*;
 use std::rc::Rc;
-use std::cell::RefCell;
+use std::cell::{self, RefCell};
 
 use self::records::*;
 use super::super::super::buf_config::*;
@@ -137,87 +137,13 @@ impl BTreeNodeStore {
         Some((prev_node_id, prev_cell_id))
     }
 
-    fn load_or_create_free_cells_overflow_node(&mut self, pool: &mut NodeRecordPool) -> Option<NodeId> {
-        if pool.records_manager.borrow_mut().is_empty() {
-            let mut first_free_node = BNodeRecord::new();
-            first_free_node.set_overflow_node();
-            let new_record = pool.create_node_record(first_free_node)?;
-            self.set_first_free_list_node_ptr(new_record);
-            Some(new_record)
-        } else {
-            let first_free_record_ptr = self.get_first_free_list_node_ptr();
-            if first_free_record_ptr == 0 {
-                let next_free_cells_overflow_node = self.create_overflow_node(pool)?;
-                self.set_first_free_list_node_ptr(next_free_cells_overflow_node);
-                Some(next_free_cells_overflow_node)
-            } else {
-                let free_node_record = pool.load_node_record_ref(first_free_record_ptr)?;
-                if free_node_record.is_full() {
-                    self.set_first_free_list_node_ptr(free_node_record.next_free_cells_node_ptr);
-                    self.load_or_create_free_cells_overflow_node(pool)
-                } else {
-                    Some(first_free_record_ptr)
-                }
-            }
-        }
-    }
-
-    fn create_overflow_node(&mut self, pool: &mut NodeRecordPool) -> Option<NodeId> {
-        let mut next_free_cells_overflow_node = BNodeRecord::new();
-        next_free_cells_overflow_node.set_overflow_node();
-        let id = pool.create_node_record(next_free_cells_overflow_node)?;
-        Some(id)
-    }
-
     fn create_overflow_cells(&mut self, pool: &mut NodeRecordPool, reverse_cell_records: &mut [CellRecord]) -> Option<BtreeCellLoc> {
-
-        let free_cell_iter = pool.free_cell_iter();
-        
-        let mut free_cells_node_record_id = self.load_or_create_free_cells_overflow_node(pool)?;
-        let mut reverse_cell_id = 0;
-        let mut curr_cell_id: usize = 0;
-        let mut prev_cell_ptr = 0;
-        let mut prev_node_ptr = free_cells_node_record_id;
-        let mut free_cells_node_record = pool.load_node_record_mut(free_cells_node_record_id)?;
-
-        let mut is_not_ending_cell = reverse_cell_records.len() == 1;
-        //loop to store all overflow cells
-        loop {
-            let free_cell = free_cells_node_record.cells[curr_cell_id];
-            if !free_cell.is_active() {
-                let cell = &mut reverse_cell_records[reverse_cell_id];
-                //ending cell stores the node pointer for interior nodes
-                if is_not_ending_cell {
-                    cell.chain_with_cell_location((prev_node_ptr, prev_cell_ptr));
-                } else {
-                    is_not_ending_cell = true;
-                }
-                free_cells_node_record.cells[curr_cell_id] = *cell;
-                
-                reverse_cell_id += 1;
-                if reverse_cell_id >= reverse_cell_records.len() {
-                    if curr_cell_id >= NB_CELL - 1 {
-                        self.pop_node_record_from_free_list(&free_cells_node_record);
-                    }
-                    break;
-                }
-            }
-            prev_cell_ptr = curr_cell_id as u32;
-            curr_cell_id += 1;
-            if curr_cell_id >= NB_CELL {
-                self.pop_node_record_from_free_list(&free_cells_node_record);
-                prev_node_ptr = free_cells_node_record_id;
-                free_cells_node_record_id = self.load_or_create_free_cells_overflow_node(pool)?;
-                free_cells_node_record = pool.load_node_record_mut(free_cells_node_record_id)?;
-                curr_cell_id = 0;
-
-            }
+        let mut prev_cell_loc = (0, 0);
+        for cell in reverse_cell_records {
+            cell.chain_with_cell_location(prev_cell_loc);
+            prev_cell_loc = pool.insert_cell_in_free_slot(cell)?;
         }
-        Some((prev_node_ptr, curr_cell_id as u32))
-    }
-
-    fn pop_node_record_from_free_list(&mut self, node_record: &BNodeRecord) {
-        self.set_first_free_list_node_ptr(node_record.next_free_cells_node_ptr);
+        Some(prev_cell_loc)
     }
 
     fn create_cell(&mut self, pool: &mut NodeRecordPool, cell: &Cell) -> Option<Vec<CellRecord>> {
@@ -280,7 +206,7 @@ impl BTreeNodeStore {
             if let Some(node_ptr) = cell.get_node_ptr() {
                 last_cell_record.node_ptr = node_ptr;
             }
-            
+            make cell pointer because cell insert in pool
             let ptrs = self.create_overflow_cells(pool, &mut cell_records[..nb_records-1])?;
             cell_records.reverse();
             let main_cell_record = cell_records.first_mut()?;
@@ -411,36 +337,10 @@ impl BTreeNodeStore {
 
         //disable unused cells
         if list_ptr_cells.len() > 0 {
-            self.delete_cell_records(pool, &list_ptr_cells, last_updated_cell_pos.0, last_updated_cell_pos.1)?;
+            pool.disable_cell_records(last_updated_cell_pos);
         }
         
         Some(())
-    }
-
-    fn delete_cell_records(&mut self, pool: &mut NodeRecordPool, cell_records_to_delete: &Vec<CellRecord>, first_cell_node_id: NodeId, first_cell_id: CellId) -> Option<()> {
-        let mut curr_node_id = first_cell_node_id;
-        let mut curr_cell_id = first_cell_id;
-        for cell in cell_records_to_delete {
-            let mut current_node_record = pool.load_node_record_mut(curr_node_id)?;
-            if current_node_record.is_full() {
-                self.append_node_record_to_free_list(curr_node_id, &mut current_node_record);
-            }
-            let current_cell = &mut current_node_record.cells[curr_cell_id as usize];
-            current_cell.set_inactive();
-            curr_cell_id = cell.overflow_cell_ptr;
-            curr_node_id = cell.node_ptr;
-        }
-        Some(())
-    }
-
-    fn append_node_record_to_free_list(&mut self, node_record_id: NodeId, node_record: &mut BNodeRecord) {
-        node_record.next_free_cells_node_ptr = self.get_first_free_list_node_ptr();
-        self.set_first_free_list_node_ptr(node_record_id);
-    }
-
-    fn delete_cell_records_from_root_cell(&mut self, pool: &mut NodeRecordPool, root_cell_record: &CellRecord) -> Option<()> {
-        let overflow_cell_records = self.load_overflow_cell_records(pool, root_cell_record)?;
-        self.delete_cell_records(pool, &overflow_cell_records, root_cell_record.node_ptr, root_cell_record.overflow_cell_ptr)
     }
 
     fn select_root_node(&mut self, pool: &mut NodeRecordPool, node: &mut BTreeNode) -> Option<NodeId>  {
@@ -489,11 +389,9 @@ impl BTreeNodeStore {
             list_old_ids_to_delete
         };
         
-
-        let main_node_record = pool.load_node_record_clone(id)?;
         //delete old records
         for cell_id in list_old_ids_to_delete {
-            self.delete_cell_records_from_root_cell(pool, &main_node_record.cells[cell_id]);
+            pool.disable_cell_records((id, cell_id as u32));
         }
 
         Some(cells_context)
@@ -571,16 +469,6 @@ impl BTreeNodeStore {
 
     fn set_root_node_ptr(&mut self, id: NodeId) {
         self.records_manager.borrow_mut().get_header_page_wrapper().get_header_payload_slice_mut()[..NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
-    }
-
-    fn get_first_free_list_node_ptr(&mut self) -> NodeId {
-        let mut buf = [0u8; NODE_PTR_SIZE];
-        buf.copy_from_slice(&self.records_manager.borrow_mut().get_header_page_wrapper().get_header_payload_slice_ref()[NODE_PTR_SIZE..2*NODE_PTR_SIZE]);
-        u64::from_be_bytes(buf)
-    }
-
-    fn set_first_free_list_node_ptr(&mut self, id: NodeId) {
-        self.records_manager.borrow_mut().get_header_page_wrapper().get_header_payload_slice_mut()[NODE_PTR_SIZE..2*NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
     }
 
     pub fn load_or_create_root_node(&mut self) -> Option<BTreeNode> {
@@ -666,6 +554,37 @@ mod test_btree_node_store {
     }
 
     #[test]
+    fn test_create_long_key() {
+        let file = build_file_path_and_rm_old("b_tree_nodes", "test_create_long_key.db").unwrap();
+        let long_key = "blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
+        blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
+        blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
+        blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
+        blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
+        blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6";
+        let mut store = BTreeNodeStore::new(&file);
+        let mut cells = Vec::new();
+        cells.push(Cell::new_ptr(long_key, Some(6)));
+        let mut node = BTreeNode::new(false, false, cells);
+        node.set_node_ptr(Some(42));
+        store.create(&mut node);
+        store.sync();
+
+        let mut load_store = BTreeNodeStore::new(&file);
+        let load =  node.get_id().and_then(|id| load_store.retrieve_node(id));
+
+        if let Some(loaded) = &load {
+            let long_key_cell = loaded.get_cell_ref(0);
+            assert_eq!(long_key_cell.get_key(), &String::from(long_key));
+            assert_eq!(long_key_cell.get_node_ptr(), Some(6));
+        } else {
+            assert!(false);
+        }
+
+    }
+
+
+    #[test]
     fn test_many_ptrs() {
         let file = build_file_path_and_rm_old("b_tree_nodes", "test_many_ptrs.db").unwrap();
         let mut store = BTreeNodeStore::new(&file);
@@ -711,23 +630,6 @@ mod test_btree_node_store {
         assert_eq!(loaded.get_cell_ref(1).get_data_ptrs_ref().len(), 10);
         assert_eq!(loaded.get_cell_ref(2).get_data_ptrs_ref().len(), 7);
 
-    }
-
-    //#[test]
-    fn test_update_overflow_cells() {
-        let file = build_file_path_and_rm_old("b_tree_nodes", "test_update_overflow_cells.db").unwrap();
-        let mut store = BTreeNodeStore::new(&file);
-        let mut pool = NodeRecordPool::new(store.records_manager.clone());
-        let overflow_node = store.create_overflow_node(&mut pool).unwrap();
-        let mut reverse_cell_records = Vec::new();
-        let mut c0 = CellRecord::new();
-        c0.set_has_overflow();
-        c0.set_is_active();
-        c0.set_is_list_ptr();
-        insert_data_ptr(&mut c0.key, 2, &10);
-        reverse_cell_records.push(c0);
-        let first_created_loc = store.create_overflow_cells(&mut pool, &mut reverse_cell_records).unwrap();
-        //store.update_overflow_cells(&mut pool, cell_records, prev_cell_record)
     }
 
     #[test]

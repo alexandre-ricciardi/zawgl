@@ -86,7 +86,7 @@ impl CellRecord {
         self.overflow_cell_ptr = location.1;
     }
 
-    pub fn get_cell_location(&self) -> (NodeId, CellId) {
+    pub fn get_next_cell_location(&self) -> (NodeId, CellId) {
         (self.node_ptr, self.overflow_cell_ptr)
     }
 }

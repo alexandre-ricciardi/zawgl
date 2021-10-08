@@ -70,6 +70,40 @@ impl NodeRecordPool {
     pub fn free_cell_iter(&mut self) -> FreeCellIterator {
         FreeCellIterator { pool : self }
     }
+
+    pub fn insert_cell_in_free_slot(&mut self, cell_record: &CellRecord) -> Option<BtreeCellLoc> {
+        let mut iter = self.free_cell_iter();
+        let next_free_cell_loc = iter.next()?;
+        let mut nr = self.load_node_record_mut(next_free_cell_loc.0)?;
+        nr.cells[next_free_cell_loc.1 as usize] = *cell_record;
+        Some(next_free_cell_loc)
+    }
+
+    pub fn disable_cell_records(&mut self, root_cell_record_loc: BtreeCellLoc) -> Option<()> {
+        let mut next_cell_loc = root_cell_record_loc;
+        while next_cell_loc.0 != 0 {
+            let nr = self.load_node_record_mut(next_cell_loc.0)?;
+            let mut curr_cell = nr.cells[next_cell_loc.1 as usize];
+            curr_cell.set_inactive();
+            next_cell_loc = curr_cell.get_next_cell_location();
+        }
+        Some(())
+    }
+
+    pub fn append_node_record_to_free_list(&mut self, node_record_id: BTreeNodeId, node_record: &mut BNodeRecord) {
+        node_record.next_free_cells_node_ptr = self.get_first_free_list_node_ptr();
+        self.set_first_free_list_node_ptr(node_record_id);
+    }
+    
+    fn get_first_free_list_node_ptr(&mut self) -> BTreeNodeId {
+        let mut buf = [0u8; NODE_PTR_SIZE];
+        buf.copy_from_slice(&self.records_manager.borrow_mut().get_header_page_wrapper().get_header_payload_slice_ref()[NODE_PTR_SIZE..2*NODE_PTR_SIZE]);
+        u64::from_be_bytes(buf)
+    }
+
+    fn set_first_free_list_node_ptr(&mut self, id: BTreeNodeId) {
+        self.records_manager.borrow_mut().get_header_page_wrapper().get_header_payload_slice_mut()[NODE_PTR_SIZE..2*NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
+    }
 }
 
 
