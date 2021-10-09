@@ -113,8 +113,6 @@ impl BTreeNodeStore {
             }
         };
         
-        pool.save_all_node_records()?;
-
         Some(BTreeNode::new_with_id(Some(nid), next_node_ptr, node.is_leaf(), node.is_root(), cells))
     }
 
@@ -133,6 +131,9 @@ impl BTreeNodeStore {
             }
             curr_cell_id = cell.overflow_cell_ptr;
             curr_node_id = cell.node_ptr;
+            if curr_node_id == 0 {
+                break;
+            }
         }
         Some((prev_node_id, prev_cell_id))
     }
@@ -630,7 +631,7 @@ mod test_btree_node_store {
             store.save(&mut loaded).unwrap();
         }
         let loaded =  node.get_id().and_then(|id| store.retrieve_node(id)).unwrap();
-        assert_eq!(loaded.get_cell_ref(0).get_data_ptrs_ref().len(), 5);
+        assert_eq!(loaded.get_cell_ref(0).get_data_ptrs_ref().len(), 105);
         assert_eq!(loaded.get_cell_ref(1).get_data_ptrs_ref().len(), 10);
         assert_eq!(loaded.get_cell_ref(2).get_data_ptrs_ref().len(), 7);
 
