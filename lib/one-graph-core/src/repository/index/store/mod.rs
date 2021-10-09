@@ -120,22 +120,17 @@ impl BTreeNodeStore {
         let mut curr_cell_id = prev_cell_record.overflow_cell_ptr;
         let mut curr_node_id = prev_cell_record.node_ptr;
         let mut curr_node_record = pool.load_node_record_mut(curr_node_id)?;
-        let mut prev_cell_id = curr_cell_id;
-        let mut prev_node_id = curr_node_id;
         for cell in cell_records {
-            prev_cell_id = curr_cell_id;
-            prev_node_id = curr_node_id;
             curr_node_record.cells[curr_cell_id as usize] = *cell;
-            if curr_node_id != cell.node_ptr {
-                curr_node_record = pool.load_node_record_mut(curr_node_id)?;
+            if cell.node_ptr != 0 && cell.has_overflow() && curr_node_id != cell.node_ptr {
+                curr_node_record = pool.load_node_record_mut(cell.node_ptr)?;
+            } else if cell.node_ptr == 0 || !cell.has_overflow() {
+                break;
             }
             curr_cell_id = cell.overflow_cell_ptr;
             curr_node_id = cell.node_ptr;
-            if curr_node_id == 0 {
-                break;
-            }
         }
-        Some((prev_node_id, prev_cell_id))
+        Some((curr_node_id, curr_cell_id))
     }
 
     fn create_overflow_cells(&mut self, pool: &mut NodeRecordPool, reverse_cell_records: &mut [CellRecord], cell_node_ptr: BTreeNodeId) -> Option<BtreeCellLoc> {
@@ -328,7 +323,7 @@ impl BTreeNodeStore {
                 break;
             }
         }
-
+        cells_to_update.reverse();
         let last_updated_cell_pos = self.update_overflow_cells(pool, &cells_to_update, &prev_cell_record)?;
         if cells_to_create.len() > 0 {
             cells_to_create.reverse();
