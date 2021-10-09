@@ -137,8 +137,8 @@ impl BTreeNodeStore {
         Some((prev_node_id, prev_cell_id))
     }
 
-    fn create_overflow_cells(&mut self, pool: &mut NodeRecordPool, reverse_cell_records: &mut [CellRecord]) -> Option<BtreeCellLoc> {
-        let mut prev_cell_loc = (0, 0);
+    fn create_overflow_cells(&mut self, pool: &mut NodeRecordPool, reverse_cell_records: &mut [CellRecord], cell_node_ptr: BTreeNodeId) -> Option<BtreeCellLoc> {
+        let mut prev_cell_loc = (cell_node_ptr, 0);
         for cell in reverse_cell_records {
             cell.chain_with_cell_location(prev_cell_loc);
             prev_cell_loc = pool.insert_cell_in_free_slot(cell)?;
@@ -201,20 +201,13 @@ impl BTreeNodeStore {
                 cell_records[index].set_has_overflow();
             }
 
-            //store node ptr into last cell if any
-            let last_cell_record = cell_records.first_mut()?;
-            if let Some(node_ptr) = cell.get_node_ptr() {
-                last_cell_record.node_ptr = node_ptr;
-            }
-            make cell pointer because cell insert in pool
-            let ptrs = self.create_overflow_cells(pool, &mut cell_records[..nb_records-1])?;
+            let cell_node_ptr = cell.get_node_ptr().unwrap_or_default();
+
+            let ptrs = self.create_overflow_cells(pool, &mut cell_records[..nb_records-1], cell_node_ptr)?;
             cell_records.reverse();
             let main_cell_record = cell_records.first_mut()?;
             main_cell_record.chain_with_cell_location(ptrs);
-
-        }
-
-        if let (Some(last_cell_record), Some(node_ptr)) = (cell_records.last_mut(), cell.get_node_ptr()) {
+        } else if let (Some(last_cell_record), Some(node_ptr)) = (cell_records.first_mut(), cell.get_node_ptr()) {
             last_cell_record.node_ptr = node_ptr;
         }
 
@@ -279,8 +272,19 @@ impl BTreeNodeStore {
     }
 
     fn update_cell_data_ptrs(&mut self, pool: &mut NodeRecordPool, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>) -> Option<()> {
+        
         let overflow_cell_records = self.load_overflow_cell_records(pool, root_cell_record)?;
-        let mut list_ptr_cells = overflow_cell_records;
+
+        let mut list_ptr_cells = Vec::new();
+        let mut prev_cell_record = *root_cell_record;
+        for cell_record in &overflow_cell_records {
+            if cell_record.is_list_ptr() {
+                list_ptr_cells.push(*cell_record);
+            } else {
+                prev_cell_record = *cell_record;
+            }
+        }
+        
         let mut cells_to_create = Vec::new();
         let mut cells_to_update = Vec::new();
         let mut data_ptr_offset = 2;
@@ -324,10 +328,10 @@ impl BTreeNodeStore {
             }
         }
 
-        let last_updated_cell_pos = self.update_overflow_cells(pool, &cells_to_update, &root_cell_record)?;
+        let last_updated_cell_pos = self.update_overflow_cells(pool, &cells_to_update, &prev_cell_record)?;
         if cells_to_create.len() > 0 {
             cells_to_create.reverse();
-            let created_first_cell_pos = self.create_overflow_cells(pool, &mut cells_to_create)?;
+            let created_first_cell_pos = self.create_overflow_cells(pool, &mut cells_to_create, 0)?;
             //link last updated cell to created cells
             let last_updated_node =  pool.load_node_record_mut(last_updated_cell_pos.0)?;
             let last_updated_cell = &mut last_updated_node.cells[last_updated_cell_pos.1 as usize];
