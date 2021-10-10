@@ -165,9 +165,11 @@ impl GraphRepository {
         nr.next_prop_id = self.properties_repository.create_list(node.get_properties_ref())?;
         let nid = self.nodes_store.create(&nr)?;
         for label in node.get_labels_ref() {
-            self.nodes_labels_index.insert(label, nid)?;
+            self.nodes_labels_index.insert(label, nid);
         }
-        nr.node_type = self.labels_store.save_data(node.get_labels_ref().join(":").as_bytes())?;
+        if !node.get_labels_ref().is_empty() {
+            nr.node_type = self.labels_store.save_data(node.get_labels_ref().join(":").as_bytes())?;
+        }
         let mut res = node.clone();
         res.set_id(Some(nid));
         Some(res)
@@ -181,9 +183,11 @@ impl GraphRepository {
         let mut res = rel.clone();
         res.set_id(Some(rid));
         for label in rel.get_labels_ref() {
-            self.relationships_labels_index.insert(label, rid)?;
+            self.relationships_labels_index.insert(label, rid);
         }
-        rr.relationship_type = self.labels_store.save_data(rel.get_labels_ref().join(":").as_bytes())?;
+        if !rel.get_labels_ref().is_empty() {
+            rr.relationship_type = self.labels_store.save_data(rel.get_labels_ref().join(":").as_bytes())?;
+        }
         let mut source_record = self.nodes_store.load(source)?;
         if source_record.first_outbound_edge == 0 {
             source_record.first_outbound_edge = rid;
