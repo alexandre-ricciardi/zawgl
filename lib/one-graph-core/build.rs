@@ -32,11 +32,12 @@ const PROPERTY_HEADER_SIZE: usize = 1;
 const NODE_ID_SIZE: usize = 8;
 const RELATIONSHIP_ID_SIZE: usize = 8;
 const RELATIONSHIP_TYPE_SIZE: usize = 8;
+const NODE_TYPE_SIZE: usize = 8;
 const PROPERTY_ID_SIZE: usize = 8;
 const PROPERTY_TYPE_SIZE: usize = 1;
 const PROPERTY_KEY_ID_SIZE: usize = 8;
 const PROPERTY_BLOCK_SIZE: usize = 24;
-const NODE_RECORD_SIZE: usize = 2 * RELATIONSHIP_ID_SIZE + PROPERTY_ID_SIZE;
+const NODE_RECORD_SIZE: usize = 2 * RELATIONSHIP_ID_SIZE + PROPERTY_ID_SIZE + NODE_TYPE_SIZE;
 const RELATIONSHIP_RECORD_SIZE: usize =  2 * NODE_ID_SIZE + RELATIONSHIP_TYPE_SIZE + 2 * RELATIONSHIP_ID_SIZE + PROPERTY_ID_SIZE;
 const PROPERTY_RECORD_SIZE: usize = PROPERTY_HEADER_SIZE + PROPERTY_KEY_ID_SIZE + PROPERTY_TYPE_SIZE + PROPERTY_BLOCK_SIZE + PROPERTY_ID_SIZE;
 
@@ -142,6 +143,7 @@ fn generate_config() -> Result<()> {
     writeln!(config, "//UNUSED SPACE {} BYTES", compute_page_free_space_size(NODE_RECORD_SIZE, nb_node_records_per_page, nb_pages_per_node_record))?;
     writeln!(config, "pub const NODE_HEADER_SIZE: usize = {};", NODE_HEADER_SIZE)?;
     writeln!(config, "pub const NODE_ID_SIZE: usize = {};", NODE_ID_SIZE)?;
+    writeln!(config, "pub const NODE_TYPE_SIZE: usize = {};", NODE_TYPE_SIZE)?;
     writeln!(config, "pub const NODE_RECORD_SIZE: usize = {};", NODE_RECORD_SIZE)?;
     writeln!(config, "pub const NODE_NB_RECORDS_PER_PAGE: usize = {};", nb_node_records_per_page)?;
     writeln!(config, "pub const NODE_NB_PAGES_PER_RECORD: usize = {};", nb_pages_per_node_record)?;

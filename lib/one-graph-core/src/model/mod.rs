@@ -151,6 +151,10 @@ impl Node {
         &self.labels
     }
 
+    pub fn set_labels(&mut self, labels: Vec<String>) {
+        self.labels = labels;
+    }
+
     pub fn get_labels_mut(&mut self) -> &mut Vec<String> {
         &mut self.labels
     }

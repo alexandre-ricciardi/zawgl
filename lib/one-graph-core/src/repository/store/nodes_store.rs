@@ -43,6 +43,7 @@ mod test_nodes_store {
             first_inbound_edge: 11287665,
             first_outbound_edge: 87687554,
             next_prop_id: 89089807,
+            node_type: 3,
         };
         let id = store.create(&nr).unwrap();
         let r = store.load(id).unwrap();
@@ -52,6 +53,6 @@ mod test_nodes_store {
 
         let rids = store.retrieve_all_nodes_ids().unwrap();
         assert_eq!(1, rids.len());
-        assert_eq!(144, rids[0]);
+        assert_eq!(112, rids[0]);
     }
 }

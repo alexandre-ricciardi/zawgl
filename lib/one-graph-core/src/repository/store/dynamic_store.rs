@@ -101,6 +101,5 @@ mod test_dyn_store {
             }
             low = count * 32;
         }
-        
     }
 }

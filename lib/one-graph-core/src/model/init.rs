@@ -9,6 +9,8 @@ pub struct InitContext<'a> {
     properties_store_name: &'a str,
     dynamic_store_name: &'a str,
     nodes_labels_index_name: &'a str,
+    relationships_types_index_name: &'a str,
+    labels_store_name: &'a str,
 }
 
 impl <'a> InitContext<'a> {
@@ -18,6 +20,8 @@ impl <'a> InitContext<'a> {
             properties_store_name: PROPERTIES_FILE_NAME,
             dynamic_store_name: DYN_FILE_NAME,
             nodes_labels_index_name: NODES_LABELS_INDEX_FILE_NAME,
+            relationships_types_index_name: RELATIONSHIPS_TYPES_INDEX_FILE_NAME,
+            labels_store_name: LABELS_FILE_NAME,
         }
     }
 
@@ -50,6 +54,20 @@ impl <'a> InitContext<'a> {
         let mut file_path = path::PathBuf::new();
         file_path.push(self.db_dir.as_str());
         file_path.push(self.nodes_labels_index_name);
+        file_path.to_str().map(String::from)
+    }
+
+    pub fn get_relationships_types_index_path(&self) -> Option<String> {
+        let mut file_path = path::PathBuf::new();
+        file_path.push(self.db_dir.as_str());
+        file_path.push(self.relationships_types_index_name);
+        file_path.to_str().map(String::from)
+    }
+
+    pub fn get_labels_store_path(&self) -> Option<String> {
+        let mut file_path = path::PathBuf::new();
+        file_path.push(self.db_dir.as_str());
+        file_path.push(self.labels_store_name);
         file_path.to_str().map(String::from)
     }
 }

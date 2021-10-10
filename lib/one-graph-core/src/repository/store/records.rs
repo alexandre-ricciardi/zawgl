@@ -5,11 +5,12 @@ pub struct NodeRecord {
     pub first_outbound_edge: u64,
     pub first_inbound_edge: u64,
     pub next_prop_id: u64,
+    pub node_type: u64,
 }
 
 impl NodeRecord {
     pub fn new() -> Self {
-        NodeRecord{first_outbound_edge: 0, first_inbound_edge: 0, next_prop_id: 0}
+        NodeRecord{first_outbound_edge: 0, first_inbound_edge: 0, next_prop_id: 0, node_type: 0}
     }
 
     pub fn to_bytes(&self) -> [u8; NODE_RECORD_SIZE] {
@@ -20,6 +21,8 @@ impl NodeRecord {
         bytes[offset..offset+RELATIONSHIP_ID_SIZE].copy_from_slice(&u64_to_bytes(self.first_inbound_edge));
         offset += RELATIONSHIP_ID_SIZE;
         bytes[offset..offset+PROPERTY_ID_SIZE].copy_from_slice(&u64_to_bytes(self.next_prop_id));
+        offset += PROPERTY_ID_SIZE;
+        bytes[offset..offset+NODE_TYPE_SIZE].copy_from_slice(&u64_to_bytes(self.node_type));
         bytes
     }
 
@@ -30,7 +33,10 @@ impl NodeRecord {
         let in_rel_id = u64_from_bytes(&bytes[offset..offset+RELATIONSHIP_ID_SIZE]);
         offset += RELATIONSHIP_ID_SIZE;
         let prop_id = u64_from_bytes(&bytes[offset..offset+PROPERTY_ID_SIZE]);
-        NodeRecord {first_outbound_edge: out_rel_id, first_inbound_edge: in_rel_id, next_prop_id: prop_id}
+        offset += NODE_TYPE_SIZE;
+        let node_type = u64_from_bytes(&bytes[offset..offset+NODE_TYPE_SIZE]);
+        NodeRecord {first_outbound_edge: out_rel_id, first_inbound_edge: in_rel_id,
+            next_prop_id: prop_id, node_type: node_type}
     }
 }
 
@@ -172,12 +178,13 @@ mod test_records {
     }
     #[test]
     fn test_node_record() {
-        let val = NodeRecord {next_prop_id: 100, first_inbound_edge: 32, first_outbound_edge: 55};
+        let val = NodeRecord {next_prop_id: 100, first_inbound_edge: 32, first_outbound_edge: 55, node_type: 4};
         let bytes = val.to_bytes();
         let nr = NodeRecord::from_bytes(bytes);
         assert_eq!(nr.first_outbound_edge, 55);
         assert_eq!(nr.first_inbound_edge, 32);
         assert_eq!(nr.next_prop_id, 100u64);
+        assert_eq!(nr.node_type, 4);
     }
 
     
