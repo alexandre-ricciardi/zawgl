@@ -516,10 +516,10 @@ impl RecordsManager {
             for page_record_id in 0..nb_records_per_page {
                 if let Some(free_list_item_id) = free_list_iter.next() {
                     if page_record_id != *free_list_item_id {
-                        res.push((rpage.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64);
+                        res.push((rpage.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64 + 1);
                     }
                 } else {
-                    res.push((rpage.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64);
+                    res.push((rpage.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64 + 1);
                 }
             }
         }
