@@ -53,6 +53,6 @@ mod test_nodes_store {
 
         let rids = store.retrieve_all_nodes_ids().unwrap();
         assert_eq!(1, rids.len());
-        assert_eq!(112, rids[0]);
+        assert_eq!(id, rids[0]);
     }
 }
