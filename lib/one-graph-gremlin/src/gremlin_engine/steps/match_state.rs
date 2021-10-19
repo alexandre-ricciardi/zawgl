@@ -1,31 +1,23 @@
 use super::gremlin_state::{State, StateContext};
 use super::match_vertex_state::MatchVertexState;
-use one_graph_gremlin::gremlin::*;
+use one_graph_core::model::*;
+use super::super::super::gremlin::*;
 use super::gremlin_state::*;
 
-pub struct AliasVertexState {
-    name: String,
+pub struct MatchState {
+    bytecodes: Vec<Vec<GStep>>,
 }
 
-impl AliasVertexState {
-    pub fn new(name: &str) -> Self {
-        AliasVertexState{name: String::from(name)}
+impl MatchState {
+    pub fn new(bytecodes: &Vec<Vec<GStep>>) -> Self {
+        MatchState{bytecodes: bytecodes.clone()}
     }
 }
-impl State for AliasVertexState {
-
+impl State for MatchState {
+    
     fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
-        match &context.previous_step {
-            GStep::V(_vid) => {
-                if let Some(nid) = context.node_index {
-                    context.node_aliases.insert(self.name.clone(), nid);
-                }
-            }
-            _ => {}
-        }
         Ok(())
     }
-
 
     fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
         match step {

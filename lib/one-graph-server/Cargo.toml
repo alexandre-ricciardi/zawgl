@@ -10,7 +10,6 @@ name = "one_graph_server"
 [dependencies]
 gremlin-client = "0.4.0"
 one-graph-gremlin = { path = "../one-graph-gremlin" }
-one-graph-db-engine = { path = "../one-graph-db-engine" }
 one-graph-core = { path = "../one-graph-core" }
 tokio-tungstenite = "*"
 tokio = { version = "0.3", features = ["full"] }

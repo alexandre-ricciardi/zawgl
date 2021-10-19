@@ -2,7 +2,7 @@ use super::gremlin_state::{State, StateContext};
 use super::match_vertex_state::MatchVertexState;
 use super::set_property_state::SetPropertyState;
 use one_graph_core::{graph::NodeIndex, model::{Relationship, Status, Node}};
-use one_graph_gremlin::gremlin::*;
+use super::super::super::gremlin::*;
 use super::gremlin_state::*;
 use std::convert::TryFrom;
 

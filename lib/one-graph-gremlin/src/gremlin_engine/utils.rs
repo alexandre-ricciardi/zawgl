@@ -1,8 +1,8 @@
-use one_graph_core::{graph::{EdgeIndex, NodeIndex, traits::{GraphContainerTrait, GraphTrait}}, model::{Node, PropertyGraph, PropertyValue, Status}};
+use one_graph_core::{graph::{EdgeIndex, traits::{GraphContainerTrait, GraphTrait}}, model::{Node, PropertyGraph, PropertyValue, Status}};
 
-use super::{gremlin::gremlin_state::StateContext};
+use super::steps::gremlin_state::StateContext;
 
-use one_graph_gremlin::gremlin::*;
+use super::super::gremlin::*;
 
 
 pub fn init_pattern(context: &mut StateContext, n: Node) {

@@ -46,11 +46,13 @@ public class GremlinTest {
         }
     }
 
+    @Test
     public void testMatchEdge() {
         final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = createSource(cluster);
-            var v1 = g.V(1).as("source").outE("hasFriend", "contains").V().as("target").V().addE("testEdge").to("target").iterate();
+            createVertexAndEdge(g);
+            var v1 = g.V(1).as("source").outE("knows").V().as("target").V().addE("testEdge").to("target").iterate();
             System.out.println(v1);
         } finally {
             cluster.close();

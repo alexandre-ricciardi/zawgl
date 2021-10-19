@@ -1,18 +1,18 @@
-use one_graph_gremlin::gremlin::*;
+use super::gremlin::*;
 use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::init::InitContext;
 
-use self::gremlin::gremlin_state::*;
+use self::steps::gremlin_state::*;
 use self::utils::ResultGraph;
 use self::utils::convert_graph_to_gremlin_response;
 use self::utils::get_request_scenario;
 use self::utils::Scenario;
 
-mod gremlin;
+mod steps;
 mod utils;
 
 
-pub struct GraphDatabaseEngine<'a> {
+pub struct GremlinDatabaseEngine<'a> {
     conf: InitContext<'a>,
 }
 
@@ -35,9 +35,9 @@ fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMach
     Some(gremlin_state)
 }
 
-impl <'a> GraphDatabaseEngine<'a> {
+impl <'a> GremlinDatabaseEngine<'a> {
     pub fn new(ctx: InitContext<'a>) -> Self {
-        GraphDatabaseEngine{conf: ctx}
+        GremlinDatabaseEngine{conf: ctx}
     }
 
     pub fn handle_gremlin_request(&mut self, gremlin: &GremlinRequest) -> Option<GremlinResponse> {

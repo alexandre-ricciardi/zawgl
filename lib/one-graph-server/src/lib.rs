@@ -28,9 +28,9 @@ mod json_gremlin_request_handler;
 
 use self::result::ServerError;
 use one_graph_core::model::init::InitContext;
-use one_graph_db_engine::db_engine::GraphDatabaseEngine;
+use one_graph_gremlin::gremlin_engine::GremlinDatabaseEngine;
 
-async fn accept_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphDatabaseEngine<'a>>>, stream: TcpStream) {
+async fn accept_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GremlinDatabaseEngine<'a>>>, stream: TcpStream) {
     if let Err(e) = handle_connection(peer, graph_engine, stream).await {
         match e {
             ServerError::WebsocketError(te) => match te {
@@ -46,7 +46,7 @@ async fn accept_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphD
 }
 
 
-async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphDatabaseEngine<'a>>>, stream: TcpStream) -> Result<(), ServerError> {
+async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GremlinDatabaseEngine<'a>>>, stream: TcpStream) -> Result<(), ServerError> {
     let ws_stream = accept_async(stream).await.expect("Failed to accept");
     info!("New WebSocket connection: {}", peer);
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
@@ -84,7 +84,7 @@ async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphD
 
 pub async fn run_server(addr: &str, conf: InitContext<'static>) {
     SimpleLogger::new().init().unwrap();
-    let graph_engine = Arc::new(RwLock::new(GraphDatabaseEngine::new(conf)));
+    let graph_engine = Arc::new(RwLock::new(GremlinDatabaseEngine::new(conf)));
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Listening on: {}", addr);
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use one_graph_gremlin::gremlin::*;
+use super::super::super::gremlin::*;
 use one_graph_core::model::*;
 use one_graph_core::graph::*;
 use super::{add_vertex_state::AddVertexState, match_out_edge_state::MatchOutEdgeState};

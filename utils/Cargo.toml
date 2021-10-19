@@ -6,5 +6,4 @@ edition = "2018"
 
 [dependencies]
 one-graph-core = { path = "../lib/one-graph-core" }
-one-graph-db-engine = { path = "../lib/one-graph-db-engine" }
 log = "0.4"
