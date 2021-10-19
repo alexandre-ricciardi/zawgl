@@ -1,0 +1,16 @@
+stages:
+  - build
+  - test
+
+build-code-job:
+  stage: build
+  script:
+    - echo "Check the rustc version, then build:"
+    - rustc --version
+    - cargo build
+
+test-code-job:
+  stage: test
+  script:
+    - echo "Cargo tests:"
+    - cargo test
