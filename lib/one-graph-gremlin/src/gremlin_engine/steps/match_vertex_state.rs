@@ -26,7 +26,7 @@ impl MatchVertexState {
 
 impl State for MatchVertexState {
     
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
         let mut n = Node::new();
         n.set_id(self.vid);
         n.set_status(Status::Match);
@@ -67,7 +67,7 @@ impl State for MatchVertexState {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
         
         match step {
             GStep::OutE(labels) => {

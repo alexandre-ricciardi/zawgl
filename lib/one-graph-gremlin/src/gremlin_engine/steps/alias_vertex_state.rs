@@ -14,7 +14,7 @@ impl AliasVertexState {
 }
 impl State for AliasVertexState {
 
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
         match &context.previous_step {
             GStep::V(_vid) => {
                 if let Some(nid) = context.node_index {
@@ -27,7 +27,7 @@ impl State for AliasVertexState {
     }
 
 
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))

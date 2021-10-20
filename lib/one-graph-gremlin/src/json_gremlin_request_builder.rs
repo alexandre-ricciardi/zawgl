@@ -71,6 +71,9 @@ fn build_gremlin_step(step: &Value) -> Option<Vec<GStep>> {
       "from" => {
         vec![from_step(elts)?]
       }
+      "to" => {
+        vec![to_step(elts)?]
+      }
       "match" => {
         vec![match_step(elts)?]
       }
@@ -105,6 +108,11 @@ fn match_step(json_step: &Vec<Value>) -> Option<GStep> {
 fn from_step(json_step: &Vec<Value>) -> Option<GStep> {
     let var = json_step.get(1)?;
     Some(GStep::From(build_value_or_vertex(var)?))
+}
+
+fn to_step(json_step: &Vec<Value>) -> Option<GStep> {
+  let var = json_step.get(1)?;
+  Some(GStep::To(build_value_or_vertex(var)?))
 }
 
 fn as_step(json_step: &Vec<Value>) -> Option<GStep> {

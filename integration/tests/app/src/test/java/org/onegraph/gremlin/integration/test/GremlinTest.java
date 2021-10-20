@@ -52,7 +52,7 @@ public class GremlinTest {
         try {
             final GraphTraversalSource g = createSource(cluster);
             createVertexAndEdge(g);
-            var v1 = g.V(1).as("source").outE("knows").V().as("target").V().addE("testEdge").to("target").iterate();
+            var v1 = g.V().as("source").outE("knows").V().addE("testEdge").to("source").next();
             System.out.println(v1);
         } finally {
             cluster.close();

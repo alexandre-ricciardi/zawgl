@@ -15,11 +15,11 @@ impl MatchState {
 }
 impl State for MatchState {
     
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))

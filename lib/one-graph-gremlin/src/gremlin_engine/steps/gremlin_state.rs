@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::super::super::gremlin::*;
 use one_graph_core::model::*;
 use one_graph_core::graph::*;
-use super::{add_vertex_state::AddVertexState, match_out_edge_state::MatchOutEdgeState};
+use super::add_vertex_state::AddVertexState;
 use super::match_vertex_state::MatchVertexState;
 #[derive(Debug)]
 pub enum StateError {
@@ -11,8 +11,8 @@ pub enum StateError {
 }
 
 pub trait State {
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError>;
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError>;
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError>;
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError>;
 }
 
 
@@ -26,11 +26,11 @@ impl InitState {
 }
 impl State for InitState {
     
-    fn handle_step(&self, step: &GStep, _context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, _context: &mut StateContext) -> Result<(), StateError> {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
@@ -56,11 +56,11 @@ impl EndState {
 }
 impl State for EndState {
     
-    fn handle_step(&self, step: &GStep, _context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, _context: &mut StateContext) -> Result<(), StateError> {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::Empty => {
                 Ok(Box::new(InitState::new()))
@@ -99,8 +99,8 @@ impl GremlinStateMachine {
     }
     
     pub fn new_step_state(mut previous: GremlinStateMachine, previous_step: &GStep, current_step: &GStep) -> Option<Self> {
-        previous.state.handle_step(previous_step, &mut previous.context).ok()?;
-        let new_state = previous.state.create_state(current_step, &mut previous.context).ok()?;
+        previous.state.handle_step(&mut previous.context).ok()?;
+        let new_state = previous.state.create_state(current_step).ok()?;
         previous.context.previous_step = previous_step.clone();
         Some(GremlinStateMachine{context: previous.context, state: new_state})
     }

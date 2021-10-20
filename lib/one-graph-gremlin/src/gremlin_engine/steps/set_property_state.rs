@@ -16,7 +16,7 @@ impl SetPropertyState {
     }
 }
 impl State for SetPropertyState {
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
         match &context.previous_step {
             GStep::AddV(_label) => {
                 let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
@@ -44,7 +44,7 @@ impl State for SetPropertyState {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))

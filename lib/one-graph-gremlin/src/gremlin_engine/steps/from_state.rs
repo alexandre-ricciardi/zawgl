@@ -1,7 +1,7 @@
 use super::gremlin_state::{State, StateContext};
 use super::match_vertex_state::MatchVertexState;
 use super::set_property_state::SetPropertyState;
-use one_graph_core::{graph::NodeIndex, model::{Relationship, Status, Node}};
+use one_graph_core::model::{Relationship, Status, Node};
 use super::super::super::gremlin::*;
 use super::gremlin_state::*;
 use std::convert::TryFrom;
@@ -27,7 +27,7 @@ impl FromState {
 impl State for FromState {
 
 
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
         match &context.previous_step {
             GStep::AddE(label) => {
                 let mut r = Relationship::new();
@@ -57,7 +57,7 @@ impl State for FromState {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))

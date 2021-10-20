@@ -6,8 +6,6 @@ use super::gremlin_state::*;
 use super::match_out_edge_state::MatchOutEdgeState;
 use super::match_state::MatchState;
 use super::add_edge_state::AddEdgeState;
-use std::convert::TryFrom;
-use super::super::utils::*;
 
 pub struct MatchInVertexState {
 }
@@ -20,7 +18,7 @@ impl MatchInVertexState {
 
 impl State for MatchInVertexState {
     
-    fn handle_step(&self, step: &GStep, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
         let mut n = Node::new();
         n.set_status(Status::Match);
 
@@ -43,7 +41,7 @@ impl State for MatchInVertexState {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep, context: &mut StateContext) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
         match step {
             GStep::OutE(labels) => {
                 Ok(Box::new(MatchOutEdgeState::new(labels)))
