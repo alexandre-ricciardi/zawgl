@@ -2,6 +2,7 @@ use super::gremlin_state::{State, StateContext};
 use super::super::super::gremlin::*;
 use super::gremlin_state::*;
 use super::from_state::FromState;
+use super::to_state::ToState;
 use super::match_vertex_state::MatchVertexState;
 
 pub struct AddEdgeState {
@@ -24,7 +25,7 @@ impl State for AddEdgeState {
                 Ok(Box::new(FromState::new(value).ok_or(StateError::Invalid)?))
             }
             GStep::To(value) => {
-                Ok(Box::new(FromState::new(value).ok_or(StateError::Invalid)?))
+                Ok(Box::new(ToState::new(value).ok_or(StateError::Invalid)?))
             }
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))

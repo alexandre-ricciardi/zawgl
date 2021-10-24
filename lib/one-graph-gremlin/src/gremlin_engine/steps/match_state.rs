@@ -1,6 +1,5 @@
 use super::gremlin_state::{State, StateContext};
 use super::match_vertex_state::MatchVertexState;
-use one_graph_core::model::*;
 use super::super::super::gremlin::*;
 use super::gremlin_state::*;
 
@@ -15,7 +14,7 @@ impl MatchState {
 }
 impl State for MatchState {
     
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, _context: &mut StateContext) -> Result<(), StateError> {
         Ok(())
     }
 
