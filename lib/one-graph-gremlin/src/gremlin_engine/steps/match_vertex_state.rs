@@ -18,7 +18,7 @@ impl MatchVertexState {
         let vid = gid.as_ref().and_then(|value| match value {
             GValueOrVertex::Value(v) => {u64::try_from(v.clone()).ok()}
             GValueOrVertex::Vertex(vertex) => {u64::try_from(vertex.id.clone()).ok()}
-        });
+        }).or(None);
         MatchVertexState{vid: vid}
     }
 }
