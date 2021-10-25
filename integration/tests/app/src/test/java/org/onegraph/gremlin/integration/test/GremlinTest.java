@@ -10,8 +10,8 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Test;
 
@@ -30,8 +30,7 @@ public class GremlinTest {
     }
 
     public void testMatch() {
-        
-                 final Cluster cluster = createCluster();
+        final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = createSource(cluster);
             var v1 = g.V().match(
