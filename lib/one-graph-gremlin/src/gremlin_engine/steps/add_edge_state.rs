@@ -15,23 +15,23 @@ impl AddEdgeState {
     }
 }
 impl State for AddEdgeState {
-    fn handle_step(&self, _context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, _context: &mut StateContext) -> Result<(), GremlinStateError> {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::From(value) => {
-                Ok(Box::new(FromState::new(value).ok_or(StateError::Invalid)?))
+                Ok(Box::new(FromState::new(value).ok_or(GremlinStateError::Invalid(step.clone()))?))
             }
             GStep::To(value) => {
-                Ok(Box::new(ToState::new(value).ok_or(StateError::Invalid)?))
+                Ok(Box::new(ToState::new(value).ok_or(GremlinStateError::Invalid(step.clone()))?))
             }
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
             }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }

@@ -27,16 +27,16 @@ impl FromState {
 impl State for FromState {
 
 
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), GremlinStateError> {
         match &context.previous_step {
             GStep::AddE(label) => {
                 let mut r = Relationship::new();
                 r.set_labels(vec![label.clone()]);
                 r.set_status(Status::Create);
-                let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
+                let pattern = context.patterns.last_mut().ok_or(GremlinStateError::WrongContext("missing pattern"))?;
                 let target_id = context.node_index;
                 let source_id = match &self.source {
-                    Source::Alias(a) => {*context.node_aliases.get(a).ok_or(StateError::Invalid)?}
+                    Source::Alias(a) => {*context.node_aliases.get(a).ok_or(GremlinStateError::WrongContext("missing alias"))?}
                     Source::VertexId(vid) => {
                         let mut source = Node::new();
                         source.set_id(Some(*vid));
@@ -49,7 +49,7 @@ impl State for FromState {
                     let rid = pattern.add_relationship(r, source_id, tid);
                     context.relationship_index = Some(rid);
                 } else {
-                    return Err(StateError::Invalid);
+                    return Err(GremlinStateError::WrongContext("missing target id in in from state"))
                 }
             }
             _ => {} 
@@ -57,7 +57,7 @@ impl State for FromState {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
@@ -66,7 +66,7 @@ impl State for FromState {
                 Ok(Box::new(SetPropertyState::new(name, value)))
             }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }

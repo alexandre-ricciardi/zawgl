@@ -1,26 +1,28 @@
+use crate::gremlin_engine::DatabaseError;
+
 use super::gremlin::*;
 use serde_json::Map;
 use serde_json::Value;
 
-pub fn build_gremlin_request_from_json(value: &Value) -> Option<GremlinRequest> {
+pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, DatabaseError> {
     let args = &value["args"];
-    let req_id = value["requestId"].as_str()?;
-    let op = value["op"].as_str()?;
-    let processor = value["processor"].as_str()?;
+    let req_id = value["requestId"].as_str().ok_or_else(|| DatabaseError::RequestError)?;
+    let op = value["op"].as_str().ok_or_else(|| DatabaseError::RequestError)?;
+    let processor = value["processor"].as_str().ok_or_else(|| DatabaseError::RequestError)?;
     
     if op == "bytecode" && processor == "traversal" {
-      let gtype = args["@type"].as_str()?;
+      let gtype = args["@type"].as_str().ok_or_else(|| DatabaseError::RequestError)?;
       if gtype == "g:Map" {
         let gmap_value = &args["@value"];
-        let gremlin_tag = gmap_value[0].as_str()?;
+        let gremlin_tag = gmap_value[0].as_str().ok_or_else(|| DatabaseError::RequestError)?;
         if gremlin_tag == "gremlin" {
           let bytecode = &gmap_value[1];
-          let gremlin_steps = build_gremlin_bytecode(bytecode)?;
-          return Some(GremlinRequest{request_id: String::from(req_id), steps: gremlin_steps})
+          let gremlin_steps = build_gremlin_bytecode(bytecode).ok_or_else(|| DatabaseError::RequestError)?;
+          return Ok(GremlinRequest{request_id: String::from(req_id), steps: gremlin_steps})
         }
       }
     }
-    None
+    Err(DatabaseError::RequestError)
 }
 
 fn build_gremlin_bytecode(bytecode: &Value) -> Option<Vec<GStep>> {

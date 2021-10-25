@@ -18,7 +18,7 @@ impl MatchInVertexState {
 
 impl State for MatchInVertexState {
     
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), GremlinStateError> {
         let mut n = Node::new();
         n.set_status(Status::Match);
 
@@ -28,7 +28,7 @@ impl State for MatchInVertexState {
                     let mut rel = Relationship::new();
                     rel.set_labels(labels.clone());
                     rel.set_status(Status::Match);
-                    let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
+                    let pattern = context.patterns.last_mut().ok_or(GremlinStateError::WrongContext("missing pattern"))?;
                     let nid = pattern.add_node(n);
                     pattern.add_relationship(rel, node_index, nid);
                     context.node_index = Some(nid);
@@ -41,7 +41,7 @@ impl State for MatchInVertexState {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::OutE(labels) => {
                 Ok(Box::new(MatchOutEdgeState::new(labels)))
@@ -59,7 +59,7 @@ impl State for MatchInVertexState {
                 Ok(Box::new(EndState::new()))
             }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }

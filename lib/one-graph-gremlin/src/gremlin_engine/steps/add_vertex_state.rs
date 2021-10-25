@@ -16,7 +16,7 @@ impl AddVertexState {
     }
 }
 impl State for AddVertexState {
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), GremlinStateError> {
         let mut n = Node::new();
         n.set_status(Status::Create);
         n.get_labels_mut().push(self.label.clone());
@@ -29,13 +29,13 @@ impl State for AddVertexState {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::SetProperty(name, value) => {
                 Ok(Box::new(SetPropertyState::new(name, value)))
             }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }

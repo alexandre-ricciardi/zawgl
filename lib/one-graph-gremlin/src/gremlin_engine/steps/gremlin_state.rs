@@ -5,14 +5,16 @@ use one_graph_core::model::*;
 use one_graph_core::graph::*;
 use super::add_vertex_state::AddVertexState;
 use super::match_vertex_state::MatchVertexState;
-#[derive(Debug)]
-pub enum StateError {
-    Invalid
+
+#[derive(Debug, Clone)]
+pub enum GremlinStateError {
+    Invalid(GStep),
+    WrongContext(&'static str),
 }
 
 pub trait State {
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError>;
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError>;
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), GremlinStateError>;
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError>;
 }
 
 
@@ -26,11 +28,11 @@ impl InitState {
 }
 impl State for InitState {
     
-    fn handle_step(&self, _context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, _context: &mut StateContext) -> Result<(), GremlinStateError> {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
@@ -39,7 +41,7 @@ impl State for InitState {
                 Ok(Box::new(AddVertexState::new(label)))
             }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }
@@ -56,17 +58,17 @@ impl EndState {
 }
 impl State for EndState {
     
-    fn handle_step(&self, _context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, _context: &mut StateContext) -> Result<(), GremlinStateError> {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::Empty => {
                 Ok(Box::new(InitState::new()))
             }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }
@@ -98,10 +100,10 @@ impl GremlinStateMachine {
         GremlinStateMachine{context: StateContext::new(), state: Box::new(InitState::new())}
     }
     
-    pub fn new_step_state(mut previous: GremlinStateMachine, previous_step: &GStep, current_step: &GStep) -> Option<Self> {
-        previous.state.handle_step(&mut previous.context).ok()?;
-        let new_state = previous.state.create_state(current_step).ok()?;
+    pub fn new_step_state(mut previous: GremlinStateMachine, previous_step: &GStep, current_step: &GStep) -> Result<Self, GremlinStateError> {
+        previous.state.handle_step(&mut previous.context)?;
+        let new_state = previous.state.create_state(current_step)?;
         previous.context.previous_step = previous_step.clone();
-        Some(GremlinStateMachine{context: previous.context, state: new_state})
+        Ok(GremlinStateMachine{context: previous.context, state: new_state})
     }
 }
