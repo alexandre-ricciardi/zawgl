@@ -1,5 +1,6 @@
 use super::gremlin_state::{State, StateContext};
 use super::alias_vertex_state::AliasVertexState;
+use super::has_property_state::HasPropertyState;
 use one_graph_core::model::*;
 use super::super::super::gremlin::*;
 use super::gremlin_state::*;
@@ -81,6 +82,9 @@ impl State for MatchVertexState {
             }
             GStep::AddE(label) => {
                 Ok(Box::new(AddEdgeState::new(label)))
+            }
+            GStep::Has(name, predicate) => {
+                Ok(Box::new(HasPropertyState::new(name, predicate)))
             }
             _ => {
                 Err(GremlinStateError::Invalid(step.clone()))

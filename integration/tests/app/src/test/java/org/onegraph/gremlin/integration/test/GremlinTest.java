@@ -96,10 +96,12 @@ public class GremlinTest {
         System.out.println(res);
     }
 
+    @Test
     public void testCreateEdge() {
         final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = createSource(cluster);
+            createVertexAndEdge(g);
             var v1 = g.V().has("name", P.within("marko", "stephen")).as("person").
             V().has("name", P.within("stephen")).addE("uses").from("person").next();
             System.out.println(v1);
