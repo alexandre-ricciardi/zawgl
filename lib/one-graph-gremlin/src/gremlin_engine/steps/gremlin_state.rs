@@ -5,6 +5,7 @@ use one_graph_core::model::*;
 use one_graph_core::graph::*;
 use super::add_vertex_state::AddVertexState;
 use super::match_vertex_state::MatchVertexState;
+
 #[derive(Debug)]
 pub enum StateError {
     Invalid

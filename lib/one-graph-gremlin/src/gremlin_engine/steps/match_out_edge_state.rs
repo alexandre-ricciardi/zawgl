@@ -1,6 +1,5 @@
 use super::gremlin_state::{State, StateContext};
 use super::match_vertex_state::MatchVertexState;
-use one_graph_core::model::*;
 use super::super::super::gremlin::*;
 use super::gremlin_state::*;
 use super::match_in_vertex_state::*;
