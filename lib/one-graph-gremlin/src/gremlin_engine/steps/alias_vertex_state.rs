@@ -1,4 +1,5 @@
 use super::gremlin_state::{State, StateContext};
+use super::match_out_edge_state::MatchOutEdgeState;
 use super::match_vertex_state::MatchVertexState;
 use super::super::super::gremlin::*;
 use super::gremlin_state::*;
@@ -14,7 +15,7 @@ impl AliasVertexState {
 }
 impl State for AliasVertexState {
 
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), GremlinStateError> {
         match &context.previous_step {
             GStep::V(_vid) => {
                 if let Some(nid) = context.node_index {
@@ -27,13 +28,16 @@ impl State for AliasVertexState {
     }
 
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
             }
+            GStep::OutE(labels) => {
+                Ok(Box::new(MatchOutEdgeState::new(labels)))
+            }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }

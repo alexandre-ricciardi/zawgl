@@ -15,10 +15,10 @@ impl MatchOutEdgeState {
 }
 impl State for MatchOutEdgeState {
     
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), GremlinStateError> {
         Ok(())
     }
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
@@ -27,7 +27,7 @@ impl State for MatchOutEdgeState {
                 Ok(Box::new(MatchInVertexState::new()))
             }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }

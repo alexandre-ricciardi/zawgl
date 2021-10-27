@@ -50,7 +50,7 @@ public class GremlinTest {
         final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = createSource(cluster);
-            //createVertexAndEdge(g);
+            createVertexAndEdge(g);
             var v1 = g.V().as("source").outE("knows").V().addE("testEdge").to("source").next();
             System.out.println(v1);
         } finally {
@@ -96,10 +96,12 @@ public class GremlinTest {
         System.out.println(res);
     }
 
+    @Test
     public void testCreateEdge() {
         final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = createSource(cluster);
+            createVertexAndEdge(g);
             var v1 = g.V().has("name", P.within("marko", "stephen")).as("person").
             V().has("name", P.within("stephen")).addE("uses").from("person").next();
             System.out.println(v1);

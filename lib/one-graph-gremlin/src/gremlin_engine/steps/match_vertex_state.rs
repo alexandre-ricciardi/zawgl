@@ -1,5 +1,6 @@
 use super::gremlin_state::{State, StateContext};
 use super::alias_vertex_state::AliasVertexState;
+use super::has_property_state::HasPropertyState;
 use one_graph_core::model::*;
 use super::super::super::gremlin::*;
 use super::gremlin_state::*;
@@ -26,7 +27,7 @@ impl MatchVertexState {
 
 impl State for MatchVertexState {
     
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, context: &mut StateContext) -> Result<(), GremlinStateError> {
         let mut n = Node::new();
         n.set_id(self.vid);
         n.set_status(Status::Match);
@@ -43,7 +44,7 @@ impl State for MatchVertexState {
                     let mut rel = Relationship::new();
                     rel.set_labels(labels.clone());
                     rel.set_status(Status::Match);
-                    let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
+                    let pattern = context.patterns.last_mut().ok_or(GremlinStateError::WrongContext("missing pattern"))?;
                     let nid = pattern.add_node(n);
                     pattern.add_relationship(rel, node_index, nid);
                     context.node_index = Some(nid);
@@ -54,7 +55,7 @@ impl State for MatchVertexState {
                     let mut rel = Relationship::new();
                     rel.set_labels(vec![label.clone()]);
                     rel.set_status(Status::Create);
-                    let pattern = context.patterns.last_mut().ok_or(StateError::Invalid)?;
+                    let pattern = context.patterns.last_mut().ok_or(GremlinStateError::WrongContext("missing pattern"))?;
                     let nid = pattern.add_node(n);
                     pattern.add_relationship(rel, node_index, nid);
                     context.node_index = Some(nid);
@@ -67,7 +68,7 @@ impl State for MatchVertexState {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         
         match step {
             GStep::OutE(labels) => {
@@ -82,8 +83,11 @@ impl State for MatchVertexState {
             GStep::AddE(label) => {
                 Ok(Box::new(AddEdgeState::new(label)))
             }
+            GStep::Has(name, predicate) => {
+                Ok(Box::new(HasPropertyState::new(name, predicate)))
+            }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }

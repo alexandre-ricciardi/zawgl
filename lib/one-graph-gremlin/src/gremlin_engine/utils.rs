@@ -1,6 +1,6 @@
 use one_graph_core::{graph::{EdgeIndex, traits::{GraphContainerTrait, GraphTrait}}, model::{Node, PropertyGraph, PropertyValue, Status}};
 
-use super::steps::gremlin_state::StateContext;
+use super::{DatabaseError, steps::gremlin_state::StateContext};
 
 use super::super::gremlin::*;
 
@@ -88,14 +88,14 @@ pub struct ResultGraph {
     pub patterns: Vec<PropertyGraph>,
 }
 
-pub fn convert_graph_to_gremlin_response(graphs: &Vec<ResultGraph>, request_id: &str) -> Option<GremlinResponse> {
+pub fn convert_graph_to_gremlin_response(graphs: &Vec<ResultGraph>, request_id: &str) -> Result<GremlinResponse, DatabaseError> {
     let mut res = GResult::new();
     for result_graph in graphs {
         let graphs = &result_graph.patterns;
         for graph in graphs {
             for n in graph.get_nodes() {
                 if result_graph.scenario == Scenario::MatchAndCreate && *n.get_status() != Status::Create { continue;} 
-                let vertex = build_vertex_from_node(n)?;
+                let vertex = build_vertex_from_node(n).ok_or_else(|| DatabaseError::ResponseError)?;
                 let traverser = GTraverser{bulk: GInt64(1), value: GItem::Vertex(vertex)};
                 res.data.values.push(traverser);
             }
@@ -107,14 +107,14 @@ pub fn convert_graph_to_gremlin_response(graphs: &Vec<ResultGraph>, request_id: 
                 let s_index = graph.get_source_index(&edge_index);
                 let t_index = graph.get_target_index(&edge_index);
                 let label = r.get_labels_ref().join(":");
-                let id = GInt64(r.get_id()? as i64);
+                let id = GInt64(r.get_id().ok_or_else(|| DatabaseError::ResponseError)? as i64);
                 let source = graph.get_node_ref(&s_index);
                 let target = graph.get_node_ref(&t_index);
                 let edge = GEdge{id: id, label: label, 
                     out_v_abel: target.get_labels_ref().join(":"),
                     in_v_label: source.get_labels_ref().join(":"),
-                    in_v: GInt64(source.get_id()? as i64),
-                    out_v: GInt64(target.get_id()? as i64),
+                    in_v: GInt64(source.get_id().ok_or_else(|| DatabaseError::ResponseError)? as i64),
+                    out_v: GInt64(target.get_id().ok_or_else(|| DatabaseError::ResponseError)? as i64),
                 };
                 let traverser = GTraverser{bulk: GInt64(1), value: GItem::Edge(edge)};
                 res.data.values.push(traverser);
@@ -124,5 +124,5 @@ pub fn convert_graph_to_gremlin_response(graphs: &Vec<ResultGraph>, request_id: 
     }
     
     let attrs = GMap::new();
-    Some(GremlinResponse{request_id: String::from(request_id), status: GStatus{message: String::from(""), code: 200, attributes: attrs}, result: res})
+    Ok(GremlinResponse{request_id: String::from(request_id), status: GStatus{message: String::from(""), code: 200, attributes: attrs}, result: res})
 }

@@ -14,17 +14,17 @@ impl MatchState {
 }
 impl State for MatchState {
     
-    fn handle_step(&self, _context: &mut StateContext) -> Result<(), StateError> {
+    fn handle_step(&self, _context: &mut StateContext) -> Result<(), GremlinStateError> {
         Ok(())
     }
 
-    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, StateError> {
+    fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         match step {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
             }
             _ => {
-                Err(StateError::Invalid)
+                Err(GremlinStateError::Invalid(step.clone()))
             }
         }
     }
