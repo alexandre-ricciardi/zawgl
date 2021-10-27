@@ -7,7 +7,6 @@ use super::super::super::graph::traits::*;
 pub fn push_state_0<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA, v1: &NIDB)
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
-NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
 GraphA: GraphContainerTrait<NIDA, EIDA, NA, RA>,
 GraphA: GraphIteratorTrait<NIDA, EIDA> {  
     base_state.core_count += 1;
@@ -52,7 +51,6 @@ GraphA: GraphIteratorTrait<NIDA, EIDA> {
 pub fn pop_state_0<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA)
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
-NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
 GraphA: GraphContainerTrait<NIDA, EIDA, NA, RA>,
 GraphA: GraphIteratorTrait<NIDA, EIDA>  {  
     if base_state.core_count == 0 {
@@ -122,7 +120,6 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
 pub fn push_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g mut GraphA, v0: &NIDA, v1: &NIDB)
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
-NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
 GraphA: GrowableGraphContainerTrait<NIDA, EIDA, NA, RA>,
 GraphA: GrowableGraphIteratorTrait<NIDA, EIDA> {  
     base_state.core_count += 1;
@@ -167,7 +164,6 @@ GraphA: GrowableGraphIteratorTrait<NIDA, EIDA> {
 pub fn pop_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g mut GraphA, v0: &NIDA)
 where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
 EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
-NA: std::hash::Hash + Eq, RA: std::hash::Hash + Eq, 
 GraphA: GrowableGraphContainerTrait<NIDA, EIDA, NA, RA>,
 GraphA: GrowableGraphIteratorTrait<NIDA, EIDA>  {  
     if base_state.core_count == 0 {
@@ -235,9 +231,7 @@ GraphA: GrowableGraphIteratorTrait<NIDA, EIDA>  {
 
 pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
-    N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
+    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy,
     Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
     Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
@@ -259,9 +253,7 @@ pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP,
 impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>
     State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    N0: std::hash::Hash + Eq, R0: std::hash::Hash + Eq, 
-    N1: std::hash::Hash + Eq, R1: std::hash::Hash + Eq, 
+    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy,
     Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
     Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {

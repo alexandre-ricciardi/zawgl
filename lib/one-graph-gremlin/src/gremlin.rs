@@ -11,7 +11,7 @@ pub enum GStep {
     AddV(String),
     V(Option<GValueOrVertex>),
     InV,
-    Has(String, Predicate),
+    Has(String, GPredicate),
     AddE(String),
     E(Option<GValue>),
     OutE(Vec<String>),
@@ -191,7 +191,7 @@ impl ToJson for GEdge {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Predicate {
+pub enum GPredicate {
     Value(GValue),
     Within(GList<GValue>),
 }

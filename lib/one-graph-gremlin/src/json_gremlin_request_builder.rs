@@ -192,10 +192,10 @@ fn has_property(json_step: &Vec<Value>) -> Option<GStep> {
     Some(GStep::Has(String::from(name), build_predicate(json_step.get(2)?)?))
 }
 
-fn build_predicate(json_predicate: &Value) -> Option<Predicate> {
+fn build_predicate(json_predicate: &Value) -> Option<GPredicate> {
     match json_predicate {
         Value::String(sval) => {
-            Some(Predicate::Value(GValue::String(String::from(sval))))
+            Some(GPredicate::Value(GValue::String(String::from(sval))))
         },
         Value::Object(pobj) => {
             let p = pobj.get("@value")?.as_object()?;
@@ -212,8 +212,8 @@ fn build_predicate(json_predicate: &Value) -> Option<Predicate> {
     }
 }
 
-fn build_within_predicate(json: &Map<String, Value>) -> Option<Predicate> {
-    Some(Predicate::Within(build_gremlin_list(json.get("value")?)?))
+fn build_within_predicate(json: &Map<String, Value>) -> Option<GPredicate> {
+    Some(GPredicate::Within(build_gremlin_list(json.get("value")?)?))
 }
 
 fn build_gremlin_list(json: &Value) -> Option<GList<GValue>> {
@@ -334,7 +334,7 @@ mod test_gremlin_json {
         let value: Value = serde_json::from_str(json).expect("json predicate");
         let predicate = build_predicate(&value).expect("predicate");
         match &predicate {
-            Predicate::Within(l) => {
+            GPredicate::Within(l) => {
                 assert_eq!(GValue::Integer(GInteger::I32(GInt32(2))), l.values[1]);
             },
             _ => {
@@ -369,7 +369,7 @@ mod test_gremlin_json {
             GStep::Has(prop_name, predicate) => {
                 assert_eq!("name", prop_name);
                 match predicate {
-                    Predicate::Within(list) => {
+                    GPredicate::Within(list) => {
                         assert_eq!(GValue::String(String::from("ripple")), list.values[1]);
                     },
                     _ => {

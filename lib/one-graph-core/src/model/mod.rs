@@ -1,5 +1,8 @@
+use self::predicates::PropertyPredicate;
+
 use super::graph::*;
 pub mod init;
+pub mod predicates;
 use std::hash::Hash;
 use std::hash::Hasher;
 
@@ -101,19 +104,20 @@ pub enum Status {
     Empty,
 }
 
-#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Node {
     id: Option<u64>,
     var: Option<String>,
     properties: Vec<Property>,
     labels: Vec<String>,
     status: Status,
+    property_predicates: Vec<PropertyPredicate>,
 }
 
 
 impl Node {
     pub fn new() -> Self {
-        Node {var: None, properties: Vec::new(), labels: Vec::new(), id:None, status: Status::Empty}
+        Node {var: None, properties: Vec::new(), labels: Vec::new(), id:None, status: Status::Empty, property_predicates: Vec::new()}
     }
 
     pub fn get_id(&self) -> Option<u64> {
@@ -147,6 +151,7 @@ impl Node {
     pub fn set_properties(&mut self, properties: Vec<Property>) {
         self.properties = properties;
     }
+
     pub fn get_labels_ref(&self) -> &Vec<String> {
         &self.labels
     }
@@ -166,19 +171,29 @@ impl Node {
     pub fn set_status(&mut self, status: Status) {
         self.status = status;
     }
+
+    pub fn add_predicate(&mut self, predicate: PropertyPredicate) {
+        self.property_predicates.push(predicate)
+    }
+
+    pub fn get_predicates_ref(&self) -> &Vec<PropertyPredicate> {
+        &self.property_predicates
+    }
 }
-#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+
+#[derive(Clone, Debug)]
 pub struct Relationship {
     id: Option<u64>,
     var: Option<String>,
     properties: Vec<Property>,
     labels: Vec<String>,
     status: Status,
+    property_predicates: Vec<PropertyPredicate>,
 }
 
 impl Relationship {
     pub fn new() -> Self {
-        Relationship {var: None, properties: Vec::new(), labels: Vec::new(), id: None, status: Status::Empty}
+        Relationship {var: None, properties: Vec::new(), labels: Vec::new(), id: None, status: Status::Empty, property_predicates: Vec::new()}
     }
     pub fn get_id(&self) -> Option<u64> {
         self.id
@@ -230,6 +245,14 @@ impl Relationship {
 
     pub fn set_status(&mut self, status: Status) {
         self.status = status;
+    }
+    
+    pub fn add_predicate(&mut self, predicate: PropertyPredicate) {
+        self.property_predicates.push(predicate)
+    }
+
+    pub fn get_predicates_ref(&self) -> &Vec<PropertyPredicate> {
+        &self.property_predicates
     }
 }
 
