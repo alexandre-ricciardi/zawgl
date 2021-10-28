@@ -44,7 +44,6 @@ impl State for FromState {
                         pattern.add_node(source)
                     }
                 };
-                //let target_id = context.node_aliases.get(&self.alias).ok_or(StateError::Invalid)?;
                 if let Some(tid) = target_id {
                     let rid = pattern.add_relationship(r, source_id, tid);
                     context.relationship_index = Some(rid);
@@ -64,6 +63,9 @@ impl State for FromState {
             }
             GStep::SetProperty(name, value) => {
                 Ok(Box::new(SetPropertyState::new(name, value)))
+            }
+            GStep::Empty => {
+                Ok(Box::new(EndState::new()))
             }
             _ => {
                 Err(GremlinStateError::Invalid(step.clone()))

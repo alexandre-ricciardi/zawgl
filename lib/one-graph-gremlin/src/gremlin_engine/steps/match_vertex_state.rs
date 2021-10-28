@@ -34,7 +34,9 @@ impl State for MatchVertexState {
 
         match &context.previous_step {
             GStep::As(_alias) => {
-                init_pattern(context, n);
+                let pattern = context.patterns.last_mut().ok_or(GremlinStateError::WrongContext("missing pattern"))?;
+                let nid = pattern.add_node(n);
+                context.node_index = Some(nid);
             }
             GStep::Empty => {
                 init_pattern(context, n);

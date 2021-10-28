@@ -64,31 +64,49 @@ impl GraphEngine {
             }
             let mut match_properties = true;
             for pred in n0.get_predicates_ref() {
-                for p1 in n1.get_properties_ref() {
-                    if p1.get_name() == &pred.name {
-                        match_properties = pred.predicate.eval(p1.get_value());
+                if match_properties {
+                    for p1 in n1.get_properties_ref() {
+                        if p1.get_name() == &pred.name {
+                            match_properties = pred.predicate.eval(p1.get_value());
+                            if !match_properties {
+                                break;
+                            }
+                        }
                     }
                 }
             }
             match_labels && match_properties
         },
         |e0, e1| {
-            for label in e0.get_labels_ref() {
-                if e1.get_labels_ref().contains(label) {
-                    return true;
-                }
-            }
-            if e0.get_id() == e1.get_id() {
+            if e0.get_id() == None && e0.get_labels_ref().is_empty() {
                 return true;
             }
-            let mut res = true;
-            for p0 in e0.get_properties_ref() {
-                if !e1.get_properties_ref().contains(p0) {
-                    res = false;
+            
+            if e0.get_id() != None && e0.get_id() == e1.get_id() {
+                return true;
+            }
+
+            let mut match_labels = true;
+            for label in e0.get_labels_ref() {
+                if !e1.get_labels_ref().contains(label) {
+                    match_labels = false;
                     break;
                 }
             }
-            res
+            let mut match_properties = true;
+            for pred in e0.get_predicates_ref() {
+                if match_properties {
+                    for p1 in e1.get_properties_ref() {
+                        if p1.get_name() == &pred.name {
+                            match_properties = pred.predicate.eval(p1.get_value());
+                            if !match_properties {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            match_labels && match_properties
         },
         |map0, _map1, gpattern, proxy| {
             let mut res_match = PropertyGraph::new();

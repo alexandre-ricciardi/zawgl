@@ -203,7 +203,7 @@ pub struct Relationship {
     properties: Vec<Property>,
     labels: Vec<String>,
     status: Status,
-    property_predicates: Vec<PropertyPredicate>,
+    property_predicates: Vec<NamedPropertyPredicate>,
 }
 
 impl Relationship {
@@ -262,11 +262,11 @@ impl Relationship {
         self.status = status;
     }
     
-    pub fn add_predicate(&mut self, predicate: PropertyPredicate) {
+    pub fn add_predicate(&mut self, predicate: NamedPropertyPredicate) {
         self.property_predicates.push(predicate)
     }
 
-    pub fn get_predicates_ref(&self) -> &Vec<PropertyPredicate> {
+    pub fn get_predicates_ref(&self) -> &Vec<NamedPropertyPredicate> {
         &self.property_predicates
     }
 }
