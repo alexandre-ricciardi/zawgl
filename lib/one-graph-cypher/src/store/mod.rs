@@ -1,3 +1,5 @@
+use std::ptr::NonNull;
+
 use one_graph_core::model::init::InitContext;
 use one_graph_core::model::*;
 use super::cypher::query_engine::process_cypher_query;
@@ -70,19 +72,14 @@ fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
                     
                     let name = p.get_name();
                     let value = p.get_value();
-                    if let Some(n) = name {
-                        if let Some(v) = value {
-                            let mut bprop = Document::new();
-                            match v {
-                                PropertyValue::PBool(v) => bprop.insert(n, v),
-                                PropertyValue::PFloat(f) => bprop.insert(n, f),
-                                PropertyValue::PInteger(i) => bprop.insert(n, i),
-                                PropertyValue::PString(s) => bprop.insert(n, s),
-                            };
-                            props.push(bprop);
-                        }
-                        
-                    }
+                    let mut bprop = Document::new();
+                    match value {
+                        PropertyValue::PBool(v) => bprop.insert(name, v),
+                        PropertyValue::PFloat(f) => bprop.insert(name, f),
+                        PropertyValue::PInteger(i) => bprop.insert(name, i),
+                        PropertyValue::PString(s) => bprop.insert(name, s),
+                    };
+                    props.push(bprop);
                 }
                 return Some(doc!{
                     "id": node.get_id()?,
@@ -101,20 +98,16 @@ fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
                     
                     let name = p.get_name();
                     let value = p.get_value();
-                    if let Some(n) = name {
-                        if let Some(v) = value {
-                            let mut bprop = Document::new();
-                            match v {
-                                PropertyValue::PBool(v) => bprop.insert(n, v),
-                                PropertyValue::PFloat(f) => bprop.insert(n, f),
-                                PropertyValue::PInteger(i) => bprop.insert(n, i),
-                                PropertyValue::PString(s) => bprop.insert(n, s),
-                            };
-                            props.push(bprop);
-                        }
-                        
-                    }
-                }
+
+                    let mut bprop = Document::new();
+                    match value {
+                        PropertyValue::PBool(v) => bprop.insert(name, v),
+                        PropertyValue::PFloat(f) => bprop.insert(name, f),
+                        PropertyValue::PInteger(i) => bprop.insert(name, i),
+                        PropertyValue::PString(s) => bprop.insert(name, s),
+                    };
+                    props.push(bprop);
+                      
                 return Some(doc!{
                     "id": relationship.get_id()?,
                     "properties": props
@@ -124,7 +117,6 @@ fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
     }
 
     None
-    
 }
 
 fn evaluate_function_call(result: &PropertyGraph, func_call: &FunctionCall) -> Option<Document> {

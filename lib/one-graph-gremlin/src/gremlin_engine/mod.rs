@@ -23,6 +23,13 @@ pub struct GremlinDatabaseEngine<'a> {
     conf: InitContext<'a>,
 }
 
+fn skip_step(prev_step: &GStep, curr_step: &GStep) -> GStep {
+    match curr_step {
+        GStep::Has(_, _) => prev_step.clone(),
+        _ => curr_step.clone(),
+    }
+}
+
 fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMachine) -> Result<GremlinStateMachine, GremlinStateError> {
     let mut previous_step = GStep::Empty;
     for step in steps {
@@ -36,7 +43,7 @@ fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMach
                 gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &previous_step, step)?;
             }
         }
-        previous_step = step.clone();
+        previous_step = skip_step(&previous_step, &step);
     }
     gremlin_state = GremlinStateMachine::new_step_state(gremlin_state, &previous_step, &GStep::Empty)?;
     Ok(gremlin_state)

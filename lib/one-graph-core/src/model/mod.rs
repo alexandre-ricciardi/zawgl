@@ -1,8 +1,10 @@
+use self::predicates::NamedPropertyPredicate;
 use self::predicates::PropertyPredicate;
 
 use super::graph::*;
 pub mod init;
 pub mod predicates;
+use std::cmp::Ordering;
 use std::hash::Hash;
 use std::hash::Hasher;
 
@@ -55,16 +57,41 @@ impl PartialEq for PropertyValue {
 }
 impl Eq for PropertyValue {}
 
+impl PartialOrd for PropertyValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use self::PropertyValue::*;
+        match (self, other) {
+            (PBool(sval), PBool(oval)) => {
+                Some(sval.cmp(oval))
+            },
+            (PString(sval), PString(oval))  => {
+                Some(sval.cmp(oval))
+            },
+            (PInteger(sval), PInteger(oval))  => {
+                Some(sval.cmp(oval))
+            },
+            (PFloat(sval), PFloat(oval))  => {
+                sval.partial_cmp(oval)
+            },
+            _ => {None}
+        }
+    }
+}
+
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub struct Property {
     id: Option<u64>,
-    name: Option<String>,
-    value: Option<PropertyValue>,
+    name: String,
+    value: PropertyValue,
 }
 
 impl Property {
-    pub fn new() -> Self {
-        Property {id: None, name: None, value: None}
+    pub fn new(name: String, value: PropertyValue) -> Self {
+        Property {id: None, name: name, value: value}
+    }
+
+    pub fn new_with_id(id: u64, name: String, value: PropertyValue) -> Self {
+        Property {id: Some(id), name: name, value: value}
     }
 
     pub fn get_id(&self) -> Option<u64> {
@@ -74,24 +101,12 @@ impl Property {
     pub fn set_id(&mut self, id: Option<u64>) {
         self.id = id;
     }
-    pub fn get_name(&self) -> &Option<String> {
+    pub fn get_name(&self) -> &str {
         &self.name
     }
 
-    pub fn set_name(&mut self, name: &str) {
-        self.name = Some(String::from(name));
-    }
-
-    pub fn set_option_name(&mut self, name: Option<String>) {
-        self.name = name;
-    }
-
-    pub fn get_value(&self) -> &Option<PropertyValue> {
+    pub fn get_value(&self) -> &PropertyValue {
         &self.value
-    }
-
-    pub fn set_value(&mut self, val: Option<PropertyValue>) {
-        self.value = val;
     }
 }
 
@@ -111,7 +126,7 @@ pub struct Node {
     properties: Vec<Property>,
     labels: Vec<String>,
     status: Status,
-    property_predicates: Vec<PropertyPredicate>,
+    property_predicates: Vec<NamedPropertyPredicate>,
 }
 
 
@@ -172,11 +187,11 @@ impl Node {
         self.status = status;
     }
 
-    pub fn add_predicate(&mut self, predicate: PropertyPredicate) {
+    pub fn add_predicate(&mut self, predicate: NamedPropertyPredicate) {
         self.property_predicates.push(predicate)
     }
 
-    pub fn get_predicates_ref(&self) -> &Vec<PropertyPredicate> {
+    pub fn get_predicates_ref(&self) -> &Vec<NamedPropertyPredicate> {
         &self.property_predicates
     }
 }

@@ -22,9 +22,7 @@ impl State for SetPropertyState {
                 let pattern = context.patterns.last_mut().ok_or(GremlinStateError::WrongContext("missing pattern"))?;
                 if let Some(nid) = &context.node_index {
                     let n = pattern.get_node_mut(nid);
-                    let mut prop = Property::new();
-                    prop.set_name(&self.name);
-                    prop.set_value(Some(prop_value_from_gremlin_value(&self.value)));
+                    let prop = Property::new(self.name.clone(), prop_value_from_gremlin_value(&self.value));
                     n.get_properties_mut().push(prop);
                 }
                 
@@ -33,9 +31,7 @@ impl State for SetPropertyState {
                 let pattern = context.patterns.last_mut().ok_or(GremlinStateError::WrongContext("missing pattern"))?;
                 if let Some(rid) = &context.relationship_index {
                     let r = pattern.get_relationship_mut(rid);
-                    let mut prop = Property::new();
-                    prop.set_name(&self.name);
-                    prop.set_value(Some(prop_value_from_gremlin_value(&self.value)));
+                    let prop = Property::new(self.name.clone(), prop_value_from_gremlin_value(&self.value));
                     r.get_properties_mut().push(prop);
                 }
             }

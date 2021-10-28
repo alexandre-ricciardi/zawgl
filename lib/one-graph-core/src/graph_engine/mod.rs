@@ -63,10 +63,11 @@ impl GraphEngine {
                 }
             }
             let mut match_properties = true;
-            for p0 in n0.get_properties_ref() {
-                if !n1.get_properties_ref().contains(p0) {
-                    match_properties = false;
-                    break;
+            for pred in n0.get_predicates_ref() {
+                for p1 in n1.get_properties_ref() {
+                    if p1.get_name() == &pred.name {
+                        match_properties = pred.predicate.eval(p1.get_value());
+                    }
                 }
             }
             match_labels && match_properties

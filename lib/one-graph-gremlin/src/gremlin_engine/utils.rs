@@ -1,4 +1,4 @@
-use one_graph_core::{graph::{EdgeIndex, traits::{GraphContainerTrait, GraphTrait}}, model::{Node, PropertyGraph, PropertyValue, Status, predicates::PropertyPredicate}};
+use one_graph_core::{graph::{EdgeIndex, traits::{GraphContainerTrait, GraphTrait}}, model::{Node, PropertyGraph, PropertyValue, Status, predicates::{NamedPropertyPredicate, PropertyPredicate}}};
 
 use super::{DatabaseError, steps::gremlin_state::StateContext};
 
@@ -36,14 +36,14 @@ pub fn prop_value_from_gremlin_value(gval: &GValue) -> PropertyValue {
     }
 }
 
-pub fn convert_gremlin_predicate_to_pattern_predicate(predicate: &GPredicate) -> PropertyPredicate {
+pub fn convert_gremlin_predicate_to_pattern_predicate(name: &str, predicate: &GPredicate) -> NamedPropertyPredicate {
     match predicate {
         GPredicate::Value(v) => {
-            PropertyPredicate::EqualTo(prop_value_from_gremlin_value(v))
+            NamedPropertyPredicate::new(name, PropertyPredicate::EqualTo(prop_value_from_gremlin_value(v)))
         },
         GPredicate::Within(list) => {
             let props = list.values.iter().map(|v| prop_value_from_gremlin_value(v)).collect();
-            PropertyPredicate::Contain(props)
+            NamedPropertyPredicate::new(name, PropertyPredicate::Contain(props))
         },
     }
 }

@@ -25,7 +25,7 @@ impl State for HasPropertyState {
         if let Some(nid) = context.node_index {
             let pattern = context.patterns.last_mut().ok_or(GremlinStateError::WrongContext("missing pattern"))?;
             let node = pattern.get_node_mut(&nid);
-            node.add_predicate(convert_gremlin_predicate_to_pattern_predicate(&self.predicate))
+            node.add_predicate(convert_gremlin_predicate_to_pattern_predicate(&self.name, &self.predicate))
         }
         Ok(())
     }
