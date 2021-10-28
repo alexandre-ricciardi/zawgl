@@ -9,8 +9,7 @@ use std::collections::HashSet;
 use super::super::graph::traits::*;
 use super::super::graph::*;
 
-fn parse_labels(data: &[u8]) -> Option<Vec<String>> {
-    let labels = String::from_utf8(data.to_vec()).ok()?;
+fn parse_labels(labels: &str) -> Option<Vec<String>> {
     Some(labels.split(":").map(|s| String::from(s)).collect())
 }
 
@@ -55,8 +54,8 @@ impl GraphRepository {
         node.set_id(Some(node_id));
         node.set_properties(self.properties_repository.retrieve_list(nr.next_prop_id)?);
         if nr.node_type != 0 {
-            let labels_data = self.labels_store.load_data(nr.node_type)?;
-            node.set_labels(parse_labels(&labels_data)?);
+            let labels = self.labels_store.load_string(nr.node_type)?;
+            node.set_labels(parse_labels(&labels)?);
         }
         let mut vertex = DbVertexData::new();
         if nr.first_inbound_edge != 0 {
@@ -86,7 +85,7 @@ impl GraphRepository {
         rel.set_id(Some(rel_id));
         rel.set_properties(self.properties_repository.retrieve_list(rr.next_prop_id)?);
         if rr.relationship_type != 0 {
-            let labels_data = self.labels_store.load_data(rr.relationship_type)?;
+            let labels_data = self.labels_store.load_string(rr.relationship_type)?;
             rel.set_labels(parse_labels(&labels_data)?);
         }
         let mut edge = DbEdgeData::new(rr.source, rr.target);
@@ -163,12 +162,12 @@ impl GraphRepository {
     pub fn create_node(&mut self, node: &Node) -> Option<Node> {
         let mut nr = NodeRecord::new();
         nr.next_prop_id = self.properties_repository.create_list(node.get_properties_ref())?;
+        if !node.get_labels_ref().is_empty() {
+            nr.node_type = self.labels_store.save_data(node.get_labels_ref().join(":").as_bytes())?;
+        }
         let nid = self.nodes_store.create(&nr)?;
         for label in node.get_labels_ref() {
             self.nodes_labels_index.insert(label, nid);
-        }
-        if !node.get_labels_ref().is_empty() {
-            nr.node_type = self.labels_store.save_data(node.get_labels_ref().join(":").as_bytes())?;
         }
         let mut res = node.clone();
         res.set_id(Some(nid));
@@ -179,15 +178,13 @@ impl GraphRepository {
     pub fn create_relationship(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
         let mut rr = RelationshipRecord::new(source, target);
         rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_ref())?;
-        let rid = self.relationships_store.create(&rr)?;
-        let mut res = rel.clone();
-        res.set_id(Some(rid));
-        for label in rel.get_labels_ref() {
-            self.relationships_labels_index.insert(label, rid);
-        }
         if !rel.get_labels_ref().is_empty() {
             rr.relationship_type = self.labels_store.save_data(rel.get_labels_ref().join(":").as_bytes())?;
         }
+        let rid = self.relationships_store.create(&rr)?;
+        let mut res = rel.clone();
+        res.set_id(Some(rid));
+        
         let mut source_record = self.nodes_store.load(source)?;
         if source_record.first_outbound_edge == 0 {
             source_record.first_outbound_edge = rid;
@@ -217,6 +214,11 @@ impl GraphRepository {
             }
             rel_record.next_inbound_edge = rid;
             self.relationships_store.save(current_rr_id, &rel_record)?;
+        }
+
+        
+        for label in rel.get_labels_ref() {
+            self.relationships_labels_index.insert(label, rid);
         }
 
         Some(res)
@@ -304,6 +306,7 @@ impl GraphRepository {
         self.relationships_store.sync();
         self.nodes_store.sync();
         self.properties_repository.sync();
+        self.labels_store.sync();
     }
 }
 

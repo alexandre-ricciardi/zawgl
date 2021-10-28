@@ -54,6 +54,15 @@ impl DynamicStore {
         Some(data.into_boxed_slice())
     }
 
+    pub fn load_string(&mut self, id: u64) -> Option<String> {
+        let load = self.load_data(id)?;
+        let mut it = load.iter();
+        let str_end = it.position(|&c| c == b'\0').unwrap_or(load.len());
+        let mut result = Vec::new();
+        result.extend_from_slice(&load[0..str_end]);
+        Some(String::from_utf8(result).ok()?)
+    }
+
     pub fn load(&mut self, dr_id: u64) -> Option<DynamicStoreRecord> {
         let mut data: [u8; 129] = [0; 129];
         self.records_manager.load(dr_id, &mut data).ok()?;
@@ -82,24 +91,14 @@ mod test_dyn_store {
     fn test_dyn_long() {
         let file = build_file_path_and_rm_old("test_dyn_store", "test_dyn_long.db").unwrap();
         let mut ds = DynamicStore::new(&file);
-        let long = b"qsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnec
-        qfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqsh
-        dfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqel";
-        let id = ds.save_data(long).unwrap();
-        let data = ds.load_data(id).unwrap();
-        let mut count = long.len() / 32;
-        let rest = long.len() % 32;
-        let mut low = count * 32;
-        let mut high = low + rest;
-        loop {
-            assert_eq!(&data[low..high], &long[low..high], "bounds {} -> {}", low, high);
-            high = count * 32;
-            if count > 0 {
-                count -= 1;
-            } else {
-                break;
-            }
-            low = count * 32;
+        for i in 0..10 {
+            let long = ["qsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnec
+            qfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqsh
+            dfhljbqlcznzelfnqelincqzlnfqzlnecqfqsdfqsdfqsdlkqshdfhljbqlcznzelfnqel", &i.to_string()].concat();
+            let input = long.clone();
+            let id = ds.save_data(&long.into_bytes()).unwrap();
+            let load = ds.load_string(id).unwrap();
+            assert_eq!(input, load);
         }
-    }
+    }  
 }
