@@ -1,3 +1,0 @@
-(function() {var implementors = {};
-implementors["one_graph_core"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.55.0/core/cmp/trait.PartialOrd.html\" title=\"trait core::cmp::PartialOrd\">PartialOrd</a>&lt;<a class=\"enum\" href=\"one_graph_core/model/enum.PropertyValue.html\" title=\"enum one_graph_core::model::PropertyValue\">PropertyValue</a>&gt; for <a class=\"enum\" href=\"one_graph_core/model/enum.PropertyValue.html\" title=\"enum one_graph_core::model::PropertyValue\">PropertyValue</a>","synthetic":false,"types":["one_graph_core::model::PropertyValue"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

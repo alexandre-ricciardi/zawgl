@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["PropertyPredicate",""]],"struct":[["NamedPropertyPredicate",""]]});

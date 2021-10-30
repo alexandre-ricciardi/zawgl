@@ -1,1 +1,0 @@
-window.ALL_CRATES = ["og","one_graph_core","one_graph_gremlin","one_graph_server","one_graph_utils"];

@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["build_dir_path_and_rm_old",""],["build_file_path_and_rm_old",""],["get_tmp_dir_path",""]]});

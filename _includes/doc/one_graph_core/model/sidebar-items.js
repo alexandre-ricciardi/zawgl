@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["PropertyValue",""],["Status",""]],"mod":[["init",""],["predicates",""]],"struct":[["Node",""],["Property",""],["Relationship",""]],"type":[["PropertyGraph",""]]});

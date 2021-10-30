@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["GraphProxy",""],["InEdges",""],["InnerEdgeData",""],["InnerVertexData",""],["OutEdges",""],["ProxyNodeId",""],["ProxyRelationshipId",""]]});
