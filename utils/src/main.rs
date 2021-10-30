@@ -9,7 +9,7 @@ use one_graph_core::graph::traits::*;
 
 fn main() {
     let main_dir = get_tmp_dir_path("test_main");
-    let conf = InitContext::new(&main_dir);
+    let conf = InitContext::new(&main_dir).expect("can't create context");
     let mut graph_engine = GraphEngine::new(&conf);
     let mut full_graph = graph_engine.retrieve_graph().unwrap();
     println!("{:?}", full_graph.get_nodes_ids());
