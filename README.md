@@ -15,5 +15,3 @@ Open Source Timelined Graph Database
 * Keep in mind that graph structures may be timelined in order to be able to retrieve past graph states.
 * Gremlin support.
 
-## Documentation
-{% include doc/og/index.html %}
