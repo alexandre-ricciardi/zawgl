@@ -154,7 +154,7 @@ pub fn convert_graph_to_gremlin_response(graphs: &Vec<ResultGraph>, request_id: 
     
             let mut r_index = 0;
             for r in graph.get_relationships() {
-                if result_graph.scenario == Scenario::MatchAndCreate && *r.get_status() != Status::Create { continue;} 
+                if (result_graph.scenario == Scenario::MatchAndCreate || result_graph.scenario == Scenario::MatchOnly) && *r.get_status() != Status::Create { continue;} 
                 let edge_index = EdgeIndex::new(r_index);
                 let s_index = graph.get_source_index(&edge_index);
                 let t_index = graph.get_target_index(&edge_index);

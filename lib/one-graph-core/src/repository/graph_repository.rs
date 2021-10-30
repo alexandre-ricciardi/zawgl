@@ -233,6 +233,9 @@ impl GraphRepository {
         let mut node_records = Vec::new();
         for node in res.get_nodes_mut() {
             let mut nr = NodeRecord::new();
+            if !node.get_labels_ref().is_empty() {
+                nr.node_type = self.labels_store.save_data(node.get_labels_ref().join(":").as_bytes())?;
+            }
             nr.next_prop_id = self.properties_repository.create_list(node.get_properties_mut())?;
             let nid = self.nodes_store.create(&nr)?;
             for label in node.get_labels_ref() {
