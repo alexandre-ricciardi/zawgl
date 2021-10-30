@@ -661,6 +661,7 @@ dependencies = [
  "one-graph-core",
  "one-graph-server",
  "serde 1.0.114",
+ "simple_logger",
  "tokio",
  "tokio-tungstenite",
  "tungstenite",

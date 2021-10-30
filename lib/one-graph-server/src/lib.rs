@@ -19,7 +19,6 @@ use log::*;
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::Error};
-use simple_logger::SimpleLogger;
 use serde_json::Value;
 use std::result::Result;
 use self::json_gremlin_request_handler::*;
@@ -91,7 +90,6 @@ async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<Gremli
 
 
 pub async fn run_server(addr: &str, conf: InitContext<'static>) {
-    SimpleLogger::new().init().unwrap();
     let graph_engine = Arc::new(RwLock::new(GremlinDatabaseEngine::new(conf)));
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Listening on: {}", addr);

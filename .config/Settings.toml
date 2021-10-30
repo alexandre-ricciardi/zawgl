@@ -1,7 +1,7 @@
 [server]
-address = "127.0.0.1:8182"
+address = "0.0.0.0:8182"
 #database_dir = "C:\\temp\\one-graph-db"
 database_dir = "./one-graph-db"
 
 [log]
-level = "trace"
+level = "info"
