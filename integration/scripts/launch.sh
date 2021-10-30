@@ -1,5 +1,5 @@
 #!/bin/bash
 
-target/debug/one-graph-db &
+target/debug/og &
 cd integration/tests/app
 mvn clean package
