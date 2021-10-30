@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["container",""],["traits",""]],"struct":[["EdgeData",""],["EdgeIndex",""],["Graph",""],["InEdges",""],["NodeIndex",""],["OutEdges",""],["VertexData",""]]});

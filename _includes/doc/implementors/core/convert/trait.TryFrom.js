@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["one_graph_gremlin"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.55.0/core/convert/trait.TryFrom.html\" title=\"trait core::convert::TryFrom\">TryFrom</a>&lt;<a class=\"enum\" href=\"one_graph_gremlin/gremlin/enum.GValue.html\" title=\"enum one_graph_gremlin::gremlin::GValue\">GValue</a>&gt; for <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.55.0/std/primitive.u64.html\">u64</a>","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
