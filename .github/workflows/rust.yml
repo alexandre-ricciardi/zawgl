@@ -19,9 +19,9 @@ jobs:
         java-version: '17'
         check-latest: true
     - name: Build
-      run: cargo build --verbose
+      run: cargo build
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test
     - name: Run integration tests
       run: sh integration/scripts/launch.sh
 
