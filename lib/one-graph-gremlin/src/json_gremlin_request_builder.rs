@@ -157,7 +157,7 @@ fn build_vertex(obj: &Map<String, Value>) -> Option<GVertex> {
   let v_value = &obj["@value"];
   let id = build_gremlin_value(&v_value["id"])?;
   let label = v_value["label"].as_str()?;
-  let vertex = GVertex{id: id, label: String::from(label)};
+  let vertex = GVertex{id: id, label: String::from(label), properties: GProperties::new()};
   Some(vertex)
 }
 

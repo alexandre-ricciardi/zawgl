@@ -3,6 +3,7 @@
  */
 package org.onegraph.gremlin.integration.test;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
@@ -13,6 +14,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class GremlinTest {
@@ -89,11 +93,11 @@ public class GremlinTest {
 
     private void createVertexAndEdge(final GraphTraversalSource g) {
         Vertex v1 = g.addV("person").property("name","marko").next();
-        System.out.println(v1);
+        Assert.assertEquals("person", v1.label());
         Vertex v2 = g.addV("person").property("name","stephen").next();
-        System.out.println(v2);
+        Assert.assertEquals("person", v2.label());
         var res = g.V(v1).addE("knows").from(v2).property("weight",0.75).next();
-        System.out.println(res);
+        Assert.assertEquals("knows", res.label());
     }
 
     @Test
@@ -104,10 +108,17 @@ public class GremlinTest {
             createVertexAndEdge(g);
             var v1 = g.V().has("name", P.within("marko", "stephen")).as("person").
             V().has("name", P.within("stephen")).addE("uses").from("person").next();
-            System.out.println(v1);
+            Assert.assertEquals("uses", v1.label());
         } finally {
             cluster.close();
         }
+    }
+
+    public void printGraph() throws IOException {
+        var graph = TinkerFactory.createModern();
+        var w = graph.io(GraphSONIo.build()).writer();
+        w.create().writeGraph(System.out, graph);
+        System.out.println(graph.traversal().V().has("name", P.within("marko", "stephen")).next().property("name"));        
     }
     
 

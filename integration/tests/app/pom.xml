@@ -5,6 +5,8 @@
     <version>1</version>
     <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <groovy.version>3.0.9</groovy.version>
+      <gremlin.version>3.5.1</gremlin.version>
     </properties>
     <dependencies>
       <dependency>
@@ -15,18 +17,44 @@
       <dependency>
         <groupId>org.apache.tinkerpop</groupId>
         <artifactId>gremlin-core</artifactId>
-        <version>3.5.1</version>
+        <version>${gremlin.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tinkerpop</groupId>
         <artifactId>gremlin-driver</artifactId>
-        <version>3.5.1</version>
+        <version>${gremlin.version}</version>
       </dependency>
+    
+
+
       <dependency>
         <groupId>org.codehaus.groovy</groupId>
-        <artifactId>groovy-json</artifactId>
-        <version>3.0.9</version>
+        <artifactId>groovy</artifactId>
+        <version>${groovy.version}</version>
+        <classifier>indy</classifier>
     </dependency>
+    <dependency>
+        <groupId>org.codehaus.groovy</groupId>
+        <artifactId>groovy-json</artifactId>
+        <version>${groovy.version}</version>
+        <classifier>indy</classifier>
+        <exclusions>
+            <!-- exclude non-indy type -->
+            <exclusion>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+    
+    
+
+      <dependency>
+        <groupId>org.apache.tinkerpop</groupId>
+        <artifactId>tinkergraph-gremlin</artifactId>
+        <version>${gremlin.version}</version>
+      </dependency>
+    
     </dependencies>
 
     <build>

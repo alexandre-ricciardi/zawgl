@@ -85,6 +85,56 @@ impl TryFrom<GValue> for u64 {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct GProperty {
+    pub name: String,
+    pub values: Vec<(GInt64, GValue)>,
+}
+
+impl ToJson for GProperty {
+    fn to_json(&self) -> serde_json::Value {
+        let mut array = Vec::new();
+        for e in &self.values {
+            array.push(json!({
+                "id": e.0.to_json(),
+                "value": e.1.to_json(),
+            }));
+        }
+        json!({
+            self.name.clone(): array
+        })
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct GProperties {
+    pub properties: Vec<GProperty>, 
+}
+
+impl GProperties {
+    pub fn new() -> Self {
+        GProperties { properties: Vec::new() }
+    }
+}
+
+impl ToJson for GProperties {
+    fn to_json(&self) -> serde_json::Value {
+        let mut props = HashMap::new();
+        for p in &self.properties {
+            let mut array = Vec::new();
+            for e in &p.values {
+                array.push(json!({
+                    "id": e.0.to_json(),
+                    "value": e.1.to_json(),
+                }));
+            }
+            props.insert(p.name.clone(), json!(array));
+        }
+        json!(props)
+    }
+}
+
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GInteger {
     I64(GInt64),
@@ -172,6 +222,7 @@ pub struct GEdge {
     pub out_v_abel: String,
     pub in_v: GInt64,
     pub out_v: GInt64,
+    pub properties: GProperties,
 }
 
 impl ToJson for GEdge {
@@ -184,7 +235,8 @@ impl ToJson for GEdge {
                 "inVLabel": self.in_v_label,
                 "outVLabel": self.out_v_abel,
                 "inV": self.in_v.to_json(),
-                "outV": self.out_v.to_json()
+                "outV": self.out_v.to_json(),
+                "properties": self.properties.to_json(),
             }
         })
     }
@@ -254,6 +306,7 @@ impl ToJson for GTraverser {
 pub struct GVertex {
     pub id: GValue,
     pub label: String,
+    pub properties: GProperties,
 }
 
 pub enum GItem {
@@ -301,6 +354,7 @@ impl ToJson for GVertex {
             "@value": {
                 "id": self.id.to_json(),
                 "label": self.label,
+                "properties": self.properties.to_json(),
             }
         })
     }

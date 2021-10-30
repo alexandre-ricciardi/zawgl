@@ -161,7 +161,8 @@ impl GraphRepository {
 
     pub fn create_node(&mut self, node: &Node) -> Option<Node> {
         let mut nr = NodeRecord::new();
-        nr.next_prop_id = self.properties_repository.create_list(node.get_properties_ref())?;
+        let mut res = node.clone();
+        nr.next_prop_id = self.properties_repository.create_list(res.get_properties_mut())?;
         if !node.get_labels_ref().is_empty() {
             nr.node_type = self.labels_store.save_data(node.get_labels_ref().join(":").as_bytes())?;
         }
@@ -169,7 +170,7 @@ impl GraphRepository {
         for label in node.get_labels_ref() {
             self.nodes_labels_index.insert(label, nid);
         }
-        let mut res = node.clone();
+        
         res.set_id(Some(nid));
         Some(res)
     }
@@ -177,12 +178,13 @@ impl GraphRepository {
 
     pub fn create_relationship(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
         let mut rr = RelationshipRecord::new(source, target);
-        rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_ref())?;
+        let mut res = rel.clone();
+        rr.next_prop_id = self.properties_repository.create_list(res.get_properties_mut())?;
         if !rel.get_labels_ref().is_empty() {
             rr.relationship_type = self.labels_store.save_data(rel.get_labels_ref().join(":").as_bytes())?;
         }
         let rid = self.relationships_store.create(&rr)?;
-        let mut res = rel.clone();
+       
         res.set_id(Some(rid));
         
         let mut source_record = self.nodes_store.load(source)?;
@@ -225,12 +227,13 @@ impl GraphRepository {
     }
 
     pub fn create_graph(&mut self, pgraph: &PropertyGraph) -> Option<PropertyGraph> {
+        let mut res = pgraph.clone();
         let mut map_nodes = HashMap::new();
         let mut node_index = 0;
         let mut node_records = Vec::new();
-        for node in pgraph.get_nodes() {
+        for node in res.get_nodes_mut() {
             let mut nr = NodeRecord::new();
-            nr.next_prop_id = self.properties_repository.create_list(node.get_properties_ref())?;
+            nr.next_prop_id = self.properties_repository.create_list(node.get_properties_mut())?;
             let nid = self.nodes_store.create(&nr)?;
             for label in node.get_labels_ref() {
                 self.nodes_labels_index.insert(label, nid);
@@ -243,11 +246,11 @@ impl GraphRepository {
         let mut rel_index: usize = 0;
         let mut map_rel = HashMap::new();
         let mut rel_records = Vec::new();
-        for edge in pgraph.get_edges() {
+        for edge in res.get_edges() {
             let mut rr = RelationshipRecord::new(*map_nodes.get(&edge.source.get_index())?,
              *map_nodes.get(&edge.target.get_index())?);
-            let rel = pgraph.get_relationship_ref(&edge.id);
-            rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_ref())?;
+            let rel = res.get_relationship_mut(&edge.id);
+            rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_mut())?;
             let rid = self.relationships_store.create(&rr)?;
             map_rel.insert(rel_index, rid);
             rel_records.push((rid, rr));
@@ -285,7 +288,7 @@ impl GraphRepository {
             rr_index += 1;
         }
 
-        let mut res = pgraph.clone();
+        
         let mut n_index = 0;
         for n in res.get_nodes_mut() {
             n.set_id(Some(map_nodes[&n_index]));

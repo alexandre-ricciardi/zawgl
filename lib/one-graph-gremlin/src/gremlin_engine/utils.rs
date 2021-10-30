@@ -1,4 +1,4 @@
-use one_graph_core::{graph::{EdgeIndex, traits::{GraphContainerTrait, GraphTrait}}, model::{Node, PropertyGraph, PropertyValue, Status, predicates::{NamedPropertyPredicate, PropertyPredicate}}};
+use one_graph_core::{graph::{EdgeIndex, traits::{GraphContainerTrait, GraphTrait}}, model::{Node, Property, PropertyGraph, PropertyValue, Relationship, Status, predicates::{NamedPropertyPredicate, PropertyPredicate}}};
 
 use super::{DatabaseError, steps::gremlin_state::StateContext};
 
@@ -35,6 +35,18 @@ pub fn prop_value_from_gremlin_value(gval: &GValue) -> PropertyValue {
         }
     }
 }
+
+
+pub fn gremlin_value_from_property_value(p: &Property) -> Option<(GInt64, GValue)> {
+    Some((GInt64(p.get_id()? as i64),
+        match p.get_value() {
+            PropertyValue::PString(v) => GValue::String(v.clone()),
+            PropertyValue::PInteger(v) => GValue::Integer(GInteger::I64(GInt64(*v))),
+            PropertyValue::PFloat(v) => GValue::Double(GDouble(*v)),
+            PropertyValue::PBool(v) => GValue::Bool(*v),
+        }))
+}
+
 
 pub fn convert_gremlin_predicate_to_pattern_predicate(name: &str, predicate: &GPredicate) -> NamedPropertyPredicate {
     match predicate {
@@ -91,9 +103,37 @@ pub fn get_request_scenario(pattern: &PropertyGraph) -> Scenario {
 fn build_vertex_from_node(n: &Node) -> Option<GVertex> {
     let label = n.get_labels_ref().join(":");
     let id = GValue::Integer(GInteger::I64(GInt64(n.get_id()? as i64)));
-    Some(GVertex{id: id, label: label})
+    Some(GVertex{id: id, label: label, properties: build_node_properties(n)?})
 }
 
+fn build_node_properties(n: &Node) -> Option<GProperties> {
+    if n.get_status() != &Status::Create {
+        let mut list = Vec::new();
+        for p in n.get_properties_ref() {
+            list.push(build_property(p)?)
+        }
+        Some(GProperties { properties: list})
+    } else {
+        Some(GProperties { properties: vec![]})
+    }
+}
+
+
+fn build_edge_properties(r: &Relationship) -> Option<GProperties> {
+    if r.get_status() != &Status::Create {
+        let mut list = Vec::new();
+        for p in r.get_properties_ref() {
+            list.push(build_property(p)?)
+        }
+        Some(GProperties { properties: list})
+    } else {
+        Some(GProperties { properties: vec![]})
+    }
+}
+
+fn build_property(p: &Property) -> Option<GProperty> {
+    Some(GProperty { name: String::from(p.get_name()), values: vec![gremlin_value_from_property_value(p)?]})
+}
 
 pub struct ResultGraph {
     pub scenario: Scenario,
@@ -127,6 +167,7 @@ pub fn convert_graph_to_gremlin_response(graphs: &Vec<ResultGraph>, request_id: 
                     in_v_label: source.get_labels_ref().join(":"),
                     in_v: GInt64(source.get_id().ok_or_else(|| DatabaseError::ResponseError)? as i64),
                     out_v: GInt64(target.get_id().ok_or_else(|| DatabaseError::ResponseError)? as i64),
+                    properties: build_edge_properties(r).ok_or_else(|| DatabaseError::ResponseError)?,
                 };
                 let traverser = GTraverser{bulk: GInt64(1), value: GItem::Edge(edge)};
                 res.data.values.push(traverser);

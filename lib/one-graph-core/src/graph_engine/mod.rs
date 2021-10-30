@@ -89,9 +89,7 @@ impl GraphEngine {
 
             let mut match_labels = true;
             for label in e0.get_labels_ref() {
-                trace!("do not match mlabel :{}", label);
                 if !e1.get_labels_ref().contains(label) {
-                    trace!("do not match mlabel :{:?}", e1.get_labels_ref());
                     match_labels = false;
                     break;
                 }

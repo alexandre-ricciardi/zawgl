@@ -82,9 +82,9 @@ impl PropertiesRespository {
         Some(())
     }
 
-    pub fn create_list(&mut self, props: &Vec<Property>) -> Option<u64> {
+    pub fn create_list(&mut self, props: &mut Vec<Property>) -> Option<u64> {
         let mut vec_records = Vec::new();
-        for prop in props {
+        for prop in props.iter() {
             let prop_record =  make_full_inlined_record(prop)
             .or_else(|| self.make_key_inlined_record(prop))
             .or_else(|| self.make_record(prop))?;
@@ -92,10 +92,17 @@ impl PropertiesRespository {
         }
         vec_records.reverse();
         let mut curr_id = 0;
+        let mut ids = Vec::new();
         for pr in &mut vec_records {
             pr.next_prop_id = curr_id;
             curr_id = self.prop_store.create(pr)?;
-
+            ids.push(curr_id);
+        }
+        ids.reverse();
+        let mut index = 0;
+        for prop in props {
+            prop.set_id(ids.get(index).map(|id| *id));
+            index += 1;
         }
         Some(curr_id)
     }
