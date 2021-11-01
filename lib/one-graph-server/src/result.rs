@@ -1,10 +1,9 @@
-use one_graph_gremlin::gremlin_engine::DatabaseError;
+use one_graph_gremlin::handler::GremlinError;
 
 #[derive(Debug)]
 pub enum ServerError {
     HeaderError,
     ParsingError(String),
-    GremlinError,
     WebsocketError(tungstenite::Error),
-    DatabaseError(DatabaseError)
+    GremlinTxError(GremlinError)
 }

@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "lib/one-graph-core",
+    "lib/one-graph-tx-handler",
     "lib/one-graph-gremlin",
     "lib/one-graph-server",
     "og",
