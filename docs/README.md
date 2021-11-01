@@ -14,9 +14,9 @@ OneGraph is in WIP stage, though it can already expose a few Gremlin features.
 * Keep in mind that graph structures may be timelined in order to be able to retrieve past graph states.
 * Improve Gremlin support.
 
+## Memory Model
+* [Memory model](model.md)
 
-## Documentation
+## Code Documentation
 * [Cargo doc](http://docs.one-graph.io/og)
 
-## Memory Model
-[Memory model](model.md)
