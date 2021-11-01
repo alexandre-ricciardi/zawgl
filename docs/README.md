@@ -17,3 +17,6 @@ OneGraph is in WIP stage, though it can already expose a few Gremlin features.
 
 ## Documentation
 * [Cargo doc](http://docs.one-graph.io/og)
+
+## Memory Model
+[Memory model](model.md)
