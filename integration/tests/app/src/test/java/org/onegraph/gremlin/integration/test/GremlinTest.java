@@ -4,7 +4,6 @@
 package org.onegraph.gremlin.integration.test;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
@@ -25,7 +24,7 @@ public class GremlinTest {
         final Cluster cluster = createCluster();
         try {
             final GraphTraversalSource g = createSource(cluster);
-            List<Object> verticesWithNamePumba = g.V().has("name", "pumba").out("friendOf").id().toList();
+            var verticesWithNamePumba = g.V().has("name", "pumba").out("friendOf").id().toList();
             System.out.println(verticesWithNamePumba);
         } finally {
             cluster.close();

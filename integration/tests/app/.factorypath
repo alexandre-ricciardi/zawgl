@@ -20,4 +20,7 @@
     <factorypathentry kind="VARJAR" id="M2_REPO/org/slf4j/jcl-over-slf4j/1.7.25/jcl-over-slf4j-1.7.25.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/apache/tinkerpop/gremlin-driver/3.5.1/gremlin-driver-3.5.1.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/io/netty/netty-all/4.1.61.Final/netty-all-4.1.61.Final.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/apache/tinkerpop/tinkergraph-gremlin/3.5.1/tinkergraph-gremlin-3.5.1.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/codehaus/groovy/groovy/3.0.9/groovy-3.0.9-indy.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/codehaus/groovy/groovy-json/3.0.9/groovy-json-3.0.9-indy.jar" enabled="true" runInBatchMode="false"/>
 </factorypath>

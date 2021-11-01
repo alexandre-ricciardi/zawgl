@@ -24,7 +24,11 @@
         <artifactId>gremlin-driver</artifactId>
         <version>${gremlin.version}</version>
       </dependency>
-    
+      <dependency>
+        <groupId>org.apache.tinkerpop</groupId>
+        <artifactId>tinkergraph-gremlin</artifactId>
+        <version>${gremlin.version}</version>
+      </dependency>
 
 
       <dependency>
@@ -54,6 +58,8 @@
         <artifactId>tinkergraph-gremlin</artifactId>
         <version>${gremlin.version}</version>
       </dependency>
+    
+    
     
     </dependencies>
 

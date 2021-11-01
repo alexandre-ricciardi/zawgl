@@ -25,6 +25,7 @@ dependencies {
 
     implementation 'org.apache.tinkerpop:gremlin-driver:3.4.9'
     implementation 'org.apache.tinkerpop:gremlin-core:3.4.9'
+    implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.9'
 }
 
 application {
