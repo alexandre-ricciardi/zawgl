@@ -5,17 +5,17 @@ use super::gremlin_state::*;
 use super::match_in_vertex_state::*;
 
 pub struct MatchOutEdgeState {
-    labels: Vec<String>,
+
 }
 
 impl MatchOutEdgeState {
-    pub fn new(labels: &Vec<String>) -> Self {
-        MatchOutEdgeState{labels: labels.clone()}
+    pub fn new() -> Self {
+        MatchOutEdgeState{}
     }
 }
 impl State for MatchOutEdgeState {
     
-    fn handle_step(&self, context: &mut StateContext) -> Result<(), GremlinStateError> {
+    fn handle_step(&self, _context: &mut StateContext) -> Result<(), GremlinStateError> {
         Ok(())
     }
     fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {

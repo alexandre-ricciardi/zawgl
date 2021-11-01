@@ -3,7 +3,6 @@ pub mod model;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use log::*;
 
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
@@ -190,7 +189,6 @@ impl GraphEngine {
 
 #[cfg(test)]
 mod test_cache {
-    use super::*;
     #[test]
     fn test_add_prop_graphs() {
         

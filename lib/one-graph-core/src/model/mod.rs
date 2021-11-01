@@ -1,5 +1,4 @@
 use self::predicates::NamedPropertyPredicate;
-use self::predicates::PropertyPredicate;
 
 use super::graph::*;
 pub mod init;

@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use super::super::buf_config::*;
 
 use super::pager::*;

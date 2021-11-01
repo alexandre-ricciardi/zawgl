@@ -6,12 +6,12 @@ use super::to_state::ToState;
 use super::match_vertex_state::MatchVertexState;
 
 pub struct AddEdgeState {
-    label: String,
+
 }
 
 impl AddEdgeState {
-    pub fn new(label: &str) -> Self {
-        AddEdgeState{label: String::from(label)}
+    pub fn new() -> Self {
+        AddEdgeState{}
     }
 }
 impl State for AddEdgeState {

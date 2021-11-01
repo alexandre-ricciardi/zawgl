@@ -244,7 +244,7 @@ mod test_b_tree {
                 assert_eq!(ptrs.len(), 1);
                 assert!(ptrs.contains(&i));
             } else {
-                assert!(false, format!("empty search result for key # {}", i));
+                assert!(false, "empty search result for key # {}", i);
             }
             
         }

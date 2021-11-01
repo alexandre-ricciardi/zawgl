@@ -249,14 +249,6 @@ fn build_gremlin_value(elt: &Value) -> Option<GValue> {
     }
 }
 
-fn build_gremlin_integer(obj: &Map<String, Value>) -> Option<GInteger> {
-  let val = obj.get("@value")?;
-  match obj.get("@type")?.as_str()? {
-    "g:Int32" => Some(GInteger::I32(GInt32(val.as_i64()? as i32))),
-    "g:Int64" => Some(GInteger::I64(GInt64(val.as_i64()?))),
-    _ => None
-  }
-}
 
 #[cfg(test)]
 mod test_gremlin_json {

@@ -3,7 +3,7 @@ mod pool;
 
 use log::*;
 use std::rc::Rc;
-use std::cell::{self, RefCell};
+use std::cell::{RefCell};
 
 use self::records::*;
 use super::super::super::buf_config::*;

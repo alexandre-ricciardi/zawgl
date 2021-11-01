@@ -43,7 +43,7 @@ async fn accept_connection<'a>(peer: SocketAddr, tx_handler: Arc<RwLock<GraphTra
                     GremlinStateError::Invalid(step) => error!("invalid gremlin state {:?}", step),
                     GremlinStateError::WrongContext(err) => error!("wrong gremlin context {}", err),
                 },
-                one_graph_gremlin::handler::GremlinError::TxError(err) => error!("database engine error"),
+                one_graph_gremlin::handler::GremlinError::TxError(err) => error!("Graph transaction error {:?}", err),
                 one_graph_gremlin::handler::GremlinError::ResponseError => error!("build gremlin response error"),
                 one_graph_gremlin::handler::GremlinError::RequestError => error!("gremlin request error"),
             },

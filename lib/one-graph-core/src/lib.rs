@@ -2,7 +2,6 @@
 extern crate log;
 extern crate serde;
 extern crate toml;
-#[macro_use]
 extern crate bson;
 
 pub mod test_utils;

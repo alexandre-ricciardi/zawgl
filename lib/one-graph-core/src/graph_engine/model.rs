@@ -135,9 +135,9 @@ impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relatio
             }
             if retrieve {
                 let rrel = self.repository.borrow_mut().retrieve_relationship_by_id(id.get_store_id())?;
-                let sdata = get_or_retrieve_vertex_data(self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), rrel.1.source)?;
-                let tdata = get_or_retrieve_vertex_data(self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), rrel.1.target)?;
-                let pid = self.add_relationship(sdata.0, tdata.0, &rrel.0, !edge_exists)?;
+                get_or_retrieve_vertex_data(self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), rrel.1.source)?;
+                get_or_retrieve_vertex_data(self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), rrel.1.target)?;
+                let pid = self.add_relationship(&rrel.0, !edge_exists)?;
                 self.map_edges.borrow_mut().insert(pid.get_store_id(), (pid, rrel.1));
                 res = pid.get_index();
             }
@@ -386,7 +386,7 @@ impl GraphProxy {
         Some(pid)
     }
 
-    fn add_relationship(&mut self, source: ProxyNodeId, target: ProxyNodeId, rel: &Relationship, retrieve_edge: bool) -> Option<ProxyRelationshipId> {
+    fn add_relationship(&mut self, rel: &Relationship, retrieve_edge: bool) -> Option<ProxyRelationshipId> {
         let id = rel.get_id()?;
         let pid = {
             if retrieve_edge {
@@ -417,7 +417,6 @@ impl GraphProxy {
 
 #[cfg(test)]
 mod test_cache_model {
-    use super::*;
     fn test_add_prop_graphs() {
     }
 

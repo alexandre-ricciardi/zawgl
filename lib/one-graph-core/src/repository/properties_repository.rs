@@ -192,13 +192,13 @@ impl PropertiesRespository {
             Some(Property::new(name_index.1, extract_value(key_end + 1, pr.prop_type, &pr.prop_block)?))
         } else if pr.key_inlined {
             let name_index = extract_string(&pr.prop_block)?;
-            let value_id = extract_id(name_index.0, &pr.prop_block);
+            let value_id = extract_id(&pr.prop_block);
             let data = self.dyn_store.load_data(value_id)?;
             Some(Property::new_with_id(value_id, name_index.1, extract_value(0, pr.prop_type, &data)?))
         } else {
             let key = self.dyn_store.load_data(pr.key_id)?;
             let name = extract_string(&key)?.1;
-            let value_id = extract_id(0, &pr.prop_block);
+            let value_id = extract_id(&pr.prop_block);
             let data = self.dyn_store.load_data(value_id)?;
             Some(Property::new_with_id(value_id, name, extract_value(0, pr.prop_type, &data)?))
         }
@@ -225,7 +225,7 @@ fn extract_string(data: &[u8]) -> Option<(usize, String)> {
     Some((str_end,  String::from_utf8(string).ok()?))
 }
 
-fn extract_id(skip: usize, data: &[u8]) -> u64 {
+fn extract_id(data: &[u8]) -> u64 {
     let mut bytes = [0u8; std::mem::size_of::<u64>()];
     bytes.copy_from_slice(&data[0..std::mem::size_of::<f64>()]);
     u64::from_be_bytes(bytes)

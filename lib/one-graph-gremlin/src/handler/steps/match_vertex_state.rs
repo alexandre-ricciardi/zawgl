@@ -73,8 +73,8 @@ impl State for MatchVertexState {
     fn create_state(&self, step: &GStep) -> Result<Box<dyn State>, GremlinStateError> {
         
         match step {
-            GStep::OutE(labels) => {
-                Ok(Box::new(MatchOutEdgeState::new(labels)))
+            GStep::OutE(_labels) => {
+                Ok(Box::new(MatchOutEdgeState::new()))
             }
             GStep::As(alias) => {
                 Ok(Box::new(AliasVertexState::new(alias)))
@@ -82,8 +82,8 @@ impl State for MatchVertexState {
             GStep::Match(bytecodes) => {
                 Ok(Box::new(MatchState::new(bytecodes)))
             }
-            GStep::AddE(label) => {
-                Ok(Box::new(AddEdgeState::new(label)))
+            GStep::AddE(_label) => {
+                Ok(Box::new(AddEdgeState::new()))
             }
             GStep::Has(name, predicate) => {
                 Ok(Box::new(HasPropertyState::new(name, predicate)))

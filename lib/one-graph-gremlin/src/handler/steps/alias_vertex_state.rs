@@ -33,8 +33,8 @@ impl State for AliasVertexState {
             GStep::V(vid) => {
                 Ok(Box::new(MatchVertexState::new(vid)))
             }
-            GStep::OutE(labels) => {
-                Ok(Box::new(MatchOutEdgeState::new(labels)))
+            GStep::OutE(_labels) => {
+                Ok(Box::new(MatchOutEdgeState::new()))
             }
             _ => {
                 Err(GremlinStateError::Invalid(step.clone()))

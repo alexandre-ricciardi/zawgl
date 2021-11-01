@@ -12,8 +12,6 @@ pub struct ResultGraph {
 #[derive(Debug)]
 pub enum DatabaseError {
     EngineError,
-    ResponseError,
-    RequestError,
 }
 
 pub struct GraphTransactionHandler <'a> {
