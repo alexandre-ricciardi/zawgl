@@ -5,6 +5,7 @@ package org.onegraph.gremlin.integration.test;
 
 import java.io.IOException;
 
+import org.apache.tinkerpop.gremlin.GraphProviderClass;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
@@ -12,11 +13,13 @@ import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.StructureStandardSuite;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 public class GremlinTest {
     public void testAppHasAGreeting() {
@@ -98,6 +101,7 @@ public class GremlinTest {
         var res = g.V(v1).addE("knows").from(v2).property("weight",0.75).next();
         Assert.assertEquals("knows", res.label());
     }
+
 
     @Test
     public void testCreateEdge() {

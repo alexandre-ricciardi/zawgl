@@ -8,4 +8,4 @@
  */
 
 rootProject.name = 'one-graph-gremlin-integration-tests'
-include('app')
+include('one-graph-gremlin')
