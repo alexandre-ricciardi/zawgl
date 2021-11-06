@@ -1,7 +1,6 @@
-package org.onegraph.gremlin.integration.test;
+package io.onegraph.gremlin;
 
-import java.util.Iterator;
-
+import org.apache.commons.configuration2.BaseConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -9,7 +8,28 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import java.util.Iterator;
+import java.util.Optional;
+
 public class OneGraph implements Graph {
+
+    private static final Configuration EMPTY_CONFIGURATION = new BaseConfiguration() {{
+        this.setProperty(Graph.GRAPH, OneGraph.class.getName());
+    }};
+
+    protected final OneGraphConfiguration configuration;
+
+    public OneGraph(Configuration configuration) {
+        this.configuration = new OneGraphConfiguration(configuration);
+    }
+
+    public static OneGraph open() {
+        return OneGraph.open(EMPTY_CONFIGURATION);
+    }
+
+    public static OneGraph open(final Configuration configuration) {
+        return new OneGraph(Optional.ofNullable(configuration).orElse(EMPTY_CONFIGURATION));
+    }
 
     @Override
     public Vertex addVertex(Object... keyValues) {

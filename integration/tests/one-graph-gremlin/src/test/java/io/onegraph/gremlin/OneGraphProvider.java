@@ -1,4 +1,4 @@
-package org.onegraph.gremlin.integration.test;
+package io.onegraph.gremlin;
 
 import java.util.Map;
 import java.util.Set;
