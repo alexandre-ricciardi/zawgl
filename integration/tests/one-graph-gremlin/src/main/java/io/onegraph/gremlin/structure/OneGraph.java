@@ -12,6 +12,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.util.Collections;
@@ -26,6 +27,7 @@ public class OneGraph implements Graph {
     private static final Configuration EMPTY_CONFIGURATION = new BaseConfiguration() {{
         this.setProperty(Graph.GRAPH, OneGraph.class.getName());
     }};
+    private static ThreadLocal<GraphTraversalSource> graphTraversalSourceThreadLocal = ThreadLocal.withInitial(() -> createSource(createCluster()));
 
     protected final BaseConfiguration configuration = new BaseConfiguration();;
 
@@ -43,12 +45,17 @@ public class OneGraph implements Graph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
+        ElementHelper.legalPropertyKeyValueArray(keyValues);
+        if (ElementHelper.getIdValue(keyValues).isPresent())
+            throw Vertex.Exceptions.userSuppliedIdsNotSupported();
+        //graphTraversalSourceThreadLocal.get().addV()
         throw Exceptions.vertexAdditionsNotSupported();
     }
 
     @Override
     public void close() throws Exception {
         configuration.clear();
+        graphTraversalSourceThreadLocal.get().close();
     }
 
     @Override
@@ -73,7 +80,7 @@ public class OneGraph implements Graph {
 
     @Override
     public Transaction tx() {
-        throw Exceptions.transactionsNotSupported();
+        return graphTraversalSourceThreadLocal.get().tx();
     }
 
     @Override
@@ -88,10 +95,10 @@ public class OneGraph implements Graph {
 
     @Override
     public GraphTraversalSource traversal() {
-        return createSource(createCluster());
+        return graphTraversalSourceThreadLocal.get();
     }
 
-    private Cluster createCluster() {
+    private static Cluster createCluster() {
         final Cluster cluster = Cluster.build("localhost")
                 .port(8182)
                 .maxInProcessPerConnection(32)
@@ -100,8 +107,8 @@ public class OneGraph implements Graph {
                 .create();
         return cluster;
     }
-    
-    private GraphTraversalSource createSource(final Cluster cluster) {
+
+    private static GraphTraversalSource createSource(final Cluster cluster) {
         final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
         return g;
     }
