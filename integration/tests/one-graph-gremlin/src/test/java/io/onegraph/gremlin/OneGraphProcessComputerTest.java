@@ -1,5 +1,6 @@
 package io.onegraph.gremlin;
 
+import io.onegraph.gremlin.structure.OneGraph;
 import org.apache.tinkerpop.gremlin.GraphProviderClass;
 import org.apache.tinkerpop.gremlin.process.ProcessComputerSuite;
 import org.junit.runner.RunWith;

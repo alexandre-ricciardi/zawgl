@@ -1,4 +1,4 @@
-package io.onegraph.gremlin;
+package io.onegraph.gremlin.structure;
 
 import org.apache.commons.configuration2.BaseConfiguration;
 import org.apache.commons.configuration2.Configuration;
@@ -12,6 +12,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -26,10 +27,10 @@ public class OneGraph implements Graph {
         this.setProperty(Graph.GRAPH, OneGraph.class.getName());
     }};
 
-    protected final Configuration configuration;
+    protected final BaseConfiguration configuration = new BaseConfiguration();;
 
     public OneGraph(Configuration configuration) {
-        this.configuration = configuration;
+        this.configuration.copy(configuration);
     }
 
     public static OneGraph open() {
@@ -99,9 +100,214 @@ public class OneGraph implements Graph {
                 .create();
         return cluster;
     }
+    
     private GraphTraversalSource createSource(final Cluster cluster) {
         final GraphTraversalSource g = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
         return g;
+    }
+
+    @Override
+    public Features features() {
+        return new OneGraphFeatures();
+    }
+
+    public static class OneGraphFeatures implements Features {
+
+        @Override
+        public GraphFeatures graph() {
+            return new GraphFeatures() {
+
+                @Override
+                public boolean supportsTransactions() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsThreadedTransactions() {
+                    return false;
+                }
+
+                @Override
+                public Features.VariableFeatures variables() {
+                    return new Features.VariableFeatures() {
+                        @Override
+                        public boolean supportsVariables() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsBooleanValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsByteValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsDoubleValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsFloatValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsIntegerValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsLongValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsMapValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsMixedListValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsBooleanArrayValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsByteArrayValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsDoubleArrayValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsFloatArrayValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsIntegerArrayValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsStringArrayValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsLongArrayValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsSerializableValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsStringValues() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsUniformListValues() {
+                            return false;
+                        }
+                    };
+                }
+            };
+        }
+
+        @Override
+        public EdgeFeatures edge() {
+            return new EdgeFeatures() {
+                @Override
+                public boolean supportsAddEdges() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsRemoveEdges() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsAddProperty() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsRemoveProperty() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsCustomIds() {
+                    return false;
+                }
+            };
+        }
+
+        @Override
+        public VertexFeatures vertex() {
+            return new VertexFeatures() {
+                @Override
+                public boolean supportsAddVertices() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsRemoveVertices() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsAddProperty() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsRemoveProperty() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsCustomIds() {
+                    return false;
+                }
+
+                @Override
+                public Features.VertexPropertyFeatures properties() {
+                    return new Features.VertexPropertyFeatures() {
+                        @Override
+                        public boolean supportsRemoveProperty() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean supportsCustomIds() {
+                            return false;
+                        }
+                    };
+                }
+            };
+        }
+
+        @Override
+        public String toString() {
+            return StringFactory.featureString(this);
+        }
     }
 
 
