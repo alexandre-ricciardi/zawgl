@@ -14,10 +14,11 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
@@ -48,8 +49,11 @@ public class OneGraph implements Graph {
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         if (ElementHelper.getIdValue(keyValues).isPresent())
             throw Vertex.Exceptions.userSuppliedIdsNotSupported();
-        //graphTraversalSourceThreadLocal.get().addV()
-        throw Exceptions.vertexAdditionsNotSupported();
+        var vertex = new OneGraphVertex(this,
+                graphTraversalSourceThreadLocal.get()
+                        .addV(ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL)).next());
+        ElementHelper.attachProperties(vertex, keyValues);
+        return vertex;
     }
 
     @Override
@@ -75,7 +79,24 @@ public class OneGraph implements Graph {
 
     @Override
     public Iterator<Edge> edges(Object... edgeIds) {
-        return Collections.emptyIterator();
+        if (0 == edgeIds.length) {
+            return IteratorUtils.stream(traversal().E().iterate())
+                    .map(relationship -> (Edge) new OneGraphEdge(this, relationship)).iterator();
+        } else {
+            return Stream.of(edgeIds)
+                    .map(id -> {
+                        if (id instanceof Number)
+                            return ((Number) id).longValue();
+                        else if (id instanceof String)
+                            return Long.valueOf(id.toString());
+                        else if (id instanceof Edge) {
+                            return (Long) ((Edge) id).id();
+                        } else
+                            throw new IllegalArgumentException("Unknown edge id type: " + id);
+                    })
+                    .flatMap(id -> Stream.of(traversal().E(id).next()))
+                    .map(relationship -> (Edge) new OneGraphEdge(this, relationship)).iterator();
+        }
     }
 
     @Override
@@ -90,7 +111,24 @@ public class OneGraph implements Graph {
 
     @Override
     public Iterator<Vertex> vertices(Object... vertexIds) {
-        return Collections.emptyIterator();
+        if (0 == vertexIds.length) {
+            return IteratorUtils.stream(this.traversal().V().iterate())
+                    .map(node -> (Vertex) new OneGraphVertex(this, node)).iterator();
+        } else {
+            return Stream.of(vertexIds)
+                    .map(id -> {
+                        if (id instanceof Number)
+                            return ((Number) id).longValue();
+                        else if (id instanceof String)
+                            return Long.valueOf(id.toString());
+                        else if (id instanceof Vertex) {
+                            return (Long) ((Vertex) id).id();
+                        } else
+                            throw new IllegalArgumentException("Unknown vertex id type: " + id);
+                    })
+                    .flatMap(id -> Stream.of(this.traversal().V(id).next()))
+                    .map(node -> (Vertex) new OneGraphVertex(this, node)).iterator();
+        }
     }
 
     @Override
@@ -241,7 +279,7 @@ public class OneGraph implements Graph {
             return new EdgeFeatures() {
                 @Override
                 public boolean supportsAddEdges() {
-                    return false;
+                    return true;
                 }
 
                 @Override
@@ -251,7 +289,7 @@ public class OneGraph implements Graph {
 
                 @Override
                 public boolean supportsAddProperty() {
-                    return false;
+                    return true;
                 }
 
                 @Override
@@ -271,7 +309,7 @@ public class OneGraph implements Graph {
             return new VertexFeatures() {
                 @Override
                 public boolean supportsAddVertices() {
-                    return false;
+                    return true;
                 }
 
                 @Override
@@ -281,7 +319,7 @@ public class OneGraph implements Graph {
 
                 @Override
                 public boolean supportsAddProperty() {
-                    return false;
+                    return true;
                 }
 
                 @Override
