@@ -40,10 +40,10 @@ fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMach
 
 pub fn handle_gremlin_request<'a>(tx_handler: Arc<RwLock<GraphTransactionHandler<'a>>>, gremlin: &GremlinRequest) -> Result<GremlinResponse, GremlinError> {
     let mut gremlin_state = GremlinStateMachine::new();
-    gremlin_state = iterate_gremlin_steps(&gremlin.steps, gremlin_state).or_else(|err| Err(GremlinError::StateError(err)))?;
+    gremlin_state = iterate_gremlin_steps(&gremlin.data.steps, gremlin_state).or_else(|err| Err(GremlinError::StateError(err)))?;
     let ctx = gremlin_state.context;
     let matched_graphs = handle_graph_request(tx_handler, &ctx.patterns).map_err(|err| GremlinError::TxError(err))?;
-    convert_graph_to_gremlin_response(&matched_graphs, &gremlin.request_id)
+    convert_graph_to_gremlin_response(&matched_graphs, &gremlin.data.request_id)
 }
 
 #[derive(Debug)]

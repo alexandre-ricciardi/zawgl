@@ -3,4 +3,4 @@ address = "0.0.0.0:8182"
 database_dir = "one-graph-db"
 
 [log]
-level = "info"
+level = "trace"

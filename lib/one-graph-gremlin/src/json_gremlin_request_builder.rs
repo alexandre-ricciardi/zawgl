@@ -11,15 +11,43 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
     let op = value["op"].as_str().ok_or_else(|| GremlinError::RequestError)?;
     let processor = value["processor"].as_str().ok_or_else(|| GremlinError::RequestError)?;
     
-    if op == "bytecode" && processor == "traversal" {
+    if op == "bytecode" {
       let gtype = args["@type"].as_str().ok_or_else(|| GremlinError::RequestError)?;
       if gtype == "g:Map" {
-        let gmap_value = &args["@value"];
-        let gremlin_tag = gmap_value[0].as_str().ok_or_else(|| GremlinError::RequestError)?;
-        if gremlin_tag == "gremlin" {
-          let bytecode = &gmap_value[1];
-          let gremlin_steps = build_gremlin_bytecode(bytecode).ok_or_else(|| GremlinError::RequestError)?;
-          return Ok(GremlinRequest{request_id: String::from(req_id), steps: gremlin_steps})
+        let gmap_values = args["@value"].as_array().ok_or_else(|| GremlinError::RequestError)?;
+        let mut req_data = None;
+        let mut session = None;
+        let mut manage_transaction = None;
+        let mut maintain_state_after_exception = None;
+        for index in 0..gmap_values.len()/2 {
+          let key = gmap_values[index * 2].as_str().ok_or_else(|| GremlinError::RequestError)?;
+          let value = &gmap_values[index * 2 + 1];
+          if key == "gremlin" {
+            let gremlin_steps = build_gremlin_bytecode(value).ok_or_else(|| GremlinError::RequestError)?;
+            req_data = Some(GremlinRequestData{request_id: String::from(req_id), steps: gremlin_steps});
+          } else if key == "session" {
+            session = value.as_str();
+          } else if key == "manageTransaction" {
+            manage_transaction = value.as_bool();
+          } else if key == "maintainStateAfterException" {
+            maintain_state_after_exception = value.as_bool();
+          }
+        }
+        
+        if processor == "travseral" {
+          return Ok(GremlinRequest{
+            data: req_data.ok_or_else(|| GremlinError::RequestError)?,
+            session: None,
+          })
+        } else if processor == "session" {
+          return Ok(GremlinRequest{
+            data: req_data.ok_or_else(|| GremlinError::RequestError)?,
+            session: Some(GremlinSession {
+              session_id: String::from(session.ok_or_else(|| GremlinError::RequestError)?),
+              manage_transaction: manage_transaction.ok_or_else(|| GremlinError::RequestError)?,
+              maintain_state_after_exception: maintain_state_after_exception.ok_or_else(|| GremlinError::RequestError)?,
+            })
+          });
         }
       }
     }
@@ -470,7 +498,7 @@ mod test_gremlin_json {
         "#;
         let value: Value = serde_json::from_str(json).expect("json gremlin request");
         let g = build_gremlin_request_from_json(&value).expect("gremlin request");
-        assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.request_id);
+        assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.data.request_id);
     }
 
     #[test]
@@ -610,7 +638,7 @@ mod test_gremlin_json {
       "#;
       let value: Value = serde_json::from_str(json).expect("json gremlin request");
       let g = build_gremlin_request_from_json(&value).expect("gremlin request");
-      assert_eq!("e9ec71b5-7c44-4d9e-b1c9-f1268d64e2d4", g.request_id);
+      assert_eq!("e9ec71b5-7c44-4d9e-b1c9-f1268d64e2d4", g.data.request_id);
     }
 
     #[test]
@@ -618,6 +646,6 @@ mod test_gremlin_json {
       let json = r#"{"requestId":"b3a2c6a8-0982-4414-b07f-41ec49009861","op":"bytecode","processor":"traversal","args":{"@type":"g:Map","@value":["gremlin",{"@type":"g:Bytecode","@value":{"step":[["addV","person"],["property","name","marko"],["none"]]}},"aliases",{"@type":"g:Map","@value":["g","g"]}]}}"#;
       let value: Value = serde_json::from_str(json).expect("json gremlin request");
       let g = build_gremlin_request_from_json(&value).expect("gremlin request");
-      assert_eq!("b3a2c6a8-0982-4414-b07f-41ec49009861", g.request_id);
+      assert_eq!("b3a2c6a8-0982-4414-b07f-41ec49009861", g.data.request_id);
     }
 }

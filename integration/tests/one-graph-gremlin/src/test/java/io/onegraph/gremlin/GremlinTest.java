@@ -3,8 +3,6 @@
  */
 package io.onegraph.gremlin;
 
-import java.io.IOException;
-
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
@@ -12,13 +10,13 @@ import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.StructureStandardSuite;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+
+import java.io.IOException;
 
 public class GremlinTest {
     public void testAppHasAGreeting() {
@@ -111,6 +109,25 @@ public class GremlinTest {
             var v1 = g.V().has("name", P.within("marko", "stephen")).as("person").
             V().has("name", P.within("stephen")).addE("uses").from("person").next();
             Assert.assertEquals("uses", v1.label());
+        } finally {
+            cluster.close();
+        }
+    }
+
+
+
+    @Test
+    public void testTx() {
+        final Cluster cluster = createCluster();
+        try {
+            final GraphTraversalSource g = createSource(cluster);
+            var tx = g.tx();
+            GraphTraversalSource source = tx.begin();
+            createVertexAndEdge(source);
+            var v1 = source.V().has("name", P.within("marko", "stephen")).as("person").
+                    V().has("name", P.within("stephen")).addE("uses").from("person").next();
+            Assert.assertEquals("uses", v1.label());
+            tx.commit();
         } finally {
             cluster.close();
         }

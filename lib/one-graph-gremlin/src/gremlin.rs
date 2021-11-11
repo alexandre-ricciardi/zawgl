@@ -249,8 +249,19 @@ pub enum GPredicate {
 }
 
 pub struct GremlinRequest {
+    pub data: GremlinRequestData,
+    pub session: Option<GremlinSession>,
+}
+
+pub struct GremlinRequestData {
     pub request_id: String,
     pub steps: Vec<GStep>,
+}
+
+pub struct GremlinSession {
+    pub session_id: String,
+    pub manage_transaction: bool,
+    pub maintain_state_after_exception: bool,
 }
 
 pub struct GremlinResponse {

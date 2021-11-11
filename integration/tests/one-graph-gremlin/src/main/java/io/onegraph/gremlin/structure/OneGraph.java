@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_COMPUTER)
+@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
 public class OneGraph implements Graph {
 
     private static final Configuration EMPTY_CONFIGURATION = new BaseConfiguration() {{
