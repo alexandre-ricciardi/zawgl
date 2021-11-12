@@ -44,11 +44,13 @@ fn make_tx_context(session: &GremlinSession) -> TxContext {
 
 pub fn handle_gremlin_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, gremlin: &GremlinRequest) -> Result<GremlinResponse, GremlinError> {
     let mut gremlin_state = GremlinStateMachine::new();
-    gremlin_state = iterate_gremlin_steps(&gremlin.data.steps, gremlin_state).or_else(|err| Err(GremlinError::StateError(err)))?;
+    if let Some(data) = &gremlin.data {
+        gremlin_state = iterate_gremlin_steps(&data.steps, gremlin_state).or_else(|err| Err(GremlinError::StateError(err)))?;
+    }    
     let ctx = gremlin_state.context;
     let tx_context = gremlin.session.as_ref().map(|s| make_tx_context(s));
     let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &ctx.patterns, tx_context).map_err(|err| GremlinError::TxError(err))?;
-    convert_graph_to_gremlin_response(&matched_graphs, &gremlin.data.request_id)
+    convert_graph_to_gremlin_response(&matched_graphs, &gremlin.request_id)
 }
 
 #[derive(Debug)]

@@ -21,7 +21,19 @@ pub enum GStep {
     Match(Vec<Vec<GStep>>),
     SetProperty(String, GValue),
     SetDynProperty(String, Vec<GStep>),
+    Commit,
     Empty,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum GSource {
+    TxCommit,
+    Empty,
+}
+
+pub enum GBytecode {
+    Steps(Vec<GStep>),
+    Source(GSource),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -249,12 +261,12 @@ pub enum GPredicate {
 }
 
 pub struct GremlinRequest {
-    pub data: GremlinRequestData,
+    pub request_id: String,
+    pub data: Option<GremlinRequestData>,
     pub session: Option<GremlinSession>,
 }
 
 pub struct GremlinRequestData {
-    pub request_id: String,
     pub steps: Vec<GStep>,
 }
 

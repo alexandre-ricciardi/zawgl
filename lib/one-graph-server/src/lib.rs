@@ -15,7 +15,9 @@ use one_graph_tx_handler::GraphRequestHandler;
 use one_graph_tx_handler::GraphTxHandler;
 use one_graph_tx_handler::RequestHandler;
 use one_graph_tx_handler::TxHandler;
+use parking_lot::ReentrantMutex;
 use tokio_tungstenite::tungstenite::Message;
+use std::cell::RefCell;
 use std::sync::Mutex;
 use std::sync::RwLock;
 use std::sync::Arc;
@@ -92,7 +94,7 @@ async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, grap
 
 
 pub async fn run_server(addr: &str, conf: InitContext<'static>) {
-    let tx_handler = Arc::new(Mutex::new(GraphTxHandler::new()));
+    let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
     let graph_request_handler = Arc::new(RwLock::new(GraphRequestHandler::new(conf)));
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Listening on: {}", addr);

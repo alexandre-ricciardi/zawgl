@@ -123,10 +123,10 @@ public class GremlinTest {
             final GraphTraversalSource g = createSource(cluster);
             var tx = g.tx();
             GraphTraversalSource source = tx.begin();
-            //createVertexAndEdge(source);
-            //var v1 = source.V().has("name", P.within("marko", "stephen")).as("person").
-            //        V().has("name", P.within("stephen")).addE("uses").from("person").next();
-            //Assert.assertEquals("uses", v1.label());
+            createVertexAndEdge(source);
+            var v1 = source.V().has("name", P.within("marko", "stephen")).as("person").
+                    V().has("name", P.within("stephen")).addE("uses").from("person").next();
+            Assert.assertEquals("uses", v1.label());
             tx.commit();
         } finally {
             cluster.close();

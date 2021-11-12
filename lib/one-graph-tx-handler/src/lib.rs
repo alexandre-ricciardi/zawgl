@@ -1,15 +1,18 @@
 pub mod tx_context;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::mem;
-use std::sync::{Arc, Mutex, RwLock};
+use std::time::Instant;
+use parking_lot::{Mutex, ReentrantMutex};
+use std::sync::{Arc, Condvar, RwLock};
 
 use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::{PropertyGraph, Status};
 use one_graph_core::model::init::InitContext;
 use self::tx_context::TxContext;
 
-pub type TxHandler = Arc<Mutex<GraphTxHandler>>;
+pub type TxHandler = Arc<ReentrantMutex<RefCell<GraphTxHandler>>>;
 pub type RequestHandler<'a> = Arc<RwLock<GraphRequestHandler<'a>>>;
 
 enum TxStatus<'a> {
@@ -32,12 +35,14 @@ pub enum DatabaseError {
 
 pub struct GraphTxHandler {
     current_session_id: Option<String>,
-    session_lock: Mutex<()>
+    session_lock: Mutex<()>,
+    is_session_locked: bool,
+    tx_start_date: Option<Instant>,
 }
 
 impl GraphTxHandler {
     pub fn new() -> Self {
-        GraphTxHandler{current_session_id: None, session_lock: Mutex::new(())}
+        GraphTxHandler{current_session_id: None, session_lock: Mutex::new(()), is_session_locked: false, tx_start_date: None}
     }
 
     fn get_session_status<'a>(&mut self, tx_context: &'a Option<TxContext>) -> TxStatus<'a> {
@@ -62,7 +67,26 @@ impl GraphTxHandler {
     }
 
     fn acquire_session_lock(&mut self) {
-        mem::forget(self.session_lock.lock().unwrap());
+        if let Some(tx_start_date) = self.tx_start_date {
+            let duration = Instant::now().duration_since(tx_start_date);
+            if duration.as_secs() > 10 {
+                self.release_session_lock();
+            }
+        }
+        mem::forget(self.session_lock.lock());
+        self.is_session_locked = true;
+        self.tx_start_date = Some(Instant::now());
+    }
+
+    fn release_session_lock(&mut self) {
+        self.current_session_id = None;
+        if self.is_session_locked {
+            unsafe {
+                self.session_lock.raw_unlock();
+            }
+            self.is_session_locked = false;
+            self.tx_start_date = None;
+        }
     }
 }
 
@@ -189,17 +213,22 @@ fn needs_write_lock<'a>(patterns: &Vec<PropertyGraph>) -> bool {
 
 pub fn handle_graph_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, patterns: &Vec<PropertyGraph>, tx_context: Option<TxContext>) -> Result<Vec<ResultGraph>, DatabaseError> {
     
-    let mut tx_lock = tx_handler.lock().unwrap();
-    let tx_status = tx_lock.get_session_status(&tx_context);
+    let tx_lock = tx_handler.lock();
+    let tx_status = tx_lock.borrow_mut().get_session_status(&tx_context);
     match tx_status {
         TxStatus::OpenNewTx(ctx) => {
+            tx_lock.borrow_mut().acquire_session_lock();
             graph_request_handler.write().unwrap().open_graph_tx(ctx);
             graph_request_handler.write().unwrap().handle_graph_request_tx(patterns, ctx)
         },
         TxStatus::ContinueCurrentTx(ctx) => graph_request_handler.write().unwrap().handle_graph_request_tx(patterns, ctx),
-        TxStatus::CommitCurrentTx(ctx) => graph_request_handler.write().unwrap().commit_tx(ctx),
+        TxStatus::CommitCurrentTx(ctx) => { 
+            let res = graph_request_handler.write().unwrap().commit_tx(ctx);
+            tx_lock.borrow_mut().release_session_lock();
+            res
+        },
         TxStatus::WaitForCurrentTx => {
-            tx_lock.acquire_session_lock();
+            tx_lock.borrow_mut().acquire_session_lock();
             handle_graph_request(tx_handler.clone(), graph_request_handler, patterns, tx_context)
         },
         TxStatus::NoTx => {

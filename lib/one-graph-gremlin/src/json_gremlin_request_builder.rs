@@ -24,38 +24,35 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
           let key = gmap_values[index * 2].as_str().ok_or_else(|| GremlinError::RequestError)?;
           let value = &gmap_values[index * 2 + 1];
           if key == "gremlin" {
-            let gremlin_steps = build_gremlin_bytecode(value).ok_or_else(|| GremlinError::RequestError)?;
-            req_data = Some(GremlinRequestData{request_id: String::from(req_id), steps: gremlin_steps});
+            let gremlin_bytecode = build_gremlin_bytecode(value).ok_or_else(|| GremlinError::RequestError)?;
+            match gremlin_bytecode {
+                GBytecode::Steps(gremlin_steps) => {
+                  req_data = Some(GremlinRequestData{steps: gremlin_steps});
+                },
+                GBytecode::Source(gremlin_source) => {
+                  commit_tx = gremlin_source == GSource::TxCommit;
+                },
+            }
+           
           } else if key == "session" {
             session = value.as_str();
           } else if key == "manageTransaction" {
             manage_transaction = value.as_bool();
           } else if key == "maintainStateAfterException" {
             maintain_state_after_exception = value.as_bool();
-          } else if key == "source" {
-            let src = value.as_array().ok_or_else(|| GremlinError::RequestError)?;
-            for src_values in src {
-              for v in src_values.as_array().ok_or_else(|| GremlinError::RequestError)? {
-                if v.as_str() == Some("tx") {
-                  continue;
-                } else if v.as_str() == Some("commit") {
-                  commit_tx = true;
-                } else {
-                  break;
-                }
-              }
-            }
           }
         }
         
         if processor == "travseral" {
           return Ok(GremlinRequest{
-            data: req_data.ok_or_else(|| GremlinError::RequestError)?,
+            request_id: String::from(req_id), 
+            data: req_data,
             session: None,
           })
         } else if processor == "session" {
           return Ok(GremlinRequest{
-            data: req_data.ok_or_else(|| GremlinError::RequestError)?,
+            request_id: String::from(req_id), 
+            data: req_data,
             session: Some(GremlinSession {
               session_id: String::from(session.ok_or_else(|| GremlinError::RequestError)?),
               manage_transaction: manage_transaction.ok_or_else(|| GremlinError::RequestError)?,
@@ -69,18 +66,27 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
     Err(GremlinError::RequestError)
 }
 
-fn build_gremlin_bytecode(bytecode: &Value) -> Option<Vec<GStep>> {
-  let mut gremlin_steps = Vec::new();
+fn build_gremlin_bytecode(bytecode: &Value) -> Option<GBytecode> {
   let bytecode_type = bytecode["@type"].as_str()?;
   if bytecode_type == "g:Bytecode" {
     let bytecode_value = &bytecode["@value"];
-    let steps = bytecode_value["step"].as_array()?;
-    for step in steps {
-        let mut gremlin_step = build_gremlin_step(step)?;
-        gremlin_steps.append(&mut gremlin_step);
+    if let Some(source) = bytecode_value.get("source") {
+      let gsource = source.as_array()?;
+      for source in gsource {
+        let mut gremlin_src = build_gremlin_source(source)?;
+        return Some(GBytecode::Source(gremlin_src));
+      }
+    } else if let Some(steps) = bytecode_value.get("step") {
+      let gsteps = steps.as_array()?;
+      let mut gremlin_steps = Vec::new();
+      for step in gsteps {
+          let mut gremlin_step = build_gremlin_step(step)?;
+          gremlin_steps.append(&mut gremlin_step);
+      }
+      return Some(GBytecode::Steps(gremlin_steps));
     }
   }
-  Some(gremlin_steps)
+  None
 }
 
 fn build_gremlin_step(step: &Value) -> Option<Vec<GStep>> {
@@ -133,11 +139,32 @@ fn build_gremlin_step(step: &Value) -> Option<Vec<GStep>> {
   Some(gremlin_step)
 }
 
+
+
+fn build_gremlin_source(step: &Value) -> Option<GSource> {
+  let elts = step.as_array()?;
+  let first = &elts[0];
+  let gremlin_source = match first.as_str()? {
+      "tx" => {
+        tx_source(elts)?
+      },
+      _ => {
+        GSource::Empty
+      }
+  };
+  Some(gremlin_source)
+}
+
+
 fn set_property_step(json_step: &Vec<Value>) -> Option<GStep> {
   let name = json_step.get(1)?.as_str()?;
   let value = &json_step[2];
   if value.is_object() && value["@type"] == "g:Bytecode" {
-    Some(GStep::SetDynProperty(String::from(name), build_gremlin_bytecode(value)?))
+    let gbytecode = build_gremlin_bytecode(value)?;
+    match gbytecode {
+        GBytecode::Steps(steps) => Some(GStep::SetDynProperty(String::from(name), steps)),
+        GBytecode::Source(_) => None,
+    }
   } else {
     Some(GStep::SetProperty(String::from(name), build_gremlin_value(value)?))
   }  
@@ -146,7 +173,11 @@ fn set_property_step(json_step: &Vec<Value>) -> Option<GStep> {
 fn match_step(json_step: &Vec<Value>) -> Option<GStep> {
   let mut bytecodes = Vec::new();
   for bc in &json_step[1..] {
-    bytecodes.push(build_gremlin_bytecode(bc)?)
+    let gbytecode = build_gremlin_bytecode(bc)?;
+    match gbytecode {
+        GBytecode::Steps(steps) => bytecodes.push(steps),
+        GBytecode::Source(_) => {},
+    }
   } 
   Some(GStep::Match(bytecodes))
 }
@@ -154,6 +185,17 @@ fn match_step(json_step: &Vec<Value>) -> Option<GStep> {
 fn from_step(json_step: &Vec<Value>) -> Option<GStep> {
     let var = json_step.get(1)?;
     Some(GStep::From(build_value_or_vertex(var)?))
+}
+
+
+fn tx_source(json: &Vec<Value>) -> Option<GSource> {
+  let var = json.get(1)?;
+  let tx_value = var.as_str()?;
+  if tx_value == "commit" {
+    Some(GSource::TxCommit)
+  } else {
+    None
+  }
 }
 
 fn to_step(json_step: &Vec<Value>) -> Option<GStep> {
@@ -513,7 +555,7 @@ mod test_gremlin_json {
         "#;
         let value: Value = serde_json::from_str(json).expect("json gremlin request");
         let g = build_gremlin_request_from_json(&value).expect("gremlin request");
-        assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.data.request_id);
+        assert_eq!("9bacba37-9dea-4be3-8fa4-9db886a7de0e", g.request_id);
     }
 
     #[test]
@@ -653,7 +695,7 @@ mod test_gremlin_json {
       "#;
       let value: Value = serde_json::from_str(json).expect("json gremlin request");
       let g = build_gremlin_request_from_json(&value).expect("gremlin request");
-      assert_eq!("e9ec71b5-7c44-4d9e-b1c9-f1268d64e2d4", g.data.request_id);
+      assert_eq!("e9ec71b5-7c44-4d9e-b1c9-f1268d64e2d4", g.request_id);
     }
 
     #[test]
@@ -661,6 +703,6 @@ mod test_gremlin_json {
       let json = r#"{"requestId":"b3a2c6a8-0982-4414-b07f-41ec49009861","op":"bytecode","processor":"traversal","args":{"@type":"g:Map","@value":["gremlin",{"@type":"g:Bytecode","@value":{"step":[["addV","person"],["property","name","marko"],["none"]]}},"aliases",{"@type":"g:Map","@value":["g","g"]}]}}"#;
       let value: Value = serde_json::from_str(json).expect("json gremlin request");
       let g = build_gremlin_request_from_json(&value).expect("gremlin request");
-      assert_eq!("b3a2c6a8-0982-4414-b07f-41ec49009861", g.data.request_id);
+      assert_eq!("b3a2c6a8-0982-4414-b07f-41ec49009861", g.request_id);
     }
 }
