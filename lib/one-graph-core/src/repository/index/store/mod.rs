@@ -2,8 +2,7 @@ mod records;
 mod pool;
 
 use log::*;
-use std::rc::Rc;
-use std::cell::{RefCell};
+use std::sync::{Arc, Mutex};
 
 use self::records::*;
 use super::super::super::buf_config::*;
@@ -12,8 +11,10 @@ use super::super::records::*;
 use self::pool::*;
 
 
+pub type MutableRecordsManager = Arc<Mutex<RecordsManager>>;
+
 pub struct BTreeNodeStore {
-    records_manager: Rc<RefCell<RecordsManager>>,
+    records_manager: MutableRecordsManager,
 }
 
 fn append_key(vkey: &mut Vec<u8>, key_buf: &[u8]) {
@@ -53,7 +54,7 @@ enum CellLoadRes {
 impl BTreeNodeStore {
     pub fn new(file: &str) -> Self {
         let rec_mngr = RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
-        BTreeNodeStore{records_manager: Rc::new(RefCell::new(rec_mngr))}
+        BTreeNodeStore{records_manager: Arc::new(Mutex::new(rec_mngr))}
     }
 
     fn retrieve_overflow_cells(&mut self, pool: &mut NodeRecordPool, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> Option<CellLoadRes> {
@@ -463,12 +464,12 @@ impl BTreeNodeStore {
 
     fn get_root_node_ptr(&mut self) -> NodeId {
         let mut buf = [0u8; NODE_PTR_SIZE];
-        buf.copy_from_slice(&self.records_manager.borrow_mut().get_header_page_wrapper().get_header_payload_slice_ref()[..NODE_PTR_SIZE]);
+        buf.copy_from_slice(&self.records_manager.lock().unwrap().get_header_page_wrapper().get_header_payload_slice_ref()[..NODE_PTR_SIZE]);
         u64::from_be_bytes(buf)
     }
 
     fn set_root_node_ptr(&mut self, id: NodeId) {
-        self.records_manager.borrow_mut().get_header_page_wrapper().get_header_payload_slice_mut()[..NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
+        self.records_manager.lock().unwrap().get_header_page_wrapper().get_header_payload_slice_mut()[..NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
     }
 
     pub fn load_or_create_root_node(&mut self) -> Option<BTreeNode> {
@@ -484,11 +485,11 @@ impl BTreeNodeStore {
     }
 
     pub fn is_empty(&mut self) -> bool {
-        self.records_manager.borrow_mut().is_empty()
+        self.records_manager.lock().unwrap().is_empty()
     }
 
     pub fn sync(&mut self) {
-        self.records_manager.borrow_mut().sync();
+        self.records_manager.lock().unwrap().sync();
     }
 }
 

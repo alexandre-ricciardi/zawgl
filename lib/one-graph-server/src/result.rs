@@ -1,9 +1,10 @@
 use one_graph_gremlin::handler::GremlinError;
+use tokio_tungstenite::tungstenite::Error;
 
 #[derive(Debug)]
 pub enum ServerError {
     HeaderError,
     ParsingError(String),
-    WebsocketError(tungstenite::Error),
+    WebsocketError(Error),
     GremlinTxError(GremlinError)
 }

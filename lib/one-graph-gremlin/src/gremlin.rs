@@ -262,6 +262,7 @@ pub struct GremlinSession {
     pub session_id: String,
     pub manage_transaction: bool,
     pub maintain_state_after_exception: bool,
+    pub commit: bool, 
 }
 
 pub struct GremlinResponse {

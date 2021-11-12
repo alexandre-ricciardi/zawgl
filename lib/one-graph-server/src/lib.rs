@@ -4,7 +4,6 @@ extern crate log;
 
 extern crate tokio_tungstenite;
 extern crate tokio;
-extern crate tungstenite;
 extern crate futures_util;
 
 extern crate serde_json;
@@ -12,8 +11,12 @@ extern crate serde_json;
 use futures_util::{
     SinkExt, StreamExt,
 };
-use one_graph_tx_handler::GraphTransactionHandler;
-use tungstenite::Message;
+use one_graph_tx_handler::GraphRequestHandler;
+use one_graph_tx_handler::GraphTxHandler;
+use one_graph_tx_handler::RequestHandler;
+use one_graph_tx_handler::TxHandler;
+use tokio_tungstenite::tungstenite::Message;
+use std::sync::Mutex;
 use std::sync::RwLock;
 use std::sync::Arc;
 use log::*;
@@ -29,8 +32,8 @@ use one_graph_gremlin::handler::steps::gremlin_state::GremlinStateError;
 use self::result::ServerError;
 use one_graph_core::model::init::InitContext;
 
-async fn accept_connection<'a>(peer: SocketAddr, tx_handler: Arc<RwLock<GraphTransactionHandler<'a>>>, stream: TcpStream) {
-    if let Err(e) = handle_connection(peer, tx_handler, stream).await {
+async fn accept_connection<'a>(peer: SocketAddr, tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, stream: TcpStream) {
+    if let Err(e) = handle_connection(peer, tx_handler, graph_request_handler, stream).await {
         match e {
             ServerError::WebsocketError(te) => match te {
                 Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
@@ -52,7 +55,7 @@ async fn accept_connection<'a>(peer: SocketAddr, tx_handler: Arc<RwLock<GraphTra
 }
 
 
-async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphTransactionHandler<'a>>>, stream: TcpStream) -> Result<(), ServerError> {
+async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, stream: TcpStream) -> Result<(), ServerError> {
     let ws_stream = accept_async(stream).await.expect("Failed to accept");
     info!("New WebSocket connection: {}", peer);
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
@@ -66,7 +69,7 @@ async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphT
                     let text_msg = msg.to_text().map_err(ServerError::WebsocketError)?;
                     let json_msg = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json").ok_or(ServerError::HeaderError)?;
                     let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                    let gremlin_reply = handle_gremlin_json_request(graph_engine.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
+                    let gremlin_reply = handle_gremlin_json_request(tx_handler.clone(), graph_request_handler.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
                     let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                     let mut with_prefix = String::from("application/vnd.gremlin-v3.0+json");
                     with_prefix.push_str(&res_msg);
@@ -89,13 +92,14 @@ async fn handle_connection<'a>(peer: SocketAddr, graph_engine: Arc<RwLock<GraphT
 
 
 pub async fn run_server(addr: &str, conf: InitContext<'static>) {
-    let tx_handler = Arc::new(RwLock::new(GraphTransactionHandler::new(conf)));
+    let tx_handler = Arc::new(Mutex::new(GraphTxHandler::new()));
+    let graph_request_handler = Arc::new(RwLock::new(GraphRequestHandler::new(conf)));
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Listening on: {}", addr);
 
     while let Ok((stream, _)) = listener.accept().await {
         let peer = stream.peer_addr().expect("connected streams should have a peer address");
         info!("Peer address: {}", peer);
-        tokio::spawn(accept_connection(peer, tx_handler.clone(), stream));
+        tokio::spawn(accept_connection(peer, tx_handler.clone(), graph_request_handler.clone(), stream));
     }
 }

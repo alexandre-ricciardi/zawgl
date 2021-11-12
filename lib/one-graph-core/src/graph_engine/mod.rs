@@ -2,7 +2,7 @@ pub mod model;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
@@ -10,8 +10,10 @@ use self::model::*;
 use super::matcher::vf2::sub_graph_isomorphism;
 use super::graph::traits::*;
 
+pub type MutableGraphRepository = Arc<Mutex<GraphRepository>>;
+
 pub struct GraphEngine {
-    repository: Rc<RefCell<GraphRepository>>,
+    repository: MutableGraphRepository,
 }
 
 fn compare_relationships(r0: &Relationship, r1: &Relationship) -> bool {
@@ -27,19 +29,19 @@ fn compare_relationships(r0: &Relationship, r1: &Relationship) -> bool {
 
 impl GraphEngine {
     pub fn new(ctx: &init::InitContext) -> Self {
-        GraphEngine{repository: Rc::new(RefCell::new(GraphRepository::new(ctx)))}
+        GraphEngine{repository: Arc::new(Mutex::new(GraphRepository::new(ctx)))}
     }
 
     pub fn create_graph(&mut self, graph: &PropertyGraph) -> Option<PropertyGraph> {
-        self.repository.borrow_mut().create_graph(graph)
+        self.repository.lock().unwrap().create_graph(graph)
     }
 
     pub fn create_node(&mut self, node: &Node) -> Option<Node> {
-        self.repository.borrow_mut().create_node(node)
+        self.repository.lock().unwrap().create_node(node)
     }
     
     pub fn create_relationship(&mut self, rel: &Relationship, source_id: u64, target_id: u64) -> Option<Relationship> {
-        self.repository.borrow_mut().create_relationship(rel, source_id, target_id)
+        self.repository.lock().unwrap().create_relationship(rel, source_id, target_id)
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
@@ -181,7 +183,7 @@ impl GraphEngine {
     }
 
     pub fn sync(&mut self) {
-        self.repository.borrow_mut().sync();
+        self.repository.lock().unwrap().sync();
     }
 }
 

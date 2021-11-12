@@ -1,13 +1,13 @@
-use std::sync::Arc;
-use std::sync::RwLock;
-
 use super::gremlin::*;
 use one_graph_tx_handler::DatabaseError;
-use one_graph_tx_handler::GraphTransactionHandler;
+use one_graph_tx_handler::RequestHandler;
+use one_graph_tx_handler::TxHandler;
 use one_graph_tx_handler::handle_graph_request;
+use one_graph_tx_handler::tx_context::TxContext;
 
 use self::steps::gremlin_state::*;
 use self::utils::convert_graph_to_gremlin_response;
+
 
 pub mod steps;
 mod utils;
@@ -38,11 +38,16 @@ fn iterate_gremlin_steps(steps: &Vec<GStep>, mut gremlin_state: GremlinStateMach
     Ok(gremlin_state)
 }
 
-pub fn handle_gremlin_request<'a>(tx_handler: Arc<RwLock<GraphTransactionHandler<'a>>>, gremlin: &GremlinRequest) -> Result<GremlinResponse, GremlinError> {
+fn make_tx_context(session: &GremlinSession) -> TxContext {
+    TxContext { session_id: session.session_id.clone(), commit: session.commit }
+}
+
+pub fn handle_gremlin_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, gremlin: &GremlinRequest) -> Result<GremlinResponse, GremlinError> {
     let mut gremlin_state = GremlinStateMachine::new();
     gremlin_state = iterate_gremlin_steps(&gremlin.data.steps, gremlin_state).or_else(|err| Err(GremlinError::StateError(err)))?;
     let ctx = gremlin_state.context;
-    let matched_graphs = handle_graph_request(tx_handler, &ctx.patterns).map_err(|err| GremlinError::TxError(err))?;
+    let tx_context = gremlin.session.as_ref().map(|s| make_tx_context(s));
+    let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &ctx.patterns, tx_context).map_err(|err| GremlinError::TxError(err))?;
     convert_graph_to_gremlin_response(&matched_graphs, &gremlin.data.request_id)
 }
 

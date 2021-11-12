@@ -13,7 +13,6 @@ async fn main() {
     let log_level = get_log_level(&settings);
     SimpleLogger::new().with_level(log_level).init().unwrap();
     let ctx = InitContext::new(&settings.server.database_dir).expect("can't create database context");
-    
     tokio::select! {
         _ = one_graph_server::run_server(&settings.server.address, ctx) => 0,
         _ = tokio::signal::ctrl_c() => 0

@@ -19,6 +19,7 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
         let mut session = None;
         let mut manage_transaction = None;
         let mut maintain_state_after_exception = None;
+        let mut commit_tx = false;
         for index in 0..gmap_values.len()/2 {
           let key = gmap_values[index * 2].as_str().ok_or_else(|| GremlinError::RequestError)?;
           let value = &gmap_values[index * 2 + 1];
@@ -31,6 +32,19 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
             manage_transaction = value.as_bool();
           } else if key == "maintainStateAfterException" {
             maintain_state_after_exception = value.as_bool();
+          } else if key == "source" {
+            let src = value.as_array().ok_or_else(|| GremlinError::RequestError)?;
+            for src_values in src {
+              for v in src_values.as_array().ok_or_else(|| GremlinError::RequestError)? {
+                if v.as_str() == Some("tx") {
+                  continue;
+                } else if v.as_str() == Some("commit") {
+                  commit_tx = true;
+                } else {
+                  break;
+                }
+              }
+            }
           }
         }
         
@@ -46,6 +60,7 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
               session_id: String::from(session.ok_or_else(|| GremlinError::RequestError)?),
               manage_transaction: manage_transaction.ok_or_else(|| GremlinError::RequestError)?,
               maintain_state_after_exception: maintain_state_after_exception.ok_or_else(|| GremlinError::RequestError)?,
+              commit: commit_tx,
             })
           });
         }
