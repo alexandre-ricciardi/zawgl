@@ -165,7 +165,7 @@ public class OneGraph implements Graph {
 
                 @Override
                 public boolean supportsTransactions() {
-                    return false;
+                    return true;
                 }
 
                 @Override

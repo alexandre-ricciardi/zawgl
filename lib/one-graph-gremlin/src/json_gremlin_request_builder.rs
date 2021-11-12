@@ -43,7 +43,7 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
           }
         }
         
-        if processor == "travseral" {
+        if processor == "traversal" {
           return Ok(GremlinRequest{
             request_id: String::from(req_id), 
             data: req_data,
