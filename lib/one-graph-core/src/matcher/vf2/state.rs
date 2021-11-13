@@ -325,21 +325,13 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                 let mut term_out1_count = 0;
                 let mut rest1_count = 0;
 
-                {
-                    let mut matched_edge_set = HashSet::new();
-                    for edge_index in self.graph_1.in_edges(&w_new) {
-                        let source_index = self.graph_1.get_source_index(&edge_index);
-                        self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index,
-                            &mut matched_edge_set);
-                    }
+                for edge_index in self.graph_1.in_edges(&w_new) {
+                    let source_index = self.graph_1.get_source_index(&edge_index);
+                    self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index);
                 }
-                {
-                    let mut matched_edge_set = HashSet::new();
-                    for edge_index in self.graph_1.out_edges(&w_new) {
-                        let target_index = self.graph_1.get_target_index(&edge_index);
-                        self.inc_counters_match_edge_1( &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index, 
-                            &mut matched_edge_set);
-                    }
+                for edge_index in self.graph_1.out_edges(&w_new) {
+                    let target_index = self.graph_1.get_target_index(&edge_index);
+                    self.inc_counters_match_edge_1( &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index);
                 }
                 Some(term_in0_count <= term_in1_count && term_out0_count <= term_out1_count && rest0_count <= rest1_count)
             }
@@ -408,7 +400,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             return  Some(false);
         }
 
-        fn inc_counters_match_edge_1(&mut self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1, matched_edge_set: &mut HashSet<EID0>) {
+        fn inc_counters_match_edge_1(&mut self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1) {
             if self.base_state_1.in_core(w_adj) || w_new == w_adj {
                 
             } else {
