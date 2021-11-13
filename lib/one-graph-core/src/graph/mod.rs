@@ -229,7 +229,7 @@ mod test_graph {
         let n2 = graph.add_vertex();
 
         let e0 = graph.add_edge(n0, n1);
-        let e1 = graph.add_edge(n1, n2);
+        let _e1 = graph.add_edge(n1, n2);
         let e2 = graph.add_edge(n0, n2);
 
         let ed0 = graph.get_edge_data(e0);
