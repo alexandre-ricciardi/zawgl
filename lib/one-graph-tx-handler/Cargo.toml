@@ -12,4 +12,4 @@ one-graph-core = { path = "../one-graph-core" }
 log = "0.4"
 simple_logger = "1.11.0"
 serde_json = "1.0"
-parking_lot = "0.5.1"
+parking_lot = "0.11.2"

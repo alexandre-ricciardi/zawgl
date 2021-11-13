@@ -534,7 +534,6 @@ mod test_query_engine {
             assert_eq!(node.get_properties_ref()[0].get_value(), &Some(PropertyValue::PString(String::from("Hello"))));
             assert_eq!(node.get_properties_ref()[1].get_name(), &Some(String::from("case")));
             //assert_eq!(node.properties[1].value, Some(PropertyValue::PFloat(4.99)));
-            
         } else {
             assert!(false, "no request found");
         }

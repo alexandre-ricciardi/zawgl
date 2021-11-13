@@ -8,14 +8,14 @@ edition = "2018"
 name = "one_graph_server"
 
 [dependencies]
-gremlin-client = "0.4.0"
+gremlin-client = "0.8.0"
 one-graph-gremlin = { path = "../one-graph-gremlin" }
 one-graph-tx-handler = { path = "../one-graph-tx-handler" }
 one-graph-core = { path = "../one-graph-core" }
-tokio-tungstenite = "*"
-tokio = { version = "0.3.7", features = ["full"] }
+tokio-tungstenite = "0.15.0"
+tokio = { version = "1.13.0", features = ["full"] }
 futures-util = "^0.3"
 log = "0.4"
 simple_logger = "1.11.0"
 serde_json = "1.0"
-parking_lot = "0.5.1"
+parking_lot = "0.11.2"

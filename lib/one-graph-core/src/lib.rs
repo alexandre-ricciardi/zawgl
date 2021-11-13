@@ -2,7 +2,6 @@
 extern crate log;
 extern crate serde;
 extern crate toml;
-extern crate bson;
 
 pub mod test_utils;
 mod config;
