@@ -352,7 +352,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         fn inc_counters_match_edge_0(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NID0, v_adj: &NID0, w_new: &NID1, edge_index: &EID0, matched_edge_set: &mut HashSet<EID1>) -> Option<bool> {
             if self.base_state_0.in_core(v_adj) || v_new == v_adj {
                 let mut w = *w_new;
-                if *v_adj != *v_new {
+                if v_adj != v_new {
                     if let Some(&ws) = self.base_state_0.core(v_adj) {
                         w =  ws;
                     }
@@ -414,21 +414,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
 
         fn inc_counters_match_edge_1(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1, v_new: &NID0, edge_index: &EID1, matched_edge_set: &mut HashSet<EID0>) -> Option<bool> {
             if self.base_state_1.in_core(w_adj) || w_new == w_adj {
-                let mut v = *v_new;
-                if *w_adj != *w_new {
-                    if let Some(&vs) = self.base_state_1.core(w_adj) {
-                        v = vs;
-                    }
-                }
-                if is_inbound {
-                    if !self.edge_exists_0(&v, v_new, edge_index, matched_edge_set)? {
-                        return Some(false);
-                    }
-                } else {
-                    if !self.edge_exists_0(v_new, &v, edge_index, matched_edge_set)? {
-                        return Some(false);
-                    }
-                }
+                
             } else {
                 if self.base_state_1.in_depth(w_adj) > 0 {
                     *term_in += 1;

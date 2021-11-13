@@ -1,9 +1,9 @@
 use super::gremlin::*;
 use one_graph_tx_handler::DatabaseError;
-use one_graph_tx_handler::RequestHandler;
-use one_graph_tx_handler::TxHandler;
 use one_graph_tx_handler::handle_graph_request;
+use one_graph_tx_handler::request_handler::RequestHandler;
 use one_graph_tx_handler::tx_context::TxContext;
+use one_graph_tx_handler::tx_handler::TxHandler;
 
 use self::steps::gremlin_state::*;
 use self::utils::convert_graph_to_gremlin_response;

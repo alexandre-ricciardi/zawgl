@@ -16,7 +16,7 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
       if gtype == "g:Map" {
         let gmap_values = args["@value"].as_array().ok_or_else(|| GremlinError::RequestError)?;
         let mut req_data = None;
-        let mut session = None;
+        let mut session = "";
         let mut manage_transaction = None;
         let mut maintain_state_after_exception = None;
         let mut commit_tx = false;
@@ -35,7 +35,7 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
             }
            
           } else if key == "session" {
-            session = value.as_str();
+            session = value.as_str().ok_or_else(|| GremlinError::RequestError)?;
           } else if key == "manageTransaction" {
             manage_transaction = value.as_bool();
           } else if key == "maintainStateAfterException" {
@@ -54,7 +54,7 @@ pub fn build_gremlin_request_from_json(value: &Value) -> Result<GremlinRequest, 
             request_id: String::from(req_id), 
             data: req_data,
             session: Some(GremlinSession {
-              session_id: String::from(session.ok_or_else(|| GremlinError::RequestError)?),
+              session_id: String::from(session),
               manage_transaction: manage_transaction.ok_or_else(|| GremlinError::RequestError)?,
               maintain_state_after_exception: maintain_state_after_exception.ok_or_else(|| GremlinError::RequestError)?,
               commit: commit_tx,
@@ -73,7 +73,7 @@ fn build_gremlin_bytecode(bytecode: &Value) -> Option<GBytecode> {
     if let Some(source) = bytecode_value.get("source") {
       let gsource = source.as_array()?;
       for source in gsource {
-        let mut gremlin_src = build_gremlin_source(source)?;
+        let gremlin_src = build_gremlin_source(source)?;
         return Some(GBytecode::Source(gremlin_src));
       }
     } else if let Some(steps) = bytecode_value.get("step") {

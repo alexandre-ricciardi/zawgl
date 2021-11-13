@@ -1,5 +1,5 @@
 use one_graph_core::{graph::{EdgeIndex, traits::{GraphContainerTrait, GraphTrait}}, model::{Node, Property, PropertyGraph, PropertyValue, Relationship, Status, predicates::{NamedPropertyPredicate, PropertyPredicate}}};
-use one_graph_tx_handler::{ResultGraph, Scenario};
+use one_graph_tx_handler::{ResultGraph, tx_handler::Scenario};
 
 use super::{GremlinError, steps::gremlin_state::StateContext};
 

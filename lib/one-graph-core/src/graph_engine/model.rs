@@ -7,7 +7,6 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 #[derive(Copy, Clone, Debug)]
 pub struct ProxyNodeId {

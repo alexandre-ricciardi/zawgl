@@ -11,14 +11,13 @@ extern crate serde_json;
 use futures_util::{
     SinkExt, StreamExt,
 };
-use one_graph_tx_handler::GraphRequestHandler;
-use one_graph_tx_handler::GraphTxHandler;
-use one_graph_tx_handler::RequestHandler;
-use one_graph_tx_handler::TxHandler;
+use one_graph_tx_handler::request_handler::GraphRequestHandler;
+use one_graph_tx_handler::request_handler::RequestHandler;
+use one_graph_tx_handler::tx_handler::GraphTxHandler;
+use one_graph_tx_handler::tx_handler::TxHandler;
 use parking_lot::ReentrantMutex;
 use tokio_tungstenite::tungstenite::Message;
 use std::cell::RefCell;
-use std::sync::Mutex;
 use std::sync::RwLock;
 use std::sync::Arc;
 use log::*;
