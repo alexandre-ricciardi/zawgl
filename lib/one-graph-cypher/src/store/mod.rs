@@ -1,12 +1,10 @@
-use std::ptr::NonNull;
-
 use one_graph_core::model::init::InitContext;
 use one_graph_core::model::*;
 use super::cypher::query_engine::process_cypher_query;
 use one_graph_core::graph_engine::GraphEngine;
 use super::model::*;
 
-use bson::Document;
+use bson::*;
 
 
 pub struct GraphStore<'a> {
@@ -15,7 +13,7 @@ pub struct GraphStore<'a> {
 
 impl <'a> GraphStore<'a> {
     pub fn new(dir: &'a str) -> Self {
-        let ctx = InitContext::new(dir);
+        let ctx = InitContext::new(dir).expect("error store");
         GraphStore{ctx: ctx}
     }
 
@@ -59,14 +57,13 @@ fn process_return_clause(return_clause: &ReturnClause, result: &PropertyGraph) -
             }
         }
     }
-    Some(res)
+    return Some(res);
 }
 
 fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
     for node in result.get_nodes() {
         if let Some(var) = node.get_var() {
             if var == item {
-
                 let mut props = Vec::new();
                 for p in node.get_properties_ref() {
                     
@@ -82,8 +79,8 @@ fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
                     props.push(bprop);
                 }
                 return Some(doc!{
-                    "id": node.get_id()?,
-                    "properties": props
+                    "id": node.get_id()?.to_string(),
+                    "properties": props,
                 });
             }
         }
@@ -108,15 +105,16 @@ fn evaluate_item(result: &PropertyGraph, item: &str) -> Option<Document> {
                     };
                     props.push(bprop);
                       
-                return Some(doc!{
-                    "id": relationship.get_id()?,
-                    "properties": props
-                });
+                    return Some(doc!{
+                        "id": relationship.get_id()?.to_string(),
+                        "properties": props,
+                    });
+                }
             }
         }
     }
 
-    None
+    return None;
 }
 
 fn evaluate_function_call(result: &PropertyGraph, func_call: &FunctionCall) -> Option<Document> {
@@ -125,11 +123,11 @@ fn evaluate_function_call(result: &PropertyGraph, func_call: &FunctionCall) -> O
             if let Some(var) = node.get_var() {
                 if func_call.args.contains(var) {
                     return Some(doc!{
-                        var: node.get_id()?
+                        var: node.get_id()?.to_string(),
                     });
                 }
             }
         }
     }
-    None
+    return None;
 }

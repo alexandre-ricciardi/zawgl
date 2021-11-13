@@ -68,7 +68,7 @@ impl GraphTxHandler {
         self.current_session_id = None;
         if self.is_session_locked {
             unsafe {
-                self.session_lock.raw_unlock();
+                self.session_lock.force_unlock();
             }
             self.is_session_locked = false;
             self.tx_start_date = None;

@@ -3,6 +3,7 @@ use std::env;
 
 use config::{Config, ConfigError, File};
 use serde::Deserialize;
+use log::*;
 
 const CONFIG_FILE_PATH: &str = ".config/Settings";
 
@@ -31,5 +32,18 @@ impl Settings {
         current_dir.push(config_file_path);
         s.merge(File::from(current_dir.as_path()))?;
         s.try_into()
+    }
+
+
+    pub fn get_log_level(&self) -> LevelFilter {
+        let log_level = match self.log.level.as_str() {
+            "info" => LevelFilter::Info,
+            "error" => LevelFilter::Error,
+            "trace" => LevelFilter::Trace,
+            "debug" => LevelFilter::Debug,
+            "warn" => LevelFilter::Warn,
+            _ => LevelFilter::Off,
+        };
+        log_level
     }
 }

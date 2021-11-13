@@ -318,7 +318,7 @@ mod test_parser {
                 let root = cypher_parser::parse(&mut parser);
                 parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
             },
-            Err(value) => assert!(false, format!("lexer error: {}", value))
+            Err(value) => assert!(false, "lexer error: {}", value)
         }
     }
 
