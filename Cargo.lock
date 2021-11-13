@@ -130,12 +130,6 @@ checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
 name = "bytes"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0dcbc35f504eb6fc275a6d20e4ebcda18cf50d40ba6fabff8c711fa16cb3b16"
-
-[[package]]
-name = "bytes"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4872d67bab6358e59559027aa3b9157c53d9358c51423c17554809a8858e0f8"
@@ -675,7 +669,7 @@ dependencies = [
  "one-graph-server",
  "serde 1.0.114",
  "simple_logger",
- "tokio 0.3.7",
+ "tokio",
  "tokio-tungstenite",
  "tungstenite 0.15.0",
 ]
@@ -731,7 +725,7 @@ dependencies = [
  "parking_lot",
  "serde_json",
  "simple_logger",
- "tokio 1.13.0",
+ "tokio",
  "tokio-tungstenite",
 ]
 
@@ -1419,28 +1413,6 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46409491c9375a693ce7032101970a54f8a2010efb77e13f70788f0d84489e39"
-dependencies = [
- "autocfg 1.0.0",
- "bytes 0.6.0",
- "futures-core",
- "libc",
- "memchr",
- "mio",
- "num_cpus",
- "once_cell",
- "parking_lot",
- "pin-project-lite",
- "signal-hook-registry",
- "slab",
- "tokio-macros 0.3.2",
- "winapi",
-]
-
-[[package]]
-name = "tokio"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "588b2d10a336da58d877567cd8fb8a14b463e2104910f8132cd054b4b96e29ee"
@@ -1455,19 +1427,8 @@ dependencies = [
  "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
- "tokio-macros 1.5.1",
+ "tokio-macros",
  "winapi",
-]
-
-[[package]]
-name = "tokio-macros"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46dfffa59fc3c8aad216ed61bdc2c263d2b9d87a9c8ac9de0c11a813e51b6db7"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -1490,7 +1451,7 @@ dependencies = [
  "futures-util",
  "log 0.4.11",
  "pin-project",
- "tokio 1.13.0",
+ "tokio",
  "tungstenite 0.14.0",
 ]
 
