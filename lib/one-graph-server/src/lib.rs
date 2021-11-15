@@ -8,6 +8,7 @@ extern crate futures_util;
 
 extern crate serde_json;
 
+use bson::Document;
 use futures_util::{
     SinkExt, StreamExt,
 };
@@ -26,9 +27,12 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::Error};
 use serde_json::Value;
 use std::result::Result;
+use crate::open_cypher_request_handler::handle_open_cypher_request;
+
 use self::json_gremlin_request_handler::*;
 mod result;
 mod json_gremlin_request_handler;
+mod open_cypher_request_handler;
 use one_graph_gremlin::handler::steps::gremlin_state::GremlinStateError;
 use self::result::ServerError;
 use one_graph_core::model::init::InitContext;
@@ -68,15 +72,22 @@ async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, grap
                 let msg = msg.map_err(ServerError::WebsocketError)?;
                 if msg.is_binary() {
                     let text_msg = msg.to_text().map_err(ServerError::WebsocketError)?;
-                    let json_msg = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json").ok_or(ServerError::HeaderError)?;
-                    let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                    let gremlin_reply = handle_gremlin_json_request(tx_handler.clone(), graph_request_handler.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
-                    let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                    let mut with_prefix = String::from("application/vnd.gremlin-v3.0+json");
-                    with_prefix.push_str(&res_msg);
-                    debug!("response msg: {}", res_msg);
-                    let response = Message::Text(res_msg);
-                    ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
+                    let gremlin_json_msg = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json");
+                    if let Some(json_msg) = gremlin_json_msg {
+                        let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                        let gremlin_reply = handle_gremlin_json_request(tx_handler.clone(), graph_request_handler.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
+                        let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                        let mut with_prefix = String::from("application/vnd.gremlin-v3.0+json");
+                        with_prefix.push_str(&res_msg);
+                        debug!("gremlin response msg: {}", res_msg);
+                        let response = Message::Text(res_msg);
+                        ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
+                    }
+                    let cypher_msg = text_msg.strip_prefix("!application/openCypher");
+                    if let Some(cypher_query) = cypher_msg {
+                        let doc = Document::from_reader(&mut cypher_query.as_bytes()).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                        let cypher_reply = handle_open_cypher_request(tx_handler, graph_request_handler, cypher_request)
+                    }
                 }
                 else if msg.is_close() {
                     break;
