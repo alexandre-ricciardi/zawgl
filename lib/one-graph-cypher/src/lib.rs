@@ -16,5 +16,5 @@ pub enum CypherError {
 }
 
 pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, cypher_request: &Document) -> Result<Document, CypherError> {
-
+    Ok(Document::default())
 }

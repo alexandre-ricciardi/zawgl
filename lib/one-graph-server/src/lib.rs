@@ -55,6 +55,7 @@ async fn accept_connection<'a>(peer: SocketAddr, tx_handler: TxHandler, graph_re
                 one_graph_gremlin::handler::GremlinError::ResponseError => error!("build gremlin response error"),
                 one_graph_gremlin::handler::GremlinError::RequestError => error!("gremlin request error"),
             },
+            ServerError::CypherTxError(_) => todo!(),
         }
     }
 }
@@ -72,8 +73,7 @@ async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, grap
                 let msg = msg.map_err(ServerError::WebsocketError)?;
                 if msg.is_binary() {
                     let text_msg = msg.to_text().map_err(ServerError::WebsocketError)?;
-                    let gremlin_json_msg = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json");
-                    if let Some(json_msg) = gremlin_json_msg {
+                    if let Some(json_msg) = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json") {
                         let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                         let gremlin_reply = handle_gremlin_json_request(tx_handler.clone(), graph_request_handler.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
                         let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
@@ -82,11 +82,10 @@ async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, grap
                         debug!("gremlin response msg: {}", res_msg);
                         let response = Message::Text(res_msg);
                         ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
-                    }
-                    let cypher_msg = text_msg.strip_prefix("!application/openCypher");
-                    if let Some(cypher_query) = cypher_msg {
+                    } else if let Some(cypher_query) = text_msg.strip_prefix("!application/openCypher") {
                         let doc = Document::from_reader(&mut cypher_query.as_bytes()).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                        let cypher_reply = handle_open_cypher_request(tx_handler, graph_request_handler, cypher_request)
+                        let cypher_reply = handle_open_cypher_request(tx_handler.clone(), graph_request_handler.clone(), &doc).map_err(|err| ServerError::CypherTxError(err))?;
+                    
                     }
                 }
                 else if msg.is_close() {

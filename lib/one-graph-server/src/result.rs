@@ -1,3 +1,4 @@
+use one_graph_cypher::CypherError;
 use one_graph_gremlin::handler::GremlinError;
 use tokio_tungstenite::tungstenite::Error;
 
@@ -6,5 +7,6 @@ pub enum ServerError {
     HeaderError,
     ParsingError(String),
     WebsocketError(Error),
-    GremlinTxError(GremlinError)
+    GremlinTxError(GremlinError),
+    CypherTxError(CypherError),
 }
