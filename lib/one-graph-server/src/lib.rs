@@ -85,7 +85,10 @@ async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, grap
                     } else if let Some(cypher_query) = text_msg.strip_prefix("!application/openCypher") {
                         let doc = Document::from_reader(&mut cypher_query.as_bytes()).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                         let cypher_reply = handle_open_cypher_request(tx_handler.clone(), graph_request_handler.clone(), &doc).map_err(|err| ServerError::CypherTxError(err))?;
-                    
+                        let mut with_prefix = String::from("application/openCypher");
+                        with_prefix.push_str(&cypher_reply.to_string());
+                        let response = Message::Text(with_prefix);
+                        ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
                     }
                 }
                 else if msg.is_close() {
