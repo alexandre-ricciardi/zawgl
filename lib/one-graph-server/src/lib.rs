@@ -72,23 +72,25 @@ async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, grap
             Some(msg) => {
                 let msg = msg.map_err(ServerError::WebsocketError)?;
                 if msg.is_binary() {
-                    let text_msg = msg.to_text().map_err(ServerError::WebsocketError)?;
-                    if let Some(json_msg) = text_msg.strip_prefix("!application/vnd.gremlin-v3.0+json") {
-                        let v: Value = serde_json::from_str(json_msg).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                    let json_gremlin_prefix = "!application/vnd.gremlin-v3.0+json".as_bytes();
+                    let open_cypher_prefix = "!application/openCypher".as_bytes();
+                    let data = msg.into_data();
+                    if data.len() > json_gremlin_prefix.len() && &data[..json_gremlin_prefix.len()] == json_gremlin_prefix {
+                        let v: Value = serde_json::from_reader(&data[json_gremlin_prefix.len()..]).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                         let gremlin_reply = handle_gremlin_json_request(tx_handler.clone(), graph_request_handler.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
                         let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                        let mut with_prefix = String::from("application/vnd.gremlin-v3.0+json");
-                        with_prefix.push_str(&res_msg);
                         debug!("gremlin response msg: {}", res_msg);
                         let response = Message::Text(res_msg);
                         ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
-                    } else if let Some(cypher_query) = text_msg.strip_prefix("!application/openCypher") {
-                        let doc = Document::from_reader(&mut cypher_query.as_bytes()).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                    } else if data.len() > open_cypher_prefix.len() &&  &data[..open_cypher_prefix.len()] == open_cypher_prefix {
+                        let doc = Document::from_reader(&data[open_cypher_prefix.len()..]).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                         let cypher_reply = handle_open_cypher_request(tx_handler.clone(), graph_request_handler.clone(), &doc).map_err(|err| ServerError::CypherTxError(err))?;
-                        let mut with_prefix = String::from("application/openCypher");
-                        with_prefix.push_str(&cypher_reply.to_string());
-                        let response = Message::Text(with_prefix);
+                        let mut response_data = Vec::new();
+                        cypher_reply.to_writer(&mut response_data).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                        let response = Message::Binary(response_data);
                         ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
+                    } else {
+                        break;
                     }
                 }
                 else if msg.is_close() {
