@@ -696,6 +696,7 @@ dependencies = [
  "bson",
  "log 0.4.11",
  "one-graph-core",
+ "one-graph-tx-handler",
  "serde 1.0.114",
  "serde_json",
  "simple_logger",
@@ -716,10 +717,12 @@ dependencies = [
 name = "one-graph-server"
 version = "0.1.0"
 dependencies = [
+ "bson",
  "futures-util",
  "gremlin-client",
  "log 0.4.11",
  "one-graph-core",
+ "one-graph-cypher",
  "one-graph-gremlin",
  "one-graph-tx-handler",
  "parking_lot",
