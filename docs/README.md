@@ -9,10 +9,9 @@ OneGraph is in WIP stage, though it can already expose a few Gremlin features.
 
 ## Roadmap
 * Improve backend with LLAMA cache and Bw-Tree for indexes.
-* Begin frontend implementation to publish a OpenAPI interface.
 * Study VF3 version of sub-graph isomorphism algorithm.
 * Keep in mind that graph structures may be timelined in order to be able to retrieve past graph states.
-* Improve Gremlin support.
+* Javascript procedures.
 
 ## Memory Model
 * [Memory model](model.md)
