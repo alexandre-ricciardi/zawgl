@@ -224,6 +224,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8aebca1129a03dc6dc2b127edd729435bbc4a37e1d5f4d7513165089ceb02634"
 
 [[package]]
+name = "cypher-tests"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "one-graph-client",
+ "one-graph-core",
+ "one-graph-server",
+ "simple_logger",
+ "tokio",
+]
+
+[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

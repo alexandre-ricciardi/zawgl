@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use futures_util::{future, pin_mut, StreamExt};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -38,7 +40,8 @@ impl Client {
         let ws_to_stdout = {
             read.for_each(|message| async {
                 let data = message.unwrap().into_data();
-                tokio::io::stdout().write_all(&data).await.unwrap();
+                let doc = Document::from_reader(Cursor::new(data)).expect("response");
+                tokio::io::stdout().write_all(doc.to_string().as_bytes()).await.unwrap();
             })
         };
     
