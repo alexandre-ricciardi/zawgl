@@ -10,7 +10,7 @@ Open Source Timelined Graph Database (Work In Progress)
 * A fixed sized Pager implementation.
 
 ## Test
-A docker package is available to test the Database:  
+A docker package is available for testing purpose:  
 ```
 docker run -p8182:8182 --rm -it ghcr.io/alexandre-ricciardi/alexandre-ricciardi/one-graph:latest
 ```
