@@ -12,6 +12,7 @@ OneGraph is in WIP stage, though it can already expose a few Gremlin features.
 * Study VF3 version of sub-graph isomorphism algorithm.
 * Keep in mind that graph structures may be timelined in order to be able to retrieve past graph states.
 * Javascript procedures.
+* Improve open-cypher and gremlin support.
 
 ## Memory Model
 * [Memory model](model.md)

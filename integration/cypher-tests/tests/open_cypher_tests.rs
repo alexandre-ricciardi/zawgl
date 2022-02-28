@@ -4,7 +4,7 @@ use simple_logger::SimpleLogger;
 
 use one_graph_client::Client;
 
-#[tokio::test]
+//#[tokio::test]
 async fn test_cypher() {
     let db_dir = build_dir_path_and_rm_old("test_cypher").expect("error");
     SimpleLogger::new().with_level(LevelFilter::Trace).init().unwrap();
