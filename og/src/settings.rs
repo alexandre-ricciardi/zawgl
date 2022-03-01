@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::env;
 
-use config::{Config, ConfigError, File};
+use config::{Config, ConfigError};
 use serde::Deserialize;
 use log::*;
 

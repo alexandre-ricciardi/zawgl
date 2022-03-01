@@ -13,7 +13,7 @@ async fn test_cypher() {
     let ctx = InitContext::new(&db_dir).expect("can't create database context");
     let server = one_graph_server::run_server("localhost:8182", ctx);
 
-    thread::sleep(time::Duration::from_millis(1000));
+    thread::sleep(time::Duration::from_millis(10000));
 
     tokio::select!{
         _ = server => 0,
