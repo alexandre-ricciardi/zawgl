@@ -110,15 +110,17 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         
+        let mut n = Node::new();
         match self.state {
-            VisitorState::DirectiveCreate |
+            VisitorState::DirectiveCreate => {
+                n.set_status(Status::Create);
+            }
             VisitorState::DirectiveMatch => {
-                let mut n = Node::new();
                 n.set_status(Status::Match);
-                self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node(n));
             },
             _ => {}
-        }    
+        }
+        self.curr_node = self.request.as_mut().map(|req| req.pattern.add_node(n));
         self.state = VisitorState::Node;
         Ok(true)
     }
