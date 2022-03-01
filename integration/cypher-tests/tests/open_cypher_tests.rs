@@ -4,7 +4,7 @@ use log::LevelFilter;
 use one_graph_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 use simple_logger::SimpleLogger;
 use log::*;
-use one_graph_client::Client;
+use og_client::Client;
 
 #[tokio::test]
 async fn test_cypher() {

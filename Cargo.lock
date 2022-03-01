@@ -273,7 +273,7 @@ name = "cypher-tests"
 version = "0.1.0"
 dependencies = [
  "log 0.4.11",
- "one-graph-client",
+ "og-client",
  "one-graph-core",
  "one-graph-server",
  "simple_logger",
@@ -800,13 +800,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "once_cell"
-version = "1.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
-
-[[package]]
-name = "one-graph-client"
+name = "og-client"
 version = "0.1.0"
 dependencies = [
  "bson",
@@ -821,6 +815,12 @@ dependencies = [
  "url 2.2.2",
  "uuid",
 ]
+
+[[package]]
+name = "once_cell"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
 
 [[package]]
 name = "one-graph-core"

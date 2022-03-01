@@ -1,11 +1,11 @@
 [package]
-name = "one-graph-client"
+name = "og-client"
 version = "0.1.0"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
 edition = "2018"
 
 [lib]
-name = "one_graph_client"
+name = "og_client"
 
 [dependencies]
 tokio-tungstenite = "0.17.1"
