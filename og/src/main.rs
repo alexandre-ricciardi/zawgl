@@ -2,6 +2,7 @@ extern crate one_graph_server;
 extern crate tokio;
 extern crate serde;
 mod settings;
+use log::info;
 use one_graph_core::model::init::InitContext;
 use settings::Settings;
 use simple_logger::SimpleLogger;
@@ -13,7 +14,9 @@ async fn main() {
     SimpleLogger::new().with_level(log_level).init().unwrap();
     let ctx = InitContext::new(&settings.server.database_dir).expect("can't create database context");
     tokio::select! {
-        _ = one_graph_server::run_server(&settings.server.address, ctx) => 0,
+        _ = one_graph_server::run_server(&settings.server.address, ctx, || {
+            info!("database started");
+        }) => 0,
         _ = tokio::signal::ctrl_c() => 0
     };
 }
