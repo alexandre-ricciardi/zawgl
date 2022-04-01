@@ -3,7 +3,7 @@ Open Source Timelined Graph Database (Work In Progress)
 
 ## Status
 * At the moment OneGraph Database supports a few gremlin and cypher queries.
-* Pattern Matching with a VF2 graph sub-graph isomorphism algorithm.
+* Pattern Matching with a VF2 sub-graph isomorphism algorithm.
 * Property Graph storage
 * With a B+Tree for indexes
 * Fixed size Records files for Nodes, Relationships and Properties.
