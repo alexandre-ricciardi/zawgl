@@ -10,7 +10,7 @@ name = "cypher_tests"
 [dependencies]
 one-graph-server = { path = "../../lib/one-graph-server" }
 one-graph-core = { path = "../../lib/one-graph-core" }
-one-graph-client = { path = "../../client/one-graph-client" }
+og-client = { path = "../../client/og-client" }
 log = "0.4"
-simple_logger = "1.11.0"
+simple_logger = "2.1.0"
 tokio = { version = "1.13.0", features = ["full"] }

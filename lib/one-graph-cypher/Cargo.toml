@@ -11,7 +11,6 @@ name = "one_graph_cypher"
 one-graph-core = { path = "../one-graph-core" }
 one-graph-tx-handler = { path = "../one-graph-tx-handler" }
 log = "0.4"
-simple_logger = "1.11.0"
 serde_json = "1.0"
 serde = { version = "1.0.105", features = ["derive"] }
 bson = "2.0.1"

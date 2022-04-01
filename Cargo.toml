@@ -7,6 +7,6 @@ members = [
     "lib/one-graph-server",
     "og",
     "utils",
-    "client/one-graph-client",
+    "client/og-client",
     "integration/cypher-tests",
 ]
