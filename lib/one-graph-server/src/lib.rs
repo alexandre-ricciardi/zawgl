@@ -107,12 +107,12 @@ async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, grap
 
 
 
-pub async fn run_server(addr: &str, conf: InitContext<'static>) {
+pub async fn run_server<F>(addr: &str, conf: InitContext<'static>, callback: F) where F : FnOnce() -> () {
     let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
     let graph_request_handler = Arc::new(RwLock::new(GraphRequestHandler::new(conf)));
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Listening on: {}", addr);
-
+    callback();
     while let Ok((stream, _)) = listener.accept().await {
         let peer = stream.peer_addr().expect("connected streams should have a peer address");
         info!("Peer address: {}", peer);
