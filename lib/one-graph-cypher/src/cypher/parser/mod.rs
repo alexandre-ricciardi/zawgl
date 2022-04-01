@@ -350,5 +350,10 @@ mod test_parser {
     fn test_where_clause_1() {
         run("CREATE (n:Person:Parent {test: 'Hello', case: 4.99}) WHERE id(n) = 112 AND n.test = 'hello' OR n.case = 123.9 RETURN n, id(n)");
     }
+
+    #[test]
+    fn test_match_then_create() {
+        run("match (p:Person), (m:Movie) create (m)<-[r:Played]-(p) return m, r, p");
+    }
 }
 

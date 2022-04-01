@@ -206,7 +206,6 @@ impl AstVisitor for CypherAstVisitor {
                     if let Some(rel_id) = self.curr_directed_relationship {
                         let rel = req.pattern.get_relationship_mut(&rel_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut rel.get_properties_mut()[prop_id];
                             self.curr_property_value = value.map(|v| PropertyValue::PInteger(v));
                         }
                     }
@@ -215,7 +214,6 @@ impl AstVisitor for CypherAstVisitor {
                     if let Some(node_id) = self.curr_node {
                         let node = req.pattern.get_node_mut(&node_id);
                         if let Some(prop_id) = self.curr_property_id {
-                            let prop = &mut node.get_properties_mut()[prop_id];
                             self.curr_property_value = value.map(|v| PropertyValue::PInteger(v));
                         }
                     }
@@ -531,6 +529,26 @@ mod test_query_engine {
         } else {
             assert!(false, "no request found");
         }
-        
+    }
+
+    #[test]
+    fn test_match_and_create() {
+        let request = process_cypher_query("MATCH (m:Movie), (a:Actor) CREATE (a)-[r:PLAYED_IN]->(m) RETURN m, a, r");
+        if let  Some(req) = request {
+            let movie = req.pattern.get_node_ref(&NodeIndex::new(0));
+            assert_eq!(movie.get_var(), &Some(String::from("m")));
+            assert_eq!(movie.get_labels_ref()[0], String::from("Movie"));
+            assert_eq!(movie.get_status(), &Status::Match);
+            let actor = req.pattern.get_node_ref(&NodeIndex::new(1));
+            assert_eq!(actor.get_var(), &Some(String::from("m")));
+            assert_eq!(actor.get_status(), &Status::Match);
+            assert_eq!(actor.get_labels_ref()[0], String::from("Actor"));
+            let rel = req.pattern.get_relationship_ref(&EdgeIndex::new(0));
+            assert_eq!(rel.get_var(), &Some(String::from("r")));
+            assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
+            assert_eq!(rel.get_status(), &Status::Create);
+        } else {
+            assert!(false, "no request found");
+        }
     }
 }
