@@ -16,6 +16,7 @@ pub enum AstTag  {
     Create,
     Match,
     Node,
+    Pattern,
     Property,
     RelDirectedLR,
     RelDirectedRL,
