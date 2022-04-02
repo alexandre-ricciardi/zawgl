@@ -7,19 +7,17 @@ pub struct PathBuilder {
     curr_node: Option<NodeIndex>,
     curr_directed_relationship: Option<EdgeIndex>,
     curr_both_ways_relationship: Option<(EdgeIndex, EdgeIndex)>,
-    curr_identifier: Option<String>,
     pattern_state: VisitorPatternState,
     id_type: Option<IdentifierType>,
     curr_property_name: Option<String>,
     current_path: PropertyGraph,
-    visitor_state: VisitorState
 }
 
 impl PathBuilder {
-    pub fn new(state: VisitorState) -> Self {
+    pub fn new() -> Self {
         PathBuilder {curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
-            visitor_state: state, pattern_state: VisitorPatternState::Init,
-            curr_identifier: None, id_type: None, curr_property_name: None, current_path: PropertyGraph::new() }
+            pattern_state: VisitorPatternState::Init,
+            id_type: None, curr_property_name: None, current_path: PropertyGraph::new() }
     }
 
     pub fn set_property_value(&mut self, property_value: Option<PropertyValue>) {
@@ -45,9 +43,9 @@ impl PathBuilder {
         }
     }
 
-    pub fn enter_node(&mut self) {
+    pub fn enter_node(&mut self, visitor_state: &VisitorState) {
         let mut n = Node::new();
-        match self.visitor_state {
+        match visitor_state {
             VisitorState::CreatePattern => {
                 n.set_status(Status::Create);
             }
@@ -109,5 +107,90 @@ impl PathBuilder {
     pub fn enter_bool_value(&mut self, value: Option<bool>) {
         let pv = value.map(|v| PropertyValue::PBool(v));
         self.set_property_value(pv);
+    }
+    
+    pub fn enter_label(&mut self) {
+        self.id_type = Some(IdentifierType::Label);
+    }
+
+    pub fn enter_variable(&mut self) {
+        self.id_type = Some(IdentifierType::Variable);
+    }
+    pub fn enter_identifier(&mut self, visitor_state: &VisitorState, key: &str) {
+        match visitor_state {
+            VisitorState::MatchPattern |
+            VisitorState::CreatePattern => {
+                match self.pattern_state {
+                    VisitorPatternState::Node => {
+                        if let Some(node_id) = self.curr_node {
+                            let node = self.current_path.get_node_mut(&node_id);
+                            match self.id_type {
+                                Some(IdentifierType::Variable) => {
+                                    node.set_var(key);
+                                },
+                                Some(IdentifierType::Label) => {
+                                    node.get_labels_mut().push(String::from(key));
+                                },
+                                _ => {}
+                            } 
+                        }
+                    },
+                    VisitorPatternState::RelationshipRL |
+                    VisitorPatternState::RelationshipLR => {
+                        if let Some(rel_id) = self.curr_directed_relationship {
+                            let rel = self.current_path.get_relationship_mut(&rel_id);
+                            
+                            match self.id_type {
+                                Some(IdentifierType::Variable) => {
+                                    rel.set_var(key);
+                                },
+                                Some(IdentifierType::Label) => {
+                                    rel.get_labels_mut().push(String::from(key));
+                                },
+                                _ => {}
+                            } 
+                        }
+                    },
+                    VisitorPatternState::UndirectedRelationship => {
+                        if let Some(rel_ids) = self.curr_both_ways_relationship {
+                            {
+                                let rel = self.current_path.get_relationship_mut(&rel_ids.0);
+                                match self.id_type {
+                                    Some(IdentifierType::Variable) => {
+                                        rel.set_var(key);
+                                    },
+                                    Some(IdentifierType::Label) => {
+                                        rel.get_labels_mut().push(String::from(key));
+                                    },
+                                    _ => {}
+                                } 
+                            }
+                            let rel = self.current_path.get_relationship_mut(&rel_ids.1);
+                            match self.id_type {
+                                Some(IdentifierType::Variable) => {
+                                    rel.set_var(key);
+                                },
+                                Some(IdentifierType::Label) => {
+                                    rel.get_labels_mut().push(String::from(key));
+                                },
+                                _ => {}
+                            } 
+                            
+                        }
+                    },
+                    VisitorPatternState::DirectedRelationshipProperty => {
+                        self.curr_property_name = Some(String::from(key));
+                    },
+                    VisitorPatternState::NodeProperty => {
+                        self.curr_property_name = Some(String::from(key));
+                    },
+                    VisitorPatternState::UndirectedRelationshipProperty => {
+                        self.curr_property_name = Some(String::from(key));
+                    },
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
     }
 }

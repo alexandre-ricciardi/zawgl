@@ -31,17 +31,14 @@ struct CypherAstVisitor {
     curr_identifier: Option<String>,
     state: VisitorState,
     id_type: Option<IdentifierType>,    
-    pattern_state: VisitorPatternState,
     current_path_builder: Option<PathBuilder>, 
 }
 
 impl CypherAstVisitor {
     fn new() -> Self {
-        CypherAstVisitor { request: None, state: VisitorState::Init, pattern_state: VisitorPatternState::Init,
+        CypherAstVisitor { request: None, state: VisitorState::Init,
             curr_identifier: None, id_type: None, current_path_builder: None }
     }
-
-
 }
 
 impl CypherAstVisitor {
@@ -54,6 +51,11 @@ impl AstVisitor for CypherAstVisitor {
         Ok(true)
     }
     fn enter_pattern(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+        if let Some(pb) = &self.current_path_builder {
+            if let Some(rq) = &mut self.request {
+                
+            }
+        }
         match self.state {
             VisitorState::DirectiveMatch => {
                 self.state = VisitorState::MatchPattern;
@@ -63,7 +65,7 @@ impl AstVisitor for CypherAstVisitor {
             }
             _ => {}
         }
-        self.current_path_builder = Some(PathBuilder::new(self.state));
+        self.current_path_builder = Some(PathBuilder::new());
         Ok(true)
     }
     fn enter_return(&mut self) -> AstVisitorResult<bool> {
@@ -107,7 +109,7 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let Some(pb) = &mut self.current_path_builder {
-            pb.enter_node();
+            pb.enter_node(&self.state);
         }
         Ok(true)
     }
@@ -123,7 +125,6 @@ impl AstVisitor for CypherAstVisitor {
         }
         Ok(true)
     }
-
 
     fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult<bool> {
         if let Some(pb) = &mut self.current_path_builder {
@@ -151,118 +152,55 @@ impl AstVisitor for CypherAstVisitor {
     }
 
     fn enter_label(&mut self) -> AstVisitorResult<bool> {
+        if let Some(pb) = &mut self.current_path_builder {
+            pb.enter_label();
+        }
         self.id_type = Some(IdentifierType::Label);
         Ok(true)
     }
 
     fn enter_variable(&mut self) -> AstVisitorResult<bool> {
+        if let Some(pb) = &mut self.current_path_builder {
+            pb.enter_variable();
+        }
         self.id_type = Some(IdentifierType::Variable);
         Ok(true)
     }
 
     fn enter_identifier(&mut self, key: &str) -> AstVisitorResult<bool> {
-        self.curr_identifier = Some(String::from(key));
-        if let Some(req) = &mut self.request {
-            match self.state {
-                VisitorState::MatchPattern |
-                VisitorState::CreatePattern => {
-                    match self.pattern_state {
-                        VisitorPatternState::Node => {
-                            if let Some(node_id) = self.curr_node {
-                                let node = req.pattern.get_node_mut(&node_id);
-                                match self.id_type {
-                                    Some(IdentifierType::Variable) => {
-                                        node.set_var(key);
-                                    },
-                                    Some(IdentifierType::Label) => {
-                                        node.get_labels_mut().push(String::from(key));
-                                    },
-                                    _ => {}
-                                } 
-                            }
-                        },
-                        VisitorPatternState::RelationshipRL |
-                        VisitorPatternState::RelationshipLR => {
-                            if let Some(rel_id) = self.curr_directed_relationship {
-                                let rel = req.pattern.get_relationship_mut(&rel_id);
-                                
-                                match self.id_type {
-                                    Some(IdentifierType::Variable) => {
-                                        rel.set_var(key);
-                                    },
-                                    Some(IdentifierType::Label) => {
-                                        rel.get_labels_mut().push(String::from(key));
-                                    },
-                                    _ => {}
-                                } 
-                            }
-                        },
-                        VisitorPatternState::UndirectedRelationship => {
-                            if let Some(rel_ids) = self.curr_both_ways_relationship {
-                                {
-                                    let rel = req.pattern.get_relationship_mut(&rel_ids.0);
-                                    match self.id_type {
-                                        Some(IdentifierType::Variable) => {
-                                            rel.set_var(key);
-                                        },
-                                        Some(IdentifierType::Label) => {
-                                            rel.get_labels_mut().push(String::from(key));
-                                        },
-                                        _ => {}
-                                    } 
-                                }
-                                let rel = req.pattern.get_relationship_mut(&rel_ids.1);
-                                match self.id_type {
-                                    Some(IdentifierType::Variable) => {
-                                        rel.set_var(key);
-                                    },
-                                    Some(IdentifierType::Label) => {
-                                        rel.get_labels_mut().push(String::from(key));
-                                    },
-                                    _ => {}
-                                } 
-                                
-                            }
-                        },
-                        VisitorPatternState::DirectedRelationshipProperty => {
-                            self.curr_property_name = Some(String::from(key));
-                        },
-                        VisitorPatternState::NodeProperty => {
-                            self.curr_property_name = Some(String::from(key));
-                        },
-                        VisitorPatternState::UndirectedRelationshipProperty => {
-                            self.curr_property_name = Some(String::from(key));
-                        },
-                        _ => {}
-                    }
+        match self.state {
+            VisitorState::MatchPattern |
+            VisitorState::CreatePattern => {
+                if let Some(pb) = &mut self.current_path_builder {
+                    pb.enter_identifier(&self.state, key);
                 }
-                VisitorState::FunctionCall => {
-                    if let Some(req) = &mut self.request {
-                        if let Some(ret) = &mut req.return_clause {
-                            ret.expressions.push(ReturnExpression::FunctionCall(FunctionCall::new(key)));
-                        }
-                    }
-                },
-                VisitorState::FunctionArg => {
-                    if let Some(req) = &mut self.request {
-                        if let Some(ret) = &mut req.return_clause {
-                            if let Some(expr) = ret.expressions.last_mut() {
-                                if let ReturnExpression::FunctionCall(func_call) = expr {
-                                    func_call.args.push(String::from(key));
-                                }
-                            }
-                        }
-                    }
-                },
-                VisitorState::ReturnItem => {
-                    if let Some(req) = &mut self.request {
-                        if let Some(ret) = &mut req.return_clause {
-                            ret.expressions.push(ReturnExpression::Item(String::from(key)));
-                        }
-                    }
-                }
-                _ => {}
             }
+            VisitorState::FunctionCall => {
+                if let Some(req) = &mut self.request {
+                    if let Some(ret) = &mut req.return_clause {
+                        ret.expressions.push(ReturnExpression::FunctionCall(FunctionCall::new(key)));
+                    }
+                }
+            },
+            VisitorState::FunctionArg => {
+                if let Some(req) = &mut self.request {
+                    if let Some(ret) = &mut req.return_clause {
+                        if let Some(expr) = ret.expressions.last_mut() {
+                            if let ReturnExpression::FunctionCall(func_call) = expr {
+                                func_call.args.push(String::from(key));
+                            }
+                        }
+                    }
+                }
+            },
+            VisitorState::ReturnItem => {
+                if let Some(req) = &mut self.request {
+                    if let Some(ret) = &mut req.return_clause {
+                        ret.expressions.push(ReturnExpression::Item(String::from(key)));
+                    }
+                }
+            }
+            _ => {}
         }
         Ok(true)
     }
