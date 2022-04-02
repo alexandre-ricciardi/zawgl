@@ -38,6 +38,7 @@ pub enum AstTag  {
 pub trait AstVisitor {
     fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
     fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn enter_pattern(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
     fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
     fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
@@ -118,6 +119,9 @@ impl Ast for AstTagNode {
                     },
                     AstTag::Node => {
                         visitor.enter_node(self)
+                    },
+                    AstTag::Pattern => {
+                        visitor.enter_pattern(self)
                     },
                     AstTag::Property => {
                         visitor.enter_property(self)

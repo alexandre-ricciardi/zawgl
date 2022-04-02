@@ -12,6 +12,9 @@ impl AstVisitor for BoolExprVisitor {
     fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         Ok(true)
     }
+    fn enter_pattern(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+        Ok(true)
+    }
     fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         Ok(true)
     }

@@ -59,13 +59,12 @@ pub struct BoolCondition {
 
 pub struct Request {
     pub pattern: PropertyGraph,
-    pub directive: Directive,
     pub return_clause: Option<ReturnClause>,
     pub where_clause: Option<WhereClause>,
 }
 
 impl Request {
-    pub fn new(directive: Directive) -> Self {
-        Request {pattern: PropertyGraph::new(), directive: directive, return_clause: None, where_clause: None}
+    pub fn new() -> Self {
+        Request {pattern: PropertyGraph::new(), return_clause: None, where_clause: None}
     }
 }
