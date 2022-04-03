@@ -1,15 +1,18 @@
 use super::*;
 use super::super::model::*;
 use super::parser::*;
-use one_graph_core::graph::traits::{GraphContainerTrait};
+use one_graph_core::graph::traits::{GraphContainerTrait, GraphTrait};
 use one_graph_core::graph::*;
 use one_graph_core::model::*;
 
+
 mod path_builder;
 mod states;
+mod pattern_builder;
 
 use states::*;
 use path_builder::*;
+use pattern_builder::*;
 
 pub fn process_cypher_query(query: &str) -> Option<Request> {
     let mut lexer = lexer::Lexer::new(query);
@@ -50,12 +53,7 @@ impl AstVisitor for CypherAstVisitor {
         self.request = Some(Request::new());
         Ok(true)
     }
-    fn enter_pattern(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
-        if let Some(pb) = &self.current_path_builder {
-            if let Some(rq) = &mut self.request {
-                
-            }
-        }
+    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         match self.state {
             VisitorState::DirectiveMatch => {
                 self.state = VisitorState::MatchPattern;
@@ -115,7 +113,7 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let (Some(pb), Some(ast_tag)) = (&mut self.current_path_builder, node.ast_tag){
-            pb.enter_relationship(ast_tag)
+            pb.enter_relationship(ast_tag, &self.state)
         }
         Ok(true)
     }
@@ -204,6 +202,33 @@ impl AstVisitor for CypherAstVisitor {
         }
         Ok(true)
     }
+    fn exit_create(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_match(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_path(&mut self) -> AstVisitorResult<bool> {
+        if let Some(rq) = &mut self.request {
+            if let Some(pb) = &self.current_path_builder {
+                let path = pb.get_path_graph();
+                merge_path(&mut rq.pattern, path);
+            }
+        }
+        Ok(true)
+    }
+    fn exit_node(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_relationship(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_property(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_integer_value(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_float_value(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_string_value(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_bool_value(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_identifier(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_variable(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_label(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_query(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_return(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_function(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_function_arg(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_item(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_where(&mut self) -> AstVisitorResult<bool> { Ok(true)}
 }
 
 #[cfg(test)]
@@ -246,7 +271,7 @@ mod test_query_engine {
         let request = process_cypher_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(&NodeIndex::new(0));
-            assert_eq!(node.get_var(), &Some(String::from("n")));
+            assert_eq!(node.get_var(), &Some(String::from("p")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
             let rel = req.pattern.get_relationship_ref(&EdgeIndex::new(0));
             assert_eq!(rel.get_var(), &Some(String::from("r")));

@@ -38,7 +38,7 @@ pub enum AstTag  {
 pub trait AstVisitor {
     fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
     fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
-    fn enter_pattern(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
     fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
     fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
@@ -55,6 +55,25 @@ pub trait AstVisitor {
     fn enter_function_arg(&mut self) -> AstVisitorResult<bool>;
     fn enter_item(&mut self) -> AstVisitorResult<bool>;
     fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn exit_create(&mut self) -> AstVisitorResult<bool>;
+    fn exit_match(&mut self) -> AstVisitorResult<bool>;
+    fn exit_path(&mut self) -> AstVisitorResult<bool>;
+    fn exit_node(&mut self) -> AstVisitorResult<bool>;
+    fn exit_relationship(&mut self) -> AstVisitorResult<bool>;
+    fn exit_property(&mut self) -> AstVisitorResult<bool>;
+    fn exit_integer_value(&mut self) -> AstVisitorResult<bool>;
+    fn exit_float_value(&mut self) -> AstVisitorResult<bool>;
+    fn exit_string_value(&mut self) -> AstVisitorResult<bool>;
+    fn exit_bool_value(&mut self) -> AstVisitorResult<bool>;
+    fn exit_identifier(&mut self) -> AstVisitorResult<bool>;
+    fn exit_variable(&mut self) -> AstVisitorResult<bool>;
+    fn exit_label(&mut self) -> AstVisitorResult<bool>;
+    fn exit_query(&mut self) -> AstVisitorResult<bool>;
+    fn exit_return(&mut self) -> AstVisitorResult<bool>;
+    fn exit_function(&mut self) -> AstVisitorResult<bool>;
+    fn exit_function_arg(&mut self) -> AstVisitorResult<bool>;
+    fn exit_item(&mut self) -> AstVisitorResult<bool>;
+    fn exit_where(&mut self) -> AstVisitorResult<bool>;
 }
 
 #[derive(Debug, Clone)]
@@ -67,6 +86,7 @@ pub type AstVisitorResult<T> = std::result::Result<T, AstVisitorError>;
 pub trait Ast : fmt::Display {
     fn append(&mut self, ast: Box<dyn Ast>);
     fn accept(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult<bool>;
+    fn accept_exit(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult<bool>;
     fn get_childs(&self) -> &Vec<Box<dyn Ast>>;
     fn clone_ast(&self) -> Box<dyn Ast>;
 }
@@ -121,7 +141,7 @@ impl Ast for AstTagNode {
                         visitor.enter_node(self)
                     },
                     AstTag::Pattern => {
-                        visitor.enter_pattern(self)
+                        visitor.enter_path(self)
                     },
                     AstTag::Property => {
                         visitor.enter_property(self)
@@ -159,7 +179,65 @@ impl Ast for AstTagNode {
                 Ok(true)
             }
         }
+    }
         
+    fn accept_exit(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult<bool> {
+        match self.ast_tag.as_ref() {
+            Some(ast_tag) => {
+                match ast_tag {
+                    AstTag::Create => {
+                        visitor.exit_create()
+                    },
+                    AstTag::Match => {
+                        visitor.exit_match()
+                    },
+                    AstTag::RelDirectedLR |
+                    AstTag::RelDirectedRL |
+                    AstTag::RelUndirected => {
+                        visitor.exit_relationship()
+                    },
+                    AstTag::Node => {
+                        visitor.exit_node()
+                    },
+                    AstTag::Pattern => {
+                        visitor.exit_path()
+                    },
+                    AstTag::Property => {
+                        visitor.exit_property()
+                    },
+                    AstTag::Variable => {
+                        visitor.exit_variable()
+                    },
+                    AstTag::Label => {
+                        visitor.exit_label()
+                    },
+                    AstTag::Query => {
+                        visitor.exit_query()
+                    },
+                    AstTag::Return => {
+                        visitor.exit_return()
+                    },
+                    AstTag::Function => {
+                        visitor.exit_function()
+                    },
+                    AstTag::FunctionArg => {
+                        visitor.exit_function_arg()
+                    },
+                    AstTag::Item => {
+                        visitor.exit_item()
+                    },
+                    AstTag::Where => {
+                        visitor.exit_where()
+                    },
+                    _ => {
+                        Ok(true)
+                    }
+                }
+            },
+            None => {
+                Ok(true)
+            }
+        }
     }
     
     fn clone_ast(&self) -> Box<dyn Ast> {
@@ -210,6 +288,10 @@ impl Ast for AstTokenNode {
         }
     }
 
+    fn accept_exit(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult<bool> {
+        Ok(true)
+    }
+
     fn clone_ast(&self) -> Box<dyn Ast> {
         let mut root = Box::new(AstTokenNode::new_token(self.token_id, self.token_value.clone(), self.token_type));
         for child in &self.childs {
@@ -243,6 +325,7 @@ pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) -> AstVisitorR
         for child in ast.get_childs() {
             walk_ast(visitor, &child)?;
         }
+        let ex_res = ast.accept_exit(visitor)?;
     }
     Ok(())
 }
