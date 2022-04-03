@@ -271,7 +271,7 @@ mod test_query_engine {
         let request = process_cypher_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
         if let  Some(req) = request {
             let node = req.pattern.get_node_ref(&NodeIndex::new(0));
-            assert_eq!(node.get_var(), &Some(String::from("p")));
+            assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
             let rel = req.pattern.get_relationship_ref(&EdgeIndex::new(0));
             assert_eq!(rel.get_var(), &Some(String::from("r")));

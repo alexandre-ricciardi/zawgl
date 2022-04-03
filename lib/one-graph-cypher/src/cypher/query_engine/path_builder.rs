@@ -27,6 +27,20 @@ fn make_relationship(visitor_state: &VisitorState) -> Relationship {
     r
 }
 
+fn make_node(visitor_state: &VisitorState) -> Node {
+    let mut n = Node::new();
+    match visitor_state {
+        VisitorState::CreatePattern => {
+            n.set_status(Status::Create);
+        }
+        VisitorState::MatchPattern => {
+            n.set_status(Status::Match);
+        },
+        _ => {}
+    }
+    n
+}
+
 impl PathBuilder {
     pub fn new() -> Self {
         PathBuilder {curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
@@ -62,18 +76,19 @@ impl PathBuilder {
     }
 
     pub fn enter_node(&mut self, visitor_state: &VisitorState) {
-        let mut n = Node::new();
-        match visitor_state {
-            VisitorState::CreatePattern => {
-                n.set_status(Status::Create);
-            }
-            VisitorState::MatchPattern => {
-                n.set_status(Status::Match);
+        match self.pattern_state {
+            VisitorPatternState::Init => {
+                let n = make_node(visitor_state);
+                self.curr_node = Some(self.current_path.add_node(n));
+                self.pattern_state = VisitorPatternState::Node;
+            },
+            VisitorPatternState::RelationshipLR |
+            VisitorPatternState::RelationshipRL |
+            VisitorPatternState::UndirectedRelationship => {
+                self.pattern_state = VisitorPatternState::Node;
             },
             _ => {}
         }
-        self.curr_node = Some(self.current_path.add_node(n));
-        self.pattern_state = VisitorPatternState::Node;
     }
 
     
@@ -81,7 +96,7 @@ impl PathBuilder {
     pub fn enter_relationship(&mut self, ast_tag: AstTag, visitor_state: &VisitorState) {
         
         let prev_node = self.curr_node;
-        let pnode = Node::new();
+        let pnode = make_node(visitor_state);
         self.curr_node = Some(self.current_path.add_node(pnode));
         let source_target = prev_node.and_then(|p| self.curr_node.map(|c| (p, c)));
 
