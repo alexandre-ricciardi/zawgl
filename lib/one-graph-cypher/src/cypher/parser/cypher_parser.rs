@@ -27,6 +27,11 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
                 let mut match_node = make_ast_tag(AstTag::Match);
                 parse_pattern(parser, &mut match_node)?;
                 query_node.append(match_node);
+                if parser.current_token_type_advance(TokenType::Create) {
+                    let mut create_node = make_ast_tag(AstTag::Create);
+                    parse_pattern(parser, &mut create_node)?;
+                    query_node.append(create_node);
+                }
                 parse_where_clause(parser, &mut query_node)?;
                 parse_return(parser, &mut query_node)?;
                 

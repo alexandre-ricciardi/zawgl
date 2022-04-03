@@ -88,6 +88,10 @@ impl <NODE, RELATIONSHIP> GraphContainer<NODE, RELATIONSHIP> {
         self.relationships.iter().zip(self.get_edges()).collect::<Vec<(&RELATIONSHIP, EdgeData<NodeIndex, EdgeIndex>)>>()
     }
 
+    pub fn get_nodes_with_ids(&self) -> Vec<(&NODE, NodeIndex)> {
+        self.nodes.iter().zip(self.get_nodes_ids()).collect::<Vec<(&NODE, NodeIndex)>>()
+    }
+
     pub fn get_relationships(&self) -> &Vec<RELATIONSHIP> {
         &self.relationships
     }
