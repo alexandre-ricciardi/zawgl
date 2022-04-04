@@ -22,9 +22,11 @@ pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handl
     let request_id = cypher_request.get_str("request_id").map_err(|err| CypherError::RequestError)?;
     let request = process_cypher_query(query).ok_or(CypherError::RequestError)?;
     let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &vec![request.pattern], None).map_err(|err| CypherError::TxError(err))?;
-    let mut graph_doc = Document::new();  
+    let mut result_doc = Document::new();  
     for res in &matched_graphs {
+        let mut graph_list = Vec::new();
         for pattern in &res.patterns {
+            let mut graph_doc = Document::new();  
             let mut nodes_doc = Vec::new();
             for node in pattern.get_nodes() {
                 nodes_doc.push(doc!{
@@ -46,12 +48,14 @@ pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handl
                 });
             }
             graph_doc.insert("relationships", rels_doc);
+            graph_list.push(graph_doc);
         }
+        result_doc.insert("graphs", graph_list);
     }
 
     let mut response_doc = Document::new();
     response_doc.insert("request_id", request_id);
-    response_doc.insert("graph", graph_doc);
+    response_doc.insert("result", result_doc);
     Ok(response_doc)
 }
 
