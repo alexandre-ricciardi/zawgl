@@ -272,10 +272,12 @@ dependencies = [
 name = "cypher-tests"
 version = "0.1.0"
 dependencies = [
+ "bson",
  "log 0.4.11",
  "og-client",
  "one-graph-core",
  "one-graph-server",
+ "serde",
  "simple_logger",
  "tokio",
 ]
