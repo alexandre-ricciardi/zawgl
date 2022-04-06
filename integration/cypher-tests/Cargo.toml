@@ -14,3 +14,5 @@ og-client = { path = "../../client/og-client" }
 log = "0.4"
 simple_logger = "2.1.0"
 tokio = { version = "1.13.0", features = ["full"] }
+serde = { version = "1.0.105", features = ["derive"] }
+bson = "2.0.1"
