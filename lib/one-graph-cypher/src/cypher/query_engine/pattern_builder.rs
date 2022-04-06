@@ -12,7 +12,8 @@ pub fn merge_path(pattern: &mut PropertyGraph, path: &PropertyGraph) {
     for n in path.get_nodes() {
         if let Some(var_name) = n.get_var() {
             if !map_var_pattern.contains_key(var_name) {
-                pattern.add_node(n.clone());
+                let id = pattern.add_node(n.clone());
+                map_var_pattern.insert(var_name.to_string(), id);
             }
         }
     }
@@ -22,54 +23,8 @@ pub fn merge_path(pattern: &mut PropertyGraph, path: &PropertyGraph) {
         let t = path.get_node_ref(&e.get_target());
         let r = rne.0;
         if let Some(s_var) = s.get_var() {
-            let is_ref_s = map_var_pattern.contains_key(s_var);
             if let Some(t_var) = t.get_var() {
-                let is_ref_t = map_var_pattern.contains_key(t_var);
-                if is_ref_s && is_ref_t {
-                    pattern.add_relationship(r.clone(), map_var_pattern[s_var], map_var_pattern[t_var]);
-                } else if is_ref_s {
-                    let tid = pattern.add_node(t.clone());
-                    pattern.add_relationship(r.clone(), map_var_pattern[s_var], tid);
-                } else if is_ref_t {
-                    let sid = pattern.add_node(s.clone());
-                    pattern.add_relationship(r.clone(), sid, map_var_pattern[t_var]);
-                } else {
-                    let sid = pattern.add_node(s.clone());
-                    let tid = pattern.add_node(t.clone());
-                    pattern.add_relationship(r.clone(), sid, tid);
-                }
-            } else if is_ref_s {
-                let tid = pattern.add_node(t.clone());
-                pattern.add_relationship(r.clone(), map_var_pattern[s_var], tid);
-            } else {
-                let sid = pattern.add_node(s.clone());
-                let tid = pattern.add_node(t.clone());
-                pattern.add_relationship(r.clone(), sid, tid);                
-            }
-        } else if let Some(t_var) = t.get_var() {
-            let is_ref_t = map_var_pattern.contains_key(t_var);
-            if let Some(s_var) = s.get_var() {
-                let is_ref_s = map_var_pattern.contains_key(s_var);
-                if is_ref_s && is_ref_t {
-                    pattern.add_relationship(r.clone(), map_var_pattern[s_var], map_var_pattern[t_var]);
-                } else if is_ref_s {
-                    let tid = pattern.add_node(t.clone());
-                    pattern.add_relationship(r.clone(), map_var_pattern[s_var], tid);
-                } else if is_ref_t {
-                    let sid = pattern.add_node(s.clone());
-                    pattern.add_relationship(r.clone(), sid, map_var_pattern[t_var]);
-                } else {
-                    let sid = pattern.add_node(s.clone());
-                    let tid = pattern.add_node(t.clone());
-                    pattern.add_relationship(r.clone(), sid, tid);
-                }
-            } else if is_ref_t {
-                let sid = pattern.add_node(t.clone());
-                pattern.add_relationship(r.clone(), sid, map_var_pattern[t_var]);
-            } else {
-                let sid = pattern.add_node(s.clone());
-                let tid = pattern.add_node(t.clone());
-                pattern.add_relationship(r.clone(), sid, tid);                
+                pattern.add_relationship(r.clone(), map_var_pattern[s_var], map_var_pattern[t_var]);
             }
         }
     }
