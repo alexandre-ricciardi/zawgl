@@ -8,12 +8,13 @@ use bson::{Bson, Document, doc};
 
 #[tokio::test]
 async fn test_cypher() {
-    run_test(test_cypher_requests).await;
+    run_test("first_test", test_cypher_requests).await;
+    text_double_create_issue().await;
 }
 
-async fn run_test<F, T>(lambda: F) where F : FnOnce() -> T, T : Future<Output = ()> + Send {
-    let db_dir = build_dir_path_and_rm_old("test_cypher_integration").expect("error");
-    SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
+async fn run_test<F, T>(db_name: &str, lambda: F) where F : FnOnce() -> T, T : Future<Output = ()> + Send {
+    let db_dir = build_dir_path_and_rm_old(db_name).expect("error");
+    
     let ctx = InitContext::new(&db_dir).expect("can't create database context");
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
     let server = one_graph_server::run_server("localhost:8182", ctx, || {
@@ -80,9 +81,8 @@ async fn test_cypher_requests() {
     }
 }
 
-#[tokio::test]
 async fn text_double_create_issue() {
-    run_test(move || async {
+    run_test("another_test", move || async {
         let mut client = Client::new("ws://localhost:8182").await;
         let r3 = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
         if let Ok(d) = r3 {
