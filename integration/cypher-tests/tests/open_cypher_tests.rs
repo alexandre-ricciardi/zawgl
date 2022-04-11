@@ -10,8 +10,8 @@ use bson::{Bson, Document, doc};
 async fn test_cypher() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
     run_test("first_test", test_cypher_requests).await;
-    //run_test("create_path_test", test_create_path).await;
-    //text_double_create_issue().await;
+    run_test("create_path_test", test_create_path).await;
+    test_double_create_issue().await;
 }
 
 async fn run_test<F, T>(db_name: &str, lambda: F) where F : FnOnce() -> T, T : Future<Output = ()> + Send {
@@ -24,11 +24,22 @@ async fn run_test<F, T>(db_name: &str, lambda: F) where F : FnOnce() -> T, T : F
             error!("starting database");
         }
     });
-    tokio::spawn(server);
-    match rx.await {
-        Ok(_) => lambda().await,
-        Err(_) => error!("starting database"),
-    }
+
+    let error_cb = || async {
+        assert!(false, "error server");
+    };
+
+    let trigger = || async {
+            match rx.await {
+                Ok(_) => lambda().await,
+                Err(_) => error_cb().await,
+            }
+        };
+    tokio::select! {
+        _ = server => 0,
+        _ = trigger()  => 0
+    };
+   
 }
 
 async fn test_cypher_requests() {
