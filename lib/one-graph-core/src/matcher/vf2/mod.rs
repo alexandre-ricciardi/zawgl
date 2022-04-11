@@ -1,7 +1,7 @@
 mod base_state;
 mod state;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use self::state::State;
 use super::super::graph::traits::*;
 
@@ -23,11 +23,8 @@ pub struct Matcher<'g0: 'g1, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1) -> Option<bool>  {
         state: State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>,
         found_match: bool,
-        graph_0_ids: Vec<NID0>,
-        graph_1_ids: Vec<NID1>,
         match_continuation: Vec<(NID0, NID1)>,
         first_candidate_0: Option<NID0>,
-        curr_candidate_1_index: usize,
         callback: CALLBACK,
 }
 
@@ -40,15 +37,11 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1) -> Option<bool> {
 
         pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
-            let graph1_ids = graph_1.get_nodes_ids();
             Matcher {
                 state: State::new(graph_0, graph_1, vcomp, ecomp),
                 found_match: false,
-                graph_0_ids: sort_nodes(graph_0),
-                graph_1_ids: graph1_ids,
                 match_continuation: Vec::new(),
                 first_candidate_0: None,
-                curr_candidate_1_index: 0,
                 callback: callback,
             }
         }
@@ -60,23 +53,11 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        fn graph_1_loop(&mut self) -> Option<bool> {
-            if let Some(id0) = self.first_candidate_0 {
-                for next_candidate_1_id in self.curr_candidate_1_index..self.graph_1_ids.len() {
-                    let id1 = self.graph_1_ids[next_candidate_1_id];
-                    if self.state.possible_candidate_1(&id1) && self.state.feasible(&id0, &id1)? {
-                        self.match_continuation.push((id0, id1));
-                        self.state.push(&id0, &id1);
-                        return Some(true);
-                    }
-                    self.curr_candidate_1_index += 1;
-                }
-            }
-            Some(false)
-        }
-
-        pub fn process(&mut self) -> Option<bool> {
+        pub fn process(&mut self, ids0: Vec<NID0>, ids1: Vec<NID1>) -> Option<bool> {
+            let mut it0;
+            let mut it1 = ids1.iter();
             let mut state = IterationStates::Process;
+            let mut init_set = HashSet::<NID0>::new();
             loop {
                 match state {
                     IterationStates::Process => {
@@ -99,18 +80,35 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                         }
                     },
                     IterationStates::LookForCandidates => {
-                        if let Some(nid) = self.graph_0_ids.iter().find(|nid| self.state.possible_candidate_0(nid)) {
-                            self.first_candidate_0 = Some(*nid);
+                        it0 = ids0.iter();
+                        while let Some(id0) = it0.next() {
+                            if self.state.possible_candidate_0(id0) && (!init_set.contains(id0) || !self.match_continuation.is_empty()) {
+                                if self.match_continuation.is_empty() {
+                                    init_set.insert(*id0);
+                                }
+                                self.first_candidate_0 = Some(*id0);
+                                break;
+                            }
                         }
                         state = IterationStates::InitGraph1Loop;
                     },
                     IterationStates::InitGraph1Loop => {
-                        self.curr_candidate_1_index = 0;
+                        it1 = ids1.iter();
                         state = IterationStates::Graph1Loop;
                     },
                     IterationStates::Graph1Loop => {
-                        let goto_process = self.graph_1_loop()?;
-                        if goto_process {
+                        let mut backtrack = true;
+                        if let Some(id0) = &self.first_candidate_0 {
+                            while let Some(id1) = it1.next() {
+                                if self.state.possible_candidate_1(&id1) && self.state.feasible(id0, id1)? {
+                                    self.match_continuation.push((*id0, *id1));
+                                    self.state.push(id0, id1);
+                                    backtrack = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if !backtrack {
                             state = IterationStates::Process;
                         } else {
                             state = IterationStates::Backtrack;
@@ -118,11 +116,15 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
                     },
                     IterationStates::Backtrack => {
                         if self.match_continuation.is_empty() {
-                            return Some(self.found_match);
+                            if init_set.len() == ids0.len() {
+                                return Some(self.found_match);
+                            } else {
+                                state = IterationStates::LookForCandidates;
+                            }
+                        } else {
+                            self.back_track();
+                            state = IterationStates::Graph1Loop;
                         }
-                        self.back_track();
-                        self.curr_candidate_1_index += 1;
-                        state = IterationStates::Graph1Loop;
                     }
                 }
             }
@@ -149,6 +151,9 @@ Graph1: GrowableGraphIteratorTrait<NID1, EID1>,
 VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
 CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1)-> Option<bool>  {
 
+    let id0 = sort_nodes(graph_0);
+    let id1 = graph_1.get_nodes_ids();
     let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
-    matcher.process()
+    
+    matcher.process(id0, id1)
 }
