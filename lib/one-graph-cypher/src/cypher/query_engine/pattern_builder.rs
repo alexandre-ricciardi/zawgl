@@ -17,11 +17,10 @@ pub fn merge_path(pattern: &mut PropertyGraph, path: &PropertyGraph) {
             }
         }
     }
-    for rne in path.get_relationships_and_edges() {
-        let e = rne.1;
-        let s = path.get_node_ref(&e.get_source());
-        let t = path.get_node_ref(&e.get_target());
-        let r = rne.0;
+    for rne in path.get_edges() {
+        let s = path.get_node_ref(&rne.get_source());
+        let t = path.get_node_ref(&rne.get_target());
+        let r = &rne.relationship;
         if let Some(s_var) = s.get_var() {
             if let Some(t_var) = t.get_var() {
                 pattern.add_relationship(r.clone(), map_var_pattern[s_var], map_var_pattern[t_var]);

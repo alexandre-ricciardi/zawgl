@@ -2,6 +2,9 @@ mod base_state;
 mod state;
 
 use std::collections::{HashMap, HashSet};
+use crate::graph_engine::model::{ProxyNodeId, GraphProxy};
+use crate::model::{PropertyGraph, Relationship, Node};
+
 use self::state::State;
 use super::super::graph::traits::*;
 use super::super::graph::*;
@@ -15,25 +18,21 @@ enum IterationStates {
     Backtrack,
 }
 
-pub struct Matcher<'g0: 'g1, 'g1,
-    VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1) -> Option<bool>  {
-        state: State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>,
+pub struct Matcher<'g0: 'g1, 'g1, VCOMP, ECOMP, CALLBACK>
+    where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
+    CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy) -> Option<bool> {
+        state: State<'g0, 'g1, VCOMP, ECOMP>,
         found_match: bool,
-        match_continuation: Vec<(NID0, NID1)>,
-        first_candidate_0: Option<NID0>,
+        match_continuation: Vec<(NodeIndex, ProxyNodeId)>,
+        first_candidate_0: Option<NodeIndex>,
         callback: CALLBACK,
 }
 
-impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0: Clone, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK> Matcher <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
-    where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<R0>,
-    Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
-    VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-    CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1) -> Option<bool> {
+impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBACK>
+    where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
+    CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy) -> Option<bool> {
 
-        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
+        pub fn new(graph_0: &'g0 PropertyGraph, graph_1: &'g1 mut GraphProxy, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
             Matcher {
                 state: State::new(graph_0, graph_1, vcomp, ecomp),
                 found_match: false,
@@ -50,11 +49,11 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0: Clone, N1, R1, VCOMP, ECOMP, Gra
             }
         }
 
-        pub fn process(&mut self, ids0: Vec<NID0>, ids1: Vec<NID1>) -> Option<bool> {
+        pub fn process(&mut self, ids0: Vec<NodeIndex>, ids1: Vec<ProxyNodeId>) -> Option<bool> {
             let mut it0;
             let mut it1 = ids1.iter();
             let mut state = IterationStates::Process;
-            let mut init_set = HashSet::<NID0>::new();
+            let mut init_set = HashSet::<NodeIndex>::new();
             loop {
                 match state {
                     IterationStates::Process => {
@@ -128,25 +127,16 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0: Clone, N1, R1, VCOMP, ECOMP, Gra
         }
     }
 
-fn sort_nodes<'g, NID, EID, Graph, R: Clone>(graph: &'g Graph) -> Vec<NID> 
-where NID: std::hash::Hash + Eq + MemGraphId + Copy,
-EID: std::hash::Hash + Eq + MemGraphId + Copy,
-Graph: GraphIteratorTrait<R> + GraphTrait<NID, EID> {
+fn sort_nodes<'g>(graph: &'g PropertyGraph) -> Vec<NodeIndex> {
     let mut res = graph.get_nodes_ids();
     res.sort_by(|a, b| (graph.in_degree(b) + graph.out_degree(b)).cmp(&(graph.in_degree(a) + graph.out_degree(a))));
     res
 }
 
-pub fn sub_graph_isomorphism<'g0: 'g1, 'g1, NID0: 'g1, NID1: 'g1, EID0: 'g1, EID1: 'g1, N0: 'g1, R0: Clone + 'g1, N1: 'g1, R1: 'g1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
-(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Option<bool>
-where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy,
-Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
-Graph0: GraphIteratorTrait<R0>,
-Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1>,
-Graph1: GrowableGraphIteratorTrait<NID1, EID1>,
-VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
-CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1)-> Option<bool>  {
+pub fn sub_graph_isomorphism<'g0: 'g1, 'g1, VCOMP, ECOMP, CALLBACK>
+(graph_0: &'g0 PropertyGraph, graph_1: &'g1 mut GraphProxy, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Option<bool>
+where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
+CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy)-> Option<bool>  {
 
     let id0 = sort_nodes(graph_0);
     let id1 = graph_1.get_nodes_ids();

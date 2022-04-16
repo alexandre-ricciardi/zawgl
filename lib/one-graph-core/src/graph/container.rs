@@ -29,17 +29,17 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainerTrait<NodeIndex, EdgeIndex
 
 impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
     
-    fn out_edges(&self, source: &NodeIndex) -> OutEdges<'_, RELATIONSHIP> {
+    pub fn out_edges(&self, source: &NodeIndex) -> OutEdges<'_, RELATIONSHIP> {
         self.get_inner_graph().out_edges(source)
     }
 
-    fn in_edges(&self, target: &NodeIndex) -> InEdges<'_, RELATIONSHIP> {
+    pub fn in_edges(&self, target: &NodeIndex) -> InEdges<'_, RELATIONSHIP> {
         self.get_inner_graph().in_edges(target)
     }
-    fn in_degree(&self, node: &NodeIndex) -> usize {
+    pub fn in_degree(&self, node: &NodeIndex) -> usize {
         self.in_edges(node).count()
     }
-    fn out_degree(&self, node: &NodeIndex) -> usize {
+    pub fn out_degree(&self, node: &NodeIndex) -> usize {
         self.out_edges(node).count()
     }
 }
@@ -91,19 +91,22 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
         self.graph.edges.iter().map(|e| &e.relationship).collect()
     }
 
-    pub fn get_relationships_mut(&mut self) -> &mut Vec<RELATIONSHIP> {
-        &mut self.graph.edges.iter().map(|e| e.relationship).collect()
+    pub fn get_relationships_mut(&mut self) -> Vec<&mut RELATIONSHIP> {
+        self.graph.edges.iter_mut().map(|e| &mut e.relationship).collect()
     }
 
     pub fn get_edges(&self) -> &Vec<EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>> {
         &self.graph.edges
     }
 
+    pub fn get_edges_mut(&mut self) -> &mut Vec<EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>> {
+        &mut self.graph.edges
+    }
     pub fn get_nodes(&self) -> Vec<&NODE> {
         self.graph.vertices.iter().map(|v| &v.node).collect()
     }
 
     pub fn get_nodes_mut(&mut self) -> Vec<&mut NODE> {
-        self.graph.vertices.iter().map(|v| &mut v.node).collect()
+        self.graph.vertices.iter_mut().map(|v| &mut v.node).collect()
     }
 }

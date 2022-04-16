@@ -14,7 +14,7 @@ async fn test_cypher() {
     test_double_create_issue().await;
 }
 
-#[tokio::test]
+//#[tokio::test]
 async fn test_cypher_2() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
     run_test("first_test", test_cypher_requests_2).await;

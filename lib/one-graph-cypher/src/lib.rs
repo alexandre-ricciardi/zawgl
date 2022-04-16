@@ -40,11 +40,11 @@ pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handl
             let mut rels_doc = Vec::new();
             for rel in pattern.get_relationships_and_edges() {
                 rels_doc.push(doc!{
-                    "id": rel.0.get_id().ok_or(CypherError::ResponseError)?.to_string(),
-                    "source_id": pattern.get_node_ref(&rel.1.get_source()).get_id().ok_or(CypherError::ResponseError)?.to_string(),
-                    "target_id": pattern.get_node_ref(&rel.1.get_target()).get_id().ok_or(CypherError::ResponseError)?.to_string(),
-                    "properties": build_properties(rel.0.get_properties_ref()),
-                    "labels": Bson::from(rel.0.get_labels_ref()),
+                    "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)?.to_string(),
+                    "source_id": pattern.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)?.to_string(),
+                    "target_id": pattern.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)?.to_string(),
+                    "properties": build_properties(rel.relationship.get_properties_ref()),
+                    "labels": Bson::from(rel.relationship.get_labels_ref()),
                 });
             }
             graph_doc.insert("relationships", rels_doc);
