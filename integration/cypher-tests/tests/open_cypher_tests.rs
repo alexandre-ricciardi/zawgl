@@ -14,6 +14,12 @@ async fn test_cypher() {
     test_double_create_issue().await;
 }
 
+#[tokio::test]
+async fn test_cypher_2() {
+    SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
+    run_test("first_test", test_cypher_requests_2).await;
+}
+
 async fn run_test<F, T>(db_name: &str, lambda: F) where F : FnOnce() -> T, T : Future<Output = ()> + Send {
     let db_dir = build_dir_path_and_rm_old(db_name).expect("error");
     
@@ -97,6 +103,31 @@ async fn test_cypher_requests() {
         let res = d.get_document("result").expect("result");
         let graphs = res.get_array("graphs").expect("graphs");
         assert_eq!(graphs.len(), 4);
+        for g in graphs {
+            let graph = g.as_document().expect("a graph");
+            let nodes = graph.get_array("nodes").expect("nodes");
+            let relationships = graph.get_array("relationships").expect("relationships");
+            assert_eq!(nodes.len(), 2);
+            assert_eq!(relationships.len(), 1);
+        }
+    }
+}
+
+async fn test_cypher_requests_2() {
+    let mut client = Client::new("ws://localhost:8182").await;
+    for _ in 0..10 {
+        let r = client.execute_cypher_request("create (n:Person) return n").await;
+        if let Ok(d) = r {
+            debug!("{}", d.to_string())
+        }
+    }
+
+    let r = client.execute_cypher_request("match (x:Person), (y:Person) create (x)-[f:FRIEND_OF]->(y) return f").await;
+    if let Ok(d) = r {
+        debug!("{}", d.to_string());
+        let res = d.get_document("result").expect("result");
+        let graphs = res.get_array("graphs").expect("graphs");
+        assert_eq!(graphs.len(), 45);
         for g in graphs {
             let graph = g.as_document().expect("a graph");
             let nodes = graph.get_array("nodes").expect("nodes");

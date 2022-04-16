@@ -10,15 +10,6 @@ pub trait GraphTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
     fn get_nodes_ids(&self) -> Vec<NodeId>;
 }
 
-pub trait GraphIteratorTrait<NodeId: MemGraphId, EdgeId: MemGraphId> {
-    type OutIt: Iterator<Item=EdgeId>;
-    type InIt: Iterator<Item=EdgeId>;
-    fn out_edges(&self, source: &NodeId) -> Self::OutIt;
-    fn in_edges(&self, target: &NodeId) -> Self::InIt;
-    fn in_degree(&self, node: &NodeId) -> usize;
-    fn out_degree(&self, node: &NodeId) -> usize;
-}
-
 
 pub trait GraphContainerTrait<NID: MemGraphId, EID: MemGraphId, NODE, RELATIONSHIP>: GraphTrait<NID, EID> {
     fn get_node_mut(&mut self, id: &NID) -> &mut NODE;

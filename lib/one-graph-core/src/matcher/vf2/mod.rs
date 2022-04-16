@@ -4,6 +4,7 @@ mod state;
 use std::collections::{HashMap, HashSet};
 use self::state::State;
 use super::super::graph::traits::*;
+use super::super::graph::*;
 
 enum IterationStates {
     Process,
@@ -14,11 +15,7 @@ enum IterationStates {
     Backtrack,
 }
 
-pub struct Matcher<'g0: 'g1, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
-    where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy, 
-    Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
-    Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
+pub struct Matcher<'g0: 'g1, 'g1,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1) -> Option<bool>  {
         state: State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>,
@@ -28,10 +25,10 @@ pub struct Matcher<'g0: 'g1, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP,
         callback: CALLBACK,
 }
 
-impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK> Matcher <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
+impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0: Clone, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK> Matcher <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
     where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
     EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
+    Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<R0>,
     Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
     VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,
     CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1) -> Option<bool> {
@@ -131,21 +128,21 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
     }
 
-fn sort_nodes<'g, NID, EID, Graph>(graph: &'g Graph) -> Vec<NID> 
+fn sort_nodes<'g, NID, EID, Graph, R: Clone>(graph: &'g Graph) -> Vec<NID> 
 where NID: std::hash::Hash + Eq + MemGraphId + Copy,
 EID: std::hash::Hash + Eq + MemGraphId + Copy,
-Graph: GraphIteratorTrait<NID, EID> + GraphTrait<NID, EID> {
+Graph: GraphIteratorTrait<R> + GraphTrait<NID, EID> {
     let mut res = graph.get_nodes_ids();
     res.sort_by(|a, b| (graph.in_degree(b) + graph.out_degree(b)).cmp(&(graph.in_degree(a) + graph.out_degree(a))));
     res
 }
 
-pub fn sub_graph_isomorphism<'g0: 'g1, 'g1, NID0: 'g1, NID1: 'g1, EID0: 'g1, EID1: 'g1, N0: 'g1, R0: 'g1, N1: 'g1, R1: 'g1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
+pub fn sub_graph_isomorphism<'g0: 'g1, 'g1, NID0: 'g1, NID1: 'g1, EID0: 'g1, EID1: 'g1, N0: 'g1, R0: Clone + 'g1, N1: 'g1, R1: 'g1, VCOMP, ECOMP, Graph0, Graph1, CALLBACK>
 (graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Option<bool>
 where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
 EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy,
 Graph0: GraphContainerTrait<NID0, EID0, N0, R0>,
-Graph0: GraphIteratorTrait<NID0, EID0>,
+Graph0: GraphIteratorTrait<R0>,
 Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1>,
 Graph1: GrowableGraphIteratorTrait<NID1, EID1>,
 VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool,

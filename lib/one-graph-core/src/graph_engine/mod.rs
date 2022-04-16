@@ -119,17 +119,17 @@ impl GraphEngine {
                 res_match.add_node(proxy_node);
             }
             for prel in gpattern.get_relationships_and_edges() {
-                let psource_id = &prel.1.source;
-                let ptarget_id = &prel.1.target;
+                let psource_id = &prel.source;
+                let ptarget_id = &prel.target;
                 let proxy_source_id = map0[psource_id];
                 let proxy_target_id = map0[ptarget_id];
                 for rel_id in proxy.out_edges(&proxy_source_id) {
                     let target_id = proxy.get_target_index(&rel_id);
                     if target_id == proxy_target_id {
                         let rel = proxy.get_relationship_ref(&rel_id)?;
-                        if compare_relationships(prel.0, rel) {
+                        if compare_relationships(&prel.relationship, rel) {
                             let mut rel_clone = rel.clone();
-                            rel_clone.set_option_var(prel.0.get_var());
+                            rel_clone.set_option_var(&prel.relationship.get_var());
                             res_match.add_relationship(rel_clone, *psource_id, *ptarget_id);
                         }
                     }
@@ -152,10 +152,10 @@ impl GraphEngine {
             }
         }
         for re in pattern.get_relationships_and_edges() {
-            let source_index = re.1.source;
-            let target_index = re.1.target;
-            if *re.0.get_status() == Status::Match {
-                match_pattern.add_relationship(re.0.clone(), map_nodes_ids[&source_index], map_nodes_ids[&target_index]);
+            let source_index = re.source;
+            let target_index = re.target;
+            if *re.relationship.get_status() == Status::Match {
+                match_pattern.add_relationship(re.relationship.clone(), map_nodes_ids[&source_index], map_nodes_ids[&target_index]);
             }
         }
 
@@ -163,12 +163,12 @@ impl GraphEngine {
 
         for matched_graph in &mut res {
             for re in pattern.get_relationships_and_edges() {
-                if *re.0.get_status() == Status::Create {
-                    let source_index = map_nodes_ids[&re.1.source];
-                    let target_index = map_nodes_ids[&re.1.target];
+                if *re.relationship.get_status() == Status::Create {
+                    let source_index = map_nodes_ids[&re.source];
+                    let target_index = map_nodes_ids[&re.target];
                     let source = matched_graph.get_node_ref(&source_index).get_id()?;
                     let target = matched_graph.get_node_ref(&target_index).get_id()?;
-                    let res = self.create_relationship(re.0, source, target)?;
+                    let res = self.create_relationship(&re.relationship, source, target)?;
                     matched_graph.add_relationship(res, source_index, target_index);
                 }
             }
