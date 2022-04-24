@@ -1,8 +1,8 @@
-use one_graph_core::graph::traits::GraphContainerTrait;
 use one_graph_core::graph::*;
 use one_graph_core::model::*;
 use super::states::*;
 use super::parser::*;
+
 pub struct PathBuilder {
     curr_node: Option<NodeIndex>,
     curr_directed_relationship: Option<EdgeIndex>,
@@ -48,8 +48,8 @@ impl PathBuilder {
             id_type: None, curr_property_name: None, current_path: PropertyGraph::new() }
     }
 
-    pub fn get_path_graph(&self) -> &PropertyGraph {
-        &self.current_path
+    pub fn get_path_graph(&self) -> PropertyGraph {
+        self.current_path
     }
 
     pub fn set_property_value(&mut self, property_value: Option<PropertyValue>) {

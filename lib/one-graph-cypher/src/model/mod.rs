@@ -58,13 +58,13 @@ pub struct BoolCondition {
 }
 
 pub struct Request {
-    pub pattern: PropertyGraph,
+    pub patterns: Vec<PropertyGraph>,
     pub return_clause: Option<ReturnClause>,
     pub where_clause: Option<WhereClause>,
 }
 
 impl Request {
     pub fn new() -> Self {
-        Request {pattern: PropertyGraph::new(), return_clause: None, where_clause: None}
+        Request {patterns: Vec::new(), return_clause: None, where_clause: None}
     }
 }

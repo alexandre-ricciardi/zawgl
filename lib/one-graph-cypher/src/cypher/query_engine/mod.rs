@@ -1,7 +1,6 @@
 use super::*;
 use super::super::model::*;
 use super::parser::*;
-use one_graph_core::graph::traits::{GraphContainerTrait, GraphTrait};
 use one_graph_core::graph::*;
 use one_graph_core::model::*;
 
@@ -34,21 +33,29 @@ struct CypherAstVisitor {
     curr_identifier: Option<String>,
     state: VisitorState,
     id_type: Option<IdentifierType>,    
-    current_path_builder: Option<PathBuilder>, 
+    path_builders: Vec<PathBuilder>, 
 }
 
 impl CypherAstVisitor {
     fn new() -> Self {
         CypherAstVisitor { request: None, state: VisitorState::Init,
-            curr_identifier: None, id_type: None, current_path_builder: None }
+            curr_identifier: None, id_type: None, path_builders: Vec::new() }
     }
 }
 
 impl CypherAstVisitor {
     
+    fn current_path_builder(&mut self) -> Option<&mut PathBuilder> {
+        self.path_builders.last_mut()
+    }
 
+    fn append_path(&mut self) {
+        self.path_builders.push(PathBuilder::new());
+    }
 }
 impl AstVisitor for CypherAstVisitor {
+
+
     fn enter_query(&mut self) -> AstVisitorResult<bool> {
         self.request = Some(Request::new());
         Ok(true)
@@ -63,7 +70,7 @@ impl AstVisitor for CypherAstVisitor {
             }
             _ => {}
         }
-        self.current_path_builder = Some(PathBuilder::new());
+        self.append_path();
         Ok(true)
     }
     fn enter_return(&mut self) -> AstVisitorResult<bool> {
@@ -106,51 +113,51 @@ impl AstVisitor for CypherAstVisitor {
         Ok(true)
     }
     fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder {
+        if let Some(pb) = &mut self.current_path_builder() {
             pb.enter_node(&self.state);
         }
         Ok(true)
     }
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
-        if let (Some(pb), Some(ast_tag)) = (&mut self.current_path_builder, node.ast_tag){
+        if let (Some(pb), Some(ast_tag)) = (&mut self.current_path_builder(), node.ast_tag){
             pb.enter_relationship(ast_tag, &self.state)
         }
         Ok(true)
     }
     fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder {
+        if let Some(pb) = &mut self.current_path_builder() {
             pb.enter_property();
         }
         Ok(true)
     }
 
     fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder {
+        if let Some(pb) = &mut self.current_path_builder() {
             pb.enter_integer_value(value);
         }
         Ok(true)
     }
     fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder {
+        if let Some(pb) = &mut self.current_path_builder() {
             pb.enter_float_value(value);
         }
         Ok(true)
     }
     fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder {
+        if let Some(pb) = &mut self.current_path_builder() {
             pb.enter_string_value(value);
         }
         Ok(true)
     }
     fn enter_bool_value(&mut self, value: Option<bool>) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder {
+        if let Some(pb) = &mut self.current_path_builder() {
             pb.enter_bool_value(value);
         }
         Ok(true)
     }
 
     fn enter_label(&mut self) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder {
+        if let Some(pb) = &mut self.current_path_builder() {
             pb.enter_label();
         }
         self.id_type = Some(IdentifierType::Label);
@@ -158,7 +165,7 @@ impl AstVisitor for CypherAstVisitor {
     }
 
     fn enter_variable(&mut self) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder {
+        if let Some(pb) = &mut self.current_path_builder() {
             pb.enter_variable();
         }
         self.id_type = Some(IdentifierType::Variable);
@@ -169,7 +176,7 @@ impl AstVisitor for CypherAstVisitor {
         match self.state {
             VisitorState::MatchPattern |
             VisitorState::CreatePattern => {
-                if let Some(pb) = &mut self.current_path_builder {
+                if let Some(pb) = &mut self.current_path_builder() {
                     pb.enter_identifier(&self.state, key);
                 }
             }
@@ -203,14 +210,15 @@ impl AstVisitor for CypherAstVisitor {
         Ok(true)
     }
     fn exit_create(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_match(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_path(&mut self) -> AstVisitorResult<bool> {
+    fn exit_match(&mut self) -> AstVisitorResult<bool> { 
         if let Some(rq) = &mut self.request {
-            if let Some(pb) = &self.current_path_builder {
-                let path = pb.get_path_graph();
-                merge_path(&mut rq.pattern, path);
-            }
+            let paths: &Vec<PropertyGraph> = &self.path_builders.iter().map(|pb| pb.get_path_graph()).collect();
+            rq.patterns = merge_paths(paths);
+            self.path_builders.clear();
         }
+        Ok(true)
+    }   
+    fn exit_path(&mut self) -> AstVisitorResult<bool> {
         Ok(true)
     }
     fn exit_node(&mut self) -> AstVisitorResult<bool> { Ok(true)}
@@ -239,7 +247,7 @@ mod test_query_engine {
     fn test_create_0() {
         let request = process_cypher_query("CREATE (n:Person)");
         if let  Some(req) = request {
-            let node = req.pattern.get_node_ref(&NodeIndex::new(0));
+            let node = req.patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
         } else {
@@ -252,7 +260,7 @@ mod test_query_engine {
     fn test_create_1() {
         let request = process_cypher_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
         if let  Some(req) = request {
-            let node = req.pattern.get_node_ref(&NodeIndex::new(0));
+            let node = req.patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
             assert_eq!(node.get_labels_ref()[1], String::from("Parent"));
@@ -270,10 +278,10 @@ mod test_query_engine {
     fn test_create_2() {
         let request = process_cypher_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
         if let  Some(req) = request {
-            let node = req.pattern.get_node_ref(&NodeIndex::new(0));
+            let node = req.patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
-            let rel = req.pattern.get_relationship_ref(&EdgeIndex::new(0));
+            let rel = req.patterns[0].get_relationship_ref(&EdgeIndex::new(0));
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("FRIEND_OF"));
             
@@ -287,15 +295,15 @@ mod test_query_engine {
     fn test_match_and_create() {
         let request = process_cypher_query("MATCH (m:Movie), (a:Actor) CREATE (a)-[r:PLAYED_IN]->(m) RETURN m, a, r");
         if let  Some(req) = request {
-            let movie = req.pattern.get_node_ref(&NodeIndex::new(0));
+            let movie = req.patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(movie.get_var(), &Some(String::from("a")));
             assert_eq!(movie.get_labels_ref()[0], String::from("Actor"));
             assert_eq!(movie.get_status(), &Status::Match);
-            let actor = req.pattern.get_node_ref(&NodeIndex::new(1));
+            let actor = req.patterns[0].get_node_ref(&NodeIndex::new(1));
             assert_eq!(actor.get_var(), &Some(String::from("m")));
             assert_eq!(actor.get_status(), &Status::Match);
             assert_eq!(actor.get_labels_ref()[0], String::from("Movie"));
-            let rel = req.pattern.get_relationship_ref(&EdgeIndex::new(0));
+            let rel = req.patterns[0].get_relationship_ref(&EdgeIndex::new(0));
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
             assert_eq!(rel.get_status(), &Status::Create);

@@ -7,21 +7,21 @@ pub struct GraphContainer<NODE: Clone, RELATIONSHIP: Clone> {
 }
 
 
-impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainerTrait<NodeIndex, EdgeIndex, NODE, RELATIONSHIP> for GraphContainer<NODE, RELATIONSHIP> {
+impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
 
-    fn get_node_mut(&mut self, id: &NodeIndex) -> &mut NODE {
+    pub fn get_node_mut(&mut self, id: &NodeIndex) -> &mut NODE {
         &mut self.graph.vertices[id.get_index()].node
     }
 
-    fn get_relationship_mut(&mut self, id: &EdgeIndex) -> &mut RELATIONSHIP {
+    pub fn get_relationship_mut(&mut self, id: &EdgeIndex) -> &mut RELATIONSHIP {
         &mut self.graph.edges[id.get_index()].relationship
     }
 
-    fn get_node_ref(&self, id: &NodeIndex) -> &NODE {
+    pub fn get_node_ref(&self, id: &NodeIndex) -> &NODE {
         &self.graph.vertices[id.get_index()].node
     }
 
-    fn get_relationship_ref(&self, id: &EdgeIndex) -> &RELATIONSHIP {
+    pub fn get_relationship_ref(&self, id: &EdgeIndex) -> &RELATIONSHIP {
         &self.graph.edges[id.get_index()].relationship
     }
 
@@ -44,21 +44,21 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
     }
 }
 
-impl <NODE: Clone, RELATIONSHIP: Clone> GraphTrait<NodeIndex, EdgeIndex> for GraphContainer<NODE, RELATIONSHIP> {
+impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
 
-    fn get_source_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
+    pub fn get_source_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
         self.get_inner_graph().get_source_index(edge_index)
     }
-    fn get_target_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
+    pub fn get_target_index(&self, edge_index: &EdgeIndex) -> NodeIndex {
         self.get_inner_graph().get_target_index(edge_index)
     }
-    fn nodes_len(&self) -> usize {
+    pub fn nodes_len(&self) -> usize {
         self.graph.vertices.len()
     }
-    fn edges_len(&self) -> usize {
+    pub fn edges_len(&self) -> usize {
         self.graph.edges_len()
     }
-    fn get_nodes_ids(&self) -> Vec<NodeIndex> {
+    pub fn get_nodes_ids(&self) -> Vec<NodeIndex> {
         (0..self.nodes_len()).map(NodeIndex::new).collect()
     }
 }
