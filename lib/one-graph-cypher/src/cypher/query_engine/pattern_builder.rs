@@ -1,51 +1,92 @@
-use one_graph_core::{model::PropertyGraph, graph::NodeIndex};
-use std::collections::HashMap;
+use one_graph_core::{model::PropertyGraph};
+use std::{collections::{HashMap, HashSet}};
+
 
 pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {
     
-    let mut map_var_paths = HashMap::<String, Vec<(&str, &PropertyGraph, NodeIndex)>>::new();
+    let mut var_paths: HashMap<String, HashSet<usize>> = HashMap::new();
+    let mut path_id: usize = 0;
     for path in paths {
-        for nid in path.get_nodes_with_ids() {
-            if let Some(var_name) = nid.0.get_var() {
-                if map_var_paths.contains_key(var_name) {
-                    map_var_paths[var_name].push((var_name, path, nid.1))
-                } else {
-                    map_var_paths.insert(var_name.to_string(), vec![(var_name, path, nid.1)]);
-                }
-            }
-        }
-    }
-
-    let mut belongs_to_existing_pattern = None;
-    for n in path.get_nodes() {
-        if let Some(var_name) = n.get_var() {
-            if map_var_pattern.contains_key(var_name) {
-                belongs_to_existing_pattern = map_var_pattern.get(var_name);
-                break;
-            }
-        }
-    }
-
-    if let Some(pattern) = belongs_to_existing_pattern {
         for n in path.get_nodes() {
             if let Some(var_name) = n.get_var() {
-                if !map_var_pattern.contains_key(var_name) {
-                    let id = pattern.0.add_node(n.clone());
-                    map_var_pattern.insert(var_name.to_string(), (pattern., id));
+                let set = var_paths.get_mut(var_name);
+                if let Some(s) = set {
+                    s.insert(path_id);
+                } else {
+                    var_paths.insert(var_name.to_string(), HashSet::from([path_id]));
                 }
             }
         }
-        for rne in path.get_edges() {
-            let s = path.get_node_ref(&rne.get_source());
-            let t = path.get_node_ref(&rne.get_target());
-            let r = &rne.relationship;
-            if let Some(s_var) = s.get_var() {
-                if let Some(t_var) = t.get_var() {
-                    pattern.add_relationship(r.clone(), map_var_pattern[s_var].1, map_var_pattern[t_var].1);
+        path_id += 1;
+    }
+
+    let mut paths_set = Vec::<HashSet<usize>>::new();
+    for path_id_set in var_paths.values() {
+        if path_id_set.len() > 1 {
+            let mut found= false;
+            for set in paths_set.iter_mut() {
+                if !set.is_disjoint(path_id_set) {
+                    found = true;
+                    for id in path_id_set {
+                        set.insert(*id);
+                    }
                 }
+            }
+            if !found {
+                paths_set.push(path_id_set.clone());
             }
         }
     }
 
+    let mut full_set = HashSet::new();
+    for set in paths_set.iter() {
+        for id in set {
+            full_set.insert(id);
+        }
+    }
 
+    let mut all_paths = HashSet::new();
+    for id in 0..paths.len() {
+        all_paths.insert(id);
+    }
+
+    for id in 0..paths.len() {
+        if !all_paths.contains(&id) {
+            let mut set = HashSet::new();
+            set.insert(id);
+            paths_set.push(set);
+        }
+    }
+
+    let mut res = Vec::new();
+    for set in paths_set {
+        let mut pattern = PropertyGraph::new();
+        let mut merge_vars_map = HashMap::new();
+        let mut map_path_node_ids = HashMap::new();
+        for path_id in set {
+            let path = &paths[path_id];
+            for node in path.get_nodes_with_ids() {
+                if let Some(var_name) = node.0.get_var() {
+                    if !merge_vars_map.contains_key(var_name) {
+                        let nid = pattern.add_node(node.0.clone());
+                        map_path_node_ids.insert(node.1, nid);
+                        merge_vars_map.insert(var_name, nid);
+                    }
+                } else {
+                    let nid = pattern.add_node(node.0.clone());
+                    map_path_node_ids.insert(node.1, nid);
+                }
+            }
+
+            for e in path.get_edges() {
+                let s = e.get_source();
+                let t = e.get_target();
+                let r = &e.relationship;
+                pattern.add_relationship(r.clone(), map_path_node_ids[&s], map_path_node_ids[&t]);
+            }
+        }
+        res.push(pattern);
+    }
+
+    res
 }

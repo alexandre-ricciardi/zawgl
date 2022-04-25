@@ -113,14 +113,16 @@ impl AstVisitor for CypherAstVisitor {
         Ok(true)
     }
     fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+        let state = self.state.clone();
         if let Some(pb) = &mut self.current_path_builder() {
-            pb.enter_node(&self.state);
+            pb.enter_node(state);
         }
         Ok(true)
     }
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+        let state = self.state.clone();
         if let (Some(pb), Some(ast_tag)) = (&mut self.current_path_builder(), node.ast_tag){
-            pb.enter_relationship(ast_tag, &self.state)
+            pb.enter_relationship(ast_tag, state)
         }
         Ok(true)
     }
@@ -173,11 +175,12 @@ impl AstVisitor for CypherAstVisitor {
     }
 
     fn enter_identifier(&mut self, key: &str) -> AstVisitorResult<bool> {
+        let state = self.state.clone();
         match self.state {
             VisitorState::MatchPattern |
             VisitorState::CreatePattern => {
                 if let Some(pb) = &mut self.current_path_builder() {
-                    pb.enter_identifier(&self.state, key);
+                    pb.enter_identifier(state, key);
                 }
             }
             VisitorState::FunctionCall => {
@@ -212,7 +215,7 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_create(&mut self) -> AstVisitorResult<bool> { Ok(true)}
     fn exit_match(&mut self) -> AstVisitorResult<bool> { 
         if let Some(rq) = &mut self.request {
-            let paths: &Vec<PropertyGraph> = &self.path_builders.iter().map(|pb| pb.get_path_graph()).collect();
+            let paths: &Vec<PropertyGraph> = &self.path_builders.iter().map(|pb| pb.get_path_graph().clone()).collect();
             rq.patterns = merge_paths(paths);
             self.path_builders.clear();
         }
