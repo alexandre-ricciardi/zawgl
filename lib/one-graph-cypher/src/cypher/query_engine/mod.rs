@@ -214,8 +214,9 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn exit_create(&mut self) -> AstVisitorResult<bool> { 
         if let Some(rq) = &mut self.request {
-            let paths: &Vec<PropertyGraph> = &self.path_builders.iter().map(|pb| pb.get_path_graph().clone()).collect();
-            rq.patterns = merge_paths(paths);
+            let mut paths: Vec<PropertyGraph> = self.path_builders.iter().map(|pb| pb.get_path_graph().clone()).collect();
+            paths.append(&mut rq.patterns);
+            rq.patterns = merge_paths(&paths);
             self.path_builders.clear();
         }
         Ok(true)
