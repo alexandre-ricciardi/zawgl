@@ -53,7 +53,6 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
             let mut it0;
             let mut it1 = ids1.iter();
             let mut state = IterationStates::Process;
-            let mut init_set = HashSet::<NodeIndex>::new();
             loop {
                 match state {
                     IterationStates::Process => {
@@ -78,10 +77,7 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                     IterationStates::LookForCandidates => {
                         it0 = ids0.iter();
                         while let Some(id0) = it0.next() {
-                            if self.state.possible_candidate_0(id0) && (!init_set.contains(id0) || !self.match_continuation.is_empty()) {
-                                if self.match_continuation.is_empty() {
-                                    init_set.insert(*id0);
-                                }
+                            if self.state.possible_candidate_0(id0) {
                                 self.first_candidate_0 = Some(*id0);
                                 break;
                             }
@@ -96,7 +92,7 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                         let mut backtrack = true;
                         if let Some(id0) = &self.first_candidate_0 {
                             while let Some(id1) = it1.next() {
-                                if self.state.possible_candidate_1(&id1) && self.state.feasible(id0, id1)? {
+                                if self.state.possible_candidate_1(id1) && self.state.feasible(id0, id1)? {
                                     self.match_continuation.push((*id0, *id1));
                                     self.state.push(id0, id1);
                                     backtrack = false;
@@ -112,11 +108,7 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                     },
                     IterationStates::Backtrack => {
                         if self.match_continuation.is_empty() {
-                            if init_set.len() == ids0.len() {
-                                return Some(self.found_match);
-                            } else {
-                                state = IterationStates::LookForCandidates;
-                            }
+                            return Some(self.found_match);
                         } else {
                             self.back_track();
                             state = IterationStates::Graph1Loop;

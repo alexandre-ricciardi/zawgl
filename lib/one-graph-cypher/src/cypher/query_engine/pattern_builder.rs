@@ -39,19 +39,16 @@ pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {
     }
 
     let mut full_set = HashSet::new();
+    
     for set in paths_set.iter() {
         for id in set {
-            full_set.insert(id);
+            full_set.insert(*id);
         }
     }
-
-    let mut all_paths = HashSet::new();
-    for id in 0..paths.len() {
-        all_paths.insert(id);
-    }
+    
 
     for id in 0..paths.len() {
-        if !all_paths.contains(&id) {
+        if !full_set.contains(&id) {
             let mut set = HashSet::new();
             set.insert(id);
             paths_set.push(set);
@@ -89,4 +86,92 @@ pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {
     }
 
     res
+}
+
+
+#[cfg(test)]
+mod test_patterns_builder {
+    use one_graph_core::model::{Node, Relationship};
+
+    use super::*;
+
+    #[test]
+    fn test_same_pattern() {
+        let mut p0 = PropertyGraph::new();
+        {
+            let mut n0 = Node::new();
+            n0.set_var("a");
+            let mut n1 = Node::new();
+            n1.set_var("b");
+            let i0 = p0.add_node(n0);
+            let i1 = p0.add_node(n1);
+            p0.add_relationship(Relationship::new(), i0, i1);
+        }
+        let mut p1 = PropertyGraph::new();
+        {
+            let mut n0 = Node::new();
+            n0.set_var("a");
+            let mut n1 = Node::new();
+            n1.set_var("c");
+            let i0 = p1.add_node(n0);
+            let i1 = p1.add_node(n1);
+            p1.add_relationship(Relationship::new(), i0, i1);
+        }
+
+        let patterns = merge_paths(&vec![p0, p1]);
+
+        assert_eq!(1, patterns.len());
+        let pattern = &patterns[0];
+        assert_eq!(3, pattern.get_nodes().len());
+    }
+
+    #[test]
+    fn test_two_patterns() {
+        let mut p0 = PropertyGraph::new();
+        {
+            let mut n0 = Node::new();
+            n0.set_var("a");
+            let mut n1 = Node::new();
+            n1.set_var("b");
+            let i0 = p0.add_node(n0);
+            let i1 = p0.add_node(n1);
+            p0.add_relationship(Relationship::new(), i0, i1);
+        }
+        let mut p1 = PropertyGraph::new();
+        {
+            let mut n0 = Node::new();
+            n0.set_var("d");
+            let mut n1 = Node::new();
+            n1.set_var("c");
+            let i0 = p1.add_node(n0);
+            let i1 = p1.add_node(n1);
+            p1.add_relationship(Relationship::new(), i0, i1);
+        }
+
+        let patterns = merge_paths(&vec![p0, p1]);
+
+        assert_eq!(2, patterns.len());
+        let pattern0 = &patterns[0];
+        assert_eq!(2, pattern0.get_nodes().len());
+        let pattern1 = &patterns[1];
+        assert_eq!(2, pattern1.get_nodes().len());
+    }
+
+    
+    #[test]
+    fn test_unique_pattern() {
+        let mut p0 = PropertyGraph::new();
+        {
+            let mut n0 = Node::new();
+            n0.set_var("a");
+            p0.add_node(n0);
+        }
+
+        let patterns = merge_paths(&vec![p0]);
+
+        assert_eq!(1, patterns.len());
+        let pattern = &patterns[0];
+        assert_eq!(1, pattern.get_nodes().len());
+    }
+
 }

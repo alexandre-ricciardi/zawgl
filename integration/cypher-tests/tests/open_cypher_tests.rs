@@ -7,15 +7,25 @@ use std::{future::Future, rc::Rc};
 use bson::{Bson, Document, doc};
 
 #[tokio::test]
-async fn test_cypher() {
+async fn test_cypher_0() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
     run_test("first_test", test_cypher_requests).await;
+}
+
+#[tokio::test]
+async fn test_cypher_1() {
+    SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
     run_test("create_path_test", test_create_path).await;
+}
+
+#[tokio::test]
+async fn test_cypher_2() {
+    SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
     test_double_create_issue().await;
 }
 
-//#[tokio::test]
-async fn test_cypher_2() {
+#[tokio::test]
+async fn test_cypher_3() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
     run_test("first_test", test_cypher_requests_2).await;
 }
