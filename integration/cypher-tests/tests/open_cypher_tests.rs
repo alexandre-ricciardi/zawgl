@@ -3,8 +3,7 @@ use one_graph_core::{model::init::InitContext, test_utils::build_dir_path_and_rm
 use simple_logger::SimpleLogger;
 use log::*;
 use og_client::Client;
-use std::{future::Future, rc::Rc};
-use bson::{Bson, Document, doc};
+use std::future::Future;
 
 #[tokio::test]
 async fn test_cypher_0() {
