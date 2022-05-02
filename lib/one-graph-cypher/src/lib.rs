@@ -21,7 +21,7 @@ pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handl
     let query = cypher_request.get_str("query").map_err(|err| CypherError::RequestError)?;
     let request_id = cypher_request.get_str("request_id").map_err(|err| CypherError::RequestError)?;
     let request = process_cypher_query(query).ok_or(CypherError::RequestError)?;
-    let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &request.patterns, None).map_err(|err| CypherError::TxError(err))?;
+    let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &request.steps, None).map_err(|err| CypherError::TxError(err))?;
     let mut result_doc = Document::new();  
     for res in &matched_graphs {
         let mut graph_list = Vec::new();

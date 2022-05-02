@@ -1,8 +1,10 @@
 use one_graph_core::{model::PropertyGraph};
 use std::{collections::{HashMap, HashSet}};
 
+use crate::model::Step;
 
-pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {
+
+pub fn merge_paths(paths: &Vec<PropertyGraph>, previous_step: Option<&Step>) -> Vec<PropertyGraph> {
     
     let mut var_paths: HashMap<String, HashSet<usize>> = HashMap::new();
     let mut path_id: usize = 0;

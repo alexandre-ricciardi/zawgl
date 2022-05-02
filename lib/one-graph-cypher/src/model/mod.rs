@@ -57,14 +57,23 @@ pub struct BoolCondition {
     pub operator: Operator,
 }
 
-pub struct Request {
+pub struct Step {
     pub patterns: Vec<PropertyGraph>,
+}
+
+impl Step {
+    pub fn new() -> Self {
+        Step {patterns: Vec::new()}
+    }
+}
+pub struct Request {
+    pub steps: Vec<Step>,
     pub return_clause: Option<ReturnClause>,
     pub where_clause: Option<WhereClause>,
 }
 
 impl Request {
     pub fn new() -> Self {
-        Request {patterns: Vec::new(), return_clause: None, where_clause: None}
+        Request {steps: Vec::new(), return_clause: None, where_clause: None}
     }
 }

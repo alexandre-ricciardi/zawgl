@@ -104,11 +104,16 @@ impl AstVisitor for CypherAstVisitor {
         Ok(true)
     }
     fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
-        
+        if let Some(rq) = &mut self.request {
+            rq.steps.push(Step::new());
+        }
         self.state = VisitorState::DirectiveCreate;
         Ok(true)
     }
     fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+        if let Some(rq) = &mut self.request {
+            rq.steps.push(Step::new());
+        }
         self.state = VisitorState::DirectiveMatch;
         Ok(true)
     }
@@ -214,18 +219,23 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn exit_create(&mut self) -> AstVisitorResult<bool> { 
         if let Some(rq) = &mut self.request {
-            let mut paths: Vec<PropertyGraph> = self.path_builders.iter().map(|pb| pb.get_path_graph().clone()).collect();
-            paths.append(&mut rq.patterns);
-            rq.patterns = merge_paths(&paths);
-            self.path_builders.clear();
+            let current_step = rq.steps.last_mut();
+            if let Some(step) = current_step {
+                let mut paths: Vec<PropertyGraph> = self.path_builders.iter().map(|pb| pb.get_path_graph().clone()).collect();
+                step.patterns = merge_paths(&paths, rq.steps.get(rq.steps.len() - 2));
+                self.path_builders.clear();
+            }
         }
         Ok(true)
     }
     fn exit_match(&mut self) -> AstVisitorResult<bool> { 
         if let Some(rq) = &mut self.request {
-            let paths: &Vec<PropertyGraph> = &self.path_builders.iter().map(|pb| pb.get_path_graph().clone()).collect();
-            rq.patterns = merge_paths(paths);
-            self.path_builders.clear();
+            let current_step = rq.steps.last_mut();
+            if let Some(step) = current_step {
+                let paths: &Vec<PropertyGraph> = &self.path_builders.iter().map(|pb| pb.get_path_graph().clone()).collect();
+                step.patterns = merge_paths(paths, rq.steps.get(rq.steps.len() - 2));
+                self.path_builders.clear();
+            }
         }
         Ok(true)
     }   
