@@ -105,14 +105,14 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let Some(rq) = &mut self.request {
-            rq.steps.push(Step::new());
+            rq.steps.push(Step::new(Directive::CREATE));
         }
         self.state = VisitorState::DirectiveCreate;
         Ok(true)
     }
     fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let Some(rq) = &mut self.request {
-            rq.steps.push(Step::new());
+            rq.steps.push(Step::new(Directive::MATCH));
         }
         self.state = VisitorState::DirectiveMatch;
         Ok(true)
@@ -268,7 +268,7 @@ mod test_query_engine {
     fn test_create_0() {
         let request = process_cypher_query("CREATE (n:Person)");
         if let  Some(req) = request {
-            let node = req.patterns[0].get_node_ref(&NodeIndex::new(0));
+            let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
         } else {
@@ -281,7 +281,7 @@ mod test_query_engine {
     fn test_create_1() {
         let request = process_cypher_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
         if let  Some(req) = request {
-            let node = req.patterns[0].get_node_ref(&NodeIndex::new(0));
+            let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
             assert_eq!(node.get_labels_ref()[1], String::from("Parent"));
@@ -299,10 +299,10 @@ mod test_query_engine {
     fn test_create_2() {
         let request = process_cypher_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
         if let  Some(req) = request {
-            let node = req.patterns[0].get_node_ref(&NodeIndex::new(0));
+            let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
-            let rel = req.patterns[0].get_relationship_ref(&EdgeIndex::new(0));
+            let rel = req.steps[0].patterns[0].get_relationship_ref(&EdgeIndex::new(0));
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("FRIEND_OF"));
             
@@ -316,15 +316,15 @@ mod test_query_engine {
     fn test_match_and_create() {
         let request = process_cypher_query("MATCH (m:Movie), (a:Actor) CREATE (a)-[r:PLAYED_IN]->(m) RETURN m, a, r");
         if let  Some(req) = request {
-            let movie = req.patterns[0].get_node_ref(&NodeIndex::new(0));
+            let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(movie.get_var(), &Some(String::from("a")));
             assert_eq!(movie.get_labels_ref()[0], String::from("Actor"));
             assert_eq!(movie.get_status(), &Status::Match);
-            let actor = req.patterns[0].get_node_ref(&NodeIndex::new(1));
+            let actor = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(1));
             assert_eq!(actor.get_var(), &Some(String::from("m")));
             assert_eq!(actor.get_status(), &Status::Match);
             assert_eq!(actor.get_labels_ref()[0], String::from("Movie"));
-            let rel = req.patterns[0].get_relationship_ref(&EdgeIndex::new(0));
+            let rel = req.steps[0].patterns[0].get_relationship_ref(&EdgeIndex::new(0));
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
             assert_eq!(rel.get_status(), &Status::Create);

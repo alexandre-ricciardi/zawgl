@@ -58,12 +58,13 @@ pub struct BoolCondition {
 }
 
 pub struct Step {
+    pub directive: Directive,
     pub patterns: Vec<PropertyGraph>,
 }
 
 impl Step {
-    pub fn new() -> Self {
-        Step {patterns: Vec::new()}
+    pub fn new(directive: Directive) -> Self {
+        Step {directive: directive, patterns: Vec::new()}
     }
 }
 pub struct Request {

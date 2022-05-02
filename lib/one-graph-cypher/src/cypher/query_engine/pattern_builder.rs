@@ -120,7 +120,7 @@ mod test_patterns_builder {
             p1.add_relationship(Relationship::new(), i0, i1);
         }
 
-        let patterns = merge_paths(&vec![p0, p1]);
+        let patterns = merge_paths(&vec![p0, p1], None);
 
         assert_eq!(1, patterns.len());
         let pattern = &patterns[0];
@@ -150,7 +150,7 @@ mod test_patterns_builder {
             p1.add_relationship(Relationship::new(), i0, i1);
         }
 
-        let patterns = merge_paths(&vec![p0, p1]);
+        let patterns = merge_paths(&vec![p0, p1], None);
 
         assert_eq!(2, patterns.len());
         let pattern0 = &patterns[0];
@@ -169,7 +169,7 @@ mod test_patterns_builder {
             p0.add_node(n0);
         }
 
-        let patterns = merge_paths(&vec![p0]);
+        let patterns = merge_paths(&vec![p0], None);
 
         assert_eq!(1, patterns.len());
         let pattern = &patterns[0];
