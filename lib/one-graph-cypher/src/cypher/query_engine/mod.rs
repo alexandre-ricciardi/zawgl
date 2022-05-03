@@ -9,6 +9,8 @@ mod path_builder;
 mod states;
 mod pattern_builder;
 
+use one_graph_query_planner::QueryStep;
+use one_graph_query_planner::StepType;
 use states::*;
 use path_builder::*;
 use pattern_builder::*;
@@ -105,14 +107,14 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let Some(rq) = &mut self.request {
-            rq.steps.push(Step::new(Directive::CREATE));
+            rq.steps.push(QueryStep::new(StepType::CREATE));
         }
         self.state = VisitorState::DirectiveCreate;
         Ok(true)
     }
     fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let Some(rq) = &mut self.request {
-            rq.steps.push(Step::new(Directive::MATCH));
+            rq.steps.push(QueryStep::new(StepType::MATCH));
         }
         self.state = VisitorState::DirectiveMatch;
         Ok(true)

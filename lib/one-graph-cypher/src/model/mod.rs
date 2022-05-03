@@ -1,5 +1,6 @@
 use super::cypher::parser::Ast;
 use one_graph_core::model::PropertyGraph;
+use one_graph_query_planner::QueryStep;
 
 
 pub enum Directive {
@@ -57,18 +58,8 @@ pub struct BoolCondition {
     pub operator: Operator,
 }
 
-pub struct Step {
-    pub directive: Directive,
-    pub patterns: Vec<PropertyGraph>,
-}
-
-impl Step {
-    pub fn new(directive: Directive) -> Self {
-        Step {directive: directive, patterns: Vec::new()}
-    }
-}
 pub struct Request {
-    pub steps: Vec<Step>,
+    pub steps: Vec<QueryStep>,
     pub return_clause: Option<ReturnClause>,
     pub where_clause: Option<WhereClause>,
 }

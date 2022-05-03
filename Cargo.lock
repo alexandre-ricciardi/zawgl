@@ -840,6 +840,7 @@ dependencies = [
  "bson",
  "log 0.4.11",
  "one-graph-core",
+ "one-graph-query-planner",
  "one-graph-tx-handler",
  "serde",
  "serde_json",
@@ -853,6 +854,14 @@ dependencies = [
  "one-graph-core",
  "one-graph-tx-handler",
  "serde_json",
+]
+
+[[package]]
+name = "one-graph-query-planner"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "one-graph-core",
 ]
 
 [[package]]
@@ -880,6 +889,7 @@ version = "0.1.0"
 dependencies = [
  "log 0.4.11",
  "one-graph-core",
+ "one-graph-query-planner",
  "parking_lot 0.12.0",
  "serde_json",
 ]
