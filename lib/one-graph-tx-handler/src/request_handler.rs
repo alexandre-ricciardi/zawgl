@@ -5,6 +5,7 @@ use std::sync::{Arc, RwLock};
 use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::{PropertyGraph, Status};
 use one_graph_core::model::init::InitContext;
+use one_graph_query_planner::QueryStep;
 
 use crate::tx_context::TxContext;
 use crate::tx_handler::Scenario;
@@ -23,7 +24,7 @@ impl <'a> GraphRequestHandler<'a> {
         GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new()}
     }
 
-    pub fn handle_graph_request(&self, patterns: &Vec<PropertyGraph>) -> Result<Vec<ResultGraph>, DatabaseError> {
+    pub fn handle_graph_request(&self, steps: &Vec<QueryStep>) -> Result<Vec<ResultGraph>, DatabaseError> {
         let mut graph_engine = GraphEngine::new(&self.conf);
         let mut matched_graphs = Vec::new();
         for pattern in patterns {
@@ -50,11 +51,11 @@ impl <'a> GraphRequestHandler<'a> {
     }
 
     
-    pub fn handle_graph_request_tx(&mut self, patterns: &Vec<PropertyGraph>, tx_context: &TxContext) -> Result<Vec<ResultGraph>, DatabaseError> {
+    pub fn handle_graph_request_tx(&mut self, steps: &Vec<QueryStep>, tx_context: &TxContext) -> Result<Vec<ResultGraph>, DatabaseError> {
         let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or_else(|| DatabaseError::TxError)?;
         let mut matched_graphs = Vec::new();
         for pattern in patterns {
-            let result_graphs = match get_request_scenario(&pattern) {
+            let result_graphs = match get_request_scenario(&steps) {
                 Scenario::CreateOnly => {
                     let created = graph_engine.create_graph(&pattern).ok_or_else(|| DatabaseError::EngineError)?;
                     ResultGraph{ scenario: Scenario::CreateOnly, patterns: vec![created] }
