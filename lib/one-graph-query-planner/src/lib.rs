@@ -21,5 +21,14 @@ pub struct QueryResult {
 
 pub fn handle_query_steps<'a>(conf: &InitContext<'a>, steps: &Vec<QueryStep>) -> Vec<PropertyGraph> {
     let mut graph_engine = GraphEngine::new(conf);
-    
+    for step in steps {
+        match step.step_type {
+            StepType::MATCH => {
+                let res = graph_engine.match_pattern(step.patterns);
+            },
+            StepType::CREATE => todo!(),
+            StepType::DELETE => todo!(),
+        }
+    }
+    vec![]
 }
