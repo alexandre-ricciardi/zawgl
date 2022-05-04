@@ -49,7 +49,7 @@ pub fn handle_gremlin_request<'a>(tx_handler: TxHandler, graph_request_handler: 
     }    
     let ctx = gremlin_state.context;
     let tx_context = gremlin.session.as_ref().map(|s| make_tx_context(s));
-    let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &ctx.patterns, tx_context).map_err(|err| GremlinError::TxError(err))?;
+    let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &vec![], tx_context).map_err(|err| GremlinError::TxError(err))?;
     convert_graph_to_gremlin_response(&matched_graphs, &gremlin.request_id)
 }
 

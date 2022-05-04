@@ -1,14 +1,18 @@
-use std::marker::PhantomData;
 use std::collections::HashSet;
 use std::collections::HashMap;
+use crate::graph::container::GraphContainer;
+use crate::graph_engine::model::GraphProxy;
+use crate::graph_engine::model::ProxyNodeId;
+use crate::graph_engine::model::ProxyRelationshipId;
+use crate::model::Node;
+use crate::model::PropertyGraph;
+use crate::model::Relationship;
+
 use super::base_state::*;
 use super::super::super::graph::traits::*;
+use super::super::super::graph::*;
 
-pub fn push_state_0<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA, v1: &NIDB)
-where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
-EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
-GraphA: GraphContainerTrait<NIDA, EIDA, NA, RA>,
-GraphA: GraphIteratorTrait<NIDA, EIDA> {  
+pub fn push_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &'g PropertyGraph, v0: &NodeIndex, v1: &ProxyNodeId) {  
     base_state.core_count += 1;
     base_state.core_map.insert(*v0, *v1);
     if !base_state.in_map.contains_key(&v0) {
@@ -48,11 +52,7 @@ GraphA: GraphIteratorTrait<NIDA, EIDA> {
     }
 }
 
-pub fn pop_state_0<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g GraphA, v0: &NIDA)
-where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
-EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
-GraphA: GraphContainerTrait<NIDA, EIDA, NA, RA>,
-GraphA: GraphIteratorTrait<NIDA, EIDA>  {  
+pub fn pop_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &'g PropertyGraph, v0: &NodeIndex) {  
     if base_state.core_count == 0 {
         return;
     }
@@ -117,11 +117,7 @@ GraphA: GraphIteratorTrait<NIDA, EIDA>  {
 }
 
 
-pub fn push_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g mut GraphA, v0: &NIDA, v1: &NIDB)
-where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
-EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
-GraphA: GrowableGraphContainerTrait<NIDA, EIDA, NA, RA>,
-GraphA: GrowableGraphIteratorTrait<NIDA, EIDA> {  
+pub fn push_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: &'g mut GraphProxy, v0: &ProxyNodeId, v1: &NodeIndex) {  
     base_state.core_count += 1;
     base_state.core_map.insert(*v0, *v1);
     if !base_state.in_map.contains_key(&v0) {
@@ -161,11 +157,7 @@ GraphA: GrowableGraphIteratorTrait<NIDA, EIDA> {
     }
 }
 
-pub fn pop_state_1<'g, NIDA, NIDB, EIDA, GraphA, NA, RA>(base_state: &mut BaseState<NIDA, NIDB>, graph: &'g mut GraphA, v0: &NIDA)
-where  NIDA: std::hash::Hash + Eq + MemGraphId + Copy, NIDB: std::hash::Hash + Eq + MemGraphId + Copy,
-EIDA: std::hash::Hash + Eq + MemGraphId + Copy,
-GraphA: GrowableGraphContainerTrait<NIDA, EIDA, NA, RA>,
-GraphA: GrowableGraphIteratorTrait<NIDA, EIDA>  {  
+pub fn pop_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: &'g mut GraphProxy, v0: &ProxyNodeId) {  
     if base_state.core_count == 0 {
         return;
     }
@@ -229,59 +221,38 @@ GraphA: GrowableGraphIteratorTrait<NIDA, EIDA>  {
     base_state.core_count -= 1;
 }
 
-pub struct State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>
-    where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
-    Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
-    VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
-    graph_0: &'g0 Graph0,
-    graph_1: &'g1 mut Graph1,
+pub struct State<'g0, 'g1, VCOMP, ECOMP>
+    where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool {
+    graph_0: &'g0 PropertyGraph,
+    graph_1: &'g1 mut GraphProxy,
     vertex_comp: VCOMP,
     edge_comp: ECOMP,
-    phantom_v_0: PhantomData<N0>,
-    phantom_v_1: PhantomData<N1>,
-    phantom_r_0: PhantomData<R0>,
-    phantom_r_1: PhantomData<R1>,
-    phantom_e_0: PhantomData<EID0>,
-    phantom_e_1: PhantomData<EID1>,
-    base_state_0: BaseState<NID0, NID1>,
-    base_state_1: BaseState<NID1, NID0>,
+    base_state_0: BaseState<NodeIndex, ProxyNodeId>,
+    base_state_1: BaseState<ProxyNodeId, NodeIndex>,
 
 }
 
-impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>
-    State<'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Graph1>
-    where NID0: std::hash::Hash + Eq + MemGraphId + Copy, NID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    EID0: std::hash::Hash + Eq + MemGraphId + Copy, EID1: std::hash::Hash + Eq + MemGraphId + Copy,
-    Graph0: GraphContainerTrait<NID0, EID0, N0, R0> + GraphIteratorTrait<NID0, EID0>,
-    Graph1: GrowableGraphContainerTrait<NID1, EID1, N1, R1> + GrowableGraphIteratorTrait<NID1, EID1>,
-    VCOMP: Fn(&N0, &N1) -> bool, ECOMP: Fn(&R0, &R1) -> bool {
+impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
+    where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool {
 
 
-        pub fn new(graph_0: &'g0 Graph0, graph_1: &'g1 mut Graph1, vcomp: VCOMP, ecomp: ECOMP) -> Self {
+        pub fn new(graph_0: &'g0 PropertyGraph, graph_1: &'g1 mut GraphProxy, vcomp: VCOMP, ecomp: ECOMP) -> Self {
             State {
                 graph_0: graph_0,
                 graph_1: graph_1,
                 vertex_comp: vcomp,
                 edge_comp: ecomp,
-                phantom_e_0: PhantomData,
-                phantom_e_1: PhantomData,
-                phantom_r_0: PhantomData,
-                phantom_r_1: PhantomData,
-                phantom_v_0: PhantomData,
-                phantom_v_1: PhantomData,
                 base_state_0: BaseState::new(),
                 base_state_1: BaseState::new(),
             }
         }
 
-        pub fn push(&mut self, v0: &NID0, v1: &NID1) {
+        pub fn push(&mut self, v0: &NodeIndex, v1: &ProxyNodeId) {
             push_state_0(&mut self.base_state_0, self.graph_0, v0, v1);
             push_state_1(&mut self.base_state_1, self.graph_1, v1, v0);
         }
 
-        pub fn pop(&mut self, v0: &NID0, _v1: &NID1) {
+        pub fn pop(&mut self, v0: &NodeIndex, _v1: &ProxyNodeId) {
             if let Some(&w) = self.base_state_0.core(v0) {
                 pop_state_0(&mut self.base_state_0, self.graph_0, v0);
                 pop_state_1(&mut self.base_state_1, self.graph_1, &w);
@@ -289,7 +260,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             
         }
 
-        pub fn feasible(&mut self, v_new: &NID0, w_new: &NID1) -> Option<bool> {
+        pub fn feasible(&mut self, v_new: &NodeIndex, w_new: &ProxyNodeId) -> Option<bool> {
             let v = self.graph_0.get_node_ref(v_new);
             let w = self.graph_1.get_node_ref(w_new)?;
             if !(self.vertex_comp)(v, w) {
@@ -337,7 +308,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        fn inc_counters_match_edge_0(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NID0, v_adj: &NID0, w_new: &NID1, edge_index: &EID0, matched_edge_set: &mut HashSet<EID1>) -> Option<bool> {
+        fn inc_counters_match_edge_0(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NodeIndex, v_adj: &NodeIndex, w_new: &ProxyNodeId, edge_index: &EdgeIndex, matched_edge_set: &mut HashSet<ProxyRelationshipId>) -> Option<bool> {
             if self.base_state_0.in_core(v_adj) || v_new == v_adj {
                 let mut w = *w_new;
                 if v_adj != v_new {
@@ -371,7 +342,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             return Some(true);
         }
 
-        fn edge_exists_0(&mut self, source: &NID0, target: &NID0, e1: &EID1, matched_edge_set: &mut HashSet<EID0>) -> Option<bool> {
+        fn edge_exists_0(&mut self, source: &NodeIndex, target: &NodeIndex, e1: &ProxyRelationshipId, matched_edge_set: &mut HashSet<EdgeIndex>) -> Option<bool> {
             for out_edge_index in self.graph_0.out_edges(source) {
                 let curr_target = self.graph_0.get_target_index(&out_edge_index);
                 if curr_target == *target && !matched_edge_set.contains(&out_edge_index) {
@@ -386,7 +357,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             return  Some(false);
         }
 
-        fn edge_exists_1(&mut self, source: &NID1, target: &NID1, r0: &R0, matched_edge_set: &mut HashSet<EID1>) -> Option<bool> {
+        fn edge_exists_1(&mut self, source: &ProxyNodeId, target: &ProxyNodeId, r0: &Relationship, matched_edge_set: &mut HashSet<ProxyRelationshipId>) -> Option<bool> {
             for out_edge_index in self.graph_1.out_edges(source) {
                 let curr_target = self.graph_1.get_target_index(&out_edge_index);
                 if curr_target == *target && !matched_edge_set.contains(&out_edge_index) {
@@ -400,7 +371,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             return  Some(false);
         }
 
-        fn inc_counters_match_edge_1(&mut self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &NID1, w_adj: &NID1) {
+        fn inc_counters_match_edge_1(&mut self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &ProxyNodeId, w_adj: &ProxyNodeId) {
             if self.base_state_1.in_core(w_adj) || w_new == w_adj {
                 
             } else {
@@ -416,7 +387,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        pub fn possible_candidate_0(&self, v0: &NID0) -> bool {
+        pub fn possible_candidate_0(&self, v0: &NodeIndex) -> bool {
             if self.base_state_0.term_both() && self.base_state_1.term_both() {
                 self.base_state_0.term_both_vertex(v0)
             } else if self.base_state_0.term_out() && self.base_state_1.term_out() {
@@ -428,7 +399,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
             }
         }
 
-        pub fn possible_candidate_1(&self, v1: &NID1) -> bool {
+        pub fn possible_candidate_1(&self, v1: &ProxyNodeId) -> bool {
             if self.base_state_0.term_both() && self.base_state_1.term_both() {
                 self.base_state_1.term_both_vertex(v1)
             } else if self.base_state_0.term_out() && self.base_state_1.term_out() {
@@ -451,7 +422,7 @@ impl <'g0, 'g1, NID0, NID1, EID0, EID1, N0, R0, N1, R1, VCOMP, ECOMP, Graph0, Gr
         }
 
         pub fn call_back<CALLBACK>(&mut self, callback: &mut CALLBACK) -> Option<bool>
-        where CALLBACK: FnMut(&HashMap<NID0, NID1>, &HashMap<NID1, NID0>, &Graph0, &mut Graph1) -> Option<bool>
+        where CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy) -> Option<bool>
         {
             callback(self.base_state_0.get_map(), self.base_state_1.get_map(), self.graph_0, self.graph_1)
         }

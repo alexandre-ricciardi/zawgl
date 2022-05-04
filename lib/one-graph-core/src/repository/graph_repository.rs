@@ -200,10 +200,10 @@ impl GraphRepository {
         let mut rel_index: usize = 0;
         let mut map_rel = HashMap::new();
         let mut rel_records = Vec::new();
-        for edge in res.get_edges() {
+        for edge in res.get_edges_mut() {
             let mut rr = RelationshipRecord::new(*map_nodes.get(&edge.source.get_index())?,
              *map_nodes.get(&edge.target.get_index())?);
-            let rel = res.get_relationship_mut(&edge.id);
+            let rel = &mut edge.relationship;
             rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_mut())?;
             let rid = self.relationships_store.create(&rr)?;
             map_rel.insert(rel_index, rid);

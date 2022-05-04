@@ -98,39 +98,34 @@ fn build_property(p: &Property) -> Option<GProperty> {
     Some(GProperty { name: String::from(p.get_name()), values: vec![gremlin_value_from_property_value(p)?]})
 }
 
-pub fn convert_graph_to_gremlin_response(graphs: &Vec<ResultGraph>, request_id: &str) -> Result<GremlinResponse, GremlinError> {
+pub fn convert_graph_to_gremlin_response(graphs: &Vec<PropertyGraph>, request_id: &str) -> Result<GremlinResponse, GremlinError> {
     let mut res = GResult::new();
-    for result_graph in graphs {
-        let graphs = &result_graph.patterns;
-        for graph in graphs {
-            for n in graph.get_nodes() {
-                if result_graph.scenario == Scenario::MatchAndCreate && *n.get_status() != Status::Create { continue;} 
-                let vertex = build_vertex_from_node(n).ok_or_else(|| GremlinError::ResponseError)?;
-                let traverser = GTraverser{bulk: GInt64(1), value: GItem::Vertex(vertex)};
-                res.data.values.push(traverser);
-            }
-    
-            let mut r_index = 0;
-            for r in graph.get_relationships() {
-                if (result_graph.scenario == Scenario::MatchAndCreate || result_graph.scenario == Scenario::MatchOnly) && *r.get_status() != Status::Create { continue;} 
-                let edge_index = EdgeIndex::new(r_index);
-                let s_index = graph.get_source_index(&edge_index);
-                let t_index = graph.get_target_index(&edge_index);
-                let label = r.get_labels_ref().join(":");
-                let id = GInt64(r.get_id().ok_or_else(|| GremlinError::ResponseError)? as i64);
-                let source = graph.get_node_ref(&s_index);
-                let target = graph.get_node_ref(&t_index);
-                let edge = GEdge{id: id, label: label, 
-                    out_v_abel: target.get_labels_ref().join(":"),
-                    in_v_label: source.get_labels_ref().join(":"),
-                    in_v: GInt64(source.get_id().ok_or_else(|| GremlinError::ResponseError)? as i64),
-                    out_v: GInt64(target.get_id().ok_or_else(|| GremlinError::ResponseError)? as i64),
-                    properties: build_edge_properties(r).ok_or_else(|| GremlinError::ResponseError)?,
-                };
-                let traverser = GTraverser{bulk: GInt64(1), value: GItem::Edge(edge)};
-                res.data.values.push(traverser);
-                r_index += 1;
-            }
+    for graph in graphs {
+        for n in graph.get_nodes() {
+            let vertex = build_vertex_from_node(n).ok_or_else(|| GremlinError::ResponseError)?;
+            let traverser = GTraverser{bulk: GInt64(1), value: GItem::Vertex(vertex)};
+            res.data.values.push(traverser);
+        }
+
+        let mut r_index = 0;
+        for r in graph.get_relationships() {
+            let edge_index = EdgeIndex::new(r_index);
+            let s_index = graph.get_source_index(&edge_index);
+            let t_index = graph.get_target_index(&edge_index);
+            let label = r.get_labels_ref().join(":");
+            let id = GInt64(r.get_id().ok_or_else(|| GremlinError::ResponseError)? as i64);
+            let source = graph.get_node_ref(&s_index);
+            let target = graph.get_node_ref(&t_index);
+            let edge = GEdge{id: id, label: label, 
+                out_v_abel: target.get_labels_ref().join(":"),
+                in_v_label: source.get_labels_ref().join(":"),
+                in_v: GInt64(source.get_id().ok_or_else(|| GremlinError::ResponseError)? as i64),
+                out_v: GInt64(target.get_id().ok_or_else(|| GremlinError::ResponseError)? as i64),
+                properties: build_edge_properties(r).ok_or_else(|| GremlinError::ResponseError)?,
+            };
+            let traverser = GTraverser{bulk: GInt64(1), value: GItem::Edge(edge)};
+            res.data.values.push(traverser);
+            r_index += 1;
         }
     }
     

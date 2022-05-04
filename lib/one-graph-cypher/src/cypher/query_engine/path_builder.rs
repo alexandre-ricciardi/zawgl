@@ -1,8 +1,8 @@
-use one_graph_core::graph::traits::GraphContainerTrait;
 use one_graph_core::graph::*;
 use one_graph_core::model::*;
 use super::states::*;
 use super::parser::*;
+
 pub struct PathBuilder {
     curr_node: Option<NodeIndex>,
     curr_directed_relationship: Option<EdgeIndex>,
@@ -75,10 +75,10 @@ impl PathBuilder {
         }
     }
 
-    pub fn enter_node(&mut self, visitor_state: &VisitorState) {
+    pub fn enter_node(&mut self, visitor_state: VisitorState) {
         match self.pattern_state {
             VisitorPatternState::Init => {
-                let n = make_node(visitor_state);
+                let n = make_node(&visitor_state);
                 self.curr_node = Some(self.current_path.add_node(n));
                 self.pattern_state = VisitorPatternState::Node;
             },
@@ -93,25 +93,25 @@ impl PathBuilder {
 
     
     
-    pub fn enter_relationship(&mut self, ast_tag: AstTag, visitor_state: &VisitorState) {
+    pub fn enter_relationship(&mut self, ast_tag: AstTag, visitor_state: VisitorState) {
         
         let prev_node = self.curr_node;
-        let pnode = make_node(visitor_state);
+        let pnode = make_node(&visitor_state);
         self.curr_node = Some(self.current_path.add_node(pnode));
         let source_target = prev_node.and_then(|p| self.curr_node.map(|c| (p, c)));
 
         match ast_tag {
             AstTag::RelDirectedLR => {
                 self.pattern_state = VisitorPatternState::RelationshipLR;
-                self.curr_directed_relationship = source_target.map(|st| self.current_path.add_relationship(make_relationship(visitor_state), st.0, st.1))
+                self.curr_directed_relationship = source_target.map(|st| self.current_path.add_relationship(make_relationship(&visitor_state), st.0, st.1))
             }
             AstTag::RelDirectedRL => {
                 self.pattern_state = VisitorPatternState::RelationshipRL;
-                self.curr_directed_relationship = source_target.map(|st| self.current_path.add_relationship(make_relationship(visitor_state), st.1, st.0))
+                self.curr_directed_relationship = source_target.map(|st| self.current_path.add_relationship(make_relationship(&visitor_state), st.1, st.0))
             }
             AstTag::RelUndirected => {
                 self.pattern_state = VisitorPatternState::UndirectedRelationship;
-                self.curr_both_ways_relationship = source_target.map(|st| (self.current_path.add_relationship(make_relationship(visitor_state), st.0, st.1), self.current_path.add_relationship(Relationship::new(), st.1, st.0)));
+                self.curr_both_ways_relationship = source_target.map(|st| (self.current_path.add_relationship(make_relationship(&visitor_state), st.0, st.1), self.current_path.add_relationship(Relationship::new(), st.1, st.0)));
             }
             _ => {}
         }
@@ -151,7 +151,7 @@ impl PathBuilder {
     pub fn enter_variable(&mut self) {
         self.id_type = Some(IdentifierType::Variable);
     }
-    pub fn enter_identifier(&mut self, visitor_state: &VisitorState, key: &str) {
+    pub fn enter_identifier(&mut self, visitor_state: VisitorState, key: &str) {
         match visitor_state {
             VisitorState::MatchPattern |
             VisitorState::CreatePattern => {

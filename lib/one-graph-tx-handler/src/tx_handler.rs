@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::{cell::RefCell, mem};
 use std::time::Instant;
 use one_graph_core::model::PropertyGraph;
+use one_graph_query_planner::QueryStep;
 use parking_lot::{Mutex, ReentrantMutex};
 
 use crate::request_handler::get_request_scenario;
@@ -86,11 +87,6 @@ pub enum Scenario {
 }
 
 
-pub fn needs_write_lock<'a>(patterns: &Vec<PropertyGraph>) -> bool {
-    for pattern in patterns {
-        if get_request_scenario(pattern) != Scenario::MatchOnly {
-            return true;
-        } 
-    }
-    return false;
+pub fn needs_write_lock<'a>(steps: &Vec<QueryStep>) -> bool {
+    return true;
 }
