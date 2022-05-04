@@ -1,4 +1,4 @@
-use one_graph_core::{model::{*, init::InitContext}, graph_engine::GraphEngine};
+use one_graph_core::{model::*, graph_engine::GraphEngine};
 
 pub enum StepType {
     MATCH, CREATE, DELETE
@@ -19,16 +19,30 @@ pub struct QueryResult {
     pub patterns: Vec<PropertyGraph>,
 }
 
-pub fn handle_query_steps<'a>(conf: &InitContext<'a>, steps: &Vec<QueryStep>) -> Vec<PropertyGraph> {
-    let mut graph_engine = GraphEngine::new(conf);
+pub fn handle_query_steps<'a>(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Vec<PropertyGraph> {
+    let mut results = Vec::<PropertyGraph>::new();
     for step in steps {
         match step.step_type {
             StepType::MATCH => {
-                let res = graph_engine.match_pattern(step.patterns);
+                results = Vec::<PropertyGraph>::new();
+                for pattern in &step.patterns {
+                    let mut matched = graph_engine.match_pattern(pattern);
+                    if let Some(res) = &mut matched {
+                        results.append(res);
+                    }
+                }
             },
-            StepType::CREATE => todo!(),
+            StepType::CREATE => {
+                results = Vec::<PropertyGraph>::new();
+                for pattern in &step.patterns {
+                    let mut created = graph_engine.match_pattern_and_create(pattern);
+                    if let Some(res) = &mut created {
+                        results.append(res);
+                    }
+                }
+            },
             StepType::DELETE => todo!(),
         }
     }
-    vec![]
+    results
 }

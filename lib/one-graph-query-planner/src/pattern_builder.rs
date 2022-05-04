@@ -2,11 +2,11 @@ use one_graph_core::{model::PropertyGraph};
 use std::{collections::{HashMap, HashSet}};
 
 
-pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {
+pub fn merge_patterns(patterns: &Vec<PropertyGraph>) -> PropertyGraph {
     
     let mut var_paths: HashMap<String, HashSet<usize>> = HashMap::new();
     let mut path_id: usize = 0;
-    for path in paths {
+    for path in patterns {
         for n in path.get_nodes() {
             if let Some(var_name) = n.get_var() {
                 let set = var_paths.get_mut(var_name);
@@ -118,7 +118,7 @@ mod test_patterns_builder {
             p1.add_relationship(Relationship::new(), i0, i1);
         }
 
-        let patterns = merge_paths(&vec![p0, p1]);
+        let patterns = merge_paths(&vec![p0, p1], None);
 
         assert_eq!(1, patterns.len());
         let pattern = &patterns[0];
@@ -148,7 +148,7 @@ mod test_patterns_builder {
             p1.add_relationship(Relationship::new(), i0, i1);
         }
 
-        let patterns = merge_paths(&vec![p0, p1]);
+        let patterns = merge_paths(&vec![p0, p1], None);
 
         assert_eq!(2, patterns.len());
         let pattern0 = &patterns[0];
@@ -167,7 +167,7 @@ mod test_patterns_builder {
             p0.add_node(n0);
         }
 
-        let patterns = merge_paths(&vec![p0]);
+        let patterns = merge_paths(&vec![p0], None);
 
         assert_eq!(1, patterns.len());
         let pattern = &patterns[0];

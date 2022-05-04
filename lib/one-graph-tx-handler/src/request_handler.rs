@@ -5,7 +5,7 @@ use std::sync::{Arc, RwLock};
 use one_graph_core::graph_engine::GraphEngine;
 use one_graph_core::model::{PropertyGraph, Status};
 use one_graph_core::model::init::InitContext;
-use one_graph_query_planner::QueryStep;
+use one_graph_query_planner::{QueryStep, handle_query_steps};
 
 use crate::tx_context::TxContext;
 use crate::tx_handler::Scenario;
@@ -24,58 +24,20 @@ impl <'a> GraphRequestHandler<'a> {
         GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new()}
     }
 
-    pub fn handle_graph_request(&self, steps: &Vec<QueryStep>) -> Result<Vec<ResultGraph>, DatabaseError> {
+    pub fn handle_graph_request(&self, steps: &Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
         let mut graph_engine = GraphEngine::new(&self.conf);
-        let mut matched_graphs = Vec::new();
-        for pattern in patterns {
-            let result_graphs = match get_request_scenario(&pattern) {
-                Scenario::CreateOnly => {
-                    let created = graph_engine.create_graph(&pattern).ok_or_else(|| DatabaseError::EngineError)?;
-                    graph_engine.sync();
-                    ResultGraph{ scenario: Scenario::CreateOnly, patterns: vec![created] }
-                }
-                Scenario::MatchAndCreate => {
-                    let matched = graph_engine.match_pattern_and_create(&pattern).ok_or_else(|| DatabaseError::EngineError)?;
-                    graph_engine.sync();
-                    ResultGraph{ scenario: Scenario::MatchAndCreate, patterns: matched }
-                }
-                Scenario::MatchOnly => {
-                    let matched = graph_engine.match_pattern(&pattern).ok_or_else(|| DatabaseError::EngineError)?;
-                    ResultGraph{ scenario: Scenario::MatchOnly, patterns: matched }
-                }
-                Scenario::Unknown => {ResultGraph{ scenario: Scenario::Unknown, patterns: vec![] }}
-            };
-            matched_graphs.push(result_graphs);
-        }
+        let matched_graphs = handle_query_steps(steps, &mut graph_engine);
         Ok(matched_graphs)
     }
 
     
-    pub fn handle_graph_request_tx(&mut self, steps: &Vec<QueryStep>, tx_context: &TxContext) -> Result<Vec<ResultGraph>, DatabaseError> {
-        let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or_else(|| DatabaseError::TxError)?;
-        let mut matched_graphs = Vec::new();
-        for pattern in patterns {
-            let result_graphs = match get_request_scenario(&steps) {
-                Scenario::CreateOnly => {
-                    let created = graph_engine.create_graph(&pattern).ok_or_else(|| DatabaseError::EngineError)?;
-                    ResultGraph{ scenario: Scenario::CreateOnly, patterns: vec![created] }
-                }
-                Scenario::MatchAndCreate => {
-                    let matched = graph_engine.match_pattern_and_create(&pattern).ok_or_else(|| DatabaseError::EngineError)?;
-                    ResultGraph{ scenario: Scenario::MatchAndCreate, patterns: matched }
-                }
-                Scenario::MatchOnly => {
-                    let matched = graph_engine.match_pattern(&pattern).ok_or_else(|| DatabaseError::EngineError)?;
-                    ResultGraph{ scenario: Scenario::MatchOnly, patterns: matched }
-                }
-                Scenario::Unknown => {ResultGraph{ scenario: Scenario::Unknown, patterns: vec![] }}
-            };
-            matched_graphs.push(result_graphs);
-        }
+    pub fn handle_graph_request_tx(&mut self, steps: &Vec<QueryStep>, tx_context: &TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
+        let mut graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or_else(|| DatabaseError::TxError)?;
+        let matched_graphs = handle_query_steps(steps, &mut graph_engine);
         Ok(matched_graphs)
     }
 
-    pub fn commit_tx(&mut self, tx_context: & TxContext) -> Result<Vec<ResultGraph>, DatabaseError> {
+    pub fn commit_tx(&mut self, tx_context: & TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
         let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or_else(|| DatabaseError::TxError)?;
         graph_engine.sync();
         self.map_session_graph_engine.remove(&tx_context.session_id);

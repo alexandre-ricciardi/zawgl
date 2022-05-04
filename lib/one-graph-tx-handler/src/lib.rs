@@ -19,7 +19,7 @@ pub enum DatabaseError {
     TxError,
 }
 
-pub fn handle_graph_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, steps: &Vec<QueryStep>, tx_context: Option<TxContext>) -> Result<Vec<ResultGraph>, DatabaseError> {
+pub fn handle_graph_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, steps: &Vec<QueryStep>, tx_context: Option<TxContext>) -> Result<Vec<PropertyGraph>, DatabaseError> {
     
     let tx_lock = tx_handler.lock();
     let tx_status = tx_lock.borrow_mut().get_session_status(&tx_context);
