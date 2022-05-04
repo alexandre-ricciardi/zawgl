@@ -27,6 +27,7 @@ impl <'a> GraphRequestHandler<'a> {
     pub fn handle_graph_request(&self, steps: &Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
         let mut graph_engine = GraphEngine::new(&self.conf);
         let matched_graphs = handle_query_steps(steps, &mut graph_engine);
+        graph_engine.sync();
         Ok(matched_graphs)
     }
 

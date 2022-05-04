@@ -162,6 +162,13 @@ impl GraphEngine {
         let mut res = self.match_pattern(&match_pattern)?;
 
         for matched_graph in &mut res {
+            for nid in pattern.get_nodes_with_ids() {
+                if *nid.0.get_status() == Status::Create {
+                    let node = self.create_node(nid.0)?;
+                    let node_id = matched_graph.add_node(node);
+                    map_nodes_ids.insert(node_id, nid.1);
+                }
+            }
             for re in pattern.get_relationships_and_edges() {
                 if *re.relationship.get_status() == Status::Create {
                     let source_index = map_nodes_ids[&re.source];

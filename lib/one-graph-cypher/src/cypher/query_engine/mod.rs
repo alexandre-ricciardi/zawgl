@@ -273,6 +273,7 @@ mod test_query_engine {
             let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
+            assert_eq!(node.get_status(), &Status::Create);
         } else {
             assert!(false, "no request found");
         }
