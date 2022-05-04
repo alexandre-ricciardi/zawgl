@@ -8,33 +8,19 @@ use std::future::Future;
 #[tokio::test]
 async fn test_cypher_0() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
-    run_test("first_test", test_cypher_requests).await;
+    run_test("first_test", 8183, test_cypher_requests).await;
+    run_test("create_path_test", 8184, test_create_path).await;
+    run_test("another_test", 8185, test_double_create_issue).await;
+    run_test("first_test", 8186, test_cypher_requests_2).await;
 }
 
-#[tokio::test]
-async fn test_cypher_1() {
-    SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
-    run_test("create_path_test", test_create_path).await;
-}
-
-#[tokio::test]
-async fn test_cypher_2() {
-    SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
-    test_double_create_issue().await;
-}
-
-#[tokio::test]
-async fn test_cypher_3() {
-    SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
-    run_test("first_test", test_cypher_requests_2).await;
-}
-
-async fn run_test<F, T>(db_name: &str, lambda: F) where F : FnOnce() -> T, T : Future<Output = ()> + Send {
+async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce() -> T, T : Future<Output = ()> + Send {
     let db_dir = build_dir_path_and_rm_old(db_name).expect("error");
     
     let ctx = InitContext::new(&db_dir).expect("can't create database context");
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-    let server = one_graph_server::run_server("localhost:8182", ctx, || {
+    let address = format!("localhost:{}", port);
+    let server = one_graph_server::run_server(&address, ctx, || {
         if let Err(_) = tx.send(()) {
             error!("starting database");
         }
@@ -58,7 +44,7 @@ async fn run_test<F, T>(db_name: &str, lambda: F) where F : FnOnce() -> T, T : F
 }
 
 async fn test_cypher_requests() {
-    let mut client = Client::new("ws://localhost:8182").await;
+    let mut client = Client::new("ws://localhost:8183").await;
     let r = client.execute_cypher_request("create (n:Person) return n").await;
     if let Ok(d) = r {
         debug!("{}", d.to_string())
@@ -123,7 +109,7 @@ async fn test_cypher_requests() {
 }
 
 async fn test_cypher_requests_2() {
-    let mut client = Client::new("ws://localhost:8182").await;
+    let mut client = Client::new("ws://localhost:8186").await;
     for _ in 0..10 {
         let r = client.execute_cypher_request("create (n:Person) return n").await;
         if let Ok(d) = r {
@@ -136,7 +122,7 @@ async fn test_cypher_requests_2() {
         debug!("{}", d.to_string());
         let res = d.get_document("result").expect("result");
         let graphs = res.get_array("graphs").expect("graphs");
-        assert_eq!(graphs.len(), 45);
+        assert_eq!(graphs.len(), 100);
         for g in graphs {
             let graph = g.as_document().expect("a graph");
             let nodes = graph.get_array("nodes").expect("nodes");
@@ -148,26 +134,24 @@ async fn test_cypher_requests_2() {
 }
 
 async fn test_double_create_issue() {
-    run_test("another_test", move || async {
-        let mut client = Client::new("ws://localhost:8182").await;
-        let r3 = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
-        if let Ok(d) = r3 {
-            debug!("{}", d.to_string());
-            let res = d.get_document("result").expect("result");
-            let graphs = res.get_array("graphs").expect("graphs");
-            for g in graphs {
-                let graph = g.as_document().expect("a graph");
-                let nodes = graph.get_array("nodes").expect("nodes");
-                assert_eq!(nodes.len(), 2);
-            }
-        } else {
-            assert!(false, "no response")
+    let mut client = Client::new("ws://localhost:8185").await;
+    let r3 = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
+    if let Ok(d) = r3 {
+        debug!("{}", d.to_string());
+        let res = d.get_document("result").expect("result");
+        let graphs = res.get_array("graphs").expect("graphs");
+        for g in graphs {
+            let graph = g.as_document().expect("a graph");
+            let nodes = graph.get_array("nodes").expect("nodes");
+            assert_eq!(nodes.len(), 2);
         }
-    }).await;
+    } else {
+        assert!(false, "no response")
+    }
 }
 
 async fn test_create_path() {
-    let mut client = Client::new("ws://localhost:8182").await;
+    let mut client = Client::new("ws://localhost:8184").await;
      let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
     if let Ok(d) = r {
         debug!("{}", d.to_string());

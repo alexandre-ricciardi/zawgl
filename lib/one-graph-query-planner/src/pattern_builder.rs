@@ -1,177 +1,82 @@
-use one_graph_core::{model::PropertyGraph};
-use std::{collections::{HashMap, HashSet}};
+use one_graph_core::{model::PropertyGraph, graph::*};
+use std::{collections::{HashMap}};
 
-
-pub fn merge_patterns(patterns: &Vec<PropertyGraph>) -> PropertyGraph {
-    
-    let mut var_paths: HashMap<String, HashSet<usize>> = HashMap::new();
-    let mut path_id: usize = 0;
-    for path in patterns {
-        for n in path.get_nodes() {
-            if let Some(var_name) = n.get_var() {
-                let set = var_paths.get_mut(var_name);
-                if let Some(s) = set {
-                    s.insert(path_id);
-                } else {
-                    var_paths.insert(var_name.to_string(), HashSet::from([path_id]));
-                }
-            }
+pub fn build_pattern(source_pattern: &PropertyGraph, target_pattern: &PropertyGraph) -> PropertyGraph {
+    let mut result = PropertyGraph::new();
+    let mut var_name_to_target_node_id: HashMap<String, NodeIndex> = HashMap::new();
+    for nid in target_pattern.get_nodes_with_ids() {
+        if let Some(var_name) = nid.0.get_var() {
+            var_name_to_target_node_id.insert(var_name.to_string(), nid.1);
         }
-        path_id += 1;
     }
-
-    let mut paths_set = Vec::<HashSet<usize>>::new();
-    for path_id_set in var_paths.values() {
-        if path_id_set.len() > 1 {
-            let mut found= false;
-            for set in paths_set.iter_mut() {
-                if !set.is_disjoint(path_id_set) {
-                    found = true;
-                    for id in path_id_set {
-                        set.insert(*id);
-                    }
-                }
+    let mut source_nid_to_result_nid = HashMap::new();
+    let mut matching_var_names_to_result_nid = HashMap::new();
+    for nid in source_pattern.get_nodes_with_ids() {
+        if let Some(s_var_name) = nid.0.get_var() {
+            if var_name_to_target_node_id.contains_key(s_var_name) {
+                let id = result.add_node(target_pattern.get_node_ref(&var_name_to_target_node_id[s_var_name]).clone());
+                source_nid_to_result_nid.insert(nid.1, id);
+                matching_var_names_to_result_nid.insert(s_var_name.to_string(), id);
+            } else {
+                let id = result.add_node(nid.0.clone());
+                source_nid_to_result_nid.insert(nid.1, id);
             }
-            if !found {
-                paths_set.push(path_id_set.clone());
-            }
+        } else {
+            let id = result.add_node(nid.0.clone());
+            source_nid_to_result_nid.insert(nid.1, id);
         }
     }
 
-    let mut full_set = HashSet::new();
-    
-    for set in paths_set.iter() {
-        for id in set {
-            full_set.insert(*id);
-        }
-    }
-    
-
-    for id in 0..paths.len() {
-        if !full_set.contains(&id) {
-            let mut set = HashSet::new();
-            set.insert(id);
-            paths_set.push(set);
-        }
+    for e in source_pattern.get_edges() {
+        let source = source_nid_to_result_nid[&e.source];
+        let target = source_nid_to_result_nid[&e.target];
+        result.add_relationship(e.relationship.clone(), source, target);
     }
 
-    let mut res = Vec::new();
-    for set in paths_set {
-        let mut pattern = PropertyGraph::new();
-        let mut merge_vars_map = HashMap::new();
-        let mut map_path_node_ids = HashMap::new();
-        for path_id in set {
-            let path = &paths[path_id];
-            for node in path.get_nodes_with_ids() {
-                if let Some(var_name) = node.0.get_var() {
-                    if !merge_vars_map.contains_key(var_name) {
-                        let nid = pattern.add_node(node.0.clone());
-                        map_path_node_ids.insert(node.1, nid);
-                        merge_vars_map.insert(var_name, nid);
-                    }
-                } else {
-                    let nid = pattern.add_node(node.0.clone());
-                    map_path_node_ids.insert(node.1, nid);
-                }
+    let mut target_nid_to_result_nid = HashMap::new();
+    for nid in target_pattern.get_nodes_with_ids() {
+        if let Some(t_var_name) = nid.0.get_var() {
+            if matching_var_names_to_result_nid.contains_key(t_var_name) {
+                target_nid_to_result_nid.insert(nid.1, matching_var_names_to_result_nid[t_var_name]);
+            } else {
+                let id = result.add_node(nid.0.clone());
+                target_nid_to_result_nid.insert(nid.1, id);
             }
-
-            for e in path.get_edges() {
-                let s = e.get_source();
-                let t = e.get_target();
-                let r = &e.relationship;
-                pattern.add_relationship(r.clone(), map_path_node_ids[&s], map_path_node_ids[&t]);
-            }
+        } else {
+            let id = result.add_node(nid.0.clone());
+            target_nid_to_result_nid.insert(nid.1, id);
         }
-        res.push(pattern);
     }
 
-    res
+    for e in target_pattern.get_edges() {
+        let source = target_nid_to_result_nid[&e.source];
+        let target = target_nid_to_result_nid[&e.target];
+        result.add_relationship(e.relationship.clone(), source, target);
+    }
+    result
 }
 
-
-#[cfg(test)]
-mod test_patterns_builder {
-    use one_graph_core::model::{Node, Relationship};
-
-    use super::*;
-
-    #[test]
-    fn test_same_pattern() {
-        let mut p0 = PropertyGraph::new();
-        {
-            let mut n0 = Node::new();
-            n0.set_var("a");
-            let mut n1 = Node::new();
-            n1.set_var("b");
-            let i0 = p0.add_node(n0);
-            let i1 = p0.add_node(n1);
-            p0.add_relationship(Relationship::new(), i0, i1);
+pub fn merge_patterns(patterns: &Vec<&PropertyGraph>) -> PropertyGraph {
+    let mut result = PropertyGraph::new();
+    let mut source_pattern_to_result_nid = HashMap::new();
+    let mut pattern_id = 0;
+    for p in patterns {
+        let mut source_pattern_nid_to_result_nid = HashMap::new();
+        for nid in p.get_nodes_with_ids() {
+            let id = result.add_node(nid.0.clone());
+            source_pattern_nid_to_result_nid.insert(nid.1, id);
         }
-        let mut p1 = PropertyGraph::new();
-        {
-            let mut n0 = Node::new();
-            n0.set_var("a");
-            let mut n1 = Node::new();
-            n1.set_var("c");
-            let i0 = p1.add_node(n0);
-            let i1 = p1.add_node(n1);
-            p1.add_relationship(Relationship::new(), i0, i1);
-        }
-
-        let patterns = merge_paths(&vec![p0, p1], None);
-
-        assert_eq!(1, patterns.len());
-        let pattern = &patterns[0];
-        assert_eq!(3, pattern.get_nodes().len());
+        source_pattern_to_result_nid.insert(pattern_id, source_pattern_nid_to_result_nid);
+        pattern_id += 1;
     }
-
-    #[test]
-    fn test_two_patterns() {
-        let mut p0 = PropertyGraph::new();
-        {
-            let mut n0 = Node::new();
-            n0.set_var("a");
-            let mut n1 = Node::new();
-            n1.set_var("b");
-            let i0 = p0.add_node(n0);
-            let i1 = p0.add_node(n1);
-            p0.add_relationship(Relationship::new(), i0, i1);
+    pattern_id = 0;
+    for p in patterns {
+        for e in p.get_edges() {
+            let source = source_pattern_to_result_nid[&pattern_id][&e.source];
+            let target = source_pattern_to_result_nid[&pattern_id][&e.target];
+            result.add_relationship(e.relationship.clone(), source, target);
         }
-        let mut p1 = PropertyGraph::new();
-        {
-            let mut n0 = Node::new();
-            n0.set_var("d");
-            let mut n1 = Node::new();
-            n1.set_var("c");
-            let i0 = p1.add_node(n0);
-            let i1 = p1.add_node(n1);
-            p1.add_relationship(Relationship::new(), i0, i1);
-        }
-
-        let patterns = merge_paths(&vec![p0, p1], None);
-
-        assert_eq!(2, patterns.len());
-        let pattern0 = &patterns[0];
-        assert_eq!(2, pattern0.get_nodes().len());
-        let pattern1 = &patterns[1];
-        assert_eq!(2, pattern1.get_nodes().len());
+        pattern_id += 1;
     }
-
-    
-    #[test]
-    fn test_unique_pattern() {
-        let mut p0 = PropertyGraph::new();
-        {
-            let mut n0 = Node::new();
-            n0.set_var("a");
-            p0.add_node(n0);
-        }
-
-        let patterns = merge_paths(&vec![p0], None);
-
-        assert_eq!(1, patterns.len());
-        let pattern = &patterns[0];
-        assert_eq!(1, pattern.get_nodes().len());
-    }
-
+    result
 }
