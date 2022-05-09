@@ -443,5 +443,11 @@ mod test_parser {
     fn test_match_then_create() {
         run("match (p:Person), (m:Movie) create (m)<-[r:Played]-(p) return m, r, p");
     }
+
+    
+    #[test]
+    fn test_match_match() {
+        run("match (p:Person), (m:Movie) match (m)<-[r:Played]-(p) return m, r, p");
+    }
 }
 

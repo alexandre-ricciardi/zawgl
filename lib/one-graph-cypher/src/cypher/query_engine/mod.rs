@@ -335,4 +335,26 @@ mod test_query_engine {
             assert!(false, "no request found");
         }
     }
+
+    
+    #[test]
+    fn test_match_match() {
+        let request = process_cypher_query("MATCH (m:Movie), (a:Actor) MATCH (a)-[r:PLAYED_IN]->(m) RETURN m, a, r");
+        if let  Some(req) = request {
+            let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
+            assert_eq!(movie.get_var(), &Some(String::from("a")));
+            assert_eq!(movie.get_labels_ref()[0], String::from("Actor"));
+            assert_eq!(movie.get_status(), &Status::Match);
+            let actor = req.steps[0].patterns[1].get_node_ref(&NodeIndex::new(0));
+            assert_eq!(actor.get_var(), &Some(String::from("m")));
+            assert_eq!(actor.get_status(), &Status::Match);
+            assert_eq!(actor.get_labels_ref()[0], String::from("Movie"));
+            let rel = req.steps[1].patterns[0].get_relationship_ref(&EdgeIndex::new(0));
+            assert_eq!(rel.get_var(), &Some(String::from("r")));
+            assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
+            assert_eq!(rel.get_status(), &Status::Create);
+        } else {
+            assert!(false, "no request found");
+        }
+    }
 }

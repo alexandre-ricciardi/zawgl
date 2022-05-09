@@ -52,12 +52,27 @@ pub fn handle_query_steps<'a>(steps: &Vec<QueryStep>, graph_engine: &mut GraphEn
     for step in steps {
         match step.step_type {
             StepType::MATCH => {
-                results = Vec::<Vec<PropertyGraph>>::new();
-                for pattern in &step.patterns {
-                    let matched = graph_engine.match_pattern(pattern);
-                    if let Some(res) = matched {
-                        results.push(res);
+                if results.is_empty() {
+                    for pattern in &step.patterns {
+                        let matched = graph_engine.match_pattern(pattern);
+                        if let Some(res) = matched {
+                            results.push(res);
+                        }
                     }
+                } else {
+                    let mut new_res = Vec::new();
+                    for pattern in &step.patterns {
+                        let products = make_cartesian_product(&results);
+                        for product in &products {
+                            let merge_sources = merge_patterns(product);
+                            let merge = build_pattern(&merge_sources, pattern);
+                            let matched = graph_engine.match_pattern(&merge);
+                            if let Some(c) = matched {
+                                new_res.push(c);
+                            }
+                        }
+                    }
+                    results = new_res;
                 }
             },
             StepType::CREATE => {
