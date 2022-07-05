@@ -1,8 +1,8 @@
 use log::LevelFilter;
-use one_graph_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
+use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 use simple_logger::SimpleLogger;
 use log::*;
-use og_client::Client;
+use zawgl_client::Client;
 use std::future::Future;
 
 #[tokio::test]
@@ -11,13 +11,13 @@ async fn test_cypher_0() {
     run_test("first_test", 8183, test_cypher_requests).await;
     run_test("create_path_test", 8184, test_create_path).await;
     run_test("another_test", 8185, test_double_create_issue).await;
-    run_test("first_test", 8186, test_cypher_requests_2).await;
+    run_test("test_cypher_requests_2", 8186, test_cypher_requests_2).await;
 }
 
 #[tokio::test]
 async fn test_cypher_1() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
-    run_test("first_test", 8183, test_mutliple_match).await;
+    run_test("test_mutliple_match", 8183, test_mutliple_match).await;
 }
 
 async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce(Client) -> T, T : Future<Output = ()> + Send {
@@ -26,7 +26,7 @@ async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce(Cl
     let ctx = InitContext::new(&db_dir).expect("can't create database context");
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
     let address = format!("localhost:{}", port);
-    let server = one_graph_server::run_server(&address, ctx, || {
+    let server = zawgl_server::run_server(&address, ctx, || {
         if let Err(_) = tx.send(()) {
             error!("starting database");
         }
@@ -199,7 +199,7 @@ async fn test_mutliple_match(mut client: Client) {
             let graph = g.as_document().expect("a graph");
             let nodes = graph.get_array("nodes").expect("nodes");
             let relationships = graph.get_array("relationships").expect("relationships");
-            assert_eq!(nodes.len(), 3);
+            assert_eq!(nodes.len(), 2);
             assert_eq!(relationships.len(), 2);
         }
     } else {

@@ -1,4 +1,4 @@
-# one-graph
+# zawgl
 Open Source Timelined Graph Database (Work In Progress)
 
 ## Status
@@ -12,7 +12,7 @@ Open Source Timelined Graph Database (Work In Progress)
 ## Test
 A docker package is available for testing purpose:  
 ```
-docker run -p8182:8182 --rm -it ghcr.io/alexandre-ricciardi/alexandre-ricciardi/one-graph:latest
+docker run -p8182:8182 --rm -it ghcr.io/alexandre-ricciardi/alexandre-ricciardi/zawgl:latest
 ```
 
 This will expose an endpoint on 8182 port.

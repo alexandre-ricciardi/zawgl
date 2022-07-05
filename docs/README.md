@@ -1,6 +1,6 @@
-# one-graph
+# zawgl
 Open Source Timelined Graph Database  
-OneGraph is in WIP stage, though it can already expose a few Gremlin features.
+zawgl is in WIP stage, though it can already expose a few Gremlin features.
 
 ## Status
 * Pattern Matching with a VF2 graph sub-graph isomorphism algorithm.

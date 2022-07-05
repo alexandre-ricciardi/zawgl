@@ -1,9 +1,12 @@
 [package]
-name = "zawgl-utils"
+name = "zawgl-query-planner"
 version = "0.1.0"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
 edition = "2018"
 
+[lib]
+name = "zawgl_query_planner"
+
 [dependencies]
-zawgl-core = { path = "../lib/zawgl-core" }
+zawgl-core = { path = "../zawgl-core" }
 log = "0.4"

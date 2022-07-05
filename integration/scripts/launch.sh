@@ -1,4 +1,4 @@
 #!/bin/bash
 target/debug/og &
-cd integration/gremlin-tests/one-graph-gremlin
+cd integration/gremlin-tests/zawgl-gremlin
 mvn clean package -q
