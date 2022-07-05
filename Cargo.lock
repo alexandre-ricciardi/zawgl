@@ -274,12 +274,12 @@ version = "0.1.0"
 dependencies = [
  "bson",
  "log 0.4.11",
- "og-client",
- "one-graph-core",
- "one-graph-server",
  "serde",
  "simple_logger",
  "tokio",
+ "zawgl-client",
+ "zawgl-core",
+ "zawgl-server",
 ]
 
 [[package]]
@@ -786,121 +786,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "og"
-version = "0.1.0"
-dependencies = [
- "config",
- "futures-util",
- "log 0.4.11",
- "one-graph-core",
- "one-graph-server",
- "serde",
- "simple_logger",
- "tokio",
- "tokio-tungstenite",
- "tungstenite",
-]
-
-[[package]]
-name = "og-client"
-version = "0.1.0"
-dependencies = [
- "bson",
- "futures-channel",
- "futures-util",
- "log 0.4.11",
- "parking_lot 0.12.0",
- "serde_json",
- "simple_logger",
- "tokio",
- "tokio-tungstenite",
- "url 2.2.2",
- "uuid",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
-
-[[package]]
-name = "one-graph-core"
-version = "0.1.0"
-dependencies = [
- "log 0.4.11",
- "serde",
- "toml",
-]
-
-[[package]]
-name = "one-graph-cypher"
-version = "0.1.0"
-dependencies = [
- "bson",
- "log 0.4.11",
- "one-graph-core",
- "one-graph-query-planner",
- "one-graph-tx-handler",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "one-graph-gremlin"
-version = "0.1.0"
-dependencies = [
- "log 0.4.11",
- "one-graph-core",
- "one-graph-tx-handler",
- "serde_json",
-]
-
-[[package]]
-name = "one-graph-query-planner"
-version = "0.1.0"
-dependencies = [
- "log 0.4.11",
- "one-graph-core",
-]
-
-[[package]]
-name = "one-graph-server"
-version = "0.1.0"
-dependencies = [
- "bson",
- "futures-util",
- "gremlin-client",
- "log 0.4.11",
- "one-graph-core",
- "one-graph-cypher",
- "one-graph-gremlin",
- "one-graph-tx-handler",
- "parking_lot 0.12.0",
- "serde_json",
- "simple_logger",
- "tokio",
- "tokio-tungstenite",
-]
-
-[[package]]
-name = "one-graph-tx-handler"
-version = "0.1.0"
-dependencies = [
- "log 0.4.11",
- "one-graph-core",
- "one-graph-query-planner",
- "parking_lot 0.12.0",
- "serde_json",
-]
-
-[[package]]
-name = "one-graph-utils"
-version = "0.1.0"
-dependencies = [
- "log 0.4.11",
- "one-graph-core",
-]
 
 [[package]]
 name = "opaque-debug"
@@ -1946,4 +1835,115 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
+]
+
+[[package]]
+name = "zawgl"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "futures-util",
+ "log 0.4.11",
+ "serde",
+ "simple_logger",
+ "tokio",
+ "tokio-tungstenite",
+ "tungstenite",
+ "zawgl-core",
+ "zawgl-server",
+]
+
+[[package]]
+name = "zawgl-client"
+version = "0.1.0"
+dependencies = [
+ "bson",
+ "futures-channel",
+ "futures-util",
+ "log 0.4.11",
+ "parking_lot 0.12.0",
+ "serde_json",
+ "simple_logger",
+ "tokio",
+ "tokio-tungstenite",
+ "url 2.2.2",
+ "uuid",
+]
+
+[[package]]
+name = "zawgl-core"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "zawgl-cypher"
+version = "0.1.0"
+dependencies = [
+ "bson",
+ "log 0.4.11",
+ "serde",
+ "serde_json",
+ "zawgl-core",
+ "zawgl-query-planner",
+ "zawgl-tx-handler",
+]
+
+[[package]]
+name = "zawgl-gremlin"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "serde_json",
+ "zawgl-core",
+ "zawgl-tx-handler",
+]
+
+[[package]]
+name = "zawgl-query-planner"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "zawgl-core",
+]
+
+[[package]]
+name = "zawgl-server"
+version = "0.1.0"
+dependencies = [
+ "bson",
+ "futures-util",
+ "gremlin-client",
+ "log 0.4.11",
+ "parking_lot 0.12.0",
+ "serde_json",
+ "simple_logger",
+ "tokio",
+ "tokio-tungstenite",
+ "zawgl-core",
+ "zawgl-cypher",
+ "zawgl-gremlin",
+ "zawgl-tx-handler",
+]
+
+[[package]]
+name = "zawgl-tx-handler"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "parking_lot 0.12.0",
+ "serde_json",
+ "zawgl-core",
+ "zawgl-query-planner",
+]
+
+[[package]]
+name = "zawgl-utils"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.11",
+ "zawgl-core",
 ]

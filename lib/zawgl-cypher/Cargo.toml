@@ -1,0 +1,17 @@
+[package]
+name = "zawgl-cypher"
+version = "0.1.0"
+authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+edition = "2018"
+
+[lib]
+name = "zawgl_cypher"
+
+[dependencies]
+zawgl-core = { path = "../zawgl-core" }
+zawgl-tx-handler = { path = "../zawgl-tx-handler" }
+zawgl-query-planner = { path = "../zawgl-query-planner" }
+log = "0.4"
+serde_json = "1.0"
+serde = { version = "1.0.105", features = ["derive"] }
+bson = "2.0.1"
