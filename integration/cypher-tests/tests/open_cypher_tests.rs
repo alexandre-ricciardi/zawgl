@@ -197,6 +197,7 @@ async fn test_mutliple_match(mut client: Client) {
             let nodes = graph.get_array("nodes").expect("nodes");
             let relationships = graph.get_array("relationships").expect("relationships");
             assert_eq!(nodes.len(), 2);
+            assert_eq!(relationships.len(), 2);
             assert_eq!(relationships.len(), 1);
         }
     } else {
