@@ -352,7 +352,7 @@ mod test_query_engine {
             let rel = req.steps[1].patterns[0].get_relationship_ref(&EdgeIndex::new(0));
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
-            assert_eq!(rel.get_status(), &Status::Create);
+            assert_eq!(rel.get_status(), &Status::Match);
         } else {
             assert!(false, "no request found");
         }

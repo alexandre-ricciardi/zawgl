@@ -16,7 +16,7 @@ pub enum AstTag  {
     Create,
     Match,
     Node,
-    Pattern,
+    Path,
     Property,
     RelDirectedLR,
     RelDirectedRL,
@@ -140,7 +140,7 @@ impl Ast for AstTagNode {
                     AstTag::Node => {
                         visitor.enter_node(self)
                     },
-                    AstTag::Pattern => {
+                    AstTag::Path => {
                         visitor.enter_path(self)
                     },
                     AstTag::Property => {
@@ -199,7 +199,7 @@ impl Ast for AstTagNode {
                     AstTag::Node => {
                         visitor.exit_node()
                     },
-                    AstTag::Pattern => {
+                    AstTag::Path => {
                         visitor.exit_path()
                     },
                     AstTag::Property => {

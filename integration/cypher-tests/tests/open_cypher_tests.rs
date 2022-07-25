@@ -8,10 +8,10 @@ use std::future::Future;
 #[tokio::test]
 async fn test_cypher_0() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
-    run_test("first_test", 8183, test_cypher_requests).await;
-    run_test("create_path_test", 8184, test_create_path).await;
-    run_test("another_test", 8185, test_double_create_issue).await;
-    run_test("test_cypher_requests_2", 8186, test_cypher_requests_2).await;
+    //run_test("first_test", 8183, test_cypher_requests).await;
+    //run_test("create_path_test", 8184, test_create_path).await;
+    //run_test("another_test", 8185, test_double_create_issue).await;
+    //run_test("test_cypher_requests_2", 8186, test_cypher_requests_2).await;
     run_test("test_mutliple_match", 8183, test_mutliple_match).await;
 }
 
@@ -180,13 +180,13 @@ async fn test_mutliple_match(mut client: Client) {
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (m:Movie) create (m)<-[r:Prodcued]-(p:Producer) return m, r, p").await;
+    let r = client.execute_cypher_request("match (m:Movie) create (m)<-[r:Produced]-(p:Producer) return m, r, p").await;
     if let Ok(d) = r {
         debug!("{}", d.to_string());
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (m:Movie)<-[r:Played]-(p:Person) match (m)<-[produced:Prodcued]-(prd:Producer) return m, r, produced, p, prd").await;
+    let r = client.execute_cypher_request("match (m:Movie)<-[r:Played]-(p:Person) match (m)<-[produced:Produced]-(prd:Producer) return m, r, produced, p, prd").await;
     if let Ok(d) = r {
         debug!("{}", d.to_string());
         let res = d.get_document("result").expect("result");

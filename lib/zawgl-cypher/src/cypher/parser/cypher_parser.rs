@@ -5,6 +5,17 @@ use super::pattern_parser_delegate::*;
 use super::return_clause_parser_delegate::*;
 use super::where_clause_parser_delegate::parse_where_clause;
 
+fn parse_match(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    let mut match_node = make_ast_tag(AstTag::Match);
+    parse_path(parser, &mut match_node)?;
+    parent_node.append(match_node);
+    if parser.current_token_type_advance(TokenType::Match) {
+        parse_match(parser, parent_node)?;
+    }
+    Ok(())
+}
+
+
 pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
     if parser.get_tokens().len() > 0  {
         let mut query_node = make_ast_tag(AstTag::Query);
@@ -14,7 +25,7 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
             TokenType::Create =>  {
                 parser.advance();
                 let mut create_node = make_ast_tag(AstTag::Create);
-                parse_pattern(parser, &mut create_node)?;
+                parse_path(parser, &mut create_node)?;
                 query_node.append(create_node);
                 parse_where_clause(parser, &mut query_node)?;
                 parse_return(parser, &mut query_node)?;
@@ -24,12 +35,10 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
             },
             TokenType::Match => {
                 parser.advance();
-                let mut match_node = make_ast_tag(AstTag::Match);
-                parse_pattern(parser, &mut match_node)?;
-                query_node.append(match_node);
+                parse_match(parser, &mut query_node)?;
                 if parser.current_token_type_advance(TokenType::Create) {
                     let mut create_node = make_ast_tag(AstTag::Create);
-                    parse_pattern(parser, &mut create_node)?;
+                    parse_path(parser, &mut create_node)?;
                     query_node.append(create_node);
                 }
                 parse_where_clause(parser, &mut query_node)?;

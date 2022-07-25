@@ -215,16 +215,16 @@ fn exit_rel_def(parser: &mut Parser, mut rel_node: Box<AstTagNode>, rel_fsm: &mu
     }
 }
 
-pub fn parse_pattern(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
-    let mut pattern = Box::new(AstTagNode::new_tag(AstTag::Pattern));
+pub fn parse_path(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    let mut path = Box::new(AstTagNode::new_tag(AstTag::Path));
     
     
-    enter_node_def(parser, &mut pattern)?;
+    enter_node_def(parser, &mut path)?;
     
     if parser.current_token_type_advance(TokenType::Comma) {
-        parse_pattern(parser, parent_node)?;
+        parse_path(parser, parent_node)?;
     }
 
-    parent_node.append(pattern);
+    parent_node.append(path);
     Ok(())
 }
