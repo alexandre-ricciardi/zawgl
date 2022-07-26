@@ -20,11 +20,19 @@ pub fn build_pattern(source_pattern: &PropertyGraph, target_pattern: &PropertyGr
                 source_nid_to_result_nid.insert(nid.1, id);
                 matching_var_names_to_result_nid.insert(s_var_name.to_string(), id);
             } else {
-                let id = result.add_node(nid.0.clone());
+                let mut source_node = nid.0.clone();
+                if source_node.get_status() == &Status::Empty {
+                    source_node.set_status(Status::Match);
+                }
+                let id = result.add_node(source_node);
                 source_nid_to_result_nid.insert(nid.1, id);
             }
         } else {
-            let id = result.add_node(nid.0.clone());
+            let mut source_node = nid.0.clone();
+            if source_node.get_status() == &Status::Empty {
+                source_node.set_status(Status::Match);
+            }
+            let id = result.add_node(source_node);
             source_nid_to_result_nid.insert(nid.1, id);
         }
     }
@@ -76,7 +84,7 @@ fn merge_nodes(var_name: &str, n0: &Node, n1: &Node) -> Node {
     let mut res = Node::new();
     res.set_var(var_name);
 
-    if n0.get_status() == &Status::Match || n1.get_status() == &Status::Match {
+    if n0.get_status() == &Status::Match || n1.get_status() == &Status::Match || n0.get_status() == &Status::Empty || n1.get_status() == &Status::Empty {
         res.set_status(Status::Match);
     } else {
         res.set_status(Status::Create);
