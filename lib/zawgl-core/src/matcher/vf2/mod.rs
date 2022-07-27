@@ -23,7 +23,7 @@ pub struct Matcher<'g0: 'g1, 'g1, VCOMP, ECOMP, CALLBACK>
     CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy) -> Option<bool> {
         state: State<'g0, 'g1, VCOMP, ECOMP>,
         found_match: bool,
-        match_continuation: Vec<(NodeIndex, ProxyNodeId)>,
+        match_continuation: Vec<(usize, usize)>,
         first_candidate_0: Option<NodeIndex>,
         callback: CALLBACK,
 }
@@ -43,15 +43,12 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
         }
 
         fn back_track(&mut self) {
-            let last =  self.match_continuation.pop();
-            if let Some(back) = last {
-                self.state.pop(&back.0, &back.1);
-            }
+            
         }
 
         pub fn process(&mut self, ids0: Vec<NodeIndex>, ids1: Vec<ProxyNodeId>) -> Option<bool> {
-            let mut it0;
-            let mut it1 = ids1.iter();
+            let mut index0 = 0;
+            let mut index1 = 0;
             let mut state = IterationStates::Process;
             loop {
                 match state {
@@ -75,29 +72,35 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                         }
                     },
                     IterationStates::LookForCandidates => {
-                        it0 = ids0.iter();
-                        while let Some(id0) = it0.next() {
+                        index0 = 0;
+                        let mut iter0 = ids0.iter();
+                        while let Some(id0) = iter0.next() {
                             if self.state.possible_candidate_0(id0) {
                                 self.first_candidate_0 = Some(*id0);
+                                index1 += 1;
                                 break;
                             }
+                            index1 += 1;
                         }
                         state = IterationStates::InitGraph1Loop;
                     },
                     IterationStates::InitGraph1Loop => {
-                        it1 = ids1.iter();
+                        index1 = 0;
                         state = IterationStates::Graph1Loop;
                     },
                     IterationStates::Graph1Loop => {
                         let mut backtrack = true;
                         if let Some(id0) = &self.first_candidate_0 {
-                            while let Some(id1) = it1.next() {
+                            let mut iter1 = ids1[index1..].iter();
+                            while let Some(id1) = iter1.next() {
                                 if self.state.possible_candidate_1(id1) && self.state.feasible(id0, id1)? {
-                                    self.match_continuation.push((*id0, *id1));
+                                    self.match_continuation.push((index0, index1));
                                     self.state.push(id0, id1);
                                     backtrack = false;
+                                    index1 += 1;
                                     break;
                                 }
+                                index1 += 1;
                             }
                         }
                         if !backtrack {
@@ -110,7 +113,11 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                         if self.match_continuation.is_empty() {
                             return Some(self.found_match);
                         } else {
-                            self.back_track();
+                            let last =  self.match_continuation.pop();
+                            if let Some(back) = last {
+                                index1 = back.1;
+                                self.state.pop(&ids0[back.0], &ids1[back.1]);
+                            }
                             state = IterationStates::Graph1Loop;
                         }
                     }
