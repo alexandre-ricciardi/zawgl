@@ -8,7 +8,7 @@ use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::graph::traits::*;
 
 fn main() {
-    let main_dir = get_tmp_dir_path("test_mutliple_match");
+    let main_dir = get_tmp_dir_path("test_match_graph_engine");
     let conf = InitContext::new(&main_dir).expect("can't create context");
     let mut graph_engine = GraphEngine::new(&conf);
     let mut full_graph = graph_engine.retrieve_graph().unwrap();
@@ -16,7 +16,11 @@ fn main() {
     depth_first_search(&mut full_graph);
     println!("full_graph {{");
     for e in full_graph.get_edges_with_relationships() {
-        println!("{:?} --{:?}--> {:?}", e.0.source.store_id, e.1.get_id().unwrap(), e.0.target.store_id);
+        let src = full_graph.get_node_ref(&e.0.source).expect("source").get_labels_ref().join(":");
+        let trg = full_graph.get_node_ref(&e.0.target).expect("target").get_labels_ref().join(":");
+        println!("{:?}[{:?}]--{:?}[{:?}]-->{:?}[{:?}]", 
+        e.0.source.store_id, src, e.1.get_id().unwrap(), e.1.get_labels_ref().join(":"),
+        e.0.target.store_id, trg);
     }
     println!("}}");
 }
