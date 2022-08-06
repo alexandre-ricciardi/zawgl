@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 use std::collections::HashMap;
+use log::trace;
+
 use crate::graph::container::GraphContainer;
 use crate::graph_engine::model::GraphProxy;
 use crate::graph_engine::model::ProxyNodeId;
@@ -266,6 +268,7 @@ impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
             if !(self.vertex_comp)(v, w) {
                 Some(false)
             } else {
+                trace!("vertex match: {:?} {:?}", v, w);
                 let mut term_in0_count = 0;
                 let mut term_out0_count = 0;
                 let mut rest0_count = 0;
