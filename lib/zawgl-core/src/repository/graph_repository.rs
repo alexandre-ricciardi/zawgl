@@ -202,7 +202,10 @@ impl GraphRepository {
         let mut rel_records = Vec::new();
         for edge in res.get_edges_mut() {
             let mut rr = RelationshipRecord::new(*map_nodes.get(&edge.source.get_index())?,
-             *map_nodes.get(&edge.target.get_index())?);
+            *map_nodes.get(&edge.target.get_index())?);
+            if !edge.relationship.get_labels_ref().is_empty() {
+                rr.relationship_type = self.labels_store.save_data(edge.relationship.get_labels_ref().join(":").as_bytes())?;
+            }
             let rel = &mut edge.relationship;
             rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_mut())?;
             let rid = self.relationships_store.create(&rr)?;

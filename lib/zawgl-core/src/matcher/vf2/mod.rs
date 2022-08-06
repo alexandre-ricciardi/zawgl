@@ -115,7 +115,7 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                         } else {
                             let last =  self.match_continuation.pop();
                             if let Some(back) = last {
-                                index1 = back.1;
+                                index1 = back.1 + 1;
                                 self.state.pop(&ids0[back.0], &ids1[back.1]);
                             }
                             state = IterationStates::Graph1Loop;

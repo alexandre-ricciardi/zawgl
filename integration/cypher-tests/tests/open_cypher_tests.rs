@@ -12,7 +12,7 @@ async fn test_cypher_0() {
     //run_test("create_path_test", 8184, test_create_path).await;
     //run_test("another_test", 8185, test_double_create_issue).await;
     //run_test("test_cypher_requests_2", 8186, test_cypher_requests_2).await;
-    run_test("test_mutliple_match", 8183, test_mutliple_match).await;
+    //run_test("test_mutliple_match", 8183, test_mutliple_match).await;
 }
 
 async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce(Client) -> T, T : Future<Output = ()> + Send {
