@@ -246,7 +246,7 @@ mod test_graph_engine_match {
 
         assert_eq!(1, res.len())
     }
-    #[test]
+    //#[test]
     fn test_match_bug() {
         let main_dir = get_tmp_dir_path("test_match_graph_engine");
 
