@@ -52,8 +52,8 @@ impl GraphEngine {
                 return true;
             }
             
-            if n0.get_id() != None && n0.get_id() == n1.get_id() {
-                return true;
+            if n0.get_id() != None && n0.get_id() != n1.get_id() {
+                return false;
             }
 
             let mut match_labels = true;
@@ -83,8 +83,8 @@ impl GraphEngine {
                 return true;
             }
             
-            if e0.get_id() != None && e0.get_id() == e1.get_id() {
-                return true;
+            if e0.get_id() != None && e0.get_id() != e1.get_id() {
+                return false;
             }
 
             let mut match_labels = true;

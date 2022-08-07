@@ -218,10 +218,18 @@ fn add_edge(edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId
             next_outbound_edge: db_edge_data.next_outbound_edge.map(|id| ProxyRelationshipId::new_db(id))});
     }
     let pid = ProxyRelationshipId::new(index, rel_db_id);
-    {let ms = &mut vertices.borrow_mut()[source_data.0.get_index()];
-    ms.first_outbound_edge = Some(pid);}
-    {let mt = &mut vertices.borrow_mut()[target_data.0.get_index()];
-    mt.first_inbound_edge = Some(pid);}
+    {
+        let ms = &mut vertices.borrow_mut()[source_data.0.get_index()];
+        if ms.first_outbound_edge == None {
+            ms.first_outbound_edge = Some(pid);
+        }
+    }
+    {
+        let mt = &mut vertices.borrow_mut()[target_data.0.get_index()];
+        if mt.first_inbound_edge == None {
+            mt.first_inbound_edge = Some(pid);
+        }
+    }
     Some(pid)
 }
 
