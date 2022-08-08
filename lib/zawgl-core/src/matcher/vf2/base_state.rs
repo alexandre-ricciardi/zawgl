@@ -55,7 +55,7 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
 
     pub fn in_core(&self, v0: &NID0) -> bool
     {
-        self.core_map.contains_key(&v0)
+        self.core_map.contains_key(v0)
     }
 
     pub fn count(&self) -> usize {

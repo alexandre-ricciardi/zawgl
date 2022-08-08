@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 use std::collections::HashMap;
+use log::trace;
+
 use crate::graph::container::GraphContainer;
 use crate::graph_engine::model::GraphProxy;
 use crate::graph_engine::model::ProxyNodeId;
@@ -266,6 +268,7 @@ impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
             if !(self.vertex_comp)(v, w) {
                 Some(false)
             } else {
+                trace!("vertex match: {:?} {:?}", v, w);
                 let mut term_in0_count = 0;
                 let mut term_out0_count = 0;
                 let mut rest0_count = 0;
@@ -295,14 +298,25 @@ impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
                 let mut term_in1_count = 0;
                 let mut term_out1_count = 0;
                 let mut rest1_count = 0;
-
-                for edge_index in self.graph_1.in_edges(&w_new) {
-                    let source_index = self.graph_1.get_source_index(&edge_index);
-                    self.inc_counters_match_edge_1(&mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index);
+                {
+                    let mut matched_edge_set = HashSet::new();
+                    for edge_index in self.graph_1.in_edges(w_new) {
+                        let source_index = self.graph_1.get_source_index(&edge_index);
+                        if !self.inc_counters_match_edge_1(true, &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index, v_new, &edge_index, 
+                            &mut matched_edge_set)? {
+                            return Some(false);
+                        }
+                    }
                 }
-                for edge_index in self.graph_1.out_edges(&w_new) {
-                    let target_index = self.graph_1.get_target_index(&edge_index);
-                    self.inc_counters_match_edge_1( &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index);
+                {
+                    let mut matched_edge_set = HashSet::new();
+                    for edge_index in self.graph_1.out_edges(w_new) {
+                        let target_index = self.graph_1.get_target_index(&edge_index);
+                        if !self.inc_counters_match_edge_1(false, &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index, v_new, &edge_index, 
+                            &mut matched_edge_set)? {
+                            return Some(false);
+                        }
+                    }
                 }
                 Some(term_in0_count <= term_in1_count && term_out0_count <= term_out1_count && rest0_count <= rest1_count)
             }
@@ -342,12 +356,11 @@ impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
             return Some(true);
         }
 
-        fn edge_exists_0(&mut self, source: &NodeIndex, target: &NodeIndex, e1: &ProxyRelationshipId, matched_edge_set: &mut HashSet<EdgeIndex>) -> Option<bool> {
+        fn edge_exists_0(&mut self, source: &NodeIndex, target: &NodeIndex, r1: &Relationship, matched_edge_set: &mut HashSet<EdgeIndex>) -> Option<bool> {
             for out_edge_index in self.graph_0.out_edges(source) {
                 let curr_target = self.graph_0.get_target_index(&out_edge_index);
                 if curr_target == *target && !matched_edge_set.contains(&out_edge_index) {
                     let r = self.graph_0.get_relationship_ref(&out_edge_index);
-                    let r1 = self.graph_1.get_relationship_ref(e1)?;
                     if (self.edge_comp)(r, r1) {
                         matched_edge_set.insert(out_edge_index);
                         return Some(true);
@@ -371,9 +384,26 @@ impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
             return  Some(false);
         }
 
-        fn inc_counters_match_edge_1(&mut self, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &ProxyNodeId, w_adj: &ProxyNodeId) {
+        fn inc_counters_match_edge_1(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &ProxyNodeId, w_adj: &ProxyNodeId, v_new: &NodeIndex, edge_index: &ProxyRelationshipId, matched_edge_set: &mut HashSet<EdgeIndex>) -> Option<bool> {
             if self.base_state_1.in_core(w_adj) || w_new == w_adj {
+                let mut v = *v_new;
+                if w_adj != w_new {
+                    if let Some(&ws) = self.base_state_1.core(w_adj) {
+                        v =  ws;
+                    }
+                }
                 
+                let r1 = &self.graph_1.get_relationship_ref(edge_index)?.clone();
+
+                if is_inbound {
+                    if !self.edge_exists_0(&v, &v_new, r1, matched_edge_set)? {
+                        return Some(false);
+                    }
+                } else {
+                    if !self.edge_exists_0(&v_new, &v, r1, matched_edge_set)? {
+                        return Some(false);
+                    }
+                }
             } else {
                 if self.base_state_1.in_depth(w_adj) > 0 {
                     *term_in += 1;
@@ -385,6 +415,7 @@ impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
                     *rest += 1;
                 }
             }
+            return Some(true);
         }
 
         pub fn possible_candidate_0(&self, v0: &NodeIndex) -> bool {

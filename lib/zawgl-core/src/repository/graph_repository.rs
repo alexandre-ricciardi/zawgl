@@ -183,17 +183,9 @@ impl GraphRepository {
         let mut node_index = 0;
         let mut node_records = Vec::new();
         for node in res.get_nodes_mut() {
-            let mut nr = NodeRecord::new();
-            if !node.get_labels_ref().is_empty() {
-                nr.node_type = self.labels_store.save_data(node.get_labels_ref().join(":").as_bytes())?;
-            }
-            nr.next_prop_id = self.properties_repository.create_list(node.get_properties_mut())?;
-            let nid = self.nodes_store.create(&nr)?;
-            for label in node.get_labels_ref() {
-                self.nodes_labels_index.insert(label, nid);
-            }
-            map_nodes.insert(node_index, nid);
-            node_records.push((nid, nr));
+            let cnode = self.create_node(node)?;
+            map_nodes.insert(node_index, cnode.get_id()?);
+            node_records.push(cnode);
             node_index += 1;
         }
 
@@ -201,47 +193,13 @@ impl GraphRepository {
         let mut map_rel = HashMap::new();
         let mut rel_records = Vec::new();
         for edge in res.get_edges_mut() {
-            let mut rr = RelationshipRecord::new(*map_nodes.get(&edge.source.get_index())?,
-             *map_nodes.get(&edge.target.get_index())?);
-            let rel = &mut edge.relationship;
-            rr.next_prop_id = self.properties_repository.create_list(rel.get_properties_mut())?;
-            let rid = self.relationships_store.create(&rr)?;
-            map_rel.insert(rel_index, rid);
-            rel_records.push((rid, rr));
+            let crel = self.create_relationship(&edge.relationship, 
+                *map_nodes.get(&edge.source.get_index())?,
+                *map_nodes.get(&edge.target.get_index())?)?;
+            map_rel.insert(rel_index, crel.get_id()?);
+            rel_records.push(crel);
             rel_index += 1;
         }
-
-        let mut nr_index = 0;
-        for nr in &mut node_records {
-            let vertex = pgraph.get_inner_graph().get_vertex(NodeIndex::new(nr_index));
-            let in_edge_index = vertex.get_first_inbound_edge();
-            if let Some(in_edge) = in_edge_index {
-                nr.1.first_inbound_edge = *map_rel.get(&in_edge.get_index())?;
-            }
-            
-            let out_edge_index = vertex.get_first_outbound_edge();
-            if let Some(out_edge) = out_edge_index {
-                nr.1.first_outbound_edge = *map_rel.get(&out_edge.get_index())?;
-            }
-            
-            self.nodes_store.save(nr.0, &nr.1)?;
-            nr_index += 1;
-        }
-
-        let mut rr_index = 0;
-        for rr in &mut rel_records {
-            let edge = pgraph.get_inner_graph().get_edge_data(EdgeIndex::new(rr_index));
-            if let Some(out_edge) = &edge.get_next_outbound_edge() {
-                rr.1.next_outbound_edge = *map_rel.get(&out_edge.get_index())?;
-            }
-            if let Some(in_edge) = &edge.get_next_inbound_edge() {
-                rr.1.next_inbound_edge = *map_rel.get(&in_edge.get_index())?;
-            }
-            
-            self.relationships_store.save(rr.0, &rr.1)?;
-            rr_index += 1;
-        }
-
         
         let mut n_index = 0;
         for n in res.get_nodes_mut() {

@@ -6,9 +6,9 @@ RUN cargo build --release --quiet
 
 FROM rust:slim-buster
 
-COPY --from=builder target/release/og /og/
-COPY --from=builder .config /og/.config
+COPY --from=builder target/release/zawgl /zawgl/
+COPY --from=builder .config /zawgl/.config
 
 EXPOSE 8182
-WORKDIR /og
-CMD ["./og"]
+WORKDIR /zawgl
+CMD ["./zawgl"]

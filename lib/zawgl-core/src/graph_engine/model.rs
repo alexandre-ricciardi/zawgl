@@ -6,7 +6,7 @@ use super::MutableGraphRepository;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Copy, Clone, Debug)]
 pub struct ProxyNodeId {
@@ -218,10 +218,18 @@ fn add_edge(edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId
             next_outbound_edge: db_edge_data.next_outbound_edge.map(|id| ProxyRelationshipId::new_db(id))});
     }
     let pid = ProxyRelationshipId::new(index, rel_db_id);
-    {let ms = &mut vertices.borrow_mut()[source_data.0.get_index()];
-    ms.first_outbound_edge = Some(pid);}
-    {let mt = &mut vertices.borrow_mut()[target_data.0.get_index()];
-    mt.first_inbound_edge = Some(pid);}
+    {
+        let ms = &mut vertices.borrow_mut()[source_data.0.get_index()];
+        if ms.first_outbound_edge == None {
+            ms.first_outbound_edge = Some(pid);
+        }
+    }
+    {
+        let mt = &mut vertices.borrow_mut()[target_data.0.get_index()];
+        if mt.first_inbound_edge == None {
+            mt.first_inbound_edge = Some(pid);
+        }
+    }
     Some(pid)
 }
 
@@ -330,9 +338,14 @@ impl GraphProxy {
     pub fn new(repo: MutableGraphRepository, pattern: &PropertyGraph) -> Option<Self> {
         let labels = extract_nodes_labels(pattern);
         let mut ids = retrieve_db_nodes_ids(repo.clone(), &labels);
+        let labels_set = labels.iter().collect::<HashSet<&String>>();
         for n_index in pattern.get_nodes_ids() {
-            if let Some(nid) = pattern.get_node_ref(&n_index).get_id() {
-                ids.push(ProxyNodeId::new_db(nid));
+            let pattern_node = pattern.get_node_ref(&n_index);
+            if let Some(nid) = pattern_node.get_id() {
+                let node_labels = pattern_node.get_labels_ref().iter().collect::<HashSet<&String>>();
+                if labels_set.is_disjoint(&node_labels) {
+                    ids.push(ProxyNodeId::new_db(nid));
+                }
             }
         }
         for v in pattern.get_nodes() {
@@ -407,8 +420,8 @@ impl GraphProxy {
         &self.relationships
     }
 
-    pub fn get_edges(&self) -> Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>> {
-        self.edges.borrow().clone()
+    pub fn get_edges_with_relationships(&self) -> Vec<(InnerEdgeData<ProxyNodeId, ProxyRelationshipId>, Relationship)> {
+        self.edges.borrow().clone().into_iter().zip(self.relationships.clone()).collect()
     }
 
 }
