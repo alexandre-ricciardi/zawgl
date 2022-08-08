@@ -250,7 +250,7 @@ mod test_graph_engine_match {
     
     #[test]
     fn test_match_self_relationship() {
-        let main_dir = build_dir_path_and_rm_old("test_match_graph_engine").expect("db path");
+        let main_dir = build_dir_path_and_rm_old("test_match_graph_engine_self").expect("db path");
         {
             let mut graph = PropertyGraph::new();
             let mut n1 = Node::new();

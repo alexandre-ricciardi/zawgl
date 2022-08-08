@@ -121,11 +121,20 @@ fn merge_nodes(var_name: &str, n0: &Node, n1: &Node) -> Node {
 pub fn merge_patterns(patterns: &Vec<&PropertyGraph>) -> PropertyGraph {
     let mut result = PropertyGraph::new();
     let mut source_pattern_to_result_nid = HashMap::new();
+    let mut map_var_name_to_pattern_nid = HashMap::new();
     let mut pattern_id = 0;
     for p in patterns {
         let mut source_pattern_nid_to_result_nid = HashMap::new();
         for nid in p.get_nodes_with_ids() {
-            let id = result.add_node(nid.0.clone());
+            let n = nid.0;
+            if let Some(var_name) = n.get_var() {
+                if !map_var_name_to_pattern_nid.contains_key(var_name) {
+                    map_var_name_to_pattern_nid.insert(var_name, (pattern_id, nid.1));
+                } else {
+                    continue;
+                }
+            }
+            let id = result.add_node(n.clone());
             source_pattern_nid_to_result_nid.insert(nid.1, id);
         }
         source_pattern_to_result_nid.insert(pattern_id, source_pattern_nid_to_result_nid);
@@ -134,8 +143,23 @@ pub fn merge_patterns(patterns: &Vec<&PropertyGraph>) -> PropertyGraph {
     pattern_id = 0;
     for p in patterns {
         for e in p.get_edges() {
-            let source = source_pattern_to_result_nid[&pattern_id][&e.source];
-            let target = source_pattern_to_result_nid[&pattern_id][&e.target];
+            let mut source_id = e.source;
+            let mut target_id = e.target;
+            let mut tmp_pattern_id = pattern_id;
+            if !source_pattern_to_result_nid[&pattern_id].contains_key(&e.source) {
+                if let Some(var_name) = patterns[pattern_id].get_node_ref(&e.source).get_var() {
+                    tmp_pattern_id = map_var_name_to_pattern_nid[var_name].0;
+                    source_id = map_var_name_to_pattern_nid[var_name].1;
+                }
+            }
+            if !source_pattern_to_result_nid[&pattern_id].contains_key(&e.target) {
+                if let Some(var_name) = patterns[pattern_id].get_node_ref(&e.target).get_var() {
+                    tmp_pattern_id = map_var_name_to_pattern_nid[var_name].0;
+                    target_id = map_var_name_to_pattern_nid[var_name].1;
+                }
+            }
+            let source = source_pattern_to_result_nid[&tmp_pattern_id][&source_id];
+            let target = source_pattern_to_result_nid[&tmp_pattern_id][&target_id];
             result.add_relationship(e.relationship.clone(), source, target);
         }
         pattern_id += 1;

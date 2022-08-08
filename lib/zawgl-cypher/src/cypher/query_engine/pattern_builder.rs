@@ -76,8 +76,20 @@ pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {
             }
 
             for e in path.get_edges() {
-                let s = e.get_source();
-                let t = e.get_target();
+                let mut s = e.get_source();
+                let mut t = e.get_target();
+                if !map_path_node_ids.contains_key(&t) {
+                    let tn = path.get_node_ref(&t);
+                    if let Some(vname) = tn.get_var() {
+                        t = merge_vars_map[vname];
+                    }
+                }
+                if !map_path_node_ids.contains_key(&s) {
+                    let sn = path.get_node_ref(&s);
+                    if let Some(vname) = sn.get_var() {
+                        s = merge_vars_map[vname];
+                    }
+                }
                 let r = &e.relationship;
                 pattern.add_relationship(r.clone(), map_path_node_ids[&s], map_path_node_ids[&t]);
             }
