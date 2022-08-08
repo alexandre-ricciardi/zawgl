@@ -246,24 +246,48 @@ mod test_graph_engine_match {
 
         assert_eq!(1, res.len())
     }
-    //#[test]
-    fn test_match_bug() {
-        let main_dir = get_tmp_dir_path("test_match_graph_engine");
 
+    
+    #[test]
+    fn test_match_self_relationship() {
+        let main_dir = build_dir_path_and_rm_old("test_match_graph_engine").expect("db path");
+        {
+            let mut graph = PropertyGraph::new();
+            let mut n1 = Node::new();
+            n1.set_labels(vec!["Label1".to_string()]);
+            let id1 = graph.add_node(n1);
+            let mut n2 = Node::new();
+            n2.set_labels(vec!["Label2".to_string()]);
+            let id2 = graph.add_node(n2);
+            let mut n3 = Node::new();
+            n3.set_labels(vec!["Label3".to_string()]);
+            let id3 = graph.add_node(n3);
+            let mut r12 = Relationship::new();
+            r12.set_labels(vec!["Type12".to_string()]);
+            graph.add_relationship(r12, id1, id2);
+            let mut r32 = Relationship::new();
+            r32.set_labels(vec!["Type32".to_string()]);
+            graph.add_relationship(r32, id3, id2);
+            let mut r33 = Relationship::new();
+            r33.set_labels(vec!["Type33".to_string()]);
+            graph.add_relationship(r33, id3, id3);
+            let conf = InitContext::new(&main_dir).expect("can't create context");
+            let mut ge = GraphEngine::new(&conf);
+            ge.create_graph(&graph);
+            ge.sync();
+
+        }
 
         let conf = InitContext::new(&main_dir).expect("can't create context");
         let mut ge_load = GraphEngine::new(&conf);
 
         let mut pattern = PropertyGraph::new();
-        let mut n2 = Node::new();
-        n2.set_labels(vec!["Label2".to_string()]);
-        let id2 = pattern.add_node(n2);
         let mut n3 = Node::new();
         n3.set_labels(vec!["Label3".to_string()]);
         let id3 = pattern.add_node(n3);
         let mut r32 = Relationship::new();
-        r32.set_labels(vec!["Type32".to_string()]);
-        pattern.add_relationship(r32, id3, id2);
+        r32.set_labels(vec!["Type33".to_string()]);
+        pattern.add_relationship(r32, id3, id3);
 
         let res = ge_load.match_pattern(&pattern).expect("graphs");
 
