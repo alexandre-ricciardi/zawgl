@@ -11,7 +11,7 @@ async fn test_cypher_0() {
     run_test("first_test", 8183, test_cypher_requests).await;
     run_test("create_path_test", 8184, test_create_path).await;
     run_test("another_test", 8185, test_double_create_issue).await;
-    run_test("test_cypher_requests_2", 8186, test_cypher_requests_2).await;
+    run_test("test_cypher_requests_complete_graph", 8186, test_cypher_requests_complete_graph).await;
     run_test("test_mutliple_match", 8187, test_mutliple_match).await;
     run_test("test_cypher_self_relationship", 8189, test_cypher_self_relationship).await;
     run_test("test_cypher_self_relationship_2", 8190, test_cypher_self_relationship_2).await;
@@ -116,7 +116,7 @@ async fn test_cypher_requests(mut client: Client) {
     }
 }
 
-async fn test_cypher_requests_2(mut client: Client) {
+async fn test_cypher_requests_complete_graph(mut client: Client) {
     for _ in 0..10 {
         let r = client.execute_cypher_request("create (n:Person) return n").await;
         if let Ok(d) = r {
