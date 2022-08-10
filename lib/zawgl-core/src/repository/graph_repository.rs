@@ -128,7 +128,11 @@ impl GraphRepository {
     
 
     pub fn create_relationship(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
+        let mut source_record = self.nodes_store.load(source)?;
+        let mut target_record = self.nodes_store.load(target)?;
         let mut rr = RelationshipRecord::new(source, target);
+        rr.next_outbound_edge = source_record.first_outbound_edge;
+        rr.next_inbound_edge = target_record.first_inbound_edge;
         let mut res = rel.clone();
         rr.next_prop_id = self.properties_repository.create_list(res.get_properties_mut())?;
         if !rel.get_labels_ref().is_empty() {
@@ -138,37 +142,17 @@ impl GraphRepository {
        
         res.set_id(Some(rid));
         
-        let mut source_record = self.nodes_store.load(source)?;
-        if source_record.first_outbound_edge == 0 {
+
+        if source == target {
+            source_record.first_outbound_edge = rid;
             source_record.first_outbound_edge = rid;
             self.nodes_store.save(source, &source_record)?;
         } else {
-            let mut rel_record = self.relationships_store.load(source_record.first_outbound_edge)?;
-            let mut current_rr_id = source_record.first_outbound_edge;
-            while rel_record.next_outbound_edge !=0 {
-                current_rr_id = rel_record.next_outbound_edge;
-                rel_record = self.relationships_store.load(rel_record.next_outbound_edge)?;
-            }
-            rel_record.next_outbound_edge = rid;
-            self.relationships_store.save(current_rr_id, &rel_record)?;
-        }
-
-        
-        let mut target_record = self.nodes_store.load(target)?;
-        if target_record.first_inbound_edge == 0 {
+            source_record.first_outbound_edge = rid;
             target_record.first_inbound_edge = rid;
+            self.nodes_store.save(source, &source_record)?;
             self.nodes_store.save(target, &target_record)?;
-        } else {
-            let mut rel_record = self.relationships_store.load(target_record.first_inbound_edge)?;
-            let mut current_rr_id = target_record.first_inbound_edge;
-            while rel_record.next_inbound_edge !=0 {
-                current_rr_id = rel_record.next_inbound_edge;
-                rel_record = self.relationships_store.load(rel_record.next_inbound_edge)?;
-            }
-            rel_record.next_inbound_edge = rid;
-            self.relationships_store.save(current_rr_id, &rel_record)?;
         }
-
         
         for label in rel.get_labels_ref() {
             self.relationships_labels_index.insert(label, rid);
