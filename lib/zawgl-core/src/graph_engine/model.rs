@@ -107,7 +107,9 @@ impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relatio
                 vertex_exists = true;
                 if ndata.0.get_index() < self.nodes.len() {
                     res = ndata.0.get_index();
-                    retrieve = false;
+                    if self.nodes[res].get_id().is_some() {
+                        retrieve = false;
+                    }
                 }
             }
             if retrieve {
@@ -131,7 +133,9 @@ impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relatio
                 edge_exists = true;
                 if rdata.0.get_index() < self.relationships.len() {
                     res = rdata.0.get_index();
-                    retrieve = false;
+                    if self.relationships[res].get_id().is_some() {
+                        retrieve = false;
+                    }
                 }
             }
             if retrieve {

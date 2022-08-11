@@ -11,10 +11,10 @@ async fn test_cypher_0() {
     run_test("first_test", 8183, test_cypher_requests).await;
     run_test("create_path_test", 8184, test_create_path).await;
     run_test("another_test", 8185, test_double_create_issue).await;
-    //run_test("test_cypher_requests_2", 8186, test_cypher_requests_2).await;
+    run_test("test_cypher_requests_complete_graph", 8186, test_cypher_requests_complete_graph).await;
     run_test("test_mutliple_match", 8187, test_mutliple_match).await;
     run_test("test_cypher_self_relationship", 8189, test_cypher_self_relationship).await;
-    //run_test("test_cypher_self_relationship_2", 8190, test_cypher_self_relationship_2).await;
+    run_test("test_cypher_self_relationship_2", 8190, test_cypher_self_relationship_2).await;
 }
 
 async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce(Client) -> T, T : Future<Output = ()> + Send {
@@ -116,7 +116,7 @@ async fn test_cypher_requests(mut client: Client) {
     }
 }
 
-async fn test_cypher_requests_2(mut client: Client) {
+async fn test_cypher_requests_complete_graph(mut client: Client) {
     for _ in 0..10 {
         let r = client.execute_cypher_request("create (n:Person) return n").await;
         if let Ok(d) = r {
@@ -129,7 +129,7 @@ async fn test_cypher_requests_2(mut client: Client) {
         debug!("{}", d.to_string());
         let res = d.get_document("result").expect("result");
         let graphs = res.get_array("graphs").expect("graphs");
-        assert_eq!(graphs.len(), 100);
+        assert_eq!(graphs.len(), 45);
         for g in graphs {
             let graph = g.as_document().expect("a graph");
             let nodes = graph.get_array("nodes").expect("nodes");
@@ -168,7 +168,7 @@ async fn test_cypher_self_relationship_2(mut client: Client) {
         debug!("{}", d.to_string())
     }
 
-    let r = client.execute_cypher_request("match (x:Person), (y:Person) create (x)-[f:FRIEND_OF]->(y) return f").await;
+    let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f").await;
     if let Ok(d) = r {
         debug!("{}", d.to_string());
         let res = d.get_document("result").expect("result");
