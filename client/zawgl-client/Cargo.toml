@@ -3,7 +3,8 @@ name = "zawgl-client"
 version = "0.1.0"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
 edition = "2018"
-
+description = "Zawgl Graph Database Client"
+license = "MIT"
 [lib]
 name = "zawgl_client"
 
