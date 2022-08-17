@@ -136,7 +136,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
- "uuid",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -468,7 +468,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "thiserror",
- "uuid",
+ "uuid 0.8.2",
  "websocket",
 ]
 
@@ -1706,6 +1706,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "uuid"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd6469f4314d5f1ffec476e05f17cc9a78bc7a27a6a857842170bdf8d6f98d2f"
+dependencies = [
+ "getrandom 0.2.3",
+]
+
+[[package]]
 name = "vcpkg"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1867,7 +1876,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "url 2.2.2",
- "uuid",
+ "uuid 1.1.2",
 ]
 
 [[package]]
