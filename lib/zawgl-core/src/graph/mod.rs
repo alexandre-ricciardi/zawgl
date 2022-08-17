@@ -21,8 +21,6 @@
 pub mod traits;
 pub mod container;
 
-use crate::model::Node;
-
 use self::traits::*;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
