@@ -29,7 +29,8 @@ use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::graph::traits::*;
 
 fn main() {
-    let main_dir = get_tmp_dir_path("test_mutliple_match");
+    //let main_dir = get_tmp_dir_path("zawgl-db");
+    let main_dir = "zawgl-db";
     let conf = InitContext::new(&main_dir).expect("can't create context");
     let mut graph_engine = GraphEngine::new(&conf);
     let mut full_graph = graph_engine.retrieve_graph().unwrap();

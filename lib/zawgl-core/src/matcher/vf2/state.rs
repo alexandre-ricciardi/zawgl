@@ -406,24 +406,7 @@ impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
 
         fn inc_counters_match_edge_1(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &ProxyNodeId, w_adj: &ProxyNodeId, v_new: &NodeIndex, edge_index: &ProxyRelationshipId, matched_edge_set: &mut HashSet<EdgeIndex>) -> Option<bool> {
             if self.base_state_1.in_core(w_adj) || w_new == w_adj {
-                let mut v = *v_new;
-                if w_adj != w_new {
-                    if let Some(&ws) = self.base_state_1.core(w_adj) {
-                        v =  ws;
-                    }
-                }
                 
-                let r1 = &self.graph_1.get_relationship_ref(edge_index)?.clone();
-
-                if is_inbound {
-                    if !self.edge_exists_0(&v, &v_new, r1, matched_edge_set)? {
-                        return Some(false);
-                    }
-                } else {
-                    if !self.edge_exists_0(&v_new, &v, r1, matched_edge_set)? {
-                        return Some(false);
-                    }
-                }
             } else {
                 if self.base_state_1.in_depth(w_adj) > 0 {
                     *term_in += 1;
