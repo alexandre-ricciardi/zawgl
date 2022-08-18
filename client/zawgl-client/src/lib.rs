@@ -53,16 +53,16 @@ impl Client {
         Client{request_tx: request_tx, map_rx_channels: map.clone()}
     }
 
-    pub async fn execute_cypher_request(&mut self, query: &'static str) -> Result<Document, Canceled> {
+    pub async fn execute_cypher_request(&mut self, query: &str) -> Result<Document, Canceled> {
         let uuid =  Uuid::new_v4();
         let (tx, rx) = futures_channel::oneshot::channel::<Document>();
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
-        tokio::spawn(send_request(self.request_tx.clone(), uuid.to_string(), query));
+        tokio::spawn(send_request(self.request_tx.clone(), uuid.to_string(), query.to_string()));
         rx.await
     }
 }
 
-async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, id: String, query: &str) -> Option<()> {
+async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, id: String, query: String) -> Option<()> {
     let mut msg = "!application/openCypher".as_bytes().to_vec();
     let doc = doc!{
         "request_id": String::from(id),
