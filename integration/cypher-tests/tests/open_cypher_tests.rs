@@ -1,3 +1,23 @@
+// MIT License
+// Copyright (c) 2022 Alexandre RICCIARDI
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 use log::LevelFilter;
 use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 use simple_logger::SimpleLogger;
@@ -8,10 +28,10 @@ use std::future::Future;
 #[tokio::test]
 async fn test_cypher_0() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
+    run_test("test_cypher_requests_complete_graph", 8182, test_cypher_requests_complete_graph).await;
     run_test("first_test", 8183, test_cypher_requests).await;
     run_test("create_path_test", 8184, test_create_path).await;
     run_test("another_test", 8185, test_double_create_issue).await;
-    run_test("test_cypher_requests_complete_graph", 8186, test_cypher_requests_complete_graph).await;
     run_test("test_mutliple_match", 8187, test_mutliple_match).await;
     run_test("test_cypher_self_relationship", 8189, test_cypher_self_relationship).await;
     run_test("test_cypher_self_relationship_2", 8190, test_cypher_self_relationship_2).await;
