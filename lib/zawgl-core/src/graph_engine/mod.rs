@@ -20,7 +20,7 @@
 
 pub mod model;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use super::model::*;
@@ -166,9 +166,19 @@ impl GraphEngine {
 
         for pattern in patterns {
             let mut map_nodes_ids = HashMap::new();
+            let mut nodes_db_ids_to_pattern_id = HashMap::new();
             let mut match_pattern = PropertyGraph::new();
             for nid in pattern.get_nodes_ids() {
                 let n = pattern.get_node_ref(&nid);
+                if let Some(db_id) = n.get_id() {
+                    if nodes_db_ids_to_pattern_id.contains_key(&db_id) {
+                        let prev_id = nodes_db_ids_to_pattern_id[&db_id];
+                        map_nodes_ids.insert(nid, prev_id);
+                        continue;
+                    } else {
+                        nodes_db_ids_to_pattern_id.insert(db_id, nid);
+                    }
+                }
                 if *n.get_status() == Status::Match {
                     let pattern_n_index = match_pattern.add_node(n.clone());
                     map_nodes_ids.insert(nid, pattern_n_index);
@@ -178,7 +188,21 @@ impl GraphEngine {
                 let source_index = re.source;
                 let target_index = re.target;
                 if *re.relationship.get_status() == Status::Match {
-                    match_pattern.add_relationship(re.relationship.clone(), map_nodes_ids[&source_index], map_nodes_ids[&target_index]);
+                    let mut sid = source_index;
+                    let mut tid = target_index;
+                    if !map_nodes_ids.contains_key(&source_index) {
+                        let source = pattern.get_node_ref(&source_index);
+                        if let Some(source_db_id) = source.get_id() {
+                            sid = nodes_db_ids_to_pattern_id[&source_db_id]; 
+                        }                     
+                    }
+                    if !map_nodes_ids.contains_key(&target_index) {
+                        let target = pattern.get_node_ref(&target_index);
+                        if let Some(target_db_id) = target.get_id() {
+                            tid = nodes_db_ids_to_pattern_id[&target_db_id]; 
+                        }                     
+                    }
+                    match_pattern.add_relationship(re.relationship.clone(), sid, tid);
                 }
             }
 
@@ -284,6 +308,53 @@ mod test_graph_engine_match {
     #[test]
     fn test_match_self_relationship() {
         let main_dir = build_dir_path_and_rm_old("test_match_graph_engine_self").expect("db path");
+        {
+            let mut graph = PropertyGraph::new();
+            let mut n1 = Node::new();
+            n1.set_labels(vec!["Label1".to_string()]);
+            let id1 = graph.add_node(n1);
+            let mut n2 = Node::new();
+            n2.set_labels(vec!["Label2".to_string()]);
+            let id2 = graph.add_node(n2);
+            let mut n3 = Node::new();
+            n3.set_labels(vec!["Label3".to_string()]);
+            let id3 = graph.add_node(n3);
+            let mut r12 = Relationship::new();
+            r12.set_labels(vec!["Type12".to_string()]);
+            graph.add_relationship(r12, id1, id2);
+            let mut r32 = Relationship::new();
+            r32.set_labels(vec!["Type32".to_string()]);
+            graph.add_relationship(r32, id3, id2);
+            let mut r33 = Relationship::new();
+            r33.set_labels(vec!["Type33".to_string()]);
+            graph.add_relationship(r33, id3, id3);
+            let conf = InitContext::new(&main_dir).expect("can't create context");
+            let mut ge = GraphEngine::new(&conf);
+            ge.create_graph(&graph);
+            ge.sync();
+
+        }
+
+        let conf = InitContext::new(&main_dir).expect("can't create context");
+        let mut ge_load = GraphEngine::new(&conf);
+
+        let mut pattern = PropertyGraph::new();
+        let mut n3 = Node::new();
+        n3.set_labels(vec!["Label3".to_string()]);
+        let id3 = pattern.add_node(n3);
+        let mut r32 = Relationship::new();
+        r32.set_labels(vec!["Type33".to_string()]);
+        pattern.add_relationship(r32, id3, id3);
+
+        let res = ge_load.match_pattern(&pattern).expect("graphs");
+
+        assert_eq!(1, res.len())
+    }
+
+    
+    #[test]
+    fn test_match_merge_same_node_self_relationship() {
+        let main_dir = build_dir_path_and_rm_old("test_match_merge_same_node_self_relationship").expect("db path");
         {
             let mut graph = PropertyGraph::new();
             let mut n1 = Node::new();

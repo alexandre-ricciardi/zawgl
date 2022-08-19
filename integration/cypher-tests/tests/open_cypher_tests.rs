@@ -149,12 +149,11 @@ async fn test_cypher_requests_complete_graph(mut client: Client) {
         debug!("{}", d.to_string());
         let res = d.get_document("result").expect("result");
         let graphs = res.get_array("graphs").expect("graphs");
-        assert_eq!(graphs.len(), 90);
+        assert_eq!(graphs.len(), 100);
         for g in graphs {
             let graph = g.as_document().expect("a graph");
             let nodes = graph.get_array("nodes").expect("nodes");
             let relationships = graph.get_array("relationships").expect("relationships");
-            assert_eq!(nodes.len(), 2);
             assert_eq!(relationships.len(), 1);
         }
     }
