@@ -161,46 +161,59 @@ impl GraphEngine {
         Some(res)
     }
 
-    pub fn match_pattern_and_create(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        let mut match_pattern = PropertyGraph::new();
-        let mut map_nodes_ids = HashMap::new();
-        for nid in pattern.get_nodes_ids() {
-            let n = pattern.get_node_ref(&nid);
-            if *n.get_status() == Status::Match {
-                let pattern_n_index = match_pattern.add_node(n.clone());
-                map_nodes_ids.insert(nid, pattern_n_index);
-            }
-        }
-        for re in pattern.get_relationships_and_edges() {
-            let source_index = re.source;
-            let target_index = re.target;
-            if *re.relationship.get_status() == Status::Match {
-                match_pattern.add_relationship(re.relationship.clone(), map_nodes_ids[&source_index], map_nodes_ids[&target_index]);
-            }
-        }
+    pub fn match_patterns_and_create(&mut self, patterns: &Vec<PropertyGraph>) -> Option<Vec<Vec<PropertyGraph>>> {
+        let mut matched_patterns = Vec::new();
 
-        let mut res = self.match_pattern(&match_pattern)?;
-
-        for matched_graph in &mut res {
-            for nid in pattern.get_nodes_with_ids() {
-                if *nid.0.get_status() == Status::Create {
-                    let node = self.create_node(nid.0)?;
-                    let node_id = matched_graph.add_node(node);
-                    map_nodes_ids.insert(node_id, nid.1);
+        for pattern in patterns {
+            let mut map_nodes_ids = HashMap::new();
+            let mut match_pattern = PropertyGraph::new();
+            for nid in pattern.get_nodes_ids() {
+                let n = pattern.get_node_ref(&nid);
+                if *n.get_status() == Status::Match {
+                    let pattern_n_index = match_pattern.add_node(n.clone());
+                    map_nodes_ids.insert(nid, pattern_n_index);
                 }
             }
             for re in pattern.get_relationships_and_edges() {
-                if *re.relationship.get_status() == Status::Create {
-                    let source_index = map_nodes_ids[&re.source];
-                    let target_index = map_nodes_ids[&re.target];
-                    let source = matched_graph.get_node_ref(&source_index).get_id()?;
-                    let target = matched_graph.get_node_ref(&target_index).get_id()?;
-                    let res = self.create_relationship(&re.relationship, source, target)?;
-                    matched_graph.add_relationship(res, source_index, target_index);
+                let source_index = re.source;
+                let target_index = re.target;
+                if *re.relationship.get_status() == Status::Match {
+                    match_pattern.add_relationship(re.relationship.clone(), map_nodes_ids[&source_index], map_nodes_ids[&target_index]);
                 }
             }
+
+            let res = self.match_pattern(&match_pattern)?;
+
+            matched_patterns.push((map_nodes_ids, res, pattern));
         }
-        Some(res)
+
+        let mut results = Vec::new();
+        for mut matched in matched_patterns {
+            let mut matched_graphs = Vec::new();
+            for mut matched_graph in matched.1 {
+                for nid in matched.2.get_nodes_with_ids() {
+                    if *nid.0.get_status() == Status::Create {
+                        let node = self.create_node(nid.0)?;
+                        let node_id = matched_graph.add_node(node);
+                        matched.0.insert(node_id, nid.1);
+                    }
+                }
+                for re in  matched.2.get_relationships_and_edges() {
+                    if *re.relationship.get_status() == Status::Create {
+                        let source_index = matched.0[&re.source];
+                        let target_index = matched.0[&re.target];
+                        let source = matched_graph.get_node_ref(&source_index).get_id()?;
+                        let target = matched_graph.get_node_ref(&target_index).get_id()?;
+                        let res = self.create_relationship(&re.relationship, source, target)?;
+                        matched_graph.add_relationship(res, source_index, target_index);
+                    }
+                }
+                matched_graphs.push(matched_graph);
+            }
+            results.push(matched_graphs);
+        }
+        
+        Some(results)
     }
 
 
