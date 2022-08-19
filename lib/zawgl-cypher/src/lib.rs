@@ -41,6 +41,7 @@ pub enum CypherError {
 pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, cypher_request: &Document) -> Result<Document, CypherError> {
     let query = cypher_request.get_str("query").map_err(|err| CypherError::RequestError)?;
     let request_id = cypher_request.get_str("request_id").map_err(|err| CypherError::RequestError)?;
+    let parameters = cypher_request.get_document("parameters");
     let request = process_cypher_query(query).ok_or(CypherError::RequestError)?;
     let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &request.steps, None).map_err(|err| CypherError::TxError(err))?;
     let mut result_doc = Document::new();
