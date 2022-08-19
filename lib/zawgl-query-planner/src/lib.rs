@@ -98,26 +98,24 @@ pub fn handle_query_steps<'a>(steps: &Vec<QueryStep>, graph_engine: &mut GraphEn
             },
             StepType::CREATE => {
                 if results.is_empty() {
-                    for pattern in &step.patterns {
-                        let created = graph_engine.match_pattern_and_create(pattern);
-                        if let Some(res) = created {
-                            results.push(res);
-                        }
+                    let created = graph_engine.match_patterns_and_create(&step.patterns);
+                    if let Some(created_graphs) = created {
+                        results = created_graphs;
                     }
                 } else {
-                    let mut new_res = Vec::new();
+                    let mut to_match_and_create = Vec::new();
                     for pattern in &step.patterns {
                         let products = make_cartesian_product(&results);
                         for product in &products {
                             let merge_sources = merge_patterns(product);
                             let merge = build_pattern(&merge_sources, pattern);
-                            let created = graph_engine.match_pattern_and_create(&merge);
-                            if let Some(c) = created {
-                                new_res.push(c);
-                            }
+                            to_match_and_create.push(merge);
                         }
                     }
-                    results = new_res;
+                    let created = graph_engine.match_patterns_and_create(&to_match_and_create);
+                    if let Some(created_graphs) = created {
+                        results = created_graphs;
+                    }
                 }
             },
             StepType::DELETE => todo!(),
