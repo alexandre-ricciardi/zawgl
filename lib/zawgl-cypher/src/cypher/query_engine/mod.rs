@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::parameters::Parameters;
+
 use super::*;
 use super::super::model::*;
 use super::parser::*;
@@ -35,13 +37,13 @@ use states::*;
 use path_builder::*;
 use pattern_builder::*;
 
-pub fn process_cypher_query(query: &str) -> Option<Request> {
+pub fn process_cypher_query(query: &str, params: Option<Parameters>) -> Option<Request> {
     let mut lexer = lexer::Lexer::new(query);
     match lexer.get_tokens() {
         Ok(tokens) => {
             let mut parser = parser::Parser::new(tokens);
             let ast = parser::cypher_parser::parse(&mut parser).ok()?;
-            let mut visitor = CypherAstVisitor::new();
+            let mut visitor = CypherAstVisitor::new(params);
             parser::walk_ast(&mut visitor, &ast).ok()?;
             visitor.request
         }
@@ -55,13 +57,14 @@ struct CypherAstVisitor {
     curr_identifier: Option<String>,
     state: VisitorState,
     id_type: Option<IdentifierType>,    
-    path_builders: Vec<PathBuilder>, 
+    path_builders: Vec<PathBuilder>,
+    params: Option<Parameters>,
 }
 
 impl CypherAstVisitor {
-    fn new() -> Self {
+    fn new(params: Option<Parameters>) -> Self {
         CypherAstVisitor { request: None, state: VisitorState::Init,
-            curr_identifier: None, id_type: None, path_builders: Vec::new() }
+            curr_identifier: None, id_type: None, path_builders: Vec::new(), params: params}
     }
 }
 
@@ -141,52 +144,52 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         let state = self.state.clone();
-        if let Some(pb) = &mut self.current_path_builder() {
+        if let Some(pb) = self.current_path_builder() {
             pb.enter_node(state);
         }
         Ok(true)
     }
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         let state = self.state.clone();
-        if let (Some(pb), Some(ast_tag)) = (&mut self.current_path_builder(), node.ast_tag){
+        if let (Some(pb), Some(ast_tag)) = (self.current_path_builder(), node.ast_tag){
             pb.enter_relationship(ast_tag, state)
         }
         Ok(true)
     }
     fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder() {
+        if let Some(pb) = self.current_path_builder() {
             pb.enter_property();
         }
         Ok(true)
     }
 
     fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder() {
+        if let Some(pb) = self.current_path_builder() {
             pb.enter_integer_value(value);
         }
         Ok(true)
     }
     fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder() {
+        if let Some(pb) = self.current_path_builder() {
             pb.enter_float_value(value);
         }
         Ok(true)
     }
     fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder() {
+        if let Some(pb) = self.current_path_builder() {
             pb.enter_string_value(value);
         }
         Ok(true)
     }
     fn enter_bool_value(&mut self, value: Option<bool>) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder() {
+        if let Some(pb) = self.current_path_builder() {
             pb.enter_bool_value(value);
         }
         Ok(true)
     }
 
     fn enter_label(&mut self) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder() {
+        if let Some(pb) = self.current_path_builder() {
             pb.enter_label();
         }
         self.id_type = Some(IdentifierType::Label);
@@ -194,7 +197,7 @@ impl AstVisitor for CypherAstVisitor {
     }
 
     fn enter_variable(&mut self) -> AstVisitorResult<bool> {
-        if let Some(pb) = &mut self.current_path_builder() {
+        if let Some(pb) = self.current_path_builder() {
             pb.enter_variable();
         }
         self.id_type = Some(IdentifierType::Variable);
@@ -206,7 +209,7 @@ impl AstVisitor for CypherAstVisitor {
         match self.state {
             VisitorState::MatchPattern |
             VisitorState::CreatePattern => {
-                if let Some(pb) = &mut self.current_path_builder() {
+                if let Some(pb) = self.current_path_builder() {
                     pb.enter_identifier(state, key);
                 }
             }
@@ -284,11 +287,13 @@ impl AstVisitor for CypherAstVisitor {
 
 #[cfg(test)]
 mod test_query_engine {
+    use crate::parameters::ParameterValue;
+
     use super::*;
     use zawgl_core::graph::*;
     #[test]
     fn test_create_0() {
-        let request = process_cypher_query("CREATE (n:Person)");
+        let request = process_cypher_query("CREATE (n:Person)", None);
         if let  Some(req) = request {
             let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
@@ -302,7 +307,7 @@ mod test_query_engine {
 
     #[test]
     fn test_create_1() {
-        let request = process_cypher_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})");
+        let request = process_cypher_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})", None);
         if let  Some(req) = request {
             let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
@@ -320,7 +325,7 @@ mod test_query_engine {
 
     #[test]
     fn test_create_2() {
-        let request = process_cypher_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)");
+        let request = process_cypher_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)", None);
         if let  Some(req) = request {
             let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
@@ -337,7 +342,7 @@ mod test_query_engine {
 
     #[test]
     fn test_match_and_create() {
-        let request = process_cypher_query("MATCH (m:Movie), (a:Actor) CREATE (a)-[r:PLAYED_IN]->(m) RETURN m, a, r");
+        let request = process_cypher_query("MATCH (m:Movie), (a:Actor) CREATE (a)-[r:PLAYED_IN]->(m) RETURN m, a, r", None);
         if let  Some(req) = request {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(movie.get_var(), &Some(String::from("a")));
@@ -359,7 +364,7 @@ mod test_query_engine {
     
     #[test]
     fn test_match_match() {
-        let request = process_cypher_query("MATCH (m:Movie), (a:Actor) MATCH (a)-[r:PLAYED_IN]->(m) RETURN m, a, r");
+        let request = process_cypher_query("MATCH (m:Movie), (a:Actor) MATCH (a)-[r:PLAYED_IN]->(m) RETURN m, a, r", None);
         if let  Some(req) = request {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(movie.get_var(), &Some(String::from("a")));
@@ -373,6 +378,22 @@ mod test_query_engine {
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
             assert_eq!(rel.get_status(), &Status::Match);
+        } else {
+            assert!(false, "no request found");
+        }
+    }
+
+
+    #[test]
+    fn test_node_id_parameter() {
+        let mut params = Parameters::new();
+        params.insert("mid".to_string(), ParameterValue::Value(PropertyValue::PInteger(12)));
+        let request = process_cypher_query("MATCH (m:Movie) WHERE id(m) = $mid RETURN m, a, r", Some(params));
+        if let  Some(req) = request {
+            let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
+            assert_eq!(movie.get_var(), &Some(String::from("a")));
+            assert_eq!(movie.get_labels_ref()[0], String::from("Actor"));
+            assert_eq!(movie.get_status(), &Status::Match);
         } else {
             assert!(false, "no request found");
         }

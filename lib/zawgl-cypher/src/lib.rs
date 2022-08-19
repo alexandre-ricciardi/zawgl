@@ -1,5 +1,6 @@
 use bson::{Bson, Document, doc};
 use cypher::query_engine::process_cypher_query;
+use parameters::*;
 use zawgl_core::graph::traits::GraphContainerTrait;
 use zawgl_core::model::{Property, PropertyValue};
 use zawgl_tx_handler::{DatabaseError, handle_graph_request, request_handler::RequestHandler, tx_handler::TxHandler};
@@ -30,6 +31,7 @@ extern crate bson;
 
 pub mod cypher;
 mod model;
+mod parameters;
 
 #[derive(Debug)]
 pub enum CypherError {
@@ -42,7 +44,8 @@ pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handl
     let query = cypher_request.get_str("query").map_err(|err| CypherError::RequestError)?;
     let request_id = cypher_request.get_str("request_id").map_err(|err| CypherError::RequestError)?;
     let parameters = cypher_request.get_document("parameters");
-    let request = process_cypher_query(query).ok_or(CypherError::RequestError)?;
+    let params = parameters.ok().map(|p| build_parameters(p));
+    let request = process_cypher_query(query, params).ok_or(CypherError::RequestError)?;
     let matched_graphs = handle_graph_request(tx_handler.clone(), graph_request_handler.clone(), &request.steps, None).map_err(|err| CypherError::TxError(err))?;
     let mut result_doc = Document::new();
     let mut graph_list = Vec::new();

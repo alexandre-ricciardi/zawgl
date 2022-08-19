@@ -53,6 +53,7 @@ pub enum AstTag  {
     OrOperator,
     EqualityOperator,
     ItemPropertyIdentifier,
+    Parameter,
 }
 
 pub trait AstVisitor {

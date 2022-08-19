@@ -20,7 +20,6 @@
 // SOFTWARE.
 
 use super::cypher::parser::Ast;
-use zawgl_core::model::PropertyGraph;
 use zawgl_query_planner::QueryStep;
 
 
