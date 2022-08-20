@@ -204,6 +204,10 @@ impl AstVisitor for CypherAstVisitor {
         Ok(true)
     }
 
+    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult<bool> {
+        Ok(true)
+    }
+
     fn enter_identifier(&mut self, key: &str) -> AstVisitorResult<bool> {
         let state = self.state.clone();
         match self.state {
@@ -283,6 +287,7 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_function_arg(&mut self) -> AstVisitorResult<bool> { Ok(true)}
     fn exit_item(&mut self) -> AstVisitorResult<bool> { Ok(true)}
     fn exit_where(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_parameter(&mut self) -> AstVisitorResult<bool> { Ok(true)}
 }
 
 #[cfg(test)]
@@ -391,8 +396,8 @@ mod test_query_engine {
         let request = process_cypher_query("MATCH (m:Movie) WHERE id(m) = $mid RETURN m, a, r", Some(params));
         if let  Some(req) = request {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
-            assert_eq!(movie.get_var(), &Some(String::from("a")));
-            assert_eq!(movie.get_labels_ref()[0], String::from("Actor"));
+            assert_eq!(movie.get_var(), &Some(String::from("m")));
+            assert_eq!(movie.get_labels_ref()[0], String::from("Movie"));
             assert_eq!(movie.get_status(), &Status::Match);
         } else {
             assert!(false, "no request found");

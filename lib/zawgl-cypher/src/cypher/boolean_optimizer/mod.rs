@@ -159,6 +159,12 @@ impl AstVisitor for BoolExprVisitor {
     fn exit_where(&mut self) -> AstVisitorResult<bool> {
         todo!()
     }
+    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult<bool> {
+        todo!()
+    }
+    fn exit_parameter(&mut self) -> AstVisitorResult<bool> {
+        todo!()
+    }
 }
 
 pub fn extract_mandatory_conditions_from_bool_expr(ast: &Box<dyn Ast>) -> Vec<BoolCondition> {

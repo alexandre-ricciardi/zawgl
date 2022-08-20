@@ -76,6 +76,7 @@ pub trait AstVisitor {
     fn enter_function_arg(&mut self) -> AstVisitorResult<bool>;
     fn enter_item(&mut self) -> AstVisitorResult<bool>;
     fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult<bool>;
+    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult<bool>;
     fn exit_create(&mut self) -> AstVisitorResult<bool>;
     fn exit_match(&mut self) -> AstVisitorResult<bool>;
     fn exit_path(&mut self) -> AstVisitorResult<bool>;
@@ -95,6 +96,7 @@ pub trait AstVisitor {
     fn exit_function_arg(&mut self) -> AstVisitorResult<bool>;
     fn exit_item(&mut self) -> AstVisitorResult<bool>;
     fn exit_where(&mut self) -> AstVisitorResult<bool>;
+    fn exit_parameter(&mut self) -> AstVisitorResult<bool>;
 }
 
 #[derive(Debug, Clone)]
@@ -250,6 +252,9 @@ impl Ast for AstTagNode {
                     AstTag::Where => {
                         visitor.exit_where()
                     },
+                    AstTag::Parameter => {
+                        visitor.exit_parameter()
+                    }
                     _ => {
                         Ok(true)
                     }
@@ -303,6 +308,7 @@ impl Ast for AstTokenNode {
                 visitor.enter_bool_value(res)
             },
             TokenType::Identifier => visitor.enter_identifier(&self.token_value),
+            TokenType::Parameter => visitor.enter_parameter(&self.token_value),
             _ => {
                 Ok(true)
             }
