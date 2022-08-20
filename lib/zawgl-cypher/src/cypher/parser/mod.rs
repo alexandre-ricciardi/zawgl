@@ -470,5 +470,10 @@ mod test_parser {
     fn test_match_match() {
         run("match (p:Person), (m:Movie) match (m)<-[r:Played]-(p) return m, r, p");
     }
+
+    #[test]
+    fn test_where_id_parameter() {
+        run("MATCH (m:Movie) WHERE id(m) = $mid RETURN m, a, r");
+    }
 }
 

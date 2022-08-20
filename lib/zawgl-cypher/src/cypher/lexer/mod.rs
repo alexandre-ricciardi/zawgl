@@ -23,6 +23,8 @@ use std;
 use std::fmt;
 use std::error::Error;
 
+use self::fsm::parameter_fsm;
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenType {
     Integer,
@@ -58,6 +60,7 @@ pub enum TokenType {
     StringType,
     Equals,
     Dot,
+    Parameter,
 }
 
 
@@ -199,11 +202,22 @@ impl <'a> Lexer<'a> {
                 },
                 None => {},
             }
+            if c =='$' {
+                let mut parameter_fsm = fsm::parameter_fsm::make_parameter_fsm();
+                match parameter_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
+                    Some(idlen) => {
+                        self.lookahead = idlen.0;
+                        return make_token(TokenType::Parameter, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
+                    } ,
+    
+                    None => {},
+                }
+            }
             let mut identifier_fsm = fsm::identifier_fsm::make_identifier_fsm();
             return match identifier_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(idlen) => {
                     self.lookahead = idlen.0;
-                    make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
+                    return make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
                 } ,
 
                 None => Err(LexerError::WrongIdentifierFormat(self.position)),
