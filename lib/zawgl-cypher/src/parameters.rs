@@ -25,6 +25,7 @@ use std::collections::HashMap;
 use bson::{Bson, Document};
 use zawgl_core::model::PropertyValue;
 
+#[derive(Debug, Clone)]
 pub enum ParameterValue {
     Parameters(Parameters),
     Value(PropertyValue),

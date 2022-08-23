@@ -75,7 +75,7 @@ impl CypherAstVisitor {
     }
 
     fn append_path(&mut self) {
-        self.path_builders.push(PathBuilder::new());
+        self.path_builders.push(PathBuilder::new(self.params.clone()));
     }
 }
 impl AstVisitor for CypherAstVisitor {
@@ -204,7 +204,10 @@ impl AstVisitor for CypherAstVisitor {
         Ok(true)
     }
 
-    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult<bool> {
+    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult<bool> { 
+        if let Some(pb) = self.current_path_builder() {
+            pb.enter_parameter(name);
+        }
         Ok(true)
     }
 
@@ -399,6 +402,7 @@ mod test_query_engine {
             assert_eq!(movie.get_var(), &Some(String::from("m")));
             assert_eq!(movie.get_labels_ref()[0], String::from("Movie"));
             assert_eq!(movie.get_status(), &Status::Match);
+            assert_eq!(movie.get_id(), Some(12u64));
         } else {
             assert!(false, "no request found");
         }
