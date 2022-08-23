@@ -23,7 +23,6 @@ use std::collections::HashSet;
 
 use zawgl_core::graph::traits::GrowableGraphTrait;
 use zawgl_core::graph_engine::model::{GraphProxy, ProxyNodeId};
-use zawgl_core::test_utils::*;
 use zawgl_core::model::init::InitContext;
 use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::graph::traits::*;

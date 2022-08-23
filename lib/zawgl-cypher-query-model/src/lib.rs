@@ -41,7 +41,9 @@ impl QueryStep {
         QueryStep {step_type: step_type, patterns: Vec::new(), where_clause: None }
     }
 
-    //pub fn new_where_clause()
+    pub fn new_where_clause(where_clause: WhereClause) -> Self {
+        QueryStep {step_type: StepType::WHERE, patterns: Vec::new(), where_clause: Some(where_clause) }
+    }
 }
 
 pub struct QueryResult {

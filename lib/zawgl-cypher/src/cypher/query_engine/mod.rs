@@ -107,8 +107,7 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let Some(request) = &mut self.request {
-            request.steps.push(QueryStep::new(StepType::WHERE));
-            request.where_clause = Some(WhereClause::new(node.clone_ast()));
+            request.steps.push(QueryStep::new_where_clause(WhereClause::new(node.clone_ast())));
         }
         Ok(false)
     }

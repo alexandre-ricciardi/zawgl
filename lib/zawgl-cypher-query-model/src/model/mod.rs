@@ -80,11 +80,10 @@ pub struct BoolCondition {
 pub struct Request {
     pub steps: Vec<QueryStep>,
     pub return_clause: Option<ReturnClause>,
-    pub where_clause: Option<WhereClause>,
 }
 
 impl Request {
     pub fn new() -> Self {
-        Request {steps: Vec::new(), return_clause: None, where_clause: None}
+        Request {steps: Vec::new(), return_clause: None}
     }
 }

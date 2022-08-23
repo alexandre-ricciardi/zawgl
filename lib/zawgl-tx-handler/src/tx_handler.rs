@@ -105,6 +105,6 @@ pub enum Scenario {
 }
 
 
-pub fn needs_write_lock<'a>(steps: &Vec<QueryStep>) -> bool {
+pub fn needs_write_lock<'a>(_steps: &Vec<QueryStep>) -> bool {
     return true;
 }

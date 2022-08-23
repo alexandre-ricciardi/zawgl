@@ -31,7 +31,7 @@ use zawgl_cypher_query_planner::handle_query_steps;
 
 use crate::tx_context::TxContext;
 use crate::tx_handler::Scenario;
-use crate::{DatabaseError, ResultGraph};
+use crate::{DatabaseError};
 
 
 pub type RequestHandler<'a> = Arc<RwLock<GraphRequestHandler<'a>>>;
