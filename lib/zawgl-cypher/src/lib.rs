@@ -1,7 +1,6 @@
 use bson::{Bson, Document, doc};
 use cypher::query_engine::process_cypher_query;
 use parameters::*;
-use zawgl_core::graph::traits::GraphContainerTrait;
 use zawgl_core::model::{Property, PropertyValue};
 use zawgl_tx_handler::{DatabaseError, handle_graph_request, request_handler::RequestHandler, tx_handler::TxHandler};
 
@@ -30,7 +29,6 @@ extern crate bson;
 // SOFTWARE.
 
 pub mod cypher;
-mod model;
 mod parameters;
 
 #[derive(Debug)]

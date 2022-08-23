@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate zawgl_gremlin;
-
 extern crate log;
 
 extern crate tokio_tungstenite;
@@ -50,11 +48,10 @@ use serde_json::Value;
 use std::result::Result;
 use crate::open_cypher_request_handler::handle_open_cypher_request;
 
-use self::json_gremlin_request_handler::*;
+//use self::json_gremlin_request_handler::*;
 mod result;
-mod json_gremlin_request_handler;
+//mod json_gremlin_request_handler;
 mod open_cypher_request_handler;
-use zawgl_gremlin::handler::steps::gremlin_state::GremlinStateError;
 use self::result::ServerError;
 use zawgl_core::model::init::InitContext;
 
@@ -67,15 +64,6 @@ async fn accept_connection<'a>(peer: SocketAddr, tx_handler: TxHandler, graph_re
             },
             ServerError::ParsingError(err_msg) => error!("Parsing error: {}", err_msg),
             ServerError::HeaderError => error!("wrong header"),
-            ServerError::GremlinTxError(db_err) => match db_err {
-                zawgl_gremlin::handler::GremlinError::StateError(g_err) => match g_err {
-                    GremlinStateError::Invalid(step) => error!("invalid gremlin state {:?}", step),
-                    GremlinStateError::WrongContext(err) => error!("wrong gremlin context {}", err),
-                },
-                zawgl_gremlin::handler::GremlinError::TxError(err) => error!("Graph transaction error {:?}", err),
-                zawgl_gremlin::handler::GremlinError::ResponseError => error!("build gremlin response error"),
-                zawgl_gremlin::handler::GremlinError::RequestError => error!("gremlin request error"),
-            },
             ServerError::CypherTxError(_) => todo!(),
         }
     }
@@ -97,12 +85,12 @@ async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, grap
                     let open_cypher_prefix = "!application/openCypher".as_bytes();
                     let data = msg.into_data();
                     if data.len() > json_gremlin_prefix.len() && &data[..json_gremlin_prefix.len()] == json_gremlin_prefix {
-                        let v: Value = serde_json::from_reader(&data[json_gremlin_prefix.len()..]).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                        let gremlin_reply = handle_gremlin_json_request(tx_handler.clone(), graph_request_handler.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
-                        let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                        debug!("gremlin response msg: {}", res_msg);
-                        let response = Message::Text(res_msg);
-                        ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
+                        //let v: Value = serde_json::from_reader(&data[json_gremlin_prefix.len()..]).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                        //let gremlin_reply = handle_gremlin_json_request(tx_handler.clone(), graph_request_handler.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
+                        //let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                        //debug!("gremlin response msg: {}", res_msg);
+                        //let response = Message::Text(res_msg);
+                        //ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
                     } else if data.len() > open_cypher_prefix.len() &&  &data[..open_cypher_prefix.len()] == open_cypher_prefix {
                         let doc = Document::from_reader(&data[open_cypher_prefix.len()..]).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                         let cypher_reply = handle_open_cypher_request(tx_handler.clone(), graph_request_handler.clone(), &doc).map_err(|err| ServerError::CypherTxError(err))?;

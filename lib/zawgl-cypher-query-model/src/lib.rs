@@ -1,6 +1,14 @@
+use model::WhereClause;
+use zawgl_core::model::PropertyGraph;
+
+pub mod model;
+pub mod ast;
+pub mod token;
+
 // MIT License
 //
 // Copyright (c) 2022 Alexandre RICCIARDI
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,14 +26,24 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+pub enum StepType {
+    MATCH, CREATE, DELETE, WHERE
+}
 
-use zawgl_cypher::CypherError;
-use tokio_tungstenite::tungstenite::Error;
+pub struct QueryStep {
+    pub patterns: Vec<PropertyGraph>,
+    pub step_type: StepType,
+    pub where_clause: Option<WhereClause>,
+}
 
-#[derive(Debug)]
-pub enum ServerError {
-    HeaderError,
-    ParsingError(String),
-    WebsocketError(Error),
-    CypherTxError(CypherError),
+impl QueryStep {
+    pub fn new(step_type: StepType) -> Self {
+        QueryStep {step_type: step_type, patterns: Vec::new(), where_clause: None }
+    }
+
+    //pub fn new_where_clause()
+}
+
+pub struct QueryResult {
+    pub patterns: Vec<PropertyGraph>,
 }

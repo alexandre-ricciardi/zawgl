@@ -19,7 +19,8 @@
 // SOFTWARE.
 
 use super::error::*;
-use super::super::lexer::{TokenType};
+use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, AstTokenNode, Ast};
+use zawgl_cypher_query_model::token::TokenType;
 use super::*;
 use super::pattern_parser_delegate::*;
 use super::return_clause_parser_delegate::*;

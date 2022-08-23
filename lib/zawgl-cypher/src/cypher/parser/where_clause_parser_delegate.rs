@@ -21,7 +21,9 @@
 
 use super::*;
 use super::error::*;
-use super::super::lexer::TokenType;
+
+use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, AstTokenNode, Ast, AstVisitorResult, AstVisitor};
+use zawgl_cypher_query_model::token::{TokenType, Token};
 use super::common_parser_delegate::*;
 
 pub fn parse_where_clause(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {

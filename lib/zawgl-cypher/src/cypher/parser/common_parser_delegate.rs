@@ -18,9 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, AstTokenNode};
+use zawgl_cypher_query_model::token::TokenType;
+
 use super::*;
-use super::error::*;
-use super::super::lexer::TokenType;
+use super::{error::*};
 
 pub fn parse_function_definition(parser: &mut Parser) -> ParserResult<Box<AstTagNode>> {
     let mut item_id = make_ast_token(&parser);

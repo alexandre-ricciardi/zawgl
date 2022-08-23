@@ -23,71 +23,9 @@ use std;
 use std::fmt;
 use std::error::Error;
 
+use zawgl_cypher_query_model::token::{TokenType, Token};
+
 use self::fsm::parameter_fsm;
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum TokenType {
-    Integer,
-    Float,
-    Plus,
-    Minus,
-    Divide,
-    Mult,
-    True,
-    False,
-    And,
-    Or,
-    Match,
-    Create,
-    Delete,
-    Where,
-    Return,
-    OpenParenthesis,
-    CloseParenthesis,
-    OpenBracket,
-    CloseBracket,
-    Identifier,
-    Colon,
-    Comma,
-    OpenBrace,
-    CloseBrace,
-    LeftSourceRel,
-    RightTargetRel,
-    LeftTargetRel,
-    RightSourceRel,
-    UndirectedRel,
-    Pipe,
-    StringType,
-    Equals,
-    Dot,
-    Parameter,
-}
-
-
-
-#[derive(Debug, PartialEq)]
-pub struct Token<'a> {
-    pub token_type: TokenType,
-    pub begin: usize,
-    pub end: usize,
-    pub content: &'a str
-}
-
-impl <'a> fmt::Display for Token<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&format!("{}", self.content))
-    }
-}
-
-
-impl <'a> Token<'a> {
-    pub fn new(ttype: TokenType, beg: usize, end: usize, token_expr: &str) -> Token {
-        Token {token_type: ttype, begin: beg, end: end, content: token_expr}
-    }
-    pub fn size(&self) -> usize {
-        self.end - self.begin
-    }
-}
 
 pub struct Lexer<'a> {
     keywords: Vec<(TokenType, &'static str)>,
