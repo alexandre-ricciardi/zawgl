@@ -22,11 +22,11 @@
 pub mod tx_context;
 pub mod tx_handler;
 pub mod request_handler;
-use zawgl_query_planner::QueryStep;
 use request_handler::RequestHandler;
 use tx_handler::{Scenario, TxHandler, TxStatus, needs_write_lock};
 
 use zawgl_core::model::PropertyGraph;
+use zawgl_cypher_query_model::QueryStep;
 use self::tx_context::TxContext;
 
 pub struct ResultGraph {

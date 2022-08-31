@@ -23,68 +23,9 @@ use std;
 use std::fmt;
 use std::error::Error;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum TokenType {
-    Integer,
-    Float,
-    Plus,
-    Minus,
-    Divide,
-    Mult,
-    True,
-    False,
-    And,
-    Or,
-    Match,
-    Create,
-    Delete,
-    Where,
-    Return,
-    OpenParenthesis,
-    CloseParenthesis,
-    OpenBracket,
-    CloseBracket,
-    Identifier,
-    Colon,
-    Comma,
-    OpenBrace,
-    CloseBrace,
-    LeftSourceRel,
-    RightTargetRel,
-    LeftTargetRel,
-    RightSourceRel,
-    UndirectedRel,
-    Pipe,
-    StringType,
-    Equals,
-    Dot,
-}
+use zawgl_cypher_query_model::token::{TokenType, Token};
 
-
-
-#[derive(Debug, PartialEq)]
-pub struct Token<'a> {
-    pub token_type: TokenType,
-    pub begin: usize,
-    pub end: usize,
-    pub content: &'a str
-}
-
-impl <'a> fmt::Display for Token<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&format!("{}", self.content))
-    }
-}
-
-
-impl <'a> Token<'a> {
-    pub fn new(ttype: TokenType, beg: usize, end: usize, token_expr: &str) -> Token {
-        Token {token_type: ttype, begin: beg, end: end, content: token_expr}
-    }
-    pub fn size(&self) -> usize {
-        self.end - self.begin
-    }
-}
+use self::fsm::parameter_fsm;
 
 pub struct Lexer<'a> {
     keywords: Vec<(TokenType, &'static str)>,
@@ -199,11 +140,22 @@ impl <'a> Lexer<'a> {
                 },
                 None => {},
             }
+            if c =='$' {
+                let mut parameter_fsm = fsm::parameter_fsm::make_parameter_fsm();
+                match parameter_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
+                    Some(idlen) => {
+                        self.lookahead = idlen.0;
+                        return make_token(TokenType::Parameter, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
+                    } ,
+    
+                    None => {},
+                }
+            }
             let mut identifier_fsm = fsm::identifier_fsm::make_identifier_fsm();
             return match identifier_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(idlen) => {
                     self.lookahead = idlen.0;
-                    make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
+                    return make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
                 } ,
 
                 None => Err(LexerError::WrongIdentifierFormat(self.position)),

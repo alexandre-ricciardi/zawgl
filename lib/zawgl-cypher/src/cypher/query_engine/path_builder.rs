@@ -21,6 +21,9 @@
 
 use zawgl_core::graph::*;
 use zawgl_core::model::*;
+use zawgl_cypher_query_model::ast::AstTag;
+use crate::parameters::Parameters;
+
 use super::states::*;
 use super::parser::*;
 
@@ -32,6 +35,7 @@ pub struct PathBuilder {
     id_type: Option<IdentifierType>,
     curr_property_name: Option<String>,
     current_path: PropertyGraph,
+    params: Option<Parameters>,
 }
 
 fn make_relationship(visitor_state: &VisitorState) -> Relationship {
@@ -63,10 +67,10 @@ fn make_node(visitor_state: &VisitorState) -> Node {
 }
 
 impl PathBuilder {
-    pub fn new() -> Self {
+    pub fn new(params: Option<Parameters>) -> Self {
         PathBuilder {curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
             pattern_state: VisitorPatternState::Init,
-            id_type: None, curr_property_name: None, current_path: PropertyGraph::new() }
+            id_type: None, curr_property_name: None, current_path: PropertyGraph::new(), params: params }
     }
 
     pub fn get_path_graph(&self) -> &PropertyGraph {
@@ -248,5 +252,9 @@ impl PathBuilder {
             }
             _ => {}
         }
+    }
+    
+    pub fn enter_parameter(&mut self, name: &str) {
+        
     }
 }

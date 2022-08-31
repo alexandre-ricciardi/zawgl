@@ -22,11 +22,8 @@
 use std::sync::Arc;
 use std::{cell::RefCell, mem};
 use std::time::Instant;
-use zawgl_core::model::PropertyGraph;
-use zawgl_query_planner::QueryStep;
 use parking_lot::{Mutex, ReentrantMutex};
-
-use crate::request_handler::get_request_scenario;
+use zawgl_cypher_query_model::QueryStep;
 use crate::tx_context::TxContext;
 
 pub type TxHandler = Arc<ReentrantMutex<RefCell<GraphTxHandler>>>;
@@ -108,6 +105,6 @@ pub enum Scenario {
 }
 
 
-pub fn needs_write_lock<'a>(steps: &Vec<QueryStep>) -> bool {
+pub fn needs_write_lock<'a>(_steps: &Vec<QueryStep>) -> bool {
     return true;
 }

@@ -1,16 +1,14 @@
 [package]
-name = "zawgl-tx-handler"
+name = "zawgl-cypher-query-model"
 version = "0.1.0"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
 edition = "2018"
 
 [lib]
-name = "zawgl_tx_handler"
+name = "zawgl_cypher_query_model"
 
 [dependencies]
 zawgl-core = { path = "../zawgl-core" }
-zawgl-cypher-query-model = { path = "../zawgl-cypher-query-model" }
-zawgl-cypher-query-planner = { path = "../zawgl-cypher-query-planner" }
 log = "0.4"
 serde_json = "1.0"
 parking_lot = "0.12.0"

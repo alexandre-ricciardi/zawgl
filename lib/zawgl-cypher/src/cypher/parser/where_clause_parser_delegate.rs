@@ -21,7 +21,9 @@
 
 use super::*;
 use super::error::*;
-use super::super::lexer::TokenType;
+
+use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, AstTokenNode, Ast, AstVisitorResult, AstVisitor};
+use zawgl_cypher_query_model::token::{TokenType, Token};
 use super::common_parser_delegate::*;
 
 pub fn parse_where_clause(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
@@ -64,7 +66,7 @@ fn parse_boolean_operator(parser: &mut Parser, prev_expr: Box<AstTagNode>) -> Pa
 
 fn parse_boolean_expression_terminal(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
     match parser.get_current_token_type() {
-        TokenType::Integer | TokenType::Float | TokenType::True | TokenType::False | TokenType::StringType => {
+        TokenType::Integer | TokenType::Float | TokenType::True | TokenType::False | TokenType::StringType | TokenType::Parameter => {
             parser.advance();
             parent_node.append(make_ast_token(parser));
             Ok(())
@@ -111,6 +113,13 @@ fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>
             parse_boolean_expression_terminal(parser, &mut eqop)?;
             parse_boolean_operator(parser, eqop)
         },
+        TokenType::Parameter => {
+            parser.advance();
+            parser.require(TokenType::Equals)?;
+            let mut eqop = make_ast_tag(AstTag::EqualityOperator);
+            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            parse_boolean_operator(parser, eqop)
+        }
         TokenType::True | TokenType::False => {
             parser.advance();
             parser.require(TokenType::Equals)?;

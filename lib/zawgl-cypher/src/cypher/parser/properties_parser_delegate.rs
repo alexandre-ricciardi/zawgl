@@ -21,7 +21,9 @@
 
 use super::*;
 use super::error::*;
-use super::super::lexer::{TokenType};
+
+use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, AstTokenNode, Ast, AstVisitorResult, AstVisitor};
+use zawgl_cypher_query_model::token::{TokenType, Token};
 
 fn enter_string_expr(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> ParserResult<usize> {
     if parser.current_token_type_advance(TokenType::StringType) {

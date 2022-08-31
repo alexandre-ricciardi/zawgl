@@ -18,8 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::super::model::*;
-use super::parser::*;
+use zawgl_cypher_query_model::{ast::{AstVisitor, AstVisitorResult, AstTagNode, Ast}, model::BoolCondition};
 
 struct BoolExprVisitor {
 
@@ -157,6 +156,12 @@ impl AstVisitor for BoolExprVisitor {
     }
 
     fn exit_where(&mut self) -> AstVisitorResult<bool> {
+        todo!()
+    }
+    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult<bool> {
+        todo!()
+    }
+    fn exit_parameter(&mut self) -> AstVisitorResult<bool> {
         todo!()
     }
 }

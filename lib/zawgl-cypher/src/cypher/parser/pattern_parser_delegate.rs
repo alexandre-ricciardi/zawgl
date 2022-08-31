@@ -20,7 +20,10 @@
 
 use super::*;
 use super::error::*;
-use super::super::lexer::{TokenType};
+
+use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, AstTokenNode, Ast, AstVisitorResult, AstVisitor};
+use zawgl_cypher_query_model::token::{TokenType, Token};
+
 use super::properties_parser_delegate::*;
 
 enum RelationshipState {

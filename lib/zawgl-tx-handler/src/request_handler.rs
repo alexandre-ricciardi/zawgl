@@ -26,11 +26,12 @@ use std::sync::{Arc, RwLock};
 use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::model::{PropertyGraph, Status};
 use zawgl_core::model::init::InitContext;
-use zawgl_query_planner::{QueryStep, handle_query_steps};
+use zawgl_cypher_query_model::QueryStep;
+use zawgl_cypher_query_planner::handle_query_steps;
 
 use crate::tx_context::TxContext;
 use crate::tx_handler::Scenario;
-use crate::{DatabaseError, ResultGraph};
+use crate::{DatabaseError};
 
 
 pub type RequestHandler<'a> = Arc<RwLock<GraphRequestHandler<'a>>>;

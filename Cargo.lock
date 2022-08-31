@@ -1897,26 +1897,27 @@ dependencies = [
  "serde",
  "serde_json",
  "zawgl-core",
- "zawgl-query-planner",
+ "zawgl-cypher-query-model",
  "zawgl-tx-handler",
 ]
 
 [[package]]
-name = "zawgl-gremlin"
+name = "zawgl-cypher-query-model"
 version = "0.1.0"
 dependencies = [
  "log 0.4.11",
+ "parking_lot 0.12.0",
  "serde_json",
  "zawgl-core",
- "zawgl-tx-handler",
 ]
 
 [[package]]
-name = "zawgl-query-planner"
+name = "zawgl-cypher-query-planner"
 version = "0.1.0"
 dependencies = [
  "log 0.4.11",
  "zawgl-core",
+ "zawgl-cypher-query-model",
 ]
 
 [[package]]
@@ -1934,7 +1935,7 @@ dependencies = [
  "tokio-tungstenite",
  "zawgl-core",
  "zawgl-cypher",
- "zawgl-gremlin",
+ "zawgl-cypher-query-planner",
  "zawgl-tx-handler",
 ]
 
@@ -1946,7 +1947,8 @@ dependencies = [
  "parking_lot 0.12.0",
  "serde_json",
  "zawgl-core",
- "zawgl-query-planner",
+ "zawgl-cypher-query-model",
+ "zawgl-cypher-query-planner",
 ]
 
 [[package]]
