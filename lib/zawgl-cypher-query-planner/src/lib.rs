@@ -24,7 +24,7 @@ use zawgl_core::{model::*, graph_engine::GraphEngine};
 mod pattern_builder;
 
 use pattern_builder::{build_pattern, merge_patterns};
-use zawgl_cypher_query_model::{QueryStep, StepType};
+use zawgl_cypher_query_model::{QueryStep, StepType, model::WhereClause};
 
 fn make_cartesian_product(pools: &Vec<Vec<PropertyGraph>>) -> Vec<Vec<&PropertyGraph>> {
     let mut res = vec![];
@@ -100,7 +100,9 @@ pub fn handle_query_steps<'a>(steps: &Vec<QueryStep>, graph_engine: &mut GraphEn
                 }
             },
             StepType::DELETE => todo!(),
-            StepType::WHERE => todo!(),
+            StepType::WHERE => {
+
+            },
         }
     }
     let mut result = Vec::new();
@@ -108,4 +110,8 @@ pub fn handle_query_steps<'a>(steps: &Vec<QueryStep>, graph_engine: &mut GraphEn
         result.append(res);
     }
     result
+}
+
+fn filter(graph: &PropertyGraph, where_clause: &WhereClause) {
+    
 }

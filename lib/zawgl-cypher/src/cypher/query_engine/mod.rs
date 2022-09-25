@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::parameters::Parameters;
-
 use super::*;
 use zawgl_core::model::*;
 
@@ -29,10 +27,10 @@ mod path_builder;
 mod states;
 mod pattern_builder;
 
+use zawgl_cypher_query_model::parameters::Parameters;
 use zawgl_cypher_query_model::{QueryStep, StepType};
-use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, AstTokenNode, Ast, AstVisitorResult, AstVisitor};
+use zawgl_cypher_query_model::ast::{AstTagNode, Ast, AstVisitorResult, AstVisitor};
 use zawgl_cypher_query_model::model::{Request, ReturnClause, WhereClause, ReturnExpression, FunctionCall};
-use zawgl_cypher_query_model::token::{TokenType, Token};
 
 use states::*;
 use path_builder::*;
@@ -55,7 +53,6 @@ pub fn process_cypher_query(query: &str, params: Option<Parameters>) -> Option<R
 
 struct CypherAstVisitor {
     request: Option<Request>,
-    curr_identifier: Option<String>,
     state: VisitorState,
     id_type: Option<IdentifierType>,    
     path_builders: Vec<PathBuilder>,
@@ -65,7 +62,7 @@ struct CypherAstVisitor {
 impl CypherAstVisitor {
     fn new(params: Option<Parameters>) -> Self {
         CypherAstVisitor { request: None, state: VisitorState::Init,
-            curr_identifier: None, id_type: None, path_builders: Vec::new(), params: params}
+            id_type: None, path_builders: Vec::new(), params: params}
     }
 }
 
@@ -79,6 +76,7 @@ impl CypherAstVisitor {
         self.path_builders.push(PathBuilder::new(self.params.clone()));
     }
 }
+
 impl AstVisitor for CypherAstVisitor {
 
 
@@ -107,7 +105,7 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
         if let Some(request) = &mut self.request {
-            request.steps.push(QueryStep::new_where_clause(WhereClause::new(node.clone_ast())));
+            request.steps.push(QueryStep::new_where_clause(WhereClause::new(node.clone_ast(), self.params.clone())));
         }
         Ok(false)
     }
@@ -296,10 +294,10 @@ impl AstVisitor for CypherAstVisitor {
 
 #[cfg(test)]
 mod test_query_engine {
-    use crate::parameters::ParameterValue;
 
     use super::*;
     use zawgl_core::graph::*;
+    use zawgl_cypher_query_model::parameters::ParameterValue;
     #[test]
     fn test_create_0() {
         let request = process_cypher_query("CREATE (n:Person)", None);

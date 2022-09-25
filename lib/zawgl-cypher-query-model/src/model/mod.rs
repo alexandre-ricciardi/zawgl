@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{ast::Ast, QueryStep};
+use crate::{ast::Ast, QueryStep, parameters::Parameters};
 
 pub enum Directive {
     CREATE,
@@ -56,11 +56,12 @@ impl ReturnClause {
 
 pub struct WhereClause {
     pub expressions: Box<dyn Ast>,
+    pub params: Option<Parameters>,
 }
 
 impl WhereClause {
-    pub fn new(ast: Box<dyn Ast>) -> Self {
-        WhereClause{expressions: ast}
+    pub fn new(ast: Box<dyn Ast>, params: Option<Parameters>) -> Self {
+        WhereClause{expressions: ast, params: params}
     }
 }
 
