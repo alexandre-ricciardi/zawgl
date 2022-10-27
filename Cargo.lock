@@ -1927,7 +1927,6 @@ dependencies = [
  "tokio-tungstenite",
  "zawgl-core",
  "zawgl-cypher",
- "zawgl-cypher-query-planner",
  "zawgl-tx-handler",
 ]
 

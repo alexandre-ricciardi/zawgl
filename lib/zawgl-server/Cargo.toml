@@ -9,7 +9,6 @@ name = "zawgl_server"
 
 [dependencies]
 gremlin-client = "0.8.0"
-zawgl-cypher-query-planner = { path = "../zawgl-cypher-query-planner" }
 zawgl-cypher = { path = "../zawgl-cypher" }
 zawgl-tx-handler = { path = "../zawgl-tx-handler" }
 zawgl-core = { path = "../zawgl-core" }

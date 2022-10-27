@@ -44,7 +44,6 @@ use log::*;
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::Error};
-use serde_json::Value;
 use std::result::Result;
 use crate::open_cypher_request_handler::handle_open_cypher_request;
 
