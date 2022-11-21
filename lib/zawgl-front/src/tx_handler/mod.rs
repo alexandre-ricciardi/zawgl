@@ -19,11 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+pub mod handler;
 pub mod tx_context;
-pub mod tx_handler;
 pub mod request_handler;
 use request_handler::RequestHandler;
-use tx_handler::{Scenario, TxHandler, TxStatus, needs_write_lock};
+use handler::{Scenario, TxHandler, TxStatus, needs_write_lock};
 
 use zawgl_core::model::PropertyGraph;
 use zawgl_cypher_query_model::QueryStep;

@@ -112,6 +112,6 @@ pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine
     result
 }
 
-fn filter(_graph: &PropertyGraph, _where_clause: &WhereClause) {
+fn _filter(_graph: &PropertyGraph, _where_clause: &WhereClause) {
     
 }
