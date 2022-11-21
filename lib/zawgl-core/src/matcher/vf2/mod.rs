@@ -21,7 +21,7 @@
 mod base_state;
 mod state;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use crate::graph_engine::model::{ProxyNodeId, GraphProxy};
 use crate::model::{PropertyGraph, Relationship, Node};
 
@@ -82,7 +82,7 @@ impl <T> VecIterator<T> {
 
     fn inc(&mut self) {
         if self.index < self.vector.len() - 1 {
-            self.index = self.index + 1;
+            self.index += 1;
         } else {
             self.end = true;
         }
@@ -103,7 +103,7 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
         pub fn new(graph_0: &'g0 PropertyGraph, graph_1: &'g1 mut GraphProxy, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
             Matcher {
                 state: State::new(graph_0, graph_1, vcomp, ecomp),
-                callback: callback,
+                callback,
             }
         }
 
@@ -178,9 +178,9 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
         }
     }
 
-fn sort_nodes<'g>(graph: &'g PropertyGraph) -> Vec<NodeIndex> {
+fn sort_nodes(graph: &'_ PropertyGraph) -> Vec<NodeIndex> {
     let mut res = graph.get_nodes_ids();
-    res.sort_by(|a, b| (graph.in_degree(b) + graph.out_degree(b)).cmp(&(graph.in_degree(a) + graph.out_degree(a))));
+    res.sort_by_key(|b| std::cmp::Reverse(graph.in_degree(b) + graph.out_degree(b)));
     res
 }
 
