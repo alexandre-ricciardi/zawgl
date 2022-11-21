@@ -122,7 +122,7 @@ impl <'a> RecordPageWrapper<'a> {
         HeaderPageWrapper::new(&mut self.page.header_page, self.page_map)
     }
     fn has_next_page_record(&self) -> bool {
-        self.page.data[0] & MULTI_PAGE_RECORD_FLAG == 1
+        (self.page.data[0] & MULTI_PAGE_RECORD_FLAG) > 0
     }
     fn set_page_in_use(&mut self) {
         self.page.data[0] = self.page.data[0] | IS_FREE_PAGE_FLAG;
