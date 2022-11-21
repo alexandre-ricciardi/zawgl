@@ -36,7 +36,7 @@ pub fn build_pattern(source_pattern: &PropertyGraph, target_pattern: &PropertyGr
         if let Some(s_var_name) = nid.0.get_var() {
             if var_name_to_target_node_id.contains_key(s_var_name) {
                 let target_node = target_pattern.get_node_ref(&var_name_to_target_node_id[s_var_name]);
-                let merged_node = merge_nodes(&s_var_name, target_node, nid.0);
+                let merged_node = merge_nodes(s_var_name, target_node, nid.0);
                 let id = result.add_node(merged_node);
                 source_nid_to_result_nid.insert(nid.1, id);
                 matching_var_names_to_result_nid.insert(s_var_name.to_string(), id);

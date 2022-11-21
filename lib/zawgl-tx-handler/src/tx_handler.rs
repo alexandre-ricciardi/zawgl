@@ -43,6 +43,12 @@ pub struct GraphTxHandler {
     tx_start_date: Option<Instant>,
 }
 
+impl Default for GraphTxHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GraphTxHandler {
     pub fn new() -> Self {
         GraphTxHandler{current_session_id: None, session_lock: Mutex::new(()), is_session_locked: false, tx_start_date: None}
@@ -105,6 +111,6 @@ pub enum Scenario {
 }
 
 
-pub fn needs_write_lock<'a>(_steps: &Vec<QueryStep>) -> bool {
-    return true;
+pub fn needs_write_lock(_steps: &[QueryStep]) -> bool {
+    true
 }
