@@ -24,7 +24,7 @@ use std::{cell::RefCell, mem};
 use std::time::Instant;
 use parking_lot::{Mutex, ReentrantMutex};
 use zawgl_cypher_query_model::QueryStep;
-use crate::tx_context::TxContext;
+use super::tx_context::TxContext;
 
 pub type TxHandler = Arc<ReentrantMutex<RefCell<GraphTxHandler>>>;
 

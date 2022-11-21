@@ -1,8 +1,11 @@
+pub mod planner;
+pub mod tx_handler;
+
 use bson::{Bson, Document, doc};
 use cypher::query_engine::process_cypher_query;
 use zawgl_core::model::{Property, PropertyValue};
 use zawgl_cypher_query_model::parameters::build_parameters;
-use zawgl_tx_handler::{DatabaseError, handle_graph_request, request_handler::RequestHandler, tx_handler::TxHandler};
+use tx_handler::{DatabaseError, handle_graph_request, request_handler::RequestHandler, tx_handler::TxHandler};
 
 extern crate zawgl_core;
 

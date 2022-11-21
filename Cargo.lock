@@ -1880,19 +1880,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zawgl-cypher"
-version = "0.1.0"
-dependencies = [
- "bson",
- "log 0.4.11",
- "serde",
- "serde_json",
- "zawgl-core",
- "zawgl-cypher-query-model",
- "zawgl-tx-handler",
-]
-
-[[package]]
 name = "zawgl-cypher-query-model"
 version = "0.1.0"
 dependencies = [
@@ -1904,10 +1891,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "zawgl-cypher-query-planner"
+name = "zawgl-front"
 version = "0.1.0"
 dependencies = [
+ "bson",
  "log 0.4.11",
+ "parking_lot 0.12.0",
+ "serde",
+ "serde_json",
  "zawgl-core",
  "zawgl-cypher-query-model",
 ]
@@ -1926,20 +1917,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "zawgl-core",
- "zawgl-cypher",
- "zawgl-tx-handler",
-]
-
-[[package]]
-name = "zawgl-tx-handler"
-version = "0.1.0"
-dependencies = [
- "log 0.4.11",
- "parking_lot 0.12.0",
- "serde_json",
- "zawgl-core",
- "zawgl-cypher-query-model",
- "zawgl-cypher-query-planner",
+ "zawgl-front",
 ]
 
 [[package]]

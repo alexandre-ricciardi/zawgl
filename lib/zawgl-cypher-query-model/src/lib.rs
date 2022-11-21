@@ -39,7 +39,7 @@ pub struct QueryStep {
 
 impl QueryStep {
     pub fn new(step_type: StepType) -> Self {
-        QueryStep {step_type: step_type, patterns: Vec::new(), where_clause: None }
+        QueryStep {step_type, patterns: Vec::new(), where_clause: None }
     }
 
     pub fn new_where_clause(where_clause: WhereClause) -> Self {

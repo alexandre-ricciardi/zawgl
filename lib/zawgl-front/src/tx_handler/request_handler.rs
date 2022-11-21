@@ -27,10 +27,10 @@ use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::model::{PropertyGraph};
 use zawgl_core::model::init::InitContext;
 use zawgl_cypher_query_model::QueryStep;
-use zawgl_cypher_query_planner::handle_query_steps;
+use crate::planner::handle_query_steps;
 
-use crate::tx_context::TxContext;
-use crate::{DatabaseError};
+use crate::tx_handler::tx_context::TxContext;
+use super::{DatabaseError};
 
 
 pub type RequestHandler<'a> = Arc<RwLock<GraphRequestHandler<'a>>>;

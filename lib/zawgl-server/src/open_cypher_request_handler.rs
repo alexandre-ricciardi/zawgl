@@ -20,9 +20,9 @@
 // SOFTWARE.
 
 use bson::Document;
-use zawgl_cypher::CypherError;
-use zawgl_tx_handler::{request_handler::RequestHandler, tx_handler::TxHandler};
+use zawgl_front::CypherError;
+use zawgl_front::tx_handler::{request_handler::RequestHandler, tx_handler::TxHandler};
 
-pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, cypher_request: &Document) -> Result<Document, CypherError> {
-    zawgl_cypher::handle_open_cypher_request(tx_handler, graph_request_handler, cypher_request)
+pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, cypher_request: &Document) -> Result<Document, CypherError> {
+    zawgl_front::handle_open_cypher_request(tx_handler, graph_request_handler, cypher_request)
 }

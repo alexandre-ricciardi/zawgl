@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use zawgl_cypher::CypherError;
+use zawgl_front::CypherError;
 use tokio_tungstenite::tungstenite::Error;
 
 #[derive(Debug)]

@@ -9,8 +9,7 @@ name = "zawgl_server"
 
 [dependencies]
 gremlin-client = "0.8.0"
-zawgl-cypher = { path = "../zawgl-cypher" }
-zawgl-tx-handler = { path = "../zawgl-tx-handler" }
+zawgl-front = { path = "../zawgl-front" }
 zawgl-core = { path = "../zawgl-core" }
 tokio-tungstenite = "0.17.1"
 tokio = { version = "1.13.0", features = ["full"] }
