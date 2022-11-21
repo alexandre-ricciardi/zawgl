@@ -33,8 +33,8 @@ use futures_util::{
 };
 use zawgl_front::tx_handler::request_handler::GraphRequestHandler;
 use zawgl_front::tx_handler::request_handler::RequestHandler;
-use zawgl_front::tx_handler::tx_handler::GraphTxHandler;
-use zawgl_front::tx_handler::tx_handler::TxHandler;
+use zawgl_front::tx_handler::handler::GraphTxHandler;
+use zawgl_front::tx_handler::handler::TxHandler;
 use parking_lot::ReentrantMutex;
 use tokio_tungstenite::tungstenite::Message;
 use std::cell::RefCell;

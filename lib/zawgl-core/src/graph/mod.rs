@@ -30,7 +30,7 @@ pub struct EdgeIndex {
 
 impl EdgeIndex {
     pub fn new(index: usize) -> Self {
-        EdgeIndex {index: index}
+        EdgeIndex {index}
     }
 }
 
@@ -47,7 +47,7 @@ pub struct NodeIndex {
 
 impl NodeIndex {
     pub fn new(index: usize) -> Self {
-        NodeIndex {index: index}
+        NodeIndex {index}
     }
 }
 
@@ -195,7 +195,11 @@ impl <N: Clone, R: Clone> GraphTrait<NodeIndex, EdgeIndex> for Graph<N, R> {
     }
     
 }
-
+impl<N: Clone, R: Clone> Default for Graph<N, R> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl <N: Clone, R: Clone> Graph<N, R> {
     pub fn new() -> Self {
         Graph{ vertices: Vec::new(), edges: Vec::new() }
@@ -224,7 +228,7 @@ impl <N: Clone, R: Clone> Graph<N, R> {
             let source_data = &self.vertices[source.get_index()];
             let target_data = &self.vertices[target.get_index()];
             self.edges.push(EdgeData{id: EdgeIndex::new(index),
-                source: source, target: target,
+                source, target,
                 next_inbound_edge: target_data.first_inbound_edge, 
                 next_outbound_edge: source_data.first_outbound_edge,
                 relationship: rel,

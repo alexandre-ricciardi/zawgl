@@ -1,18 +1,14 @@
 mod parameters;
 
-use std::borrow::{BorrowMut, Borrow};
-use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 use std::{io::Cursor, collections::HashMap};
 
 use futures_channel::mpsc::{UnboundedSender};
-use futures_channel::oneshot::{Sender, Receiver, Canceled};
-use futures_util::{future, pin_mut, StreamExt, SinkExt, TryFutureExt};
+use futures_channel::oneshot::{Sender, Canceled};
+use futures_util::{StreamExt};
 use parameters::{Parameters, PropertyValue};
-use parking_lot::ReentrantMutex;
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message, WebSocketStream, MaybeTlsStream};
-use bson::{Bson, Document, doc};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use bson::{Document, doc};
 use uuid::Uuid;
 use log::*;
 
@@ -43,7 +39,10 @@ impl Client {
                         let id = doc.get_str("request_id");
                         if let Ok(request_id) = id {
                             if let Some(tx) = clone.lock().unwrap().remove(request_id) {
-                                tx.send(doc);
+                                let res = tx.send(doc);
+                                if let Err(d) = res {
+                                    error!("parsing document {}", d)
+                                }
                             }
                         }
                     },
@@ -53,7 +52,7 @@ impl Client {
                 }
             }).await
         });
-        Client{request_tx: request_tx, map_rx_channels: map.clone()}
+        Client{request_tx, map_rx_channels: map.clone()}
     }
 
     pub async fn execute_cypher_request_with_parameters(&mut self, query: &str, params: Parameters) -> Result<Document, Canceled> {
