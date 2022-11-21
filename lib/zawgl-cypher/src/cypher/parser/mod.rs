@@ -32,14 +32,12 @@ use zawgl_cypher_query_model::token::{TokenType, Token};
 use self::error::*;
 
 
-pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) -> AstVisitorResult<()>  {
-    let res = ast.accept(visitor)?;
-    if res {
-        for child in ast.get_childs() {
-            walk_ast(visitor, &child)?;
-        }
-        let ex_res = ast.accept_exit(visitor)?;
+pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) -> AstVisitorResult  {
+    ast.accept(visitor)?;
+    for child in ast.get_childs() {
+        walk_ast(visitor, &child)?;
     }
+    let ex_res = ast.accept_exit(visitor)?;
     Ok(())
 }
 

@@ -80,11 +80,11 @@ impl CypherAstVisitor {
 impl AstVisitor for CypherAstVisitor {
 
 
-    fn enter_query(&mut self) -> AstVisitorResult<bool> {
+    fn enter_query(&mut self) -> AstVisitorResult {
         self.request = Some(Request::new());
-        Ok(true)
+        Ok(())
     }
-    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult {
         match self.state {
             VisitorState::DirectiveMatch => {
                 self.state = VisitorState::MatchPattern;
@@ -95,122 +95,122 @@ impl AstVisitor for CypherAstVisitor {
             _ => {}
         }
         self.append_path();
-        Ok(true)
+        Ok(())
     }
-    fn enter_return(&mut self) -> AstVisitorResult<bool> {
+    fn enter_return(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
             request.return_clause = Some(ReturnClause::new());
         }
-        Ok(true)
+        Ok(())
     }
-    fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+    fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
             request.steps.push(QueryStep::new_where_clause(WhereClause::new(node.clone_ast(), self.params.clone())));
         }
-        Ok(false)
+        Ok(())
     }
-    fn enter_function(&mut self) -> AstVisitorResult<bool> {
+    fn enter_function(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
             if let Some(_) = &mut request.return_clause {
                 self.state = VisitorState::FunctionCall;
             }
         }
-        Ok(true)
+        Ok(())
     }
-    fn enter_function_arg(&mut self) -> AstVisitorResult<bool> {
+    fn enter_function_arg(&mut self) -> AstVisitorResult {
         if self.state == VisitorState::FunctionCall {
             self.state = VisitorState::FunctionArg;
         }
-        Ok(true)
+        Ok(())
     }
-    fn enter_item(&mut self) -> AstVisitorResult<bool> {
+    fn enter_item(&mut self) -> AstVisitorResult {
         self.state = VisitorState::ReturnItem;
-        Ok(true)
+        Ok(())
     }
-    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult {
         if let Some(rq) = &mut self.request {
             rq.steps.push(QueryStep::new(StepType::CREATE));
         }
         self.state = VisitorState::DirectiveCreate;
-        Ok(true)
+        Ok(())
     }
-    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult {
         if let Some(rq) = &mut self.request {
             rq.steps.push(QueryStep::new(StepType::MATCH));
         }
         self.state = VisitorState::DirectiveMatch;
-        Ok(true)
+        Ok(())
     }
-    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult {
         let state = self.state.clone();
         if let Some(pb) = self.current_path_builder() {
             pb.enter_node(state);
         }
-        Ok(true)
+        Ok(())
     }
-    fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+    fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult {
         let state = self.state.clone();
         if let (Some(pb), Some(ast_tag)) = (self.current_path_builder(), node.ast_tag){
             pb.enter_relationship(ast_tag, state)
         }
-        Ok(true)
+        Ok(())
     }
-    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult<bool> {
+    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_property();
         }
-        Ok(true)
+        Ok(())
     }
 
-    fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult<bool> {
+    fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_integer_value(value);
         }
-        Ok(true)
+        Ok(())
     }
-    fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult<bool> {
+    fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_float_value(value);
         }
-        Ok(true)
+        Ok(())
     }
-    fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult<bool> {
+    fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_string_value(value);
         }
-        Ok(true)
+        Ok(())
     }
-    fn enter_bool_value(&mut self, value: Option<bool>) -> AstVisitorResult<bool> {
+    fn enter_bool_value(&mut self, value: Option<bool>) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_bool_value(value);
         }
-        Ok(true)
+        Ok(())
     }
 
-    fn enter_label(&mut self) -> AstVisitorResult<bool> {
+    fn enter_label(&mut self) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_label();
         }
         self.id_type = Some(IdentifierType::Label);
-        Ok(true)
+        Ok(())
     }
 
-    fn enter_variable(&mut self) -> AstVisitorResult<bool> {
+    fn enter_variable(&mut self) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_variable();
         }
         self.id_type = Some(IdentifierType::Variable);
-        Ok(true)
+        Ok(())
     }
 
-    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult<bool> { 
+    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult { 
         if let Some(pb) = self.current_path_builder() {
             pb.enter_parameter(name);
         }
-        Ok(true)
+        Ok(())
     }
 
-    fn enter_identifier(&mut self, key: &str) -> AstVisitorResult<bool> {
+    fn enter_identifier(&mut self, key: &str) -> AstVisitorResult {
         let state = self.state.clone();
         match self.state {
             VisitorState::MatchPattern |
@@ -246,9 +246,9 @@ impl AstVisitor for CypherAstVisitor {
             }
             _ => {}
         }
-        Ok(true)
+        Ok(())
     }
-    fn exit_create(&mut self) -> AstVisitorResult<bool> { 
+    fn exit_create(&mut self) -> AstVisitorResult { 
         if let Some(rq) = &mut self.request {
             let current_step = rq.steps.last_mut();
             if let Some(step) = current_step {
@@ -257,9 +257,9 @@ impl AstVisitor for CypherAstVisitor {
                 self.path_builders.clear();
             }
         }
-        Ok(true)
+        Ok(())
     }
-    fn exit_match(&mut self) -> AstVisitorResult<bool> { 
+    fn exit_match(&mut self) -> AstVisitorResult { 
         if let Some(rq) = &mut self.request {
             let current_step = rq.steps.last_mut();
             if let Some(step) = current_step {
@@ -268,28 +268,28 @@ impl AstVisitor for CypherAstVisitor {
                 self.path_builders.clear();
             }
         }
-        Ok(true)
+        Ok(())
     }   
-    fn exit_path(&mut self) -> AstVisitorResult<bool> {
-        Ok(true)
+    fn exit_path(&mut self) -> AstVisitorResult {
+        Ok(())
     }
-    fn exit_node(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_relationship(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_property(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_integer_value(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_float_value(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_string_value(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_bool_value(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_identifier(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_variable(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_label(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_query(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_return(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_function(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_function_arg(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_item(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_where(&mut self) -> AstVisitorResult<bool> { Ok(true)}
-    fn exit_parameter(&mut self) -> AstVisitorResult<bool> { Ok(true)}
+    fn exit_node(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_relationship(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_property(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_integer_value(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_float_value(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_string_value(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_bool_value(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_identifier(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_variable(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_label(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_query(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_return(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_function(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_function_arg(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_item(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_where(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_parameter(&mut self) -> AstVisitorResult { Ok(())}
 }
 
 #[cfg(test)]
