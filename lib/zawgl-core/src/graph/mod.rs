@@ -206,7 +206,7 @@ impl <N: Clone, R: Clone> Graph<N, R> {
     }
 
     fn new_clone(nodes: Vec<VertexData<EdgeIndex, N>>, edges: Vec<EdgeData<NodeIndex, EdgeIndex, R>>) -> Self {
-        Graph{ vertices: nodes, edges: edges.clone() }
+        Graph{ vertices: nodes, edges }
     }
 
     pub fn add_vertex(&mut self, node: N) -> NodeIndex {
