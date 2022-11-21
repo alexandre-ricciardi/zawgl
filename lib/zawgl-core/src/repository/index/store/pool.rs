@@ -21,6 +21,7 @@
 use super::{MutableRecordsManager, records::*};
 use super::super::super::super::buf_config::*;
 use std::collections::HashMap;
+use std::convert::TryInto;
 
 pub type BTreeNodeId = u64;
 pub type BTreeCellId = u32;
@@ -44,31 +45,31 @@ impl NodeRecordPool {
     }
 
     pub fn load_node_record_clone(&mut self, id: u64) -> Option<BNodeRecord> {
-        if !self.records.contains_key(&id) {
+        if let std::collections::hash_map::Entry::Vacant(e) = self.records.entry(id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
-            self.records.insert(id, BNodeRecord::from_bytes(data));
+            e.insert(BNodeRecord::from_bytes(data));
         }
-        Some(self.records.get(&id)?.clone())
+        Some(*self.records.get(&id)?)
     }
 
     pub fn load_node_record_ref(&mut self, id: u64) -> Option<&BNodeRecord> {
-        if !self.records.contains_key(&id) {
+        if let std::collections::hash_map::Entry::Vacant(e) = self.records.entry(id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
-            self.records.insert(id, BNodeRecord::from_bytes(data));
+            e.insert(BNodeRecord::from_bytes(data));
         }
-        Some(self.records.get(&id)?)
+        self.records.get(&id)
     }
 
     pub fn load_node_record_mut(&mut self, id: u64) -> Option<&mut BNodeRecord> {
-        if !self.records.contains_key(&id) {
+        if let std::collections::hash_map::Entry::Vacant(e) = self.records.entry(id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
-            self.records.insert(id, BNodeRecord::from_bytes(data));
+            e.insert(BNodeRecord::from_bytes(data));
             
         }
-        Some(self.records.get_mut(&id)?)
+        self.records.get_mut(&id)
     }
 
     pub fn create_node_record(&mut self, node_record: BNodeRecord) -> Option<u64> {
@@ -186,12 +187,10 @@ impl <'a> Iterator for FreeCellIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let free_cell_node_id = self.load_or_create_free_cells_overflow_node()?;
         if let Some(node_with_free_cells) = self.pool.load_node_record_mut(free_cell_node_id) {
-            let mut cell_id = 0;
-            for cell in &mut node_with_free_cells.cells {
+            for (cell_id, cell) in node_with_free_cells.cells.iter_mut().enumerate() {
                 if !cell.is_active() {
-                    return Some((free_cell_node_id, cell_id));
+                    return Some((free_cell_node_id, cell_id.try_into().unwrap()));
                 }
-                cell_id += 1;
             }
         }
         None
