@@ -38,7 +38,7 @@ pub struct NamedPropertyPredicate {
 
 impl NamedPropertyPredicate {
     pub fn new(name: &str, predicate: PropertyPredicate) -> Self {
-        NamedPropertyPredicate{ name: String::from(name), predicate: predicate}
+        NamedPropertyPredicate{ name: String::from(name), predicate}
     }
 }
 
