@@ -211,7 +211,7 @@ impl <N: Clone, R: Clone> Graph<N, R> {
 
     pub fn add_vertex(&mut self, node: N) -> NodeIndex {
         let index = self.vertices.len();
-        self.vertices.push(VertexData::<EdgeIndex, N>{first_outbound_edge: None, first_inbound_edge: None, node: node});
+        self.vertices.push(VertexData::<EdgeIndex, N>{first_outbound_edge: None, first_inbound_edge: None, node});
         NodeIndex::new(index)
     }
 
