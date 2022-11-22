@@ -152,7 +152,6 @@ async fn test_cypher_requests_complete_graph(mut client: Client) {
         assert_eq!(graphs.len(), 100);
         for g in graphs {
             let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
             let relationships = graph.get_array("relationships").expect("relationships");
             assert_eq!(relationships.len(), 1);
         }
