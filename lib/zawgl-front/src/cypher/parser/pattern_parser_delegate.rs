@@ -76,22 +76,11 @@ impl RelationshipFsm {
             _ => self.state = RelationshipState::Invalid
         }
     }
-    fn has_accepting_state(&self) -> bool {
-        match self.state {
-            RelationshipState::LeftDirectedRel |
-            RelationshipState::RightDirectedRel |
-            RelationshipState::UndirectedRel => true,
-            _ => false
-        }
-    }
     fn has_invalid_state(&self) -> bool {
         match self.state {
             RelationshipState::Invalid => true,
             _ => false
         }
-    }
-    fn get_state(&self) -> &RelationshipState {
-        &self.state
     }
     fn convert_to_ast_tag(&self) -> Option<AstTag> {
         match self.state {

@@ -253,7 +253,7 @@ impl PathBuilder {
         }
     }
     
-    pub fn enter_parameter(&mut self, name: &str) {
+    pub fn enter_parameter(&mut self, _name: &str) {
         
     }
 }

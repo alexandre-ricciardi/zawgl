@@ -385,7 +385,7 @@ impl <'g0, 'g1, VCOMP, ECOMP> State<'g0, 'g1, VCOMP, ECOMP>
             return  Some(false);
         }
 
-        fn inc_counters_match_edge_1(&mut self, _is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &ProxyNodeId, w_adj: &ProxyNodeId, v_new: &NodeIndex, edge_index: &ProxyRelationshipId, matched_edge_set: &mut HashSet<EdgeIndex>) -> Option<bool> {
+        fn inc_counters_match_edge_1(&mut self, _is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &ProxyNodeId, w_adj: &ProxyNodeId, _v_new: &NodeIndex, _edge_index: &ProxyRelationshipId, _matched_edge_set: &mut HashSet<EdgeIndex>) -> Option<bool> {
             if self.base_state_1.in_core(w_adj) || w_new == w_adj {
                 
             } else {

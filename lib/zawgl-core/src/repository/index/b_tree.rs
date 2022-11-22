@@ -196,7 +196,7 @@ impl BTreeIndex {
         self.insert_or_update_key_ptrs(value, data_ptr, &mut root).map(|_node|())
     }
 
-    pub fn delete(&mut self, value: u64) {
+    pub fn delete(&mut self, _value: u64) {
 
     }
 

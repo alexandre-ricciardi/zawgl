@@ -78,7 +78,6 @@ pub fn make_number_fsm() -> Box<dyn RunnableFSM<NumberState>>  {
                         res = Some(NumberState::NumberWithExponent);
                     }
                 }
-                _ => {},
             }
             res
          };

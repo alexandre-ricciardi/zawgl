@@ -46,7 +46,7 @@ pub fn process_cypher_query(query: &str, params: Option<Parameters>) -> Option<R
             parser::walk_ast(&mut visitor, &ast).ok()?;
             visitor.request
         }
-        Err(value) => None
+        Err(_value) => None
     }
 }
 
@@ -84,7 +84,7 @@ impl AstVisitor for CypherAstVisitor {
         self.request = Some(Request::new());
         Ok(())
     }
-    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_path(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         match self.state {
             VisitorState::DirectiveMatch => {
                 self.state = VisitorState::MatchPattern;
@@ -155,7 +155,7 @@ impl AstVisitor for CypherAstVisitor {
         }
         Ok(())
     }
-    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_property(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_property();
         }
