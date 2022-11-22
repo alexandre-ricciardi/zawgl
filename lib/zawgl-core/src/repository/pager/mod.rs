@@ -37,7 +37,7 @@ pub struct HeaderPage {
 
 impl  HeaderPage {
     fn new(data: [u8; PAGE_SIZE]) -> Self {
-        HeaderPage{data: data}
+        HeaderPage{data}
     }
 
     pub fn get_page_count(&self) -> u64 {
@@ -59,7 +59,7 @@ pub struct Page<'a> {
 
 impl <'a> Page<'a> {
     fn new(id: PageId, header_page: &'a mut HeaderPage, data: &'a mut [u8; PAGE_SIZE]) -> Self {
-        Page{id: id, header_page: header_page, data: data}
+        Page{id, header_page, data}
     }
 }
 
@@ -85,7 +85,7 @@ impl Pager {
     pub fn new(file: &str) -> Self {
         let mut file_io = FileAccess::new(file);
         let header_page = load_or_create_header_page(&mut file_io);
-        Pager { records_file: file_io, page_cache: HashMap::new(), nb_pages: 0u64, header_page: header_page}
+        Pager { records_file: file_io, page_cache: HashMap::new(), nb_pages: 0u64, header_page}
     }
 
     pub fn get_header_page_mut(&mut self) -> &mut HeaderPage {

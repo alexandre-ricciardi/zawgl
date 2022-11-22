@@ -91,7 +91,7 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
     }
 
     pub fn in_depth(&self, v0: &NID0) -> usize {
-        if let Some(count) = self.in_map.get(&v0) {
+        if let Some(count) = self.in_map.get(v0) {
             *count
         } else {
             0
@@ -99,7 +99,7 @@ impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std:
     }
 
     pub fn out_depth(&self, v0: &NID0) -> usize {
-        if let Some(count) = self.out_map.get(&v0) {
+        if let Some(count) = self.out_map.get(v0) {
             *count
         } else {
             0

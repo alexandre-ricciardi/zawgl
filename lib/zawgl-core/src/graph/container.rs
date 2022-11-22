@@ -82,7 +82,11 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
         (0..self.nodes_len()).map(NodeIndex::new).collect()
     }
 }
-
+impl<NODE: Clone, RELATIONSHIP: Clone> Default for GraphContainer<NODE, RELATIONSHIP> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
     pub fn new() -> Self {
         GraphContainer {graph: Graph::new()}
@@ -100,7 +104,7 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
     }
 
     pub fn get_relationships_and_edges(&self) -> &Vec<EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>> {
-        &self.get_edges()
+        self.get_edges()
     }
 
     pub fn get_nodes_with_ids(&self) -> Vec<(&NODE, NodeIndex)> {

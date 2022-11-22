@@ -1,15 +1,6 @@
-use model::WhereClause;
-use zawgl_core::model::PropertyGraph;
-
-pub mod model;
-pub mod ast;
-pub mod token;
-pub mod parameters;
-
 // MIT License
 //
 // Copyright (c) 2022 Alexandre RICCIARDI
-//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -27,26 +18,14 @@ pub mod parameters;
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-pub enum StepType {
-    MATCH, CREATE, DELETE, WHERE
-}
 
-pub struct QueryStep {
-    pub patterns: Vec<PropertyGraph>,
-    pub step_type: StepType,
-    pub where_clause: Option<WhereClause>,
-}
+mod lexer;
+pub mod boolean_optimizer;
+pub mod parser;
+pub mod query_engine;
 
-impl QueryStep {
-    pub fn new(step_type: StepType) -> Self {
-        QueryStep {step_type, patterns: Vec::new(), where_clause: None }
-    }
+#[cfg(test)]
+mod parser_tests {
 
-    pub fn new_where_clause(where_clause: WhereClause) -> Self {
-        QueryStep {step_type: StepType::WHERE, patterns: Vec::new(), where_clause: Some(where_clause) }
-    }
-}
 
-pub struct QueryResult {
-    pub patterns: Vec<PropertyGraph>,
 }
