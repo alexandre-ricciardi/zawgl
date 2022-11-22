@@ -25,37 +25,37 @@ struct BoolExprVisitor {
 }
 
 impl AstVisitor for BoolExprVisitor {
-    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_create(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_match(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_path(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_node(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_relationship(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_property(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult {
+    fn enter_integer_value(&mut self, _value: Option<i64>) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult {
+    fn enter_float_value(&mut self, _value: Option<f64>) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult {
+    fn enter_string_value(&mut self, _value: Option<&str>) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_bool_value(&mut self, value: Option<bool>) -> AstVisitorResult {
+    fn enter_bool_value(&mut self, _value: Option<bool>) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_identifier(&mut self, key: &str) -> AstVisitorResult {
+    fn enter_identifier(&mut self, _key: &str) -> AstVisitorResult {
         Ok(())
     }
     fn enter_variable(&mut self) -> AstVisitorResult {
@@ -79,7 +79,7 @@ impl AstVisitor for BoolExprVisitor {
     fn enter_item(&mut self) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_where(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
 
@@ -158,7 +158,7 @@ impl AstVisitor for BoolExprVisitor {
     fn exit_where(&mut self) -> AstVisitorResult {
         todo!()
     }
-    fn enter_parameter(&mut self, name: &str) -> AstVisitorResult {
+    fn enter_parameter(&mut self, _name: &str) -> AstVisitorResult {
         todo!()
     }
     fn exit_parameter(&mut self) -> AstVisitorResult {
@@ -166,8 +166,8 @@ impl AstVisitor for BoolExprVisitor {
     }
 }
 
-pub fn extract_mandatory_conditions_from_bool_expr(ast: &Box<dyn Ast>) -> Vec<BoolCondition> {
-    let mut res = Vec::new();
+pub fn extract_mandatory_conditions_from_bool_expr(_ast: &Box<dyn Ast>) -> Vec<BoolCondition> {
+    let res = Vec::new();
 
     res
 }

@@ -308,7 +308,7 @@ impl Ast for AstTokenNode {
         }
     }
 
-    fn accept_exit(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult {
+    fn accept_exit(&self, _visitor: &mut dyn AstVisitor) -> AstVisitorResult {
         Ok(())
     }
 

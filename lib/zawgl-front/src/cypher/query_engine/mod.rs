@@ -127,21 +127,21 @@ impl AstVisitor for CypherAstVisitor {
         self.state = VisitorState::ReturnItem;
         Ok(())
     }
-    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_create(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         if let Some(rq) = &mut self.request {
             rq.steps.push(QueryStep::new(StepType::CREATE));
         }
         self.state = VisitorState::DirectiveCreate;
         Ok(())
     }
-    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_match(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         if let Some(rq) = &mut self.request {
             rq.steps.push(QueryStep::new(StepType::MATCH));
         }
         self.state = VisitorState::DirectiveMatch;
         Ok(())
     }
-    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_node(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         let state = self.state.clone();
         if let Some(pb) = self.current_path_builder() {
             pb.enter_node(state);

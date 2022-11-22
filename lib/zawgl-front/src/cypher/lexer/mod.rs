@@ -25,14 +25,10 @@ use std::error::Error;
 
 use zawgl_cypher_query_model::token::{TokenType, Token};
 
-use self::fsm::parameter_fsm;
-
 pub struct Lexer<'a> {
     keywords: Vec<(TokenType, &'static str)>,
     input: &'a str,
     position: usize,
-    line: usize,
-    column: usize,
     lookahead: usize,
 }
 
@@ -95,7 +91,7 @@ impl <'a> Lexer<'a> {
                             (TokenType::UndirectedRel, "{"), (TokenType::Create, "create"),
                             (TokenType::Comma, ","), (TokenType::Equals, "="),
                             (TokenType::Pipe, "|"), (TokenType::Minus, "-")],
-            input: input, position: 0, line: 0, column: 0, lookahead: 0}
+            input: input, position: 0, lookahead: 0}
     }
     pub  fn  next_token(&mut self) -> LexerResult<Token<'a>> {
         

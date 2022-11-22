@@ -29,7 +29,6 @@ pub enum NumberState {
         BeginNumberWithExponent,
         BeginNumberWithSignedExponent,
         NumberWithExponent,
-        NoNextState
 }
 
 pub fn make_number_fsm() -> Box<dyn RunnableFSM<NumberState>>  {

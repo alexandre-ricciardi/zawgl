@@ -21,8 +21,8 @@
 use super::*;
 use super::error::*;
 
-use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, AstTokenNode, Ast, AstVisitorResult, AstVisitor};
-use zawgl_cypher_query_model::token::{TokenType, Token};
+use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, Ast};
+use zawgl_cypher_query_model::token::{TokenType};
 
 use super::properties_parser_delegate::*;
 

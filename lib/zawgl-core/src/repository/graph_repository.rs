@@ -27,7 +27,6 @@ use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use super::super::graph::traits::*;
-use super::super::graph::*;
 
 fn parse_labels(labels: &str) -> Option<Vec<String>> {
     Some(labels.split(":").map(|s| String::from(s)).collect())

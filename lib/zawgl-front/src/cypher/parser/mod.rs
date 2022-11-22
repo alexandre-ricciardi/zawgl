@@ -37,7 +37,7 @@ pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) -> AstVisitorR
     for child in ast.get_childs() {
         walk_ast(visitor, &child)?;
     }
-    let ex_res = ast.accept_exit(visitor)?;
+    ast.accept_exit(visitor)?;
     Ok(())
 }
 
