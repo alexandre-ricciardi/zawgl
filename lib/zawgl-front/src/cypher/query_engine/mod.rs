@@ -26,6 +26,7 @@ use zawgl_core::model::*;
 mod path_builder;
 mod states;
 mod pattern_builder;
+pub mod where_clause_filter;
 
 use zawgl_cypher_query_model::parameters::Parameters;
 use zawgl_cypher_query_model::{QueryStep, StepType};
