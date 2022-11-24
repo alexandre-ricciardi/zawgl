@@ -166,3 +166,25 @@ impl AstVisitor for WhereClauseAstVisistor {
         todo!()
     }
 }
+
+#[cfg(test)]
+mod test_where_clause {
+    use zawgl_core::model::{PropertyGraph, Node};
+
+    use super::*;
+    #[test]
+    fn simple_test() {
+        let mut g = PropertyGraph::new();
+        let mut n0 = Node::new();
+        n0.set_id(Some(12));
+        n0.set_var("a");
+        let mut n1 = Node::new();
+        n1.set_var("b");
+
+        let where_clause = "id(a) = 12";
+
+        
+
+
+    }
+}
