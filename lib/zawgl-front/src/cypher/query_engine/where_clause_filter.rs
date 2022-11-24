@@ -1,11 +1,19 @@
+use zawgl_core::model::PropertyGraph;
 use zawgl_cypher_query_model::{ast::AstVisitor, parameters::Parameters};
 use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult};
 
-struct WhereClauseAstVisistor {
+struct WhereClauseAstVisitor<'a> {
+    graph: &'a PropertyGraph,
     params: Option<Parameters>,
 }
 
-impl AstVisitor for WhereClauseAstVisistor {
+impl <'a> WhereClauseAstVisitor<'a> {
+    pub fn new(graph: &'a PropertyGraph, params: Option<Parameters>) -> Self {
+        WhereClauseAstVisitor{graph, params}
+    }
+}
+
+impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult {
         todo!()
     }
@@ -170,6 +178,9 @@ impl AstVisitor for WhereClauseAstVisistor {
 #[cfg(test)]
 mod test_where_clause {
     use zawgl_core::model::{PropertyGraph, Node};
+    use zawgl_cypher_query_model::ast::{AstTag, Ast};
+
+    use crate::cypher::{lexer, parser, parser::where_clause_parser_delegate::parse_where_clause};
 
     use super::*;
     #[test]
@@ -180,11 +191,22 @@ mod test_where_clause {
         n0.set_var("a");
         let mut n1 = Node::new();
         n1.set_var("b");
+        g.add_node(n0);
+        g.add_node(n1);
 
-        let where_clause = "id(a) = 12";
+        let where_clause = "where id(a) = 12";
 
-        
-
+        let mut lexer = lexer::Lexer::new(where_clause);
+        match lexer.get_tokens() {
+            Ok(tokens) => {
+                let mut parser = parser::Parser::new(tokens);
+                let mut ast = Box::new(AstTagNode::new_tag(AstTag::Query));
+                parse_where_clause(&mut parser, &mut ast).expect("where clause ast");
+                let mut visitor = WhereClauseAstVisitor::new(&g, None);
+                parser::walk_ast(&mut visitor, &(ast as Box<dyn Ast>)).expect("walk");
+            }
+            Err(_value) => {}
+        }
 
     }
 }
