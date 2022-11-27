@@ -2,14 +2,18 @@ use zawgl_core::model::PropertyGraph;
 use zawgl_cypher_query_model::{ast::AstVisitor, parameters::Parameters};
 use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult};
 
+use super::states::VisitorState;
+
 struct WhereClauseAstVisitor<'a> {
     graph: &'a PropertyGraph,
     params: Option<Parameters>,
+    state: VisitorState,
+    function_name: Option<String>,
 }
 
 impl <'a> WhereClauseAstVisitor<'a> {
     pub fn new(graph: &'a PropertyGraph, params: Option<Parameters>) -> Self {
-        WhereClauseAstVisitor{graph, params}
+        WhereClauseAstVisitor{graph, params, state: VisitorState::Init, function_name: None}
     }
 }
 
@@ -55,7 +59,11 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn enter_identifier(&mut self, key: &str) -> AstVisitorResult {
-        todo!()
+        match self.state {
+            VisitorState::FunctionCall => self.function_name = Some(key.to_string()),
+            _ => {}
+        }
+        Ok(())
     }
 
     fn enter_variable(&mut self) -> AstVisitorResult {
@@ -75,11 +83,13 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn enter_function(&mut self) -> AstVisitorResult {
-        todo!()
+        self.state = VisitorState::FunctionCall;
+        Ok(())
     }
 
     fn enter_function_arg(&mut self) -> AstVisitorResult {
-        todo!()
+        self.state = VisitorState::FunctionArg;
+        Ok(())
     }
 
     fn enter_item(&mut self) -> AstVisitorResult {
@@ -155,7 +165,12 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn exit_function(&mut self) -> AstVisitorResult {
-        todo!()
+        if let Some(fname) = &self.function_name {
+            match fname {
+                "id" => 
+            }
+        }
+        Ok(())
     }
 
     fn exit_function_arg(&mut self) -> AstVisitorResult {
