@@ -14,19 +14,19 @@ impl <'a> WhereClauseAstVisitor<'a> {
 }
 
 impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
-    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_create(&mut self) -> AstVisitorResult {
         todo!()
     }
 
-    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_match(&mut self) -> AstVisitorResult {
         todo!()
     }
 
-    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_path(&mut self) -> AstVisitorResult {
         todo!()
     }
 
-    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_node(&mut self) -> AstVisitorResult {
         todo!()
     }
 
@@ -34,7 +34,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         todo!()
     }
 
-    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_property(&mut self) -> AstVisitorResult {
         todo!()
     }
 
@@ -67,7 +67,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn enter_query(&mut self) -> AstVisitorResult {
-        todo!()
+        Ok(())
     }
 
     fn enter_return(&mut self) -> AstVisitorResult {

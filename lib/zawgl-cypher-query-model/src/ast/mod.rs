@@ -50,12 +50,12 @@ pub enum AstTag  {
 }
 
 pub trait AstVisitor {
-    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult;
-    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult;
-    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult;
-    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult;
+    fn enter_create(&mut self,) -> AstVisitorResult;
+    fn enter_match(&mut self) -> AstVisitorResult;
+    fn enter_path(&mut self) -> AstVisitorResult;
+    fn enter_node(&mut self) -> AstVisitorResult;
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult;
-    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult;
+    fn enter_property(&mut self) -> AstVisitorResult;
     fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult;
     fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult;
     fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult;
@@ -143,10 +143,10 @@ impl Ast for AstTagNode {
             Some(ast_tag) => {
                 match ast_tag {
                     AstTag::Create => {
-                        visitor.enter_create(self)
+                        visitor.enter_create()
                     },
                     AstTag::Match => {
-                        visitor.enter_match(self)
+                        visitor.enter_match()
                     },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |
@@ -154,13 +154,13 @@ impl Ast for AstTagNode {
                         visitor.enter_relationship(self)
                     },
                     AstTag::Node => {
-                        visitor.enter_node(self)
+                        visitor.enter_node()
                     },
                     AstTag::Path => {
-                        visitor.enter_path(self)
+                        visitor.enter_path()
                     },
                     AstTag::Property => {
-                        visitor.enter_property(self)
+                        visitor.enter_property()
                     },
                     AstTag::Variable => {
                         visitor.enter_variable()
