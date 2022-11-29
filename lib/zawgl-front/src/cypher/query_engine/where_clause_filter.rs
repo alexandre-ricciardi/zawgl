@@ -67,7 +67,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn enter_query(&mut self) -> AstVisitorResult {
-        todo!()
+        Ok(())
     }
 
     fn enter_return(&mut self) -> AstVisitorResult {
