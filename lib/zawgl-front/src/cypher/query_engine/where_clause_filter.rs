@@ -1,6 +1,8 @@
-use zawgl_core::model::PropertyGraph;
+use std::ops::Deref;
+
+use zawgl_core::model::{PropertyGraph, Property, PropertyValue};
 use zawgl_cypher_query_model::{ast::AstVisitor, parameters::Parameters};
-use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult};
+use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult, AstVisitorError};
 
 use super::states::VisitorState;
 
@@ -9,11 +11,14 @@ struct WhereClauseAstVisitor<'a> {
     params: Option<Parameters>,
     state: VisitorState,
     function_name: Option<String>,
+    function_args: Vec<String>,
+    eval_stack: Vec<PropertyValue>,
 }
 
 impl <'a> WhereClauseAstVisitor<'a> {
     pub fn new(graph: &'a PropertyGraph, params: Option<Parameters>) -> Self {
-        WhereClauseAstVisitor{graph, params, state: VisitorState::Init, function_name: None}
+        WhereClauseAstVisitor{graph, params, state: VisitorState::Init, function_name: None,
+            function_args: vec![], eval_stack: vec![]}
     }
 }
 
@@ -61,6 +66,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     fn enter_identifier(&mut self, key: &str) -> AstVisitorResult {
         match self.state {
             VisitorState::FunctionCall => self.function_name = Some(key.to_string()),
+            VisitorState::FunctionArg => self.function_args.push(key.to_string()),
             _ => {}
         }
         Ok(())
@@ -84,6 +90,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
 
     fn enter_function(&mut self) -> AstVisitorResult {
         self.state = VisitorState::FunctionCall;
+        self.function_args = Vec::new();
         Ok(())
     }
 
@@ -145,7 +152,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn exit_identifier(&mut self) -> AstVisitorResult {
-        todo!()
+        Ok(())
     }
 
     fn exit_variable(&mut self) -> AstVisitorResult {
@@ -166,9 +173,22 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
 
     fn exit_function(&mut self) -> AstVisitorResult {
         if let Some(fname) = &self.function_name {
-            match fname {
-                "id" => 
-            }
+            match fname.as_str() {
+                "id" => {
+                    let Some(id_val) = self.function_args.first().and_then(|item_name| {
+                        for n in self.graph.get_nodes() {
+                            if n.get_var().as_deref() == Some(item_name) {
+                                return n.get_id();
+                            }
+                        }
+                        None
+                    }) else {
+                        return Err(AstVisitorError::SyntaxError);
+                    };
+                    //self.eval_stack.push(id_val);
+                },
+                _ => {}
+            };
         }
         Ok(())
     }
