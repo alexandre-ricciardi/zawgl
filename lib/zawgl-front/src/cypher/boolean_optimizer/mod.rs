@@ -164,6 +164,14 @@ impl AstVisitor for BoolExprVisitor {
     fn exit_parameter(&mut self) -> AstVisitorResult {
         todo!()
     }
+
+    fn enter_equality_operator(&mut self) -> AstVisitorResult {
+        todo!()
+    }
+
+    fn exit_equality_operator(&mut self) -> AstVisitorResult {
+        todo!()
+    }
 }
 
 pub fn extract_mandatory_conditions_from_bool_expr(_ast: &Box<dyn Ast>) -> Vec<BoolCondition> {

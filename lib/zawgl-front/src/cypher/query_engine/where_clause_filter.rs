@@ -48,7 +48,10 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult {
-        todo!()
+        if let Some(v) = value {
+            self.eval_stack.push(PropertyValue::PInteger(v));
+        }
+        Ok(())
     }
 
     fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult {
@@ -104,7 +107,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult {
-        todo!()
+        Ok(())
     }
 
     fn enter_parameter(&mut self, name: &str) -> AstVisitorResult {
@@ -164,7 +167,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn exit_query(&mut self) -> AstVisitorResult {
-        todo!()
+        Ok(())
     }
 
     fn exit_return(&mut self) -> AstVisitorResult {
@@ -185,7 +188,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
                     }) else {
                         return Err(AstVisitorError::SyntaxError);
                     };
-                    //self.eval_stack.push(id_val);
+                    self.eval_stack.push(PropertyValue::PUInteger(id_val));
                 },
                 _ => {}
             };
@@ -194,7 +197,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn exit_function_arg(&mut self) -> AstVisitorResult {
-        todo!()
+        Ok(())
     }
 
     fn exit_item(&mut self) -> AstVisitorResult {
@@ -202,11 +205,41 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn exit_where(&mut self) -> AstVisitorResult {
-        todo!()
+        Ok(())
     }
 
     fn exit_parameter(&mut self) -> AstVisitorResult {
         todo!()
+    }
+
+    fn enter_equality_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_equality_operator(&mut self) -> AstVisitorResult {
+        let ov0 = self.eval_stack.pop();
+        let ov1 = self.eval_stack.pop();
+        if let (Some(v0), Some(v1)) = &(ov0, ov1) {
+            match (v0, v1) {
+                (PropertyValue::PInteger(i0), PropertyValue::PUInteger(u1)) => {
+                    if *i0 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i0 as u64 == *u1));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
+                    if *i1 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 == *u0));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                _ => {self.eval_stack.push(PropertyValue::PBool(v0 == v1));}
+            }
+            
+        }
+        Ok(())
     }
 }
 
@@ -239,6 +272,7 @@ mod test_where_clause {
                 parse_where_clause(&mut parser, &mut ast).expect("where clause ast");
                 let mut visitor = WhereClauseAstVisitor::new(&g, None);
                 parser::walk_ast(&mut visitor, &(ast as Box<dyn Ast>)).expect("walk");
+                assert_eq!(visitor.eval_stack.pop(), Some(PropertyValue::PBool(true)));
             }
             Err(_value) => {}
         }

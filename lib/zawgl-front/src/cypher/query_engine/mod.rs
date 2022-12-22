@@ -291,6 +291,14 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_item(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_where(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_parameter(&mut self) -> AstVisitorResult { Ok(())}
+
+    fn enter_equality_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_equality_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

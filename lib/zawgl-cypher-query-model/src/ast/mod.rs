@@ -70,6 +70,7 @@ pub trait AstVisitor {
     fn enter_item(&mut self) -> AstVisitorResult;
     fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult;
     fn enter_parameter(&mut self, name: &str) -> AstVisitorResult;
+    fn enter_equality_operator(&mut self) -> AstVisitorResult;
     fn exit_create(&mut self) -> AstVisitorResult;
     fn exit_match(&mut self) -> AstVisitorResult;
     fn exit_path(&mut self) -> AstVisitorResult;
@@ -90,6 +91,7 @@ pub trait AstVisitor {
     fn exit_item(&mut self) -> AstVisitorResult;
     fn exit_where(&mut self) -> AstVisitorResult;
     fn exit_parameter(&mut self) -> AstVisitorResult;
+    fn exit_equality_operator(&mut self) -> AstVisitorResult;
 }
 
 #[derive(Debug, Clone)]
@@ -186,6 +188,7 @@ impl Ast for AstTagNode {
                     AstTag::Where => {
                         visitor.enter_where(self)
                     },
+                    AstTag::EqualityOperator => visitor.enter_equality_operator(),
                     _ => {
                         Ok(())
                     }
@@ -248,6 +251,7 @@ impl Ast for AstTagNode {
                     AstTag::Parameter => {
                         visitor.exit_parameter()
                     }
+                    AstTag::EqualityOperator => visitor.exit_equality_operator(),
                     _ => {
                         Ok(())
                     }

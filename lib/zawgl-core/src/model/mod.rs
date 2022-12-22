@@ -31,6 +31,7 @@ use std::hash::Hasher;
 pub enum PropertyValue {
     PString(String),
     PInteger(i64),
+    PUInteger(u64),
     PFloat(f64),
     PBool(bool),
 }
@@ -46,6 +47,9 @@ impl Hash for PropertyValue {
             },
             PropertyValue::PInteger(ival) => {
                 ival.hash(state);
+            },
+            PropertyValue::PUInteger(uval) => {
+                uval.hash(state);
             },
             PropertyValue::PFloat(_) => {
                 
@@ -65,6 +69,9 @@ impl PartialEq for PropertyValue {
                 sval == oval
             },
             (PInteger(sval), PInteger(oval))  => {
+                sval == oval
+            },
+            (PUInteger(sval), PUInteger(oval))  => {
                 sval == oval
             },
             (PFloat(_), PFloat(_))  => {
@@ -87,6 +94,9 @@ impl PartialOrd for PropertyValue {
                 Some(sval.cmp(oval))
             },
             (PInteger(sval), PInteger(oval))  => {
+                Some(sval.cmp(oval))
+            },
+            (PUInteger(sval), PUInteger(oval))  => {
                 Some(sval.cmp(oval))
             },
             (PFloat(sval), PFloat(oval))  => {
