@@ -1,6 +1,6 @@
 # zawgl
 Open Source Timelined Graph Database  
-zawgl is in WIP stage, though it can already expose a few Gremlin features.
+zawgl is in WIP stage, though it can already expose a few Cypher features.
 
 ## Status
 * Pattern Matching with a VF2 graph sub-graph isomorphism algorithm.
@@ -8,7 +8,6 @@ zawgl is in WIP stage, though it can already expose a few Gremlin features.
 * A fixed sized Pager implementation.
 
 ## Roadmap
-* Improve backend with LLAMA cache and Bw-Tree for indexes.
 * Study VF3 version of sub-graph isomorphism algorithm.
 * Keep in mind that graph structures may be timelined in order to be able to retrieve past graph states.
 * Javascript procedures.
