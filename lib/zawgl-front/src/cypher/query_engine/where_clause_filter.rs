@@ -6,13 +6,13 @@ use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult, AstVisitorErro
 
 use super::states::VisitorState;
 
-struct WhereClauseAstVisitor<'a> {
+pub struct WhereClauseAstVisitor<'a> {
     graph: &'a PropertyGraph,
     params: Option<Parameters>,
     state: VisitorState,
     function_name: Option<String>,
     function_args: Vec<String>,
-    eval_stack: Vec<PropertyValue>,
+    pub eval_stack: Vec<PropertyValue>,
 }
 
 impl <'a> WhereClauseAstVisitor<'a> {
