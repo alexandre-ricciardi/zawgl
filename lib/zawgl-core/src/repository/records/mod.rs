@@ -57,7 +57,7 @@ pub struct HeaderPageWrapper<'a> {
 impl <'a> HeaderPageWrapper<'a> {
 
     fn new(header_page: &'a mut HeaderPage, page_map: PageMap) -> Self {
-        HeaderPageWrapper{header_page: header_page, page_map: page_map}
+        HeaderPageWrapper{header_page, page_map}
     }
 
     fn get_header_slice_ref(&'a self, bounds: Bounds) -> &'a [u8] {
@@ -113,19 +113,19 @@ struct RecordPageWrapper<'a> {
 
 impl <'a> RecordPageWrapper<'a> {
     fn new(page: Page<'a>, page_map: PageMap) -> Self {
-        RecordPageWrapper{page: page, page_map: page_map}
+        RecordPageWrapper{page, page_map}
     }
     fn get_id(&self) -> PageId {
         self.page.id
     }
     fn get_header_page_wrapper(&mut self) -> HeaderPageWrapper {
-        HeaderPageWrapper::new(&mut self.page.header_page, self.page_map)
+        HeaderPageWrapper::new(self.page.header_page, self.page_map)
     }
     fn has_next_page_record(&self) -> bool {
-        self.page.data[0] & MULTI_PAGE_RECORD_FLAG == 1
+        (self.page.data[0] & MULTI_PAGE_RECORD_FLAG) > 0
     }
     fn set_page_in_use(&mut self) {
-        self.page.data[0] = self.page.data[0] | IS_FREE_PAGE_FLAG;
+        self.page.data[0] |= IS_FREE_PAGE_FLAG;
     }
     fn get_free_next_page_ptr(&self) -> PageId {
         let mut bytes = [0u8; NEXT_PAGE_PTR];
@@ -273,11 +273,11 @@ fn compute_page_map(nb_records_per_page: usize, nb_pages_per_record: usize) -> P
     PageMap{
         header_flags: header_flags_bounds,
         next_free_page_ptr: next_free_page_ptr_bounds,
-        free_list_len: free_list_len,
+        free_list_len,
         free_list: free_list_bounds,
         free_list_capacity: nb_records_per_page,
-        nb_pages_per_record: nb_pages_per_record,
-        nb_records_per_page: nb_records_per_page,
+        nb_pages_per_record,
+        nb_records_per_page,
         is_multi_page_record: nb_pages_per_record != 0,
         payload: payload_bounds,
         header_page_free_list_ptr: header_page_free_list_ptr_bounds,
@@ -291,7 +291,7 @@ fn copy_payload_to_buffer(data: &mut [u8], payload: &[u8]) {
     if payload.len() > data.len() {
         data.copy_from_slice(&payload[..data.len()]);
     } else {
-        data[..payload.len()].copy_from_slice(&payload);
+        data[..payload.len()].copy_from_slice(payload);
     }
 }
 
@@ -299,13 +299,13 @@ fn copy_buffer_to_payload(payload: &mut [u8], data: &[u8]) {
     if payload.len() < data.len() {
         payload.copy_from_slice(&data[..payload.len()]);
     } else {
-        payload[..data.len()].copy_from_slice(&data);
+        payload[..data.len()].copy_from_slice(data);
     }
 }
 
 impl RecordsManager {
     pub fn new(file: &str, record_size: usize, nb_records_per_page: usize, nb_pages_per_record: usize) -> Self {
-        RecordsManager{pager: Pager::new(file), record_size: record_size, nb_records_per_page: nb_records_per_page, page_map: compute_page_map(nb_records_per_page, nb_pages_per_record)}
+        RecordsManager{pager: Pager::new(file), record_size, nb_records_per_page, page_map: compute_page_map(nb_records_per_page, nb_pages_per_record)}
     }
 
     fn compute_location(&self, record_id: u64) -> RecordLocation {
@@ -319,7 +319,7 @@ impl RecordsManager {
                 record_id_in_page: 0,
                 page_record_address: self.page_map.payload.begin,
                 payload_record_address: 0,
-                nb_pages_per_record: nb_pages_per_record,
+                nb_pages_per_record,
                 is_multi_pages_record: true}
         } else {
             let page_record_id = (record_ptr % nb_records_per_page as u64) as usize;
@@ -372,7 +372,7 @@ impl RecordsManager {
             }
         } else {
             let mut wrapper = self.load_page_wrapper(location.page_id).ok_or(RecordsManagerError::NotFound)?;
-            wrapper.get_slice_mut(payload_bounds.sub(location.record_id_in_page * record_size, record_size)).copy_from_slice(&data);
+            wrapper.get_slice_mut(payload_bounds.sub(location.record_id_in_page * record_size, record_size)).copy_from_slice(data);
             if wrapper.is_page_free_list_empty() {
                 let next_free_page_ptr = wrapper.get_free_next_page_ptr();
                 wrapper.get_header_page_wrapper().set_header_first_free_page_ptr(next_free_page_ptr);

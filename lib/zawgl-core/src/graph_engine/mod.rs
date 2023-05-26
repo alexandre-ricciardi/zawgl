@@ -20,7 +20,7 @@
 
 pub mod model;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::sync::{Arc, Mutex};
 
 use super::model::*;
@@ -68,11 +68,11 @@ impl GraphEngine {
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
-            if n0.get_id() == None && n0.get_labels_ref().is_empty() {
+            if n0.get_id().is_none() && n0.get_labels_ref().is_empty() {
                 return true;
             }
             
-            if n0.get_id() != None && n0.get_id() != n1.get_id() {
+            if n0.get_id().is_some() && n0.get_id() != n1.get_id() {
                 return false;
             }
 
@@ -87,7 +87,7 @@ impl GraphEngine {
             for pred in n0.get_predicates_ref() {
                 if match_properties {
                     for p1 in n1.get_properties_ref() {
-                        if p1.get_name() == &pred.name {
+                        if p1.get_name() == pred.name {
                             match_properties = pred.predicate.eval(p1.get_value());
                             if !match_properties {
                                 break;
@@ -99,11 +99,11 @@ impl GraphEngine {
             match_labels && match_properties
         },
         |e0, e1| {
-            if e0.get_id() == None && e0.get_labels_ref().is_empty() {
+            if e0.get_id().is_none() && e0.get_labels_ref().is_empty() {
                 return true;
             }
             
-            if e0.get_id() != None && e0.get_id() != e1.get_id() {
+            if e0.get_id().is_some() && e0.get_id() != e1.get_id() {
                 return false;
             }
 
@@ -118,7 +118,7 @@ impl GraphEngine {
             for pred in e0.get_predicates_ref() {
                 if match_properties {
                     for p1 in e1.get_properties_ref() {
-                        if p1.get_name() == &pred.name {
+                        if p1.get_name() == pred.name {
                             match_properties = pred.predicate.eval(p1.get_value());
                             if !match_properties {
                                 break;
@@ -149,7 +149,7 @@ impl GraphEngine {
                         let rel = proxy.get_relationship_ref(&rel_id)?;
                         if compare_relationships(&prel.relationship, rel) {
                             let mut rel_clone = rel.clone();
-                            rel_clone.set_option_var(&prel.relationship.get_var());
+                            rel_clone.set_option_var(prel.relationship.get_var());
                             res_match.add_relationship(rel_clone, *psource_id, *ptarget_id);
                         }
                     }
@@ -171,12 +171,12 @@ impl GraphEngine {
             for nid in pattern.get_nodes_ids() {
                 let n = pattern.get_node_ref(&nid);
                 if let Some(db_id) = n.get_id() {
-                    if nodes_db_ids_to_pattern_id.contains_key(&db_id) {
+                    if let std::collections::hash_map::Entry::Vacant(e) = nodes_db_ids_to_pattern_id.entry(db_id) {
+                        e.insert(nid);
+                    } else {
                         let prev_id = nodes_db_ids_to_pattern_id[&db_id];
                         map_nodes_ids.insert(nid, prev_id);
                         continue;
-                    } else {
-                        nodes_db_ids_to_pattern_id.insert(db_id, nid);
                     }
                 }
                 if *n.get_status() == Status::Match {
@@ -254,7 +254,7 @@ impl GraphEngine {
 
 #[cfg(test)]
 mod test_graph_engine_match {
-    use crate::{model::{PropertyGraph, Node, Relationship, init::InitContext}, test_utils::{get_tmp_dir_path, build_dir_path_and_rm_old}};
+    use crate::{model::{PropertyGraph, Node, Relationship, init::InitContext}, test_utils::{build_dir_path_and_rm_old}};
 
     use super::GraphEngine;
 

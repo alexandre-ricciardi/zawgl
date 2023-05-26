@@ -2,7 +2,7 @@
 Open Source Timelined Graph Database (Work In Progress)
 
 ## Status
-* At the moment Zawgl Database supports a few gremlin and cypher queries.
+* At the moment Zawgl Database supports a few cypher queries.
 * Pattern Matching with a VF2 sub-graph isomorphism algorithm.
 * Property Graph storage
 * With a B+Tree for indexes

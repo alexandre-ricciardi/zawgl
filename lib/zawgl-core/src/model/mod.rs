@@ -31,6 +31,7 @@ use std::hash::Hasher;
 pub enum PropertyValue {
     PString(String),
     PInteger(i64),
+    PUInteger(u64),
     PFloat(f64),
     PBool(bool),
 }
@@ -46,6 +47,9 @@ impl Hash for PropertyValue {
             },
             PropertyValue::PInteger(ival) => {
                 ival.hash(state);
+            },
+            PropertyValue::PUInteger(uval) => {
+                uval.hash(state);
             },
             PropertyValue::PFloat(_) => {
                 
@@ -65,6 +69,9 @@ impl PartialEq for PropertyValue {
                 sval == oval
             },
             (PInteger(sval), PInteger(oval))  => {
+                sval == oval
+            },
+            (PUInteger(sval), PUInteger(oval))  => {
                 sval == oval
             },
             (PFloat(_), PFloat(_))  => {
@@ -89,6 +96,9 @@ impl PartialOrd for PropertyValue {
             (PInteger(sval), PInteger(oval))  => {
                 Some(sval.cmp(oval))
             },
+            (PUInteger(sval), PUInteger(oval))  => {
+                Some(sval.cmp(oval))
+            },
             (PFloat(sval), PFloat(oval))  => {
                 sval.partial_cmp(oval)
             },
@@ -106,11 +116,11 @@ pub struct Property {
 
 impl Property {
     pub fn new(name: String, value: PropertyValue) -> Self {
-        Property {id: None, name: name, value: value}
+        Property {id: None, name, value}
     }
 
     pub fn new_with_id(id: u64, name: String, value: PropertyValue) -> Self {
-        Property {id: Some(id), name: name, value: value}
+        Property {id: Some(id), name, value}
     }
 
     pub fn get_id(&self) -> Option<u64> {
@@ -148,6 +158,11 @@ pub struct Node {
     property_predicates: Vec<NamedPropertyPredicate>,
 }
 
+impl Default for Node {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Node {
     pub fn new() -> Self {
@@ -223,6 +238,12 @@ pub struct Relationship {
     labels: Vec<String>,
     status: Status,
     property_predicates: Vec<NamedPropertyPredicate>,
+}
+
+impl Default for Relationship {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Relationship {

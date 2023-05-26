@@ -31,10 +31,10 @@ use bson::Document;
 use futures_util::{
     SinkExt, StreamExt,
 };
-use zawgl_tx_handler::request_handler::GraphRequestHandler;
-use zawgl_tx_handler::request_handler::RequestHandler;
-use zawgl_tx_handler::tx_handler::GraphTxHandler;
-use zawgl_tx_handler::tx_handler::TxHandler;
+use zawgl_front::tx_handler::request_handler::GraphRequestHandler;
+use zawgl_front::tx_handler::request_handler::RequestHandler;
+use zawgl_front::tx_handler::handler::GraphTxHandler;
+use zawgl_front::tx_handler::handler::TxHandler;
 use parking_lot::ReentrantMutex;
 use tokio_tungstenite::tungstenite::Message;
 use std::cell::RefCell;
@@ -44,7 +44,6 @@ use log::*;
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::Error};
-use serde_json::Value;
 use std::result::Result;
 use crate::open_cypher_request_handler::handle_open_cypher_request;
 
@@ -55,7 +54,7 @@ mod open_cypher_request_handler;
 use self::result::ServerError;
 use zawgl_core::model::init::InitContext;
 
-async fn accept_connection<'a>(peer: SocketAddr, tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, stream: TcpStream) {
+async fn accept_connection(peer: SocketAddr, tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, stream: TcpStream) {
     if let Err(e) = handle_connection(peer, tx_handler, graph_request_handler, stream).await {
         match e {
             ServerError::WebsocketError(te) => match te {
@@ -70,7 +69,7 @@ async fn accept_connection<'a>(peer: SocketAddr, tx_handler: TxHandler, graph_re
 }
 
 
-async fn handle_connection<'a, 'b>(peer: SocketAddr, tx_handler: TxHandler, graph_request_handler: RequestHandler<'a>, stream: TcpStream) -> Result<(), ServerError> {
+async fn handle_connection(peer: SocketAddr, tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, stream: TcpStream) -> Result<(), ServerError> {
     let ws_stream = accept_async(stream).await.expect("Failed to accept");
     info!("New WebSocket connection: {}", peer);
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();

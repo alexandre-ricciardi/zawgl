@@ -1,10 +1,8 @@
 [workspace]
 members = [
     "lib/zawgl-core",
-    "lib/zawgl-cypher",
-    "lib/zawgl-cypher-query-planner",
+    "lib/zawgl-front",
     "lib/zawgl-cypher-query-model",
-    "lib/zawgl-tx-handler",
     "lib/zawgl-server",
     "zawgl",
     "utils",

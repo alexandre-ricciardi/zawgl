@@ -47,26 +47,26 @@ impl CellRecord {
         self.header & HAS_OVERFLOW_CELL_FLAG > 0
     }
     pub fn set_has_overflow(&mut self) {
-        self.header = self.header | HAS_OVERFLOW_CELL_FLAG;
+        self.header |= HAS_OVERFLOW_CELL_FLAG;
     }
     pub fn is_active(&self) -> bool {
         self.header & IS_ACTIVE_CELL_FLAG > 0
     }
     pub fn set_is_active(&mut self) {
-        self.header = self.header | IS_ACTIVE_CELL_FLAG;
+        self.header |= IS_ACTIVE_CELL_FLAG;
     }
     
     pub fn set_inactive(&mut self) {
-        self.header = self.header & !IS_ACTIVE_CELL_FLAG;
+        self.header &= !IS_ACTIVE_CELL_FLAG;
     }
 
     pub fn is_list_ptr(&self) -> bool {
         self.header & IS_LIST_PTR_CELL_FLAG > 0
     }
     pub fn set_is_list_ptr(&mut self) {
-        self.header = self.header | IS_LIST_PTR_CELL_FLAG;
+        self.header |= IS_LIST_PTR_CELL_FLAG;
     }
-    pub fn to_bytes(&self) -> [u8; CELL_SIZE] {
+    pub fn to_bytes(self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];
         let mut offset = 0;
         bytes[offset] = self.header;
@@ -95,10 +95,10 @@ impl CellRecord {
         let mut key = [0u8; KEY_SIZE];
         key.copy_from_slice(&bytes[offset..offset+KEY_SIZE]);
         CellRecord{
-            header: header,
+            header,
             node_ptr: ptr,
-            overflow_cell_ptr: overflow_cell_ptr,
-            key: key}
+            overflow_cell_ptr,
+            key}
     }
 
     pub fn chain_with_cell_location(&mut self, location: (NodeId, CellId)) {
@@ -128,12 +128,12 @@ impl BNodeRecord {
     }
     pub fn get_keys_string(&self) -> Vec<String> {
         let mut keys = Vec::new();
-        for cell_id in 0..self.cells.len() {
-            keys[cell_id] = String::from_utf8(self.cells[cell_id].key.to_vec()).unwrap();
+        for (cell_id, cell) in self.cells.iter().enumerate() {
+            keys[cell_id] = String::from_utf8(cell.key.to_vec()).unwrap();
         }
         keys
     }
-    pub fn to_bytes(&self) -> [u8; BTREE_NODE_RECORD_SIZE] {
+    pub fn to_bytes(self) -> [u8; BTREE_NODE_RECORD_SIZE] {
         let mut bytes = [0u8; BTREE_NODE_RECORD_SIZE];
         let mut index = 0;
         bytes[index] = self.header;
@@ -169,37 +169,37 @@ impl BNodeRecord {
             let offset = index + cell_id * CELL_SIZE;
             cells[cell_id] = CellRecord::from_bytes(&bytes[offset..offset+CELL_SIZE]);
         }
-        BNodeRecord{header: header, next_free_cells_node_ptr: next_free_cells_node_ptr, cells: cells, ptr: ptr}
+        BNodeRecord{header, next_free_cells_node_ptr, cells, ptr}
     }
     pub fn is_leaf(&self) -> bool {
         (self.header & IS_LEAF_NODE_FLAG) > 0
     }
     pub fn set_leaf(&mut self) {
-        self.header = self.header | IS_LEAF_NODE_FLAG;
+        self.header |= IS_LEAF_NODE_FLAG;
     }
     
     pub fn is_root(&self) -> bool {
         (self.header & IS_ROOT_NODE_FLAG) > 0
     }
     pub fn set_root(&mut self) {
-        self.header = self.header | IS_ROOT_NODE_FLAG;
+        self.header |= IS_ROOT_NODE_FLAG;
     }
     pub fn set_is_not_root(&mut self) {
-        self.header = self.header & !IS_ROOT_NODE_FLAG;
+        self.header &= !IS_ROOT_NODE_FLAG;
     }
     
     pub fn is_overflow_node(&self) -> bool {
         (self.header & IS_OVERFLOW_NODE_FLAG) > 0
     }
     pub fn set_overflow_node(&mut self) {
-        self.header = self.header | IS_OVERFLOW_NODE_FLAG;
+        self.header |= IS_OVERFLOW_NODE_FLAG;
     }
 
     pub fn has_next_node(&self) -> bool {
         (self.header & HAS_NEXT_NODE_FLAG) > 0
     }
     pub fn set_has_next_node(&mut self) {
-        self.header = self.header | HAS_NEXT_NODE_FLAG;
+        self.header |= HAS_NEXT_NODE_FLAG;
     }
 
     pub fn new() -> Self {

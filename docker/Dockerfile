@@ -1,4 +1,6 @@
-FROM rust:latest as builder
+FROM rust:bullseye as builder
+
+RUN apt-get install -y libssl-dev
 
 COPY . .
 

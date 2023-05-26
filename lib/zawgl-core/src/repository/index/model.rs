@@ -70,7 +70,7 @@ impl Cell {
         Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true)}
     }
     pub fn new(key: &str, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>, is_active: bool) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active: is_active, data_ptrs: data_ptrs, cell_change_state: CellChangeState::new(false)}
+        Cell{key: String::from(key), node_ptr: ptr, is_active, data_ptrs, cell_change_state: CellChangeState::new(false)}
     }
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
         self.cell_change_state.list_data_pointer_changed = true;
@@ -108,7 +108,7 @@ pub struct CellChangeLogItem {
 
 impl CellChangeLogItem {
     fn new(index: usize, is_added: bool, is_removed: bool) -> Self {
-        CellChangeLogItem{is_add: is_added, is_remove: is_removed, index: index}
+        CellChangeLogItem{is_add: is_added, is_remove: is_removed, index}
     }
 
     pub fn is_remove(&self) -> bool {
@@ -134,7 +134,7 @@ pub struct NodeChangeState {
 impl NodeChangeState {
     fn new(is_new_instance: bool) -> Self {
         NodeChangeState{node_ptr_changed: false, 
-            is_new_instance: is_new_instance,
+            is_new_instance,
             list_cell_change_log_items: Vec::new()}
     }
 
@@ -161,12 +161,12 @@ pub struct BTreeNode {
 impl BTreeNode {
     pub fn new(is_leaf: bool, is_root: bool, cells: Vec<Cell>) -> Self {
         let state = NodeChangeState::new(true);
-        BTreeNode{id: None, cells: cells, node_ptr: None, is_leaf: is_leaf, is_root: is_root, node_change_state: state}
+        BTreeNode{id: None, cells, node_ptr: None, is_leaf, is_root, node_change_state: state}
     }
 
     pub fn new_with_id(id: Option<NodeId>, node_ptr: Option<NodeId>, is_leaf: bool, is_root: bool, cells: Vec<Cell>) -> Self {
         let state = NodeChangeState::new(false);
-        BTreeNode{id: id, cells: cells, node_ptr: node_ptr, is_leaf: is_leaf, is_root: is_root, node_change_state: state}
+        BTreeNode{id, cells, node_ptr, is_leaf, is_root, node_change_state: state}
     }
 
     pub fn is_full(&self) -> bool {

@@ -34,7 +34,7 @@ fn get_node_ptr(not_found_index: usize, node: &BTreeNode) -> Option<NodeId> {
     Some(node_ptr)
 }
 
-fn binary_search_keys(keys: &Vec<&str>, value: &str) -> Result<usize, usize> {
+fn binary_search_keys(keys: &[&str], value: &str) -> Result<usize, usize> {
     keys.binary_search_by(|&probe|{
         Ord::cmp(&probe.len(), &value.len()).then(probe.cmp(value))
     })
@@ -61,7 +61,7 @@ impl BTreeIndex {
                 if node.is_leaf() {
                     None
                 } else {
-                    let node_ptr = get_node_ptr(not_found, &node)?;
+                    let node_ptr = get_node_ptr(not_found, node)?;
                     let child = self.node_store.retrieve_node(node_ptr)?;
                     self.tree_search(value, &child)
                 }
@@ -82,7 +82,7 @@ impl BTreeIndex {
         new_node_cells.reverse();
 
         let new_first_cell = &new_node_cells[0];
-        let mut middle_key = Cell::new_ptr(&new_first_cell.get_key(), None);
+        let mut middle_key = Cell::new_ptr(new_first_cell.get_key(), None);
         let mut new = BTreeNode::new(true, false, new_node_cells);
 
         if node.get_node_ptr().is_some() {
@@ -120,7 +120,7 @@ impl BTreeIndex {
         new_node_cells.reverse();
 
         let new_first_cell = &new_node_cells[0];
-        let mut middle_key = Cell::new_ptr(&new_first_cell.get_key(), None);
+        let mut middle_key = Cell::new_ptr(new_first_cell.get_key(), None);
         let mut new = BTreeNode::new(false, false, new_node_cells);
         self.node_store.create(&mut new);
 
@@ -162,7 +162,7 @@ impl BTreeIndex {
                         None
                     }
                 } else {
-                    let node_ptr = get_node_ptr(not_found, &node)?;
+                    let node_ptr = get_node_ptr(not_found, node)?;
                     let mut child = self.node_store.retrieve_node(node_ptr)?;
                     let split_node = self.insert_or_update_key_ptrs(value, data_ptr, &mut child)?;
                     let first_cell = split_node.get_cell_ref(0);
@@ -196,7 +196,7 @@ impl BTreeIndex {
         self.insert_or_update_key_ptrs(value, data_ptr, &mut root).map(|_node|())
     }
 
-    pub fn delete(&mut self, value: u64) {
+    pub fn delete(&mut self, _value: u64) {
 
     }
 
@@ -225,7 +225,7 @@ mod test_b_tree {
             assert_eq!(ptrs.len(), 1);
             assert_eq!(ptrs[0], 42);
         } else {
-            assert!(false);
+            panic!("should not happen");
         }
 
         index.sync();
@@ -239,7 +239,7 @@ mod test_b_tree {
             assert!(ptrs.contains(&42));
             assert!(ptrs.contains(&56));
         } else {
-            assert!(false);
+            panic!("should not happen");
         }
 
         let data_ptrs_2 = index.search(long_key).unwrap();
@@ -264,7 +264,7 @@ mod test_b_tree {
                 assert_eq!(ptrs.len(), 1);
                 assert!(ptrs.contains(&i));
             } else {
-                assert!(false, "empty search result for key # {}", i);
+                panic!("empty search result for key # {}", i);
             }
             
         }
@@ -288,7 +288,7 @@ mod test_b_tree {
             println!("{:?}", ptrs);
             assert_eq!(ptrs.len(), 100);
         } else {
-            assert!(false, "empty search result for same key");
+            panic!("empty search result for same key");
         }
     }
 }
