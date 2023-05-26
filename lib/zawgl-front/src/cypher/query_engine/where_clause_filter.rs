@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use zawgl_core::model::{PropertyGraph, Property, PropertyValue};
+use zawgl_cypher_query_model::parameters::ParameterValue;
 use zawgl_cypher_query_model::{ast::AstVisitor, parameters::Parameters};
 use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult, AstVisitorError};
 
@@ -111,7 +112,21 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn enter_parameter(&mut self, name: &str) -> AstVisitorResult {
-        todo!()
+        let pname = &name[1..];
+        if let Some(pv) = self.params.as_ref()
+        .and_then(|p|
+            p.get(pname)) {
+            match pv {
+                ParameterValue::Parameters(_) => todo!(),
+                ParameterValue::Value(v) => {
+                    self.eval_stack.push(v.clone());
+                },
+            }
+            Ok(())
+        } else {
+            Err(AstVisitorError::SyntaxError)
+        }
+        
     }
 
     fn exit_create(&mut self) -> AstVisitorResult {
@@ -209,7 +224,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn exit_parameter(&mut self) -> AstVisitorResult {
-        todo!()
+        Ok(())
     }
 
     fn enter_equality_operator(&mut self) -> AstVisitorResult {
@@ -246,7 +261,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
 #[cfg(test)]
 mod test_where_clause {
     use zawgl_core::model::{PropertyGraph, Node};
-    use zawgl_cypher_query_model::ast::{AstTag, Ast};
+    use zawgl_cypher_query_model::{ast::{AstTag, Ast}, parameters::ParameterValue};
 
     use crate::cypher::{lexer, parser, parser::where_clause_parser_delegate::parse_where_clause};
 
@@ -271,6 +286,35 @@ mod test_where_clause {
                 let mut ast = Box::new(AstTagNode::new_tag(AstTag::Query));
                 parse_where_clause(&mut parser, &mut ast).expect("where clause ast");
                 let mut visitor = WhereClauseAstVisitor::new(&g, None);
+                parser::walk_ast(&mut visitor, &(ast as Box<dyn Ast>)).expect("walk");
+                assert_eq!(visitor.eval_stack.pop(), Some(PropertyValue::PBool(true)));
+            }
+            Err(_value) => {}
+        }
+
+    }
+
+    #[test]
+    fn parameters_test() {
+        let mut g = PropertyGraph::new();
+        let mut n0 = Node::new();
+        n0.set_id(Some(12));
+        n0.set_var("a");
+        let mut n1 = Node::new();
+        n1.set_var("b");
+        g.add_node(n0);
+        g.add_node(n1);
+
+        let where_clause = "where id(a) = $aid";
+        let mut params = Parameters::new();
+        params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
+        let mut lexer = lexer::Lexer::new(where_clause);
+        match lexer.get_tokens() {
+            Ok(tokens) => {
+                let mut parser = parser::Parser::new(tokens);
+                let mut ast = Box::new(AstTagNode::new_tag(AstTag::Query));
+                parse_where_clause(&mut parser, &mut ast).expect("where clause ast");
+                let mut visitor = WhereClauseAstVisitor::new(&g, Some(params));
                 parser::walk_ast(&mut visitor, &(ast as Box<dyn Ast>)).expect("walk");
                 assert_eq!(visitor.eval_stack.pop(), Some(PropertyValue::PBool(true)));
             }

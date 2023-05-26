@@ -410,7 +410,6 @@ mod test_query_engine {
             assert_eq!(movie.get_var(), &Some(String::from("m")));
             assert_eq!(movie.get_labels_ref()[0], String::from("Movie"));
             assert_eq!(movie.get_status(), &Status::Match);
-            //assert_eq!(movie.get_id(), Some(12u64));
         } else {
             assert!(false, "no request found");
         }

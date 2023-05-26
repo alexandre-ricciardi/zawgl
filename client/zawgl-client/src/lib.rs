@@ -1,4 +1,4 @@
-mod parameters;
+pub mod parameters;
 
 use std::sync::{Arc, Mutex};
 use std::{io::Cursor, collections::HashMap};
