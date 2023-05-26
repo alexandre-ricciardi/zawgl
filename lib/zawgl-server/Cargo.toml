@@ -13,7 +13,7 @@ zawgl-cypher-query-planner = { path = "../zawgl-cypher-query-planner" }
 zawgl-cypher = { path = "../zawgl-cypher" }
 zawgl-tx-handler = { path = "../zawgl-tx-handler" }
 zawgl-core = { path = "../zawgl-core" }
-tokio-tungstenite = "0.17.1"
+tokio-tungstenite = "0.19.0"
 tokio = { version = "1.13.0", features = ["full"] }
 futures-util = "^0.3"
 log = "0.4"
