@@ -36,6 +36,7 @@ fn compute_prop_size(prop: &Property) -> Option<usize> {
         PropertyValue::PInteger(_) => std::mem::size_of::<i64>(),
         PropertyValue::PFloat(_) => std::mem::size_of::<f64>(),
         PropertyValue::PBool(_) => std::mem::size_of::<bool>(),
+        PropertyValue::PUInteger(_) => std::mem::size_of::<u64>(),
     };
     compute_prop_name_size(prop).map(|nsize| nsize + vsize)
 }
@@ -46,6 +47,7 @@ fn map_prop_type(prop: &Property) -> Option<u8> {
         PropertyValue::PInteger(_) => 1,
         PropertyValue::PFloat(_) => 2,
         PropertyValue::PBool(_) => 3,
+        PropertyValue::PUInteger(_) => 4,
     })
 }
 
@@ -69,6 +71,7 @@ fn make_full_inlined_record(prop: &Property) -> Option<records::PropertyRecord> 
             match prop.get_value() {
                 PropertyValue::PString(sval) => block[skip..skip + sval.len()].copy_from_slice(&sval.clone().into_bytes()),
                 PropertyValue::PInteger(ival) => block[skip..skip + std::mem::size_of::<i64>()].copy_from_slice(&ival.to_be_bytes()),
+                PropertyValue::PUInteger(uval) => block[skip..skip + std::mem::size_of::<u64>()].copy_from_slice(&uval.to_be_bytes()),
                 PropertyValue::PFloat(fval) => block[skip..skip + std::mem::size_of::<f64>()].copy_from_slice(&fval.to_be_bytes()),
                 PropertyValue::PBool(bval) => block[skip + 2] = *bval as u8,
             };
@@ -145,6 +148,7 @@ impl PropertiesRespository {
             match prop.get_value() {
                 PropertyValue::PString(sval) => self.dyn_store.save_data(&sval.clone().into_bytes()),
                 PropertyValue::PInteger(ival) => self.dyn_store.save_data(&ival.to_be_bytes()),
+                PropertyValue::PUInteger(uval) => self.dyn_store.save_data(&uval.to_be_bytes()),
                 PropertyValue::PFloat(fval) => self.dyn_store.save_data(&fval.to_be_bytes()),
                 PropertyValue::PBool(bval) => self.dyn_store.save_data(&[*bval as u8]),
             };
@@ -176,6 +180,7 @@ impl PropertiesRespository {
                 let value_id = match prop.get_value() {
                     PropertyValue::PString(sval) => self.dyn_store.save_data(&sval.clone().into_bytes()),
                     PropertyValue::PInteger(ival) => self.dyn_store.save_data(&ival.to_be_bytes()),
+                    PropertyValue::PUInteger(uval) => self.dyn_store.save_data(&uval.to_be_bytes()),
                     PropertyValue::PFloat(fval) => self.dyn_store.save_data(&fval.to_be_bytes()),
                     PropertyValue::PBool(bval) => self.dyn_store.save_data(&[*bval as u8]),
                 };

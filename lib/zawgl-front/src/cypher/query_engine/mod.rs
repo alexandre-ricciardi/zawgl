@@ -26,6 +26,7 @@ use zawgl_core::model::*;
 mod path_builder;
 mod states;
 mod pattern_builder;
+pub mod where_clause_filter;
 
 use zawgl_cypher_query_model::parameters::Parameters;
 use zawgl_cypher_query_model::{QueryStep, StepType};
@@ -84,7 +85,7 @@ impl AstVisitor for CypherAstVisitor {
         self.request = Some(Request::new());
         Ok(())
     }
-    fn enter_path(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_path(&mut self) -> AstVisitorResult {
         match self.state {
             VisitorState::DirectiveMatch => {
                 self.state = VisitorState::MatchPattern;
@@ -127,21 +128,21 @@ impl AstVisitor for CypherAstVisitor {
         self.state = VisitorState::ReturnItem;
         Ok(())
     }
-    fn enter_create(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_create(&mut self) -> AstVisitorResult {
         if let Some(rq) = &mut self.request {
             rq.steps.push(QueryStep::new(StepType::CREATE));
         }
         self.state = VisitorState::DirectiveCreate;
         Ok(())
     }
-    fn enter_match(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_match(&mut self) -> AstVisitorResult {
         if let Some(rq) = &mut self.request {
             rq.steps.push(QueryStep::new(StepType::MATCH));
         }
         self.state = VisitorState::DirectiveMatch;
         Ok(())
     }
-    fn enter_node(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_node(&mut self) -> AstVisitorResult {
         let state = self.state.clone();
         if let Some(pb) = self.current_path_builder() {
             pb.enter_node(state);
@@ -155,7 +156,7 @@ impl AstVisitor for CypherAstVisitor {
         }
         Ok(())
     }
-    fn enter_property(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_property(&mut self) -> AstVisitorResult {
         if let Some(pb) = self.current_path_builder() {
             pb.enter_property();
         }
@@ -290,6 +291,14 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_item(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_where(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_parameter(&mut self) -> AstVisitorResult { Ok(())}
+
+    fn enter_equality_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_equality_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

@@ -11,8 +11,8 @@ name = "zawgl_server"
 gremlin-client = "0.8.0"
 zawgl-front = { path = "../zawgl-front" }
 zawgl-core = { path = "../zawgl-core" }
-tokio-tungstenite = "0.17.1"
-tokio = { version = "1.13.0", features = ["full"] }
+tokio-tungstenite = "0.17.2"
+tokio = { version = "1.20.1", features = ["full"] }
 futures-util = "^0.3"
 log = "0.4"
 simple_logger = "2.1.0"

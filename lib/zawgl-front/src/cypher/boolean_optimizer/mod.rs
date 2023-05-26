@@ -25,22 +25,22 @@ struct BoolExprVisitor {
 }
 
 impl AstVisitor for BoolExprVisitor {
-    fn enter_create(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_create(&mut self) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_match(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_match(&mut self) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_path(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_path(&mut self) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_node(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_node(&mut self) -> AstVisitorResult {
         Ok(())
     }
     fn enter_relationship(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
-    fn enter_property(&mut self, _node: &AstTagNode) -> AstVisitorResult {
+    fn enter_property(&mut self) -> AstVisitorResult {
         Ok(())
     }
     fn enter_integer_value(&mut self, _value: Option<i64>) -> AstVisitorResult {
@@ -162,6 +162,14 @@ impl AstVisitor for BoolExprVisitor {
         todo!()
     }
     fn exit_parameter(&mut self) -> AstVisitorResult {
+        todo!()
+    }
+
+    fn enter_equality_operator(&mut self) -> AstVisitorResult {
+        todo!()
+    }
+
+    fn exit_equality_operator(&mut self) -> AstVisitorResult {
         todo!()
     }
 }

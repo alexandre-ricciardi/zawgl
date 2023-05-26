@@ -50,12 +50,12 @@ pub enum AstTag  {
 }
 
 pub trait AstVisitor {
-    fn enter_create(&mut self, node: &AstTagNode) -> AstVisitorResult;
-    fn enter_match(&mut self, node: &AstTagNode) -> AstVisitorResult;
-    fn enter_path(&mut self, node: &AstTagNode) -> AstVisitorResult;
-    fn enter_node(&mut self, node: &AstTagNode) -> AstVisitorResult;
+    fn enter_create(&mut self,) -> AstVisitorResult;
+    fn enter_match(&mut self) -> AstVisitorResult;
+    fn enter_path(&mut self) -> AstVisitorResult;
+    fn enter_node(&mut self) -> AstVisitorResult;
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult;
-    fn enter_property(&mut self, node: &AstTagNode) -> AstVisitorResult;
+    fn enter_property(&mut self) -> AstVisitorResult;
     fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult;
     fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult;
     fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult;
@@ -70,6 +70,7 @@ pub trait AstVisitor {
     fn enter_item(&mut self) -> AstVisitorResult;
     fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult;
     fn enter_parameter(&mut self, name: &str) -> AstVisitorResult;
+    fn enter_equality_operator(&mut self) -> AstVisitorResult;
     fn exit_create(&mut self) -> AstVisitorResult;
     fn exit_match(&mut self) -> AstVisitorResult;
     fn exit_path(&mut self) -> AstVisitorResult;
@@ -90,6 +91,7 @@ pub trait AstVisitor {
     fn exit_item(&mut self) -> AstVisitorResult;
     fn exit_where(&mut self) -> AstVisitorResult;
     fn exit_parameter(&mut self) -> AstVisitorResult;
+    fn exit_equality_operator(&mut self) -> AstVisitorResult;
 }
 
 #[derive(Debug, Clone)]
@@ -143,10 +145,10 @@ impl Ast for AstTagNode {
             Some(ast_tag) => {
                 match ast_tag {
                     AstTag::Create => {
-                        visitor.enter_create(self)
+                        visitor.enter_create()
                     },
                     AstTag::Match => {
-                        visitor.enter_match(self)
+                        visitor.enter_match()
                     },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |
@@ -154,13 +156,13 @@ impl Ast for AstTagNode {
                         visitor.enter_relationship(self)
                     },
                     AstTag::Node => {
-                        visitor.enter_node(self)
+                        visitor.enter_node()
                     },
                     AstTag::Path => {
-                        visitor.enter_path(self)
+                        visitor.enter_path()
                     },
                     AstTag::Property => {
-                        visitor.enter_property(self)
+                        visitor.enter_property()
                     },
                     AstTag::Variable => {
                         visitor.enter_variable()
@@ -186,6 +188,7 @@ impl Ast for AstTagNode {
                     AstTag::Where => {
                         visitor.enter_where(self)
                     },
+                    AstTag::EqualityOperator => visitor.enter_equality_operator(),
                     _ => {
                         Ok(())
                     }
@@ -248,6 +251,7 @@ impl Ast for AstTagNode {
                     AstTag::Parameter => {
                         visitor.exit_parameter()
                     }
+                    AstTag::EqualityOperator => visitor.exit_equality_operator(),
                     _ => {
                         Ok(())
                     }

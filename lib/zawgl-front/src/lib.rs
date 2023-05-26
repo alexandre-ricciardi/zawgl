@@ -93,6 +93,7 @@ fn build_properties(item_properties: &Vec<Property>) -> Vec<Document> {
             PropertyValue::PBool(v) => bprop.insert(name, v),
             PropertyValue::PFloat(f) => bprop.insert(name, f),
             PropertyValue::PInteger(i) => bprop.insert(name, i),
+            PropertyValue::PUInteger(u) => bprop.insert(name, *u as i64),
             PropertyValue::PString(s) => bprop.insert(name, s),
         };
         props.push(bprop);

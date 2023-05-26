@@ -26,6 +26,8 @@ mod pattern_builder;
 use pattern_builder::{build_pattern, merge_patterns};
 use zawgl_cypher_query_model::{QueryStep, StepType, model::WhereClause};
 
+use crate::cypher::{query_engine::where_clause_filter::WhereClauseAstVisitor, parser};
+
 fn make_cartesian_product(pools: &[Vec<PropertyGraph>]) -> Vec<Vec<&PropertyGraph>> {
     let mut res = vec![];
  
@@ -101,7 +103,9 @@ pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine
             },
             StepType::DELETE => todo!(),
             StepType::WHERE => {
-
+                if let Some(where_clause) = &step.where_clause {
+                    results = results.into_iter().fold(vec![], |mut acc, gs| {acc.push(gs.into_iter().filter( |g| filter (g, where_clause)).collect()); acc });
+                }
             },
         }
     }
@@ -112,6 +116,9 @@ pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine
     result
 }
 
-fn _filter(_graph: &PropertyGraph, _where_clause: &WhereClause) {
-    
+fn filter(graph: &PropertyGraph, where_clause: &WhereClause) -> bool {
+    let ast = &where_clause.expressions;
+    let mut visitor = WhereClauseAstVisitor::new(graph, None);
+    parser::walk_ast(&mut visitor, ast).expect("walk");
+    visitor.eval_stack.pop() == Some(PropertyValue::PBool(true))
 }
