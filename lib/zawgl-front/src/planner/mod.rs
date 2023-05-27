@@ -104,7 +104,15 @@ pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine
             StepType::DELETE => todo!(),
             StepType::WHERE => {
                 if let Some(where_clause) = &step.where_clause {
-                    results = eval_where_clause_for_graphs(results, where_clause).ok()?;
+                    let mut where_clause_results = Vec::new();
+                    let products = make_cartesian_product(&results);
+                    for product in &products {
+                        let merged_product = merge_patterns(product);
+                        if where_clause_filter(&merged_product, where_clause).ok()? {
+                            where_clause_results.push(vec![merged_product]);
+                        }
+                    }
+                    results = where_clause_results;
                 }
             },
         }
@@ -115,22 +123,6 @@ pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine
     }
     Some(result)
 }
-
-
-fn eval_where_clause_for_graphs(graphs: Vec::<Vec<PropertyGraph>>, where_clause: &WhereClause) -> Result<Vec::<Vec<PropertyGraph>>, AstVisitorError> {
-    let mut match_results = Vec::new();
-    for gs in graphs {
-        let mut match_res = Vec::<PropertyGraph>::new();
-        for g in gs {
-            if where_clause_filter(&g, where_clause)? {
-                match_res.push(g);
-            }
-        }
-        match_results.push(match_res);
-    }
-    Ok(match_results)
-}
-
 
 fn where_clause_filter(graph: &PropertyGraph, where_clause: &WhereClause) -> Result<bool, AstVisitorError> {
     let ast = &where_clause.expressions;

@@ -53,23 +53,32 @@ pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: 
         let mut graph_doc = Document::new();  
         let mut nodes_doc = Vec::new();
         for node in pattern.get_nodes() {
-            nodes_doc.push(doc!{
+            let mut node_doc = doc!{
+                "name": node.get_var().as_ref().ok_or(CypherError::ResponseError)?.to_string(),
                 "id": node.get_id().ok_or(CypherError::ResponseError)? as i64,
                 "properties": build_properties(node.get_properties_ref()),
                 "labels": Bson::from(node.get_labels_ref()),
-            });
+            };
+            if let Some(var) = node.get_var() {
+                node_doc.insert("name", var.to_string());
+            }
+            nodes_doc.push(node_doc);
         }
         graph_doc.insert("nodes", nodes_doc);
 
         let mut rels_doc = Vec::new();
         for rel in pattern.get_relationships_and_edges() {
-            rels_doc.push(doc!{
+            let mut rel_doc = doc!{
                 "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
                 "source_id": pattern.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64,
                 "target_id": pattern.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64,
                 "properties": build_properties(rel.relationship.get_properties_ref()),
                 "labels": Bson::from(rel.relationship.get_labels_ref()),
-            });
+            };
+            if let Some(var) = rel.relationship.get_var() {
+                rel_doc.insert("name", var.to_string());
+            }
+            rels_doc.push(rel_doc);
         }
         graph_doc.insert("relationships", rels_doc);
         graph_list.push(graph_doc);

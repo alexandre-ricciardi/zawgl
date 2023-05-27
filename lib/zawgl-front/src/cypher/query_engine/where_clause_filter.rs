@@ -256,6 +256,26 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         }
         Ok(())
     }
+
+    fn enter_and_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_and_operator(&mut self) -> AstVisitorResult {
+        let ov0 = self.eval_stack.pop();
+        let ov1 = self.eval_stack.pop();
+        if let (Some(v0), Some(v1)) = &(ov0, ov1) {
+            match (v0, v1) {
+                (PropertyValue::PBool(b0), PropertyValue::PBool(b1)) => {
+                    self.eval_stack.push(PropertyValue::PBool(*b0 && *b1));
+                }
+                _ => return Err(AstVisitorError::SyntaxError),
+            }
+        } else {
+            return Err(AstVisitorError::SyntaxError);
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

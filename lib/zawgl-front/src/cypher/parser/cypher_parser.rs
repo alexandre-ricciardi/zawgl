@@ -36,6 +36,13 @@ fn parse_match(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parser
     Ok(())
 }
 
+fn parse_create(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    let mut create_node = make_ast_tag(AstTag::Create);
+    parse_path(parser, &mut create_node)?;
+    parent_node.append(create_node);
+    Ok(())
+}
+
 
 pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
     if parser.get_tokens().len() > 0  {
@@ -45,24 +52,18 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
         match tok.token_type {
             TokenType::Create =>  {
                 parser.advance();
-                let mut create_node = make_ast_tag(AstTag::Create);
-                parse_path(parser, &mut create_node)?;
-                query_node.append(create_node);
-                parse_where_clause(parser, &mut query_node)?;
+                parse_create(parser, &mut query_node)?;
                 parse_return(parser, &mut query_node)?;
-                
                 Ok(query_node)
                 
             },
             TokenType::Match => {
                 parser.advance();
                 parse_match(parser, &mut query_node)?;
-                if parser.current_token_type_advance(TokenType::Create) {
-                    let mut create_node = make_ast_tag(AstTag::Create);
-                    parse_path(parser, &mut create_node)?;
-                    query_node.append(create_node);
-                }
                 parse_where_clause(parser, &mut query_node)?;
+                if parser.current_token_type_advance(TokenType::Create) {
+                    parse_create(parser, &mut query_node)?;
+                }
                 parse_return(parser, &mut query_node)?;
                 
                 Ok(query_node)

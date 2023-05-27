@@ -167,5 +167,10 @@ mod test_parser {
     fn test_where_id_parameter() {
         run("MATCH (m:Movie) WHERE id(m) = $mid RETURN m, a, r");
     }
+    
+    #[test]
+    fn test_match_where_create() {
+        run("match (n:Movie), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p");
+    }
 }
 
