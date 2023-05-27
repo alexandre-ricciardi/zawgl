@@ -63,7 +63,7 @@ async fn accept_connection(peer: SocketAddr, tx_handler: TxHandler, graph_reques
             },
             ServerError::ParsingError(err_msg) => error!("Parsing error: {}", err_msg),
             ServerError::HeaderError => error!("wrong header"),
-            ServerError::CypherTxError(_) => todo!(),
+            ServerError::CypherTxError(_) => error!("tx error"),
         }
     }
 }
@@ -92,6 +92,7 @@ async fn handle_connection(peer: SocketAddr, tx_handler: TxHandler, graph_reques
                         //ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
                     } else if data.len() > open_cypher_prefix.len() &&  &data[..open_cypher_prefix.len()] == open_cypher_prefix {
                         let doc = Document::from_reader(&data[open_cypher_prefix.len()..]).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                        debug!("incoming message {}", doc.to_string());
                         let cypher_reply = handle_open_cypher_request(tx_handler.clone(), graph_request_handler.clone(), &doc).map_err(|err| ServerError::CypherTxError(err))?;
                         let mut response_data = Vec::new();
                         cypher_reply.to_writer(&mut response_data).map_err(|err| ServerError::ParsingError(err.to_string()))?;

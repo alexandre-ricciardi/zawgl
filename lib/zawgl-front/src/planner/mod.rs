@@ -24,7 +24,7 @@ use zawgl_core::{model::*, graph_engine::GraphEngine};
 mod pattern_builder;
 
 use pattern_builder::{build_pattern, merge_patterns};
-use zawgl_cypher_query_model::{QueryStep, StepType, model::WhereClause};
+use zawgl_cypher_query_model::{QueryStep, StepType, model::WhereClause, ast::AstVisitorError};
 
 use crate::cypher::{query_engine::where_clause_filter::WhereClauseAstVisitor, parser};
 
@@ -51,7 +51,7 @@ fn make_cartesian_product(pools: &[Vec<PropertyGraph>]) -> Vec<Vec<&PropertyGrap
     res
 }
 
-pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Vec<PropertyGraph> {
+pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Option<Vec<PropertyGraph>> {
     let mut results = Vec::<Vec<PropertyGraph>>::new();
     for step in steps {
         match step.step_type {
@@ -104,7 +104,7 @@ pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine
             StepType::DELETE => todo!(),
             StepType::WHERE => {
                 if let Some(where_clause) = &step.where_clause {
-                    results = results.into_iter().fold(vec![], |mut acc, gs| {acc.push(gs.into_iter().filter( |g| filter (g, where_clause)).collect()); acc });
+                    results = eval_where_clause_for_graphs(results, where_clause).ok()?;
                 }
             },
         }
@@ -113,12 +113,28 @@ pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine
     for res in &mut results {
         result.append(res);
     }
-    result
+    Some(result)
 }
 
-fn filter(graph: &PropertyGraph, where_clause: &WhereClause) -> bool {
+
+fn eval_where_clause_for_graphs(graphs: Vec::<Vec<PropertyGraph>>, where_clause: &WhereClause) -> Result<Vec::<Vec<PropertyGraph>>, AstVisitorError> {
+    let mut match_results = Vec::new();
+    for gs in graphs {
+        let mut match_res = Vec::<PropertyGraph>::new();
+        for g in gs {
+            if where_clause_filter(&g, where_clause)? {
+                match_res.push(g);
+            }
+        }
+        match_results.push(match_res);
+    }
+    Ok(match_results)
+}
+
+
+fn where_clause_filter(graph: &PropertyGraph, where_clause: &WhereClause) -> Result<bool, AstVisitorError> {
     let ast = &where_clause.expressions;
-    let mut visitor = WhereClauseAstVisitor::new(graph, None);
-    parser::walk_ast(&mut visitor, ast).expect("walk");
-    visitor.eval_stack.pop() == Some(PropertyValue::PBool(true))
+    let mut visitor = WhereClauseAstVisitor::new(graph, where_clause.params.clone());
+    parser::walk_ast(&mut visitor, ast)?;
+    Ok(visitor.eval_stack.pop() == Some(PropertyValue::PBool(true)))
 }

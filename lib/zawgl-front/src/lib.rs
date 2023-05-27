@@ -54,7 +54,7 @@ pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: 
         let mut nodes_doc = Vec::new();
         for node in pattern.get_nodes() {
             nodes_doc.push(doc!{
-                "id": node.get_id().ok_or(CypherError::ResponseError)?.to_string(),
+                "id": node.get_id().ok_or(CypherError::ResponseError)? as i64,
                 "properties": build_properties(node.get_properties_ref()),
                 "labels": Bson::from(node.get_labels_ref()),
             });
@@ -64,9 +64,9 @@ pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: 
         let mut rels_doc = Vec::new();
         for rel in pattern.get_relationships_and_edges() {
             rels_doc.push(doc!{
-                "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)?.to_string(),
-                "source_id": pattern.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)?.to_string(),
-                "target_id": pattern.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)?.to_string(),
+                "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
+                "source_id": pattern.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64,
+                "target_id": pattern.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64,
                 "properties": build_properties(rel.relationship.get_properties_ref()),
                 "labels": Bson::from(rel.relationship.get_labels_ref()),
             });

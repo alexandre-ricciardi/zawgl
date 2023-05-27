@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use bson::Document;
 use log::LevelFilter;
 use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 use simple_logger::SimpleLogger;
@@ -29,14 +30,14 @@ use zawgl_client::parameters::*;
 #[tokio::test]
 async fn test_cypher_0() {
     SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
-    // run_test("test_cypher_requests_complete_graph", 8182, test_cypher_requests_complete_graph).await;
-    // run_test("first_test", 8183, test_cypher_requests).await;
-    // run_test("create_path_test", 8184, test_create_path).await;
-    // run_test("another_test", 8185, test_double_create_issue).await;
-    // run_test("test_mutliple_match", 8187, test_mutliple_match).await;
-    // run_test("test_cypher_self_relationship", 8189, test_cypher_self_relationship).await;
-    // run_test("test_cypher_self_relationship_2", 8190, test_cypher_self_relationship_2).await;
-    // run_test("test_where_clause_on_ids", 8190, test_where_clause_on_ids).await;
+    run_test("test_cypher_requests_complete_graph", 8182, test_cypher_requests_complete_graph).await;
+    run_test("first_test", 8183, test_cypher_requests).await;
+    run_test("create_path_test", 8184, test_create_path).await;
+    run_test("another_test", 8185, test_double_create_issue).await;
+    run_test("test_mutliple_match", 8187, test_mutliple_match).await;
+    run_test("test_cypher_self_relationship", 8189, test_cypher_self_relationship).await;
+    run_test("test_cypher_self_relationship_2", 8190, test_cypher_self_relationship_2).await;
+    run_test("test_where_clause_on_ids", 8190, test_where_clause_on_ids).await;
 }
 
 async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce(Client) -> T, T : Future<Output = ()> + Send {
@@ -270,31 +271,40 @@ async fn test_mutliple_match(mut client: Client) {
     }
 }
 
+
+fn extract_node_id(d: Document) -> Option<i64> {
+    let res = d.get_document("result").ok()?;
+    let graphs = res.get_array("graphs").ok()?;
+    assert_eq!(graphs.len(), 1);
+    let mut res = None;
+    for g in graphs {
+        let graph = g.as_document()?;
+        let nodes = graph.get_array("nodes").ok()?;
+        for n in nodes {
+            let nid = n.as_document()?.get_i64("id").ok();
+            res = nid;
+        }
+        assert_eq!(nodes.len(), 1);
+    }
+    res
+}
+
+
 async fn test_where_clause_on_ids(mut client: Client) {
-    let params = Parameters::new();
+    let mut params = Parameters::new();
     let r = client.execute_cypher_request("create (n:Person) return n").await;
     if let Ok(d) = r {
         debug!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
-        assert_eq!(graphs.len(), 1);
-        for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
-            for n in nodes {
-
-            }
-            assert_eq!(nodes.len(), 3);
-        }
-        //params.insert("nid", )
+        params.insert("nid".to_string(), PropertyValue::Integer(extract_node_id(d).expect("nid")));
     }
     let r = client.execute_cypher_request("create (n:Movie) return n").await;
     if let Ok(d) = r {
-        debug!("{}", d.to_string())
+        debug!("{}", d.to_string());
+        params.insert("pid".to_string(), PropertyValue::Integer(extract_node_id(d).expect("nid")));
     }
     
     
-    let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) where id(n) = $nid and id(p) = $pid return n, r, p").await;
+    let r = client.execute_cypher_request_with_parameters("create (n:Movie)<-[r:Played]-(p:Person) where id(n) = $nid and id(p) = $pid return n, r, p", params).await;
     if let Ok(d) = r {
         debug!("{}", d.to_string());
     } else {

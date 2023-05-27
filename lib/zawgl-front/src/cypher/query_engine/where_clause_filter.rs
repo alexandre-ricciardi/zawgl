@@ -302,12 +302,14 @@ mod test_where_clause {
         n0.set_var("a");
         let mut n1 = Node::new();
         n1.set_var("b");
+        n1.set_id(Some(15));
         g.add_node(n0);
         g.add_node(n1);
 
-        let where_clause = "where id(a) = $aid";
+        let where_clause = "where id(a) = $aid and id(b) = $bid";
         let mut params = Parameters::new();
         params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
+        params.insert("bid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(15)));
         let mut lexer = lexer::Lexer::new(where_clause);
         match lexer.get_tokens() {
             Ok(tokens) => {

@@ -47,7 +47,7 @@ impl <'a> GraphRequestHandler<'a> {
 
     pub fn handle_graph_request(&self, steps: &Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
         let mut graph_engine = GraphEngine::new(&self.conf);
-        let matched_graphs = handle_query_steps(steps, &mut graph_engine);
+        let matched_graphs = handle_query_steps(steps, &mut graph_engine).ok_or(DatabaseError::EngineError)?;
         graph_engine.sync();
         Ok(matched_graphs)
     }
@@ -55,7 +55,7 @@ impl <'a> GraphRequestHandler<'a> {
     
     pub fn handle_graph_request_tx(&mut self, steps: &Vec<QueryStep>, tx_context: &TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
         let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or(DatabaseError::TxError)?;
-        let matched_graphs = handle_query_steps(steps, graph_engine);
+        let matched_graphs = handle_query_steps(steps, graph_engine).ok_or(DatabaseError::EngineError)?;
         Ok(matched_graphs)
     }
 

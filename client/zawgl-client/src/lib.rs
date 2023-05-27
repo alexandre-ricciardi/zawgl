@@ -8,7 +8,7 @@ use futures_channel::oneshot::{Sender, Canceled};
 use futures_util::{StreamExt};
 use parameters::{Parameters, PropertyValue};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use bson::{Document, doc};
+use bson::{Document, doc, Bson};
 use uuid::Uuid;
 use log::*;
 
@@ -69,32 +69,22 @@ impl Client {
     }
 }
 
-fn extract_value(name: String, value: PropertyValue) -> Document {
+fn extract_value(value: PropertyValue) -> Bson {
     match value {
-        PropertyValue::String(sv) => doc!{
-            name: sv
-        },
-        PropertyValue::Integer(iv) => doc!{
-            name: iv
-        },
-        PropertyValue::Float(fv) => doc!{
-            name: fv
-        },
-        PropertyValue::Bool(bv) => doc!{
-            name: bv
-        },
-        PropertyValue::Parameters(params) => doc!{
-            name: build_parameters(params)
-        },
+        PropertyValue::String(sv) => Bson::String(sv),
+        PropertyValue::Integer(iv) => Bson::Int64(iv),
+        PropertyValue::Float(fv) => Bson::Double(fv),
+        PropertyValue::Bool(bv) => Bson::Boolean(bv),
+        PropertyValue::Parameters(params) => Bson::Document(build_parameters(params)),
     }
 }
 
-fn build_parameters(params: Parameters) -> Vec<Document> {
-    let mut res = Vec::new();
+fn build_parameters(params: Parameters) -> Document {
+    let mut doc = Document::new();
     for (name, value) in params {
-        res.push(extract_value(name, value));
+        doc.insert(name, extract_value(value));
     }
-    res
+    doc
 }
 
 async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, id: String, query: String, params: Parameters) -> Option<()> {
