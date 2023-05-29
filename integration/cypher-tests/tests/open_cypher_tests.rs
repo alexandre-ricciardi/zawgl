@@ -339,7 +339,17 @@ async fn test_where_clause_on_ids(mut client: Client) {
     
     let r = client.execute_cypher_request_with_parameters("match (n:Movie), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p", params).await;
     if let Ok(d) = r {
-        debug!("{}", d.to_string());
+        debug!("reponse {}", d.to_string());
+        let res = d.get_document("result").expect("result");
+        let graphs = res.get_array("graphs").expect("graphs");
+        assert_eq!(graphs.len(), 1);
+        for g in graphs {
+            let graph = g.as_document().expect("a graph");
+            let nodes = graph.get_array("nodes").expect("nodes");
+            let relationships = graph.get_array("relationships").expect("relationships");
+            assert_eq!(nodes.len(), 2);
+            assert_eq!(relationships.len(), 1);
+        }
     } else {
         assert!(false, "no response")
     }
