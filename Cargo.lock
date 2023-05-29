@@ -1026,17 +1026,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha-1"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5058ada175748e33390e40e872bd0fe59a19f265d0158daa551c5a88a76009c"
-dependencies = [
- "cfg-if",
- "cpufeatures",
- "digest",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1244,18 +1233,6 @@ dependencies = [
 
 [[package]]
 name = "tokio-tungstenite"
-version = "0.17.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f714dd15bead90401d77e04243611caec13726c2408afd5b31901dfcdcb3b181"
-dependencies = [
- "futures-util",
- "log",
- "tokio",
- "tungstenite 0.17.3",
-]
-
-[[package]]
-name = "tokio-tungstenite"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec509ac96e9a0c43427c74f003127d953a265737636129424288d27cb5c4b12c"
@@ -1273,25 +1250,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "tungstenite"
-version = "0.17.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e27992fd6a8c29ee7eef28fc78349aa244134e10ad447ce3b9f0ac0ed0fa4ce0"
-dependencies = [
- "base64",
- "byteorder",
- "bytes",
- "http",
- "httparse",
- "log",
- "rand",
- "sha-1",
- "thiserror",
- "url",
- "utf-8",
 ]
 
 [[package]]
@@ -1662,7 +1620,7 @@ dependencies = [
  "serde",
  "simple_logger 2.3.0",
  "tokio",
- "tokio-tungstenite 0.19.0",
+ "tokio-tungstenite",
  "tungstenite 0.19.0",
  "zawgl-core",
  "zawgl-server",
@@ -1670,7 +1628,7 @@ dependencies = [
 
 [[package]]
 name = "zawgl-client"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bson",
  "futures-channel",
@@ -1678,9 +1636,9 @@ dependencies = [
  "log",
  "parking_lot",
  "serde_json",
- "simple_logger 2.3.0",
+ "simple_logger 4.1.0",
  "tokio",
- "tokio-tungstenite 0.17.2",
+ "tokio-tungstenite",
  "url",
  "uuid",
 ]
@@ -1730,7 +1688,7 @@ dependencies = [
  "serde_json",
  "simple_logger 4.1.0",
  "tokio",
- "tokio-tungstenite 0.19.0",
+ "tokio-tungstenite",
  "zawgl-core",
  "zawgl-front",
 ]
