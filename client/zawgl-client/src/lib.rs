@@ -18,6 +18,7 @@ type SharedChannelsMap = Arc<Mutex<HashMap<String, Sender<Document>>>>;
 pub struct Client {
     request_tx: UnboundedSender<Message>,
     map_rx_channels: SharedChannelsMap,
+    error_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
 }
 
 impl Client {
@@ -27,6 +28,7 @@ impl Client {
         let (ws_stream, _) = connect_async(&url).await.expect("Failed to connect");
         let (write, read) = ws_stream.split();
         let (request_tx, request_rx) = futures_channel::mpsc::unbounded();
+        let (error_tx, error_rx) = tokio::sync::mpsc::unbounded_channel();
         tokio::spawn(request_rx.map(Ok).forward(write));
         let map: SharedChannelsMap = Arc::new(Mutex::new(HashMap::new()));
         
@@ -47,12 +49,15 @@ impl Client {
                         }
                     },
                     Err(_) => {
-                        debug!("ws closed")
+                        let res = error_tx.send("ws closed".to_string());
+                        if let Err(er) = res {
+                            debug!("error occured {}", er)
+                        }
                     },
                 }
             }).await
         });
-        Client{request_tx, map_rx_channels: map.clone()}
+        Client{request_tx, map_rx_channels: map.clone(), error_rx}
     }
 
     pub async fn execute_cypher_request_with_parameters(&mut self, query: &str, params: Parameters) -> Result<Document, Canceled> {
@@ -60,7 +65,16 @@ impl Client {
         let (tx, rx) = futures_channel::oneshot::channel::<Document>();
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
         tokio::spawn(send_request(self.request_tx.clone(), uuid.to_string(), query.to_string(), params));
-        rx.await
+        tokio::select! {
+            message = self.error_rx.recv() => {
+                match message {
+                    Some(msg) => debug!("client error {}", msg),
+                    None => panic!("should not happen"),
+                }
+                Err(Canceled)
+            },
+            document = rx => document,
+        }
     }
 
     
