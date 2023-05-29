@@ -26,19 +26,52 @@ use log::*;
 use zawgl_client::Client;
 use std::future::Future;
 use zawgl_client::parameters::*;
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+
+pub fn initialize() {
+    INIT.call_once(|| {
+        SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
+    });
+}
 
 #[tokio::test]
 async fn test_cypher_0() {
-    SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
     run_test("test_cypher_requests_complete_graph", 8182, test_cypher_requests_complete_graph).await;
-    run_test("first_test", 8183, test_cypher_requests).await;
-    run_test("create_path_test", 8184, test_create_path).await;
-    run_test("another_test", 8185, test_double_create_issue).await;
-    run_test("test_mutliple_match", 8187, test_mutliple_match).await;
-    run_test("test_cypher_self_relationship", 8189, test_cypher_self_relationship).await;
-    run_test("test_cypher_self_relationship_2", 8190, test_cypher_self_relationship_2).await;
-    run_test("test_where_clause_on_ids", 8190, test_where_clause_on_ids).await;
 }
+#[tokio::test]
+async fn test_cypher_2() {
+    run_test("first_test", 8183, test_cypher_requests).await;
+}
+#[tokio::test]
+async fn test_cypher_3() {
+    run_test("another_test", 8185, test_double_create_issue).await;
+}
+#[tokio::test]
+async fn test_cypher_4() {
+    run_test("create_path_test", 8184, test_create_path).await;
+}
+#[tokio::test]
+async fn test_cypher_5() {
+    run_test("test_mutliple_match", 8187, test_mutliple_match).await;
+}
+
+#[tokio::test]
+async fn test_cypher_6() {
+    run_test("test_cypher_self_relationship", 8189, test_cypher_self_relationship).await;
+}
+
+#[tokio::test]
+async fn test_cypher_7() {
+    run_test("test_cypher_self_relationship_2", 8190, test_cypher_self_relationship_2).await;
+}
+
+#[tokio::test]
+async fn test_cypher_8() {
+    run_test("test_where_clause_on_ids", 8191, test_where_clause_on_ids).await;
+}
+
 
 async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce(Client) -> T, T : Future<Output = ()> + Send {
 
