@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use zawgl_front::CypherError;
 use tokio_tungstenite::tungstenite::Error;
+use zawgl_front::cypher::query_engine::CypherError;
 
 #[derive(Debug)]
 pub enum ServerError {

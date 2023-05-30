@@ -1,6 +1,5 @@
 // MIT License
-//
-// Copyright (c) 2022 Alexandre RICCIARDI
+// Copyright (c) 2023 Alexandre RICCIARDI
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,9 +18,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use bson::Document;
-use zawgl_front::{tx_handler::{request_handler::RequestHandler, handler::TxHandler}, cypher::query_engine::CypherError};
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
+use log::*;
+use zawgl_client::Client;
+use std::sync::Once;
+use cypher_tests::run_test;
 
-pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, cypher_request: &Document) -> Result<Document, CypherError> {
-    zawgl_front::handle_open_cypher_request(tx_handler, graph_request_handler, cypher_request)
+static INIT: Once = Once::new();
+
+pub fn initialize() {
+    INIT.call_once(|| {
+        SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
+    });
+}
+
+#[tokio::test]
+async fn test_cypher_error_0() {
+    run_test("test_cypher_syntax_error", 9182, test_cypher_syntax_error).await;
+}
+
+async fn test_cypher_syntax_error(mut client: Client) {
+    let r = client.execute_cypher_request("create (n:Person)) return n").await;
+    if let Ok(d) = r {
+        d.get_str("error").expect("error");
+    } else {
+        assert!(false, "no response from server")
+    }
 }

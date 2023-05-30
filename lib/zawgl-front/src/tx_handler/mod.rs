@@ -22,6 +22,8 @@
 pub mod handler;
 pub mod tx_context;
 pub mod request_handler;
+use std::fmt;
+
 use request_handler::RequestHandler;
 use handler::{Scenario, TxHandler, TxStatus, needs_write_lock};
 
@@ -34,11 +36,22 @@ pub struct ResultGraph {
     pub patterns: Vec<PropertyGraph>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DatabaseError {
     EngineError,
     TxError,
 }
+
+
+impl fmt::Display for DatabaseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DatabaseError::EngineError => f.write_str("graph engine error"),
+            DatabaseError::TxError => f.write_str("tx error"),
+        }
+    }
+}
+
 
 pub fn handle_graph_request(tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, steps: &Vec<QueryStep>, tx_context: Option<TxContext>) -> Result<Vec<PropertyGraph>, DatabaseError> {
     

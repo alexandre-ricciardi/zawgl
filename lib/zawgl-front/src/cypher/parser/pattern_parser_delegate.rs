@@ -99,7 +99,7 @@ fn enter_identifier(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> P
         parent_node.append(id_node);
         Ok(parser.index)
     } else {
-        Err(ParserError::SyntaxError(parser.index))
+        Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
     }
     
 }
@@ -136,6 +136,7 @@ fn enter_node_def(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) ->
     parser.require(TokenType::CloseParenthesis)?;
     parent_node.append(node);
 
+
     enter_rel_def(parser, &mut parent_node)?;
     
     Ok(())
@@ -164,13 +165,13 @@ fn enter_rel_id(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parse
         if parser.current_token_type_advance(TokenType::Colon) {
             Ok(enter_rel_tags(parser, parent_node)?)
         } else {
-            Err(ParserError::SyntaxError(parser.index))
+            Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
         }
     } else {
         if parser.current_token_type_advance(TokenType::Colon) {
             Ok(enter_rel_tags(parser, parent_node)?)
         } else {
-            Err(ParserError::SyntaxError(parser.index))
+            Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
         }
     }
 }
@@ -180,10 +181,12 @@ fn enter_rel_def(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Pars
     if parser.has_next() {
         match parser.get_current_token_type() {
             TokenType::LeftSourceRel |
-            TokenType::LeftTargetRel => {
+            TokenType::LeftTargetRel |
+            TokenType::RightSourceRel |
+            TokenType::RightTargetRel => {
                 rel_fsm.run(parser.get_current_token_type());
                 if rel_fsm.has_invalid_state() {
-                    Err(ParserError::SyntaxError(parser.index))
+                    Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
                 } else {
                     let mut rel = Box::new(AstTagNode::new_empty());
                     parser.advance();
@@ -192,8 +195,9 @@ fn enter_rel_def(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Pars
                     Ok(())
                 }
             },
+            TokenType::Return | TokenType::Where | TokenType::Create | TokenType::Match | TokenType::Comma => Ok(()),
             _ => {
-                Ok(())
+                Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
             }
         }
     } else {
@@ -215,7 +219,7 @@ fn exit_rel_def(parser: &mut Parser, mut rel_node: Box<AstTagNode>, rel_fsm: &mu
                         parent_node.append(rel_node);
                         Ok(enter_node_def(parser, parent_node)?)
                     },
-                    None => Err(ParserError::SyntaxError(parser.index))
+                    None => Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
                 }
             },
             _ => {

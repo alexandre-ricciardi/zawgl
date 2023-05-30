@@ -68,9 +68,9 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
                 
                 Ok(query_node)
             },
-            _ => Err(ParserError::SyntaxError(parser.index))
+            _ => Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
         }
     } else {
-        Err(ParserError::SyntaxError(parser.index))
+        Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
     }
 }

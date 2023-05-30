@@ -59,11 +59,11 @@ async fn accept_connection(peer: SocketAddr, tx_handler: TxHandler, graph_reques
         match e {
             ServerError::WebsocketError(te) => match te {
                 Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
-                err => error!("Error processing connection: {}", err),
+                err => error!("error processing connection: {}", err),
             },
-            ServerError::ParsingError(err_msg) => error!("Parsing error: {}", err_msg),
+            ServerError::ParsingError(err_msg) => error!("parsing error: {}", err_msg),
             ServerError::HeaderError => error!("wrong header"),
-            ServerError::CypherTxError(_) => error!("tx error"),
+            ServerError::CypherTxError(err) => error!("tx error {}", err),
         }
     }
 }
@@ -99,7 +99,7 @@ async fn handle_connection(peer: SocketAddr, tx_handler: TxHandler, graph_reques
                         let response = Message::Binary(response_data);
                         ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
                     } else {
-                        break;
+                        return Err(ServerError::HeaderError);
                     }
                 }
                 else if msg.is_close() {

@@ -20,13 +20,12 @@
 
 use bson::Document;
 use log::LevelFilter;
-use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 use simple_logger::SimpleLogger;
 use log::*;
 use zawgl_client::Client;
-use std::future::Future;
 use zawgl_client::parameters::*;
 use std::sync::Once;
+use cypher_tests::run_test;
 
 static INIT: Once = Once::new();
 
@@ -70,42 +69,6 @@ async fn test_cypher_7() {
 #[tokio::test]
 async fn test_cypher_8() {
     run_test("test_where_clause_on_ids", 8191, test_where_clause_on_ids).await;
-}
-
-
-async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce(Client) -> T, T : Future<Output = ()> + Send {
-
-    info!("BEGIN RUN {}", db_name);
-    let db_dir = build_dir_path_and_rm_old(db_name).expect("error");
-    
-    let ctx = InitContext::new(&db_dir).expect("can't create database context");
-    let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-    let address = format!("localhost:{}", port);
-    let server = zawgl_server::run_server(&address, ctx, || {
-        if let Err(_) = tx.send(()) {
-            error!("starting database");
-        }
-    });
-
-    let error_cb = || async {
-        assert!(false, "error server");
-    };
-    let server_address = format!("ws://localhost:{}", port);
-    
-    let trigger = || async {
-            match rx.await {
-                Ok(_) => async move {
-                    let client = Client::new(&server_address).await;
-                    lambda(client).await
-                }.await,
-                Err(_) => error_cb().await,
-            }
-        };
-    tokio::select! {
-        _ = server => 0,
-        _ = trigger()  => 0
-    };
-   
 }
 
 async fn test_cypher_requests(mut client: Client) {

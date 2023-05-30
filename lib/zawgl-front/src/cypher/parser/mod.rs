@@ -53,11 +53,15 @@ impl <'a> Parser<'a> {
 
     pub fn get_tokens(&self) -> &Vec<Token> {
         &self.tokens
-    } 
+    }
+
+    pub fn get_current_token_value(&self) -> String {
+        self.tokens[self.index].to_string()
+    }
 
     pub fn require(&mut self, token_type: TokenType) -> ParserResult<usize> {
         if !self.check(token_type) {
-            return Err(ParserError::SyntaxError(self.index));
+            return Err(ParserError::SyntaxError(self.index, self.get_current_token_value()));
         }
         self.advance();
         Ok(self.index)
@@ -123,6 +127,25 @@ mod test_parser {
         }
     }
 
+    fn run__err(qry: &str) {
+        let mut lexer = Lexer::new(qry);
+        match lexer.get_tokens() {
+            Ok(tokens) => {
+                let mut parser = Parser::new(tokens);
+                let root = cypher_parser::parse(&mut parser);
+                if let Err(pe) = root {
+                    match pe {
+                        ParserError::SyntaxError(index, token) => println!("error at token {} with value {}", parser.index, token),
+                        ParserError::EndOfFile => todo!(),
+                    }
+                    
+                } else {
+                    assert!(false, "syntax error around")
+                }
+            },
+            Err(value) => assert!(false, "lexer error: {}", value)
+        }
+    }
     #[test]
     fn test_create() {
         run("CREATE (n:Person) RETURN id(n, r, z)");
@@ -171,6 +194,11 @@ mod test_parser {
     #[test]
     fn test_match_where_create() {
         run("match (n:Movie), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p");
+    }
+
+    #[test]
+    fn test_syntax_error() {
+        run__err("match (n:Movie)), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p");
     }
 }
 

@@ -20,8 +20,10 @@
 // SOFTWARE.
 
 use super::*;
+use super::lexer::LexerError;
+use super::parser::error::ParserError;
 use zawgl_core::model::*;
-
+use crate::tx_handler::DatabaseError;
 
 mod path_builder;
 mod states;
@@ -36,18 +38,52 @@ use zawgl_cypher_query_model::model::{Request, ReturnClause, WhereClause, Return
 use states::*;
 use path_builder::*;
 use pattern_builder::*;
+use std::fmt::{self, format};
 
-pub fn process_cypher_query(query: &str, params: Option<Parameters>) -> Option<Request> {
+#[derive(Debug, Clone)]
+pub enum CypherError {
+    ParserError(ParserError),
+    LexerError(LexerError),
+    SyntaxError,
+    RequestError,
+    ResponseError,
+    TxError(DatabaseError),
+}
+
+
+impl fmt::Display for CypherError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CypherError::ParserError(pe) => f.write_str(&format!("{}", pe)),
+            CypherError::LexerError(le) => f.write_str(&format!("{}", le)),
+            CypherError::SyntaxError => f.write_str("syntax error"),
+            CypherError::RequestError => f.write_str("request error"),
+            CypherError::ResponseError => f.write_str("response error"),
+            CypherError::TxError(te) => f.write_str(&format!("tx error {}", te)),
+        }
+    }
+}
+
+
+pub fn process_cypher_query(query: &str, params: Option<Parameters>) -> Result<Request, CypherError> {
     let mut lexer = lexer::Lexer::new(query);
     match lexer.get_tokens() {
         Ok(tokens) => {
             let mut parser = parser::Parser::new(tokens);
-            let ast = parser::cypher_parser::parse(&mut parser).ok()?;
-            let mut visitor = CypherAstVisitor::new(params);
-            parser::walk_ast(&mut visitor, &ast).ok()?;
-            visitor.request
+            let rast = parser::cypher_parser::parse(&mut parser);
+            match rast {
+                Ok(ast) => {
+                    let mut visitor = CypherAstVisitor::new(params);
+                    parser::walk_ast(&mut visitor, &ast).ok().ok_or(CypherError::SyntaxError)?;
+                    visitor.request.ok_or(CypherError::SyntaxError)
+                },
+                Err(parser_err) => {
+                    Err(CypherError::ParserError(parser_err))
+                },
+            }
+            
         }
-        Err(_value) => None
+        Err(lerr) => Err(CypherError::LexerError(lerr))
     }
 }
 
@@ -318,7 +354,7 @@ mod test_query_engine {
     #[test]
     fn test_create_0() {
         let request = process_cypher_query("CREATE (n:Person)", None);
-        if let  Some(req) = request {
+        if let  Ok(req) = request {
             let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
@@ -332,7 +368,7 @@ mod test_query_engine {
     #[test]
     fn test_create_1() {
         let request = process_cypher_query("CREATE (n:Person:Parent {test: 'Hello', case: 4.99})", None);
-        if let  Some(req) = request {
+        if let  Ok(req) = request {
             let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
@@ -350,7 +386,7 @@ mod test_query_engine {
     #[test]
     fn test_create_2() {
         let request = process_cypher_query("CREATE (n:Person:Parent)-[r:FRIEND_OF]->(p:Person)", None);
-        if let  Some(req) = request {
+        if let  Ok(req) = request {
             let node = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(node.get_var(), &Some(String::from("n")));
             assert_eq!(node.get_labels_ref()[0], String::from("Person"));
@@ -367,7 +403,7 @@ mod test_query_engine {
     #[test]
     fn test_match_and_create() {
         let request = process_cypher_query("MATCH (m:Movie), (a:Actor) CREATE (a)-[r:PLAYED_IN]->(m) RETURN m, a, r", None);
-        if let  Some(req) = request {
+        if let  Ok(req) = request {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(movie.get_var(), &Some(String::from("a")));
             assert_eq!(movie.get_labels_ref()[0], String::from("Actor"));
@@ -389,7 +425,7 @@ mod test_query_engine {
     #[test]
     fn test_match_match() {
         let request = process_cypher_query("MATCH (m:Movie), (a:Actor) MATCH (a)-[r:PLAYED_IN]->(m) RETURN m, a, r", None);
-        if let  Some(req) = request {
+        if let  Ok(req) = request {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(movie.get_var(), &Some(String::from("a")));
             assert_eq!(movie.get_labels_ref()[0], String::from("Actor"));
@@ -413,7 +449,7 @@ mod test_query_engine {
         let mut params = Parameters::new();
         params.insert("mid".to_string(), ParameterValue::Value(PropertyValue::PInteger(12)));
         let request = process_cypher_query("MATCH (m:Movie) WHERE id(m) = $mid RETURN m, a, r", Some(params));
-        if let  Some(req) = request {
+        if let  Ok(req) = request {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(movie.get_var(), &Some(String::from("m")));
             assert_eq!(movie.get_labels_ref()[0], String::from("Movie"));

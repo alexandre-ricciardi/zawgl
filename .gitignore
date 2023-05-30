@@ -3,4 +3,4 @@
 /zawgl-db
 **/.idea
 **/.settings
-Cargo.lock
+**/Cargo.lock

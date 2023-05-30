@@ -84,15 +84,15 @@ fn parse_boolean_expression_terminal(parser: &mut Parser, parent_node: &mut Box<
                     parser.advance();
                     item_prop.append(make_ast_token(parser));
                 } else {
-                    return Err(ParserError::SyntaxError(parser.index))
+                    return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
                 }
             } else {
-                return Err(ParserError::SyntaxError(parser.index))
+                return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
             }
             Ok(())
         },
         _ => {
-            Err(ParserError::SyntaxError(parser.index))
+            Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
         }
     }
 }
@@ -154,10 +154,10 @@ fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>
                     parse_boolean_expression_terminal(parser, &mut eqop)?;
                     return parse_boolean_operator(parser, eqop)
                 } else {
-                    return Err(ParserError::SyntaxError(parser.index))
+                    return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
                 }
             } else {
-                return Err(ParserError::SyntaxError(parser.index))
+                return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
             }
         },
         TokenType::OpenParenthesis => {
@@ -167,7 +167,7 @@ fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>
             return parse_boolean_operator(parser, expr)
         },
         _ => {
-            Err(ParserError::SyntaxError(parser.index))
+            Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
         }
     }
 }
