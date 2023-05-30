@@ -20,7 +20,6 @@
 
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
-use log::*;
 use zawgl_client::Client;
 use std::sync::Once;
 use cypher_tests::run_test;

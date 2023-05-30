@@ -127,7 +127,7 @@ mod test_parser {
         }
     }
 
-    fn run__err(qry: &str) {
+    fn run_err(qry: &str) {
         let mut lexer = Lexer::new(qry);
         match lexer.get_tokens() {
             Ok(tokens) => {
@@ -135,7 +135,7 @@ mod test_parser {
                 let root = cypher_parser::parse(&mut parser);
                 if let Err(pe) = root {
                     match pe {
-                        ParserError::SyntaxError(index, token) => println!("error at token {} with value {}", parser.index, token),
+                        ParserError::SyntaxError(index, token) => println!("error at token {} with value {}", index, token),
                         ParserError::EndOfFile => todo!(),
                     }
                     
@@ -198,7 +198,7 @@ mod test_parser {
 
     #[test]
     fn test_syntax_error() {
-        run__err("match (n:Movie)), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p");
+        run_err("match (n:Movie)), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p");
     }
 }
 

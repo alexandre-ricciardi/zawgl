@@ -1,6 +1,4 @@
-use std::ops::Deref;
-
-use zawgl_core::model::{PropertyGraph, Property, PropertyValue};
+use zawgl_core::model::{PropertyGraph, PropertyValue};
 use zawgl_cypher_query_model::parameters::ParameterValue;
 use zawgl_cypher_query_model::{ast::AstVisitor, parameters::Parameters};
 use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult, AstVisitorError};
@@ -107,7 +105,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         todo!()
     }
 
-    fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_where(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         Ok(())
     }
 

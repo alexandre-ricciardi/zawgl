@@ -38,7 +38,7 @@ use zawgl_cypher_query_model::model::{Request, ReturnClause, WhereClause, Return
 use states::*;
 use path_builder::*;
 use pattern_builder::*;
-use std::fmt::{self, format};
+use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum CypherError {
