@@ -22,6 +22,7 @@
 use zawgl_core::graph::*;
 use zawgl_core::model::*;
 use zawgl_cypher_query_model::ast::AstTag;
+use zawgl_cypher_query_model::parameters::ParameterValue;
 use zawgl_cypher_query_model::parameters::Parameters;
 
 use super::states::*;
@@ -253,7 +254,17 @@ impl PathBuilder {
         }
     }
     
-    pub fn enter_parameter(&mut self, _name: &str) {
-        
+    pub fn enter_parameter(&mut self, name: &str) {
+        let pname = &name[1..];
+        if let Some(pv) = self.params.as_ref()
+        .and_then(|p|
+            p.get(pname)) {
+            match pv {
+                ParameterValue::Parameters(_) => todo!(),
+                ParameterValue::Value(v) => {
+                    self.set_property_value(Some(v.clone()));
+                },
+            }
+        }
     }
 }

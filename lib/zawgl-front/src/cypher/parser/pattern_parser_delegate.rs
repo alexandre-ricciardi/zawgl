@@ -30,8 +30,6 @@ enum RelationshipState {
     Initial,
     LeftSourceRel,
     LeftTargetRel,
-    RightSourceRel,
-    RightTargetRel,
     UndirectedRel,
     LeftDirectedRel,
     RightDirectedRel,

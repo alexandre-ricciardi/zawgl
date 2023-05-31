@@ -38,7 +38,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         todo!()
     }
 
-    fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult {
+    fn enter_relationship(&mut self, _node: &AstTagNode) -> AstVisitorResult {
         todo!()
     }
 
@@ -54,15 +54,24 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     }
 
     fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult {
-        todo!()
+        if let Some(v) = value {
+            self.eval_stack.push(PropertyValue::PFloat(v));
+        }
+        Ok(())
     }
 
     fn enter_string_value(&mut self, value: Option<&str>) -> AstVisitorResult {
-        todo!()
+        if let Some(v) = value {
+            self.eval_stack.push(PropertyValue::PString(v.to_string()));
+        }
+        Ok(())
     }
 
     fn enter_bool_value(&mut self, value: Option<bool>) -> AstVisitorResult {
-        todo!()
+        if let Some(v) = value {
+            self.eval_stack.push(PropertyValue::PBool(v));
+        }
+        Ok(())
     }
 
     fn enter_identifier(&mut self, key: &str) -> AstVisitorResult {
@@ -124,7 +133,6 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         } else {
             Err(AstVisitorError::SyntaxError)
         }
-        
     }
 
     fn exit_create(&mut self) -> AstVisitorResult {
