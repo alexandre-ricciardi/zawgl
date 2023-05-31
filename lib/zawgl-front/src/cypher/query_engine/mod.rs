@@ -343,6 +343,14 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_and_operator(&mut self) -> AstVisitorResult {
         Ok(())
     }
+
+    fn enter_or_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_or_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

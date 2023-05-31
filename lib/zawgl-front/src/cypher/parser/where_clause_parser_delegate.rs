@@ -64,18 +64,17 @@ fn parse_boolean_operator(parser: &mut Parser, prev_expr: Box<AstTagNode>) -> Pa
     }
 }
 
-fn parse_boolean_expression_terminal(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+fn parse_boolean_expression_terminal(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
     match parser.get_current_token_type() {
         TokenType::Integer | TokenType::Float | TokenType::True | TokenType::False | TokenType::StringType | TokenType::Parameter => {
             parser.advance();
-            parent_node.append(make_ast_token(parser));
-            Ok(())
+            Ok(make_ast_token(parser))
         },
         TokenType::Identifier => {
             parser.advance();
             if parser.check(TokenType::OpenParenthesis) {
                 let func = parse_function_definition(parser)?;
-                parent_node.append(func);
+                Ok(func)
             } else if parser.check(TokenType::Dot) {
                 let mut item_prop = make_ast_tag(AstTag::ItemPropertyIdentifier);
                 item_prop.append(make_ast_token(parser));
@@ -83,13 +82,13 @@ fn parse_boolean_expression_terminal(parser: &mut Parser, parent_node: &mut Box<
                 if parser.check(TokenType::Identifier) {
                     parser.advance();
                     item_prop.append(make_ast_token(parser));
+                    Ok(item_prop)
                 } else {
-                    return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
+                    Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
                 }
             } else {
-                return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
+                Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
             }
-            Ok(())
         },
         _ => {
             Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
@@ -100,31 +99,39 @@ fn parse_boolean_expression_terminal(parser: &mut Parser, parent_node: &mut Box<
 fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>> {
     match parser.get_current_token_type() {
         TokenType::Integer => {
-            parser.advance();
+            let left = parse_boolean_expression_terminal(parser)?;
             parser.require(TokenType::Equals)?;
             let mut eqop = make_ast_tag(AstTag::EqualityOperator);
-            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            let right = parse_boolean_expression_terminal(parser)?;
+            eqop.append(left);
+            eqop.append(right);
             parse_boolean_operator(parser, eqop)
         },
         TokenType::Float => {
-            parser.advance();
+            let left = parse_boolean_expression_terminal(parser)?;
             parser.require(TokenType::Equals)?;
             let mut eqop = make_ast_tag(AstTag::EqualityOperator);
-            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            let right = parse_boolean_expression_terminal(parser)?;
+            eqop.append(left);
+            eqop.append(right);
             parse_boolean_operator(parser, eqop)
         },
         TokenType::Parameter => {
-            parser.advance();
+            let left = parse_boolean_expression_terminal(parser)?;
             parser.require(TokenType::Equals)?;
             let mut eqop = make_ast_tag(AstTag::EqualityOperator);
-            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            let right = parse_boolean_expression_terminal(parser)?;
+            eqop.append(left);
+            eqop.append(right);
             parse_boolean_operator(parser, eqop)
         }
         TokenType::True | TokenType::False => {
-            parser.advance();
+            let left = parse_boolean_expression_terminal(parser)?;
             parser.require(TokenType::Equals)?;
             let mut eqop = make_ast_tag(AstTag::EqualityOperator);
-            parse_boolean_expression_terminal(parser, &mut eqop)?;
+            let right = parse_boolean_expression_terminal(parser)?;
+            eqop.append(left);
+            eqop.append(right);
             parse_boolean_operator(parser, eqop)
         },
         TokenType::Identifier => {
@@ -136,7 +143,8 @@ fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>
                     parser.advance();
                     let mut eqop = make_ast_tag(AstTag::EqualityOperator);
                     eqop.append(func);
-                    parse_boolean_expression_terminal(parser, &mut eqop)?;
+                    let right = parse_boolean_expression_terminal(parser)?;
+                    eqop.append(right);
                     return parse_boolean_operator(parser, eqop)
                 } else {
                     return parse_boolean_operator(parser, func)
@@ -151,7 +159,8 @@ fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>
                     parser.require(TokenType::Equals)?;
                     let mut eqop = make_ast_tag(AstTag::EqualityOperator);
                     eqop.append(item_prop);
-                    parse_boolean_expression_terminal(parser, &mut eqop)?;
+                    let left = parse_boolean_expression_terminal(parser)?;
+                    eqop.append(left);
                     return parse_boolean_operator(parser, eqop)
                 } else {
                     return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))

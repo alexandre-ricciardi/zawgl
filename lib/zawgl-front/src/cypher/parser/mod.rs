@@ -200,5 +200,11 @@ mod test_parser {
     fn test_syntax_error() {
         run_err("match (n:Movie)), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p");
     }
+
+    #[test]
+    fn test_syntax_bool_expr() {
+        run("match (n:Movie), (p:Person) where 1 = 2 and id(a) = $aid or id(b) = $bid return n, r, p");
+    }
+    
 }
 

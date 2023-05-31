@@ -282,6 +282,26 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         }
         Ok(())
     }
+
+    fn enter_or_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_or_operator(&mut self) -> AstVisitorResult {
+        let ov0 = self.eval_stack.pop();
+        let ov1 = self.eval_stack.pop();
+        if let (Some(v0), Some(v1)) = &(ov0, ov1) {
+            match (v0, v1) {
+                (PropertyValue::PBool(b0), PropertyValue::PBool(b1)) => {
+                    self.eval_stack.push(PropertyValue::PBool(*b0 || *b1));
+                }
+                _ => return Err(AstVisitorError::SyntaxError),
+            }
+        } else {
+            return Err(AstVisitorError::SyntaxError);
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -345,6 +365,70 @@ mod test_where_clause {
                 let mut visitor = WhereClauseAstVisitor::new(&g, Some(params));
                 parser::walk_ast(&mut visitor, &(ast as Box<dyn Ast>)).expect("walk");
                 assert_eq!(visitor.eval_stack.pop(), Some(PropertyValue::PBool(true)));
+            }
+            Err(_value) => {}
+        }
+
+    }
+
+
+    
+    #[test]
+    fn parameters_or_op_test() {
+        let mut g = PropertyGraph::new();
+        let mut n0 = Node::new();
+        n0.set_id(Some(12));
+        n0.set_var("a");
+        let mut n1 = Node::new();
+        n1.set_var("b");
+        n1.set_id(Some(15));
+        g.add_node(n0);
+        g.add_node(n1);
+
+        let where_clause = "where id(a) = $aid or id(b) = $bid";
+        let mut params = Parameters::new();
+        params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
+        params.insert("bid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(16)));
+        let mut lexer = lexer::Lexer::new(where_clause);
+        match lexer.get_tokens() {
+            Ok(tokens) => {
+                let mut parser = parser::Parser::new(tokens);
+                let mut ast = Box::new(AstTagNode::new_tag(AstTag::Query));
+                parse_where_clause(&mut parser, &mut ast).expect("where clause ast");
+                let mut visitor = WhereClauseAstVisitor::new(&g, Some(params));
+                parser::walk_ast(&mut visitor, &(ast as Box<dyn Ast>)).expect("walk");
+                assert_eq!(visitor.eval_stack.pop(), Some(PropertyValue::PBool(true)));
+            }
+            Err(_value) => {}
+        }
+
+    }
+
+    #[test]
+    fn parameters_or_op_fail_test() {
+        let mut g = PropertyGraph::new();
+        let mut n0 = Node::new();
+        n0.set_id(Some(12));
+        n0.set_var("a");
+        let mut n1 = Node::new();
+        n1.set_var("b");
+        n1.set_id(Some(15));
+        g.add_node(n0);
+        g.add_node(n1);
+
+        let where_clause = "where 1 = 2 and id(a) = $aid or id(b) = $bid";
+        let mut params = Parameters::new();
+        params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
+        params.insert("bid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(16)));
+        let mut lexer = lexer::Lexer::new(where_clause);
+        match lexer.get_tokens() {
+            Ok(tokens) => {
+                let mut parser = parser::Parser::new(tokens);
+                let mut ast = Box::new(AstTagNode::new_tag(AstTag::Query));
+                parse_where_clause(&mut parser, &mut ast).expect("where clause ast");
+                let mut visitor = WhereClauseAstVisitor::new(&g, Some(params));
+                parser::walk_ast(&mut visitor, &(ast as Box<dyn Ast>)).expect("walk");
+                assert_eq!(visitor.eval_stack.pop(), Some(PropertyValue::PBool(false)));
             }
             Err(_value) => {}
         }
