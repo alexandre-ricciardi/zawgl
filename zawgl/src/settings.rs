@@ -73,7 +73,7 @@ impl Settings {
                     toml::to_string(&settings).unwrap()
                 )
                 .expect("Failed to create configuration file");
-                println!("Created configuration file {}", file_path);
+                println!("Creating configuration file {}", file_path);
                 settings
             }
         } else {
