@@ -163,7 +163,7 @@ async fn test_cypher_self_relationship(mut client: Client) {
         debug!("{}", d.to_string())
     }
 
-    let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f").await;
+    let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f, x").await;
     if let Ok(d) = r {
         debug!("{}", d.to_string());
         let res = d.get_document("result").expect("result");
@@ -185,7 +185,7 @@ async fn test_cypher_self_relationship_2(mut client: Client) {
         debug!("{}", d.to_string())
     }
 
-    let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f").await;
+    let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f, x").await;
     if let Ok(d) = r {
         debug!("{}", d.to_string());
         let res = d.get_document("result").expect("result");
