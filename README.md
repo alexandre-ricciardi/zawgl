@@ -11,7 +11,7 @@ Open Source Timelined Graph Database (Work In Progress)
 
 ## Test
 A docker package is available for testing purpose:  
-```
+```shell
 docker run -p8182:8182 --rm -it ghcr.io/alexandre-ricciardi/alexandre-ricciardi/zawgl:latest
 ```
 
