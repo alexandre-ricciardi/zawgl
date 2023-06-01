@@ -14,4 +14,5 @@ futures-util = "0.3.8"
 log = "0.4"
 config = "0.13.2"
 serde = {version = "1.0", features = ["derive"] }
-simple_logger = "2.1.0"
+simple_logger = "4.1.0"
+toml = "0.7.4"

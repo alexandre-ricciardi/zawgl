@@ -23,36 +23,63 @@ use std::path::Path;
 use std::env;
 
 use config::{Config, ConfigError};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use log::*;
 
-const CONFIG_FILE_PATH: &str = ".config/Settings";
+const CONFIG_DIR: &str = ".zawgl";
+const CONFIG_FILE_NAME: &str = "Settings.toml";
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Log {
     pub level: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Server {
     pub address: String,
     pub database_dir: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
     pub server: Server,
     pub log: Log,
 }
 
 impl Settings {
-    pub fn new() -> Result<Self, ConfigError> {
+    pub fn new() -> Self {
         let s = Config::builder();
-        let mut current_dir = env::current_dir().map_err(|err| ConfigError::Message(err.to_string()))?;
-        let config_file_path = Path::new(CONFIG_FILE_PATH);
-        current_dir.push(config_file_path);
-        s.add_source(config::File::with_name(current_dir.as_path().to_str().expect("config file path")))
-        .build().expect("settings").try_deserialize()
+        let mut current_dir = env::current_dir().map_err(|err| ConfigError::Message(err.to_string())).expect("current directory");
+        let conf_dir = Path::new(CONFIG_DIR);
+        current_dir.push(conf_dir);
+        let mut full_path = current_dir.clone();
+        let config_file = Path::new(CONFIG_FILE_NAME);
+        full_path.push(config_file);
+        if let Some(file_path) = full_path.as_path().to_str() {
+            if let Ok(config) = s.add_source(config::File::with_name(file_path))
+                .build() {
+                if let Ok(settings) = config.try_deserialize() {
+                    settings
+                } else {
+                    panic!("Failed parsing config file .zawgl/Settings.toml")
+                }
+            } else {
+                let server = Server { address: "0.0.0.0:8182".to_string(), database_dir: "zawgl-db".to_string() };
+                let log = Log { level: "info".to_string() };
+                let settings = Settings { server, log };
+                std::fs::create_dir_all(&current_dir).expect("Failed creating configuration dir");
+                std::fs::write(
+                    &full_path,
+                    toml::to_string(&settings).unwrap()
+                )
+                .expect("Failed to create configuration file");
+                println!("Created configuration file {}", file_path);
+                settings
+            }
+        } else {
+            panic!("Failed to resolve current directory")
+        }
+        
     }
 
 

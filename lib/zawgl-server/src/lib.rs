@@ -47,9 +47,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Error};
 use std::result::Result;
 use crate::open_cypher_request_handler::handle_open_cypher_request;
 
-//use self::json_gremlin_request_handler::*;
 mod result;
-//mod json_gremlin_request_handler;
 mod open_cypher_request_handler;
 use self::result::ServerError;
 use zawgl_core::model::init::InitContext;

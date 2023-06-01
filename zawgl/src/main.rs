@@ -30,7 +30,7 @@ use simple_logger::SimpleLogger;
 
 #[tokio::main]
 async fn main() {
-    let settings = Settings::new().expect("config can't be loaded");
+    let settings = Settings::new();
     let log_level = settings.get_log_level();
     SimpleLogger::new().with_level(log_level).init().unwrap();
     let ctx = InitContext::new(&settings.server.database_dir).expect("can't create database context");

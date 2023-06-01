@@ -9,7 +9,7 @@ RUN cargo build --release --quiet
 FROM rust:slim-buster
 
 COPY --from=builder target/release/zawgl /zawgl/
-COPY --from=builder .config /zawgl/.config
+COPY --from=builder .zawgl /zawgl/.zawgl
 
 EXPOSE 8182
 WORKDIR /zawgl
