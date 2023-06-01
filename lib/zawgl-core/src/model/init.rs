@@ -55,7 +55,7 @@ impl <'a> InitContext<'a> {
         }
         std::fs::create_dir_all(dir_path_buf.clone()).ok()?;
         let os_str = dir_path_buf.as_os_str();
-        info!("database directory: {}", os_str.to_str()?);
+        info!("Database directory: {}", os_str.to_str()?);
         Some(InitContext{db_dir: String::from(os_str.to_str()?), node_store_name: NODES_FILE_NAME,
             relationships_store_name: RELATIONSHIPS_FILE_NAME, 
             properties_store_name: PROPERTIES_FILE_NAME,

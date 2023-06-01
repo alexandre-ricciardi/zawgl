@@ -36,7 +36,7 @@ async fn main() {
     let ctx = InitContext::new(&settings.server.database_dir).expect("can't create database context");
     tokio::select! {
         _ = zawgl_server::run_server(&settings.server.address, ctx, || {
-            info!("database started");
+            info!("Database started");
         }) => 0,
         _ = tokio::signal::ctrl_c() => 0
     };
