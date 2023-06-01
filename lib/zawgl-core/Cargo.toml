@@ -2,6 +2,7 @@
 name = "zawgl-core"
 version = "0.1.0"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+edition = "2021"
 
 [lib]
 name = "zawgl_core"
