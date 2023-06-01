@@ -15,6 +15,7 @@ use log::*;
 
 type SharedChannelsMap = Arc<Mutex<HashMap<String, Sender<Document>>>>;
 
+/// Zawgl graph database client
 pub struct Client {
     request_tx: UnboundedSender<Message>,
     map_rx_channels: SharedChannelsMap,
@@ -59,7 +60,8 @@ impl Client {
         });
         Client{request_tx, map_rx_channels: map.clone(), error_rx}
     }
-
+    
+    /// Executes a cypher request with parameters
     pub async fn execute_cypher_request_with_parameters(&mut self, query: &str, params: Parameters) -> Result<Document, Canceled> {
         let uuid =  Uuid::new_v4();
         let (tx, rx) = futures_channel::oneshot::channel::<Document>();
@@ -77,7 +79,7 @@ impl Client {
         }
     }
 
-    
+    /// Executes a cypher request
     pub async fn execute_cypher_request(&mut self, query: &str) -> Result<Document, Canceled> {
         self.execute_cypher_request_with_parameters(query, Parameters::new()).await
     }
