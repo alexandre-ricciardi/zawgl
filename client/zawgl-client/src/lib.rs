@@ -6,7 +6,7 @@ use std::{io::Cursor, collections::HashMap};
 use futures_channel::mpsc::{UnboundedSender};
 use futures_channel::oneshot::{Sender, Canceled};
 use futures_util::{StreamExt};
-use parameters::{Parameters, PropertyValue};
+use parameters::{Parameters, Value};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use bson::{Document, doc, Bson};
 use uuid::Uuid;
@@ -68,7 +68,7 @@ impl Client {
         tokio::select! {
             message = self.error_rx.recv() => {
                 match message {
-                    Some(msg) => debug!("client error {}", msg),
+                    Some(msg) => println!("client error {}", msg),
                     None => panic!("should not happen"),
                 }
                 Err(Canceled)
@@ -83,13 +83,13 @@ impl Client {
     }
 }
 
-fn extract_value(value: PropertyValue) -> Bson {
+fn extract_value(value: Value) -> Bson {
     match value {
-        PropertyValue::String(sv) => Bson::String(sv),
-        PropertyValue::Integer(iv) => Bson::Int64(iv),
-        PropertyValue::Float(fv) => Bson::Double(fv),
-        PropertyValue::Bool(bv) => Bson::Boolean(bv),
-        PropertyValue::Parameters(params) => Bson::Document(build_parameters(params)),
+        Value::String(sv) => Bson::String(sv),
+        Value::Integer(iv) => Bson::Int64(iv),
+        Value::Float(fv) => Bson::Double(fv),
+        Value::Bool(bv) => Bson::Boolean(bv),
+        Value::Parameters(params) => Bson::Document(build_parameters(params)),
     }
 }
 

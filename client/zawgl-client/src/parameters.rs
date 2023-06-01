@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub enum PropertyValue {
+pub enum Value {
     String(String),
     Integer(i64),
     Float(f64),
@@ -9,5 +9,5 @@ pub enum PropertyValue {
     Parameters(Parameters),
 }
 
-pub type Parameters = HashMap<String, PropertyValue>;
+pub type Parameters = HashMap<String, Value>;
 
