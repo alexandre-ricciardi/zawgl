@@ -45,7 +45,6 @@ impl FileAccess {
             written += bytes_written;
         }
         self.file.flush()?;
-        self.file.sync_all()?;
         Ok(())
     }
     fn _read_at(&mut self, pos: u64 , mut data: &mut [u8]) -> std::io::Result<()> {
