@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use std::time::Instant;
+
 use zawgl_client::Client;
 use cypher_tests::run_test;
 
@@ -27,6 +29,7 @@ async fn test_benchmark_create() {
 }
 
 async fn benchmark_test(mut client: Client) {
+    let start = Instant::now();
     for i in 0..1000 {
         let result = client.execute_cypher_request("create (test:Person) return test").await;
         if let Err(r) = result {
@@ -34,7 +37,16 @@ async fn benchmark_test(mut client: Client) {
             assert!(false, "error {}", i)
         }
         if i % 10 == 0 {
-            println!("created {} nodes", i);
+            //println!("created {} nodes", i);
         }
     }
+    
+    let duration = start.elapsed();
+    println!("Time to create 1000 nodes: {:?}", duration)
+}
+
+
+async fn test_benchmark_createss() {
+    let client = Client::new("ws://localhost:8182").await;
+    benchmark_test(client).await;
 }

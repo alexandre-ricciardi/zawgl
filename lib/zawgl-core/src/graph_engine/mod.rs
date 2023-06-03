@@ -255,6 +255,7 @@ impl GraphEngine {
 #[cfg(test)]
 mod test_graph_engine_match {
     use crate::{model::{PropertyGraph, Node, Relationship, init::InitContext}, test_utils::{build_dir_path_and_rm_old}};
+    use std::time::{Duration, Instant};
 
     use super::GraphEngine;
 
@@ -396,5 +397,22 @@ mod test_graph_engine_match {
         let res = ge_load.match_pattern(&pattern).expect("graphs");
 
         assert_eq!(1, res.len())
+    }
+
+    #[test]
+    fn text_bench_create_nodes() {
+        let main_dir = build_dir_path_and_rm_old("text_bench_create_nodes").expect("db path");
+        let conf = InitContext::new(&main_dir).expect("can't create context");
+        let mut ge = GraphEngine::new(&conf);
+        let mut n = Node::new();
+        n.set_labels(vec!["Label1".to_string()]);
+        let start = Instant::now();
+        for _ in 0..1000 {
+            ge.create_node(&n).expect("node created");
+        }
+        ge.sync();
+    
+        let duration = start.elapsed();
+        println!("Time to create 1000 nodes: {:?}", duration)
     }
 }
