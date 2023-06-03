@@ -3,4 +3,4 @@ address = "0.0.0.0:8182"
 database_dir = "zawgl-db"
 
 [log]
-level = "trace"
+level = "info"

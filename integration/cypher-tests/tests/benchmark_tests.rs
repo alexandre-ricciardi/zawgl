@@ -1,6 +1,5 @@
 // MIT License
-//
-// Copyright (c) 2022 Alexandre RICCIARDI
+// Copyright (c) 2023 Alexandre RICCIARDI
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,8 +18,39 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#[derive(Debug)]
-pub struct TxContext {
-    pub session_id: String,
-    pub commit: bool,
+use zawgl_client::Client;
+use cypher_tests::run_test;
+use zawgl_client::parameters::*;
+
+#[tokio::test]
+async fn test_benchmark_create() {
+    run_test("benchmark_test", 6182, benchmark_test).await;
+}
+
+async fn benchmark_test(mut client: Client) {
+    for i in 0..1000 {
+        let result = client.execute_cypher_request("create (test:Person) return test").await;
+        if let Err(r) = result {
+            println!("{}", r.to_string());
+            assert!(false, "error {}", i)
+        }
+        if i % 10 == 0 {
+            println!("created {} nodes", i);
+        }
+    }
+}
+
+#[tokio::test]
+async fn benchmark_test_1() {
+    let mut client = Client::new("ws://localhost:8182").await;
+    for i in 0..1000 {
+        let result = client.execute_cypher_request("create (test:Person) return test").await;
+        if let Err(r) = result {
+            println!("{}", r.to_string());
+            assert!(false, "error {}", i)
+        }
+        if i % 10 == 0 {
+            println!("created {} nodes", i);
+        }
+    }
 }

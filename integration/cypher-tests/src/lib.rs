@@ -19,14 +19,12 @@
 // SOFTWARE.
 
 use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
-use log::*;
 use zawgl_client::Client;
 use std::future::Future;
 
-
 pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnce(Client) -> T, T : Future<Output = ()> + Send {
 
-    info!("BEGIN RUN {}", db_name);
+    println!("BEGIN RUN {}", db_name);
     let db_dir = build_dir_path_and_rm_old(db_name).expect("error");
     
     let ctx = InitContext::new(&db_dir).expect("can't create database context");
@@ -34,7 +32,7 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
     let address = format!("localhost:{}", port);
     let server = zawgl_server::run_server(&address, ctx, || {
         if let Err(_) = tx.send(()) {
-            error!("starting database");
+            println!("error starting database");
         }
     });
 
