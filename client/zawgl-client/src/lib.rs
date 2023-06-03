@@ -70,7 +70,7 @@ impl Client {
         tokio::select! {
             message = self.error_rx.recv() => {
                 match message {
-                    Some(msg) => println!("client error {}", msg),
+                    Some(msg) => error!("client error {}", msg),
                     None => panic!("should not happen"),
                 }
                 Err(Canceled)
