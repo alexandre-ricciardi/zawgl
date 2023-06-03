@@ -18,19 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
 use zawgl_client::Client;
-use std::sync::Once;
 use cypher_tests::run_test;
-
-static INIT: Once = Once::new();
-
-pub fn initialize() {
-    INIT.call_once(|| {
-        SimpleLogger::new().with_level(LevelFilter::Debug).init().unwrap();
-    });
-}
 
 #[tokio::test]
 async fn test_cypher_error_0() {

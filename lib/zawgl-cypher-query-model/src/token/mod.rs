@@ -57,6 +57,10 @@ pub enum TokenType {
     Equals,
     Dot,
     Parameter,
+    GreaterThan,
+    LessThan,
+    GreaterThanOrEqual,
+    LessThanOrEqual,
 }
 
 

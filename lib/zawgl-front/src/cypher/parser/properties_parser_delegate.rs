@@ -59,6 +59,17 @@ fn enter_integer_expr(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> Pa
     }
 }
 
+fn enter_parameter(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> ParserResult<usize> {
+    if parser.current_token_type_advance(TokenType::Parameter) {
+        let int_node = make_ast_token(&parser);
+        parent_node.append(int_node);
+        Ok(parser.index)
+    } else {
+        Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
+    }
+}
+
+
 fn enter_bool_expr(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> ParserResult<usize> {
     if parser.current_token_type_advance(TokenType::True) {
         let bool_node = make_ast_token(&parser);
@@ -88,6 +99,7 @@ fn enter_prop_value(parser: &mut Parser, parent_node: &mut Box<dyn Ast>) -> Pars
         TokenType::Integer => {
             enter_integer_expr(parser, parent_node)
         },
+        TokenType::Parameter => enter_parameter(parser, parent_node),
         _ => {
             Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
         }

@@ -107,4 +107,5 @@ mod test_keywords_fsm {
         assert_eq!(fsm.run("TRUE"), Some((4, KeywordState::MatchKeyword)));
         assert_eq!(fsm.run("TruA"), None);
     }
+    
 }

@@ -90,7 +90,9 @@ impl <'a> Lexer<'a> {
                             (TokenType::LeftTargetRel, "<-["), (TokenType::RightSourceRel, "]-"),
                             (TokenType::UndirectedRel, "{"), (TokenType::Create, "create"),
                             (TokenType::Comma, ","), (TokenType::Equals, "="),
-                            (TokenType::Pipe, "|"), (TokenType::Minus, "-")],
+                            (TokenType::Pipe, "|"), (TokenType::Minus, "-"),
+                            (TokenType::GreaterThan, ">"), (TokenType::GreaterThanOrEqual, ">="),
+                            (TokenType::LessThan, "<"), (TokenType::LessThanOrEqual, "<=")],
             input: input, position: 0, lookahead: 0}
     }
     pub  fn  next_token(&mut self) -> LexerResult<Token<'a>> {

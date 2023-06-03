@@ -29,6 +29,7 @@ pub enum VisitorState {
     FunctionCall,
     FunctionArg,
     ReturnItem,
+    ItemPropertyIdentifier,
 }
 #[derive(PartialEq)]
 pub enum VisitorPatternState {

@@ -11,13 +11,14 @@ pub struct WhereClauseAstVisitor<'a> {
     state: VisitorState,
     function_name: Option<String>,
     function_args: Vec<String>,
+    item_prop_path: Vec<String>,
     pub eval_stack: Vec<PropertyValue>,
 }
 
 impl <'a> WhereClauseAstVisitor<'a> {
     pub fn new(graph: &'a PropertyGraph, params: Option<Parameters>) -> Self {
         WhereClauseAstVisitor{graph, params, state: VisitorState::Init, function_name: None,
-            function_args: vec![], eval_stack: vec![]}
+            function_args: vec![], eval_stack: vec![], item_prop_path: vec![]}
     }
 }
 
@@ -78,6 +79,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         match self.state {
             VisitorState::FunctionCall => self.function_name = Some(key.to_string()),
             VisitorState::FunctionArg => self.function_args.push(key.to_string()),
+            VisitorState::ItemPropertyIdentifier => self.item_prop_path.push(key.to_string()),
             _ => {}
         }
         Ok(())
@@ -302,11 +304,151 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         }
         Ok(())
     }
+
+    fn enter_item_property_identifier(&mut self) -> AstVisitorResult {
+        self.state = VisitorState::ItemPropertyIdentifier;
+        Ok(())
+    }
+
+    fn exit_item_property_identifier(&mut self) -> AstVisitorResult {
+        let item_name = &self.item_prop_path[0];
+        let prop_name = &self.item_prop_path[1];
+        for n in self.graph.get_nodes() {
+            if n.get_var().as_deref() == Some(item_name) {
+                for prop in n.get_properties_ref() {
+                    if prop.get_name() == prop_name {
+                        self.eval_stack.push(prop.get_value().clone());
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn enter_gt_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn enter_gte_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn enter_lt_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn enter_lte_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_gt_operator(&mut self) -> AstVisitorResult {
+        let ov1 = self.eval_stack.pop();
+        let ov0 = self.eval_stack.pop();
+        if let (Some(v0), Some(v1)) = &(ov0, ov1) {
+            match (v0, v1) {
+                (PropertyValue::PInteger(i0), PropertyValue::PUInteger(u1)) => {
+                    if *i0 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i0 as u64 > *u1));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
+                    if *i1 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 > *u0));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                _ => {self.eval_stack.push(PropertyValue::PBool(v0 > v1));}
+            }
+            
+        }
+        Ok(())
+    }
+
+    fn exit_gte_operator(&mut self) -> AstVisitorResult {
+        let ov1 = self.eval_stack.pop();
+        let ov0 = self.eval_stack.pop();
+        if let (Some(v0), Some(v1)) = &(ov0, ov1) {
+            match (v0, v1) {
+                (PropertyValue::PInteger(i0), PropertyValue::PUInteger(u1)) => {
+                    if *i0 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i0 as u64 >= *u1));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
+                    if *i1 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 >= *u0));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                _ => {self.eval_stack.push(PropertyValue::PBool(v0 >= v1));}
+            }
+            
+        }
+        Ok(())
+    }
+
+    fn exit_lt_operator(&mut self) -> AstVisitorResult {
+        let ov1 = self.eval_stack.pop();
+        let ov0 = self.eval_stack.pop();
+        if let (Some(v0), Some(v1)) = &(ov0, ov1) {
+            match (v0, v1) {
+                (PropertyValue::PInteger(i0), PropertyValue::PUInteger(u1)) => {
+                    if *i0 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool((*i0 as u64 ) < *u1));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
+                    if *i1 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 <>> *u0));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                _ => {self.eval_stack.push(PropertyValue::PBool(v0 < v1));}
+            }
+            
+        }
+        Ok(())
+    }
+
+    fn exit_lte_operator(&mut self) -> AstVisitorResult {
+        let ov1 = self.eval_stack.pop();
+        let ov0 = self.eval_stack.pop();
+        if let (Some(v0), Some(v1)) = &(ov0, ov1) {
+            match (v0, v1) {
+                (PropertyValue::PInteger(i0), PropertyValue::PUInteger(u1)) => {
+                    if *i0 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i0 as u64 <= *u1));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
+                    if *i1 >= 0 {
+                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 <= *u0));
+                    } else {
+                        self.eval_stack.push(PropertyValue::PBool(false));
+                    }
+                },
+                _ => {self.eval_stack.push(PropertyValue::PBool(v0 <= v1));}
+            }
+            
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod test_where_clause {
-    use zawgl_core::model::{PropertyGraph, Node};
+    use zawgl_core::model::{PropertyGraph, Node, Property};
     use zawgl_cypher_query_model::{ast::{AstTag, Ast}, parameters::ParameterValue};
 
     use crate::cypher::{lexer, parser, parser::where_clause_parser_delegate::parse_where_clause};
@@ -452,6 +594,31 @@ mod test_where_clause {
         params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
         params.insert("bid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(16)));
         params.insert("val".to_string(), ParameterValue::Value(PropertyValue::PInteger(2)));
+        let mut lexer = lexer::Lexer::new(where_clause);
+        match lexer.get_tokens() {
+            Ok(tokens) => {
+                let mut parser = parser::Parser::new(tokens);
+                let mut ast = Box::new(AstTagNode::new_tag(AstTag::Query));
+                parse_where_clause(&mut parser, &mut ast).expect("where clause ast");
+                let mut visitor = WhereClauseAstVisitor::new(&g, Some(params));
+                parser::walk_ast(&mut visitor, &(ast as Box<dyn Ast>)).expect("walk");
+                assert_eq!(visitor.eval_stack.pop(), Some(PropertyValue::PBool(true)));
+            }
+            Err(_value) => {}
+        }
+
+    }
+    #[test]
+    fn parameters_gt_param_test() {
+        let mut g = PropertyGraph::new();
+        let mut n0 = Node::new();
+        n0.set_var("a");
+        n0.set_properties(vec![Property::new("age".to_string(), PropertyValue::PInteger(40))]);
+        g.add_node(n0);
+
+        let where_clause = "where a.age > $age";
+        let mut params = Parameters::new();
+        params.insert("age".to_string(), ParameterValue::Value(PropertyValue::PInteger(12)));
         let mut lexer = lexer::Lexer::new(where_clause);
         match lexer.get_tokens() {
             Ok(tokens) => {

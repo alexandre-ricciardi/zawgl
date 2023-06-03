@@ -351,6 +351,46 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_or_operator(&mut self) -> AstVisitorResult {
         Ok(())
     }
+
+    fn enter_item_property_identifier(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_item_property_identifier(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn enter_gt_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn enter_gte_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn enter_lt_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn enter_lte_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_gt_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_gte_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_lt_operator(&mut self) -> AstVisitorResult {
+        todo!()
+    }
+
+    fn exit_lte_operator(&mut self) -> AstVisitorResult {
+        todo!()
+    }
 }
 
 #[cfg(test)]
@@ -461,6 +501,22 @@ mod test_query_engine {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
             assert_eq!(movie.get_var(), &Some(String::from("m")));
             assert_eq!(movie.get_labels_ref()[0], String::from("Movie"));
+            assert_eq!(movie.get_status(), &Status::Match);
+        } else {
+            assert!(false, "no request found");
+        }
+    }
+
+    
+    #[test]
+    fn test_gt_parameter() {
+        let mut params = Parameters::new();
+        params.insert("age".to_string(), ParameterValue::Value(PropertyValue::PInteger(12)));
+        let request = process_cypher_query("match (n:Person) where n.age > 40 return n", Some(params));
+        if let  Ok(req) = request {
+            let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
+            assert_eq!(movie.get_var(), &Some(String::from("n")));
+            assert_eq!(movie.get_labels_ref()[0], String::from("Person"));
             assert_eq!(movie.get_status(), &Status::Match);
         } else {
             assert!(false, "no request found");

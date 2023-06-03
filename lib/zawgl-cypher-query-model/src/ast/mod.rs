@@ -47,6 +47,10 @@ pub enum AstTag  {
     EqualityOperator,
     ItemPropertyIdentifier,
     Parameter,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
 }
 
 pub trait AstVisitor {
@@ -73,6 +77,7 @@ pub trait AstVisitor {
     fn enter_equality_operator(&mut self) -> AstVisitorResult;
     fn enter_and_operator(&mut self) -> AstVisitorResult;
     fn enter_or_operator(&mut self) -> AstVisitorResult;
+    fn enter_item_property_identifier(&mut self) -> AstVisitorResult;
     fn exit_create(&mut self) -> AstVisitorResult;
     fn exit_match(&mut self) -> AstVisitorResult;
     fn exit_path(&mut self) -> AstVisitorResult;
@@ -96,6 +101,15 @@ pub trait AstVisitor {
     fn exit_equality_operator(&mut self) -> AstVisitorResult;
     fn exit_and_operator(&mut self) -> AstVisitorResult;
     fn exit_or_operator(&mut self) -> AstVisitorResult;
+    fn exit_item_property_identifier(&mut self) -> AstVisitorResult;
+    fn enter_gt_operator(&mut self) -> AstVisitorResult;
+    fn enter_gte_operator(&mut self) -> AstVisitorResult;
+    fn enter_lt_operator(&mut self) -> AstVisitorResult;
+    fn enter_lte_operator(&mut self) -> AstVisitorResult;
+    fn exit_gt_operator(&mut self) -> AstVisitorResult;
+    fn exit_gte_operator(&mut self) -> AstVisitorResult;
+    fn exit_lt_operator(&mut self) -> AstVisitorResult;
+    fn exit_lte_operator(&mut self) -> AstVisitorResult;
 }
 
 #[derive(Debug, Clone)]
@@ -195,6 +209,12 @@ impl Ast for AstTagNode {
                     AstTag::EqualityOperator => visitor.enter_equality_operator(),
                     AstTag::AndOperator => visitor.enter_and_operator(),
                     AstTag::OrOperator => visitor.enter_or_operator(),
+                    AstTag::ItemPropertyIdentifier => visitor.enter_item_property_identifier(),
+                    AstTag::GreaterThan => visitor.enter_gt_operator(),
+                    AstTag::GreaterThanOrEqual => visitor.enter_gte_operator(),
+                    AstTag::LessThan => visitor.enter_lt_operator(),
+                    AstTag::LessThanOrEqual => visitor.enter_lte_operator(),
+
                     _ => {
                         Ok(())
                     }
@@ -260,9 +280,11 @@ impl Ast for AstTagNode {
                     AstTag::EqualityOperator => visitor.exit_equality_operator(),
                     AstTag::AndOperator => visitor.exit_and_operator(),
                     AstTag::OrOperator => visitor.exit_or_operator(),
-                    _ => {
-                        Ok(())
-                    }
+                    AstTag::ItemPropertyIdentifier => visitor.exit_item_property_identifier(),
+                    AstTag::GreaterThan => visitor.exit_gt_operator(),
+                    AstTag::GreaterThanOrEqual => visitor.exit_gte_operator(),
+                    AstTag::LessThan => visitor.exit_lt_operator(),
+                    AstTag::LessThanOrEqual => visitor.exit_lte_operator(),
                 }
             },
             None => {
