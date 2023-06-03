@@ -20,7 +20,6 @@
 
 use zawgl_client::Client;
 use cypher_tests::run_test;
-use zawgl_client::parameters::*;
 
 #[tokio::test]
 async fn test_benchmark_create() {
@@ -28,21 +27,6 @@ async fn test_benchmark_create() {
 }
 
 async fn benchmark_test(mut client: Client) {
-    for i in 0..1000 {
-        let result = client.execute_cypher_request("create (test:Person) return test").await;
-        if let Err(r) = result {
-            println!("{}", r.to_string());
-            assert!(false, "error {}", i)
-        }
-        if i % 10 == 0 {
-            println!("created {} nodes", i);
-        }
-    }
-}
-
-#[tokio::test]
-async fn benchmark_test_1() {
-    let mut client = Client::new("ws://localhost:8182").await;
     for i in 0..1000 {
         let result = client.execute_cypher_request("create (test:Person) return test").await;
         if let Err(r) = result {
