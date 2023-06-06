@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::repository::pager::Bounds;
+
 use super::{MutableRecordsManager, records::*};
 use super::super::super::super::buf_config::*;
 use std::collections::HashMap;
@@ -113,14 +115,14 @@ impl NodeRecordPool {
         self.set_first_free_list_node_ptr(node_record_id);
     }
     
-    fn get_first_free_list_node_ptr(&mut self) -> BTreeNodeId {
+    fn get_first_free_list_node_ptr(&self) -> BTreeNodeId {
         let mut buf = [0u8; NODE_PTR_SIZE];
-        buf.copy_from_slice(&self.records_manager.lock().unwrap().get_header_page_wrapper().get_header_payload_slice_ref()[NODE_PTR_SIZE..2*NODE_PTR_SIZE]);
+        self.records_manager.lock().unwrap().get_pager_ref().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &mut buf);
         u64::from_be_bytes(buf)
     }
 
     fn set_first_free_list_node_ptr(&mut self, id: BTreeNodeId) {
-        self.records_manager.lock().unwrap().get_header_page_wrapper().get_header_payload_slice_mut()[NODE_PTR_SIZE..2*NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
+        self.records_manager.lock().unwrap().get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &id.to_be_bytes());
     }
 }
 
@@ -171,14 +173,14 @@ impl <'a> FreeCellIterator<'a> {
         Some(id)
     }
 
-    fn get_first_free_list_node_ptr(&mut self) -> BTreeNodeId {
+    fn get_first_free_list_node_ptr(&self) -> BTreeNodeId {
         let mut buf = [0u8; NODE_PTR_SIZE];
-        buf.copy_from_slice(&self.pool.records_manager.lock().unwrap().get_header_page_wrapper().get_header_payload_slice_ref()[NODE_PTR_SIZE..2*NODE_PTR_SIZE]);
+        self.pool.records_manager.lock().unwrap().get_pager_ref().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &mut buf);
         u64::from_be_bytes(buf)
     }
 
     fn set_first_free_list_node_ptr(&mut self, id: BTreeNodeId) {
-        self.pool.records_manager.lock().unwrap().get_header_page_wrapper().get_header_payload_slice_mut()[NODE_PTR_SIZE..2*NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
+        self.pool.records_manager.lock().unwrap().get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &id.to_be_bytes());
     }
 }
 

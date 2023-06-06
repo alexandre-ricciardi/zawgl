@@ -24,6 +24,8 @@ mod pool;
 use log::*;
 use std::sync::{Arc, Mutex};
 
+use crate::repository::pager::Bounds;
+
 use self::records::*;
 use super::super::super::buf_config::*;
 use super::model::*;
@@ -475,14 +477,14 @@ impl BTreeNodeStore {
         Some(())
     }
 
-    fn get_root_node_ptr(&mut self) -> NodeId {
+    fn get_root_node_ptr(&self) -> NodeId {
         let mut buf = [0u8; NODE_PTR_SIZE];
-        buf.copy_from_slice(&self.records_manager.lock().unwrap().get_header_page_wrapper().get_header_payload_slice_ref()[..NODE_PTR_SIZE]);
+        self.records_manager.lock().unwrap().get_pager_mut().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(0, NODE_PTR_SIZE), &mut buf);
         u64::from_be_bytes(buf)
     }
 
     fn set_root_node_ptr(&mut self, id: NodeId) {
-        self.records_manager.lock().unwrap().get_header_page_wrapper().get_header_payload_slice_mut()[..NODE_PTR_SIZE].copy_from_slice(&id.to_be_bytes());
+        self.records_manager.lock().unwrap().get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(0, NODE_PTR_SIZE), &id.to_be_bytes());
     }
 
     pub fn load_or_create_root_node(&mut self) -> Option<BTreeNode> {
