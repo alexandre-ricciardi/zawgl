@@ -32,14 +32,15 @@ pub type BtreeCellLoc = (BTreeNodeId, BTreeCellId);
 
 
 pub struct NodeRecordPool {
-    pub records: HashMap<u64, BNodeRecord>,
+    pub records_map: HashMap<u64, usize>,
+    pub records: Vec<BNodeRecord>,
     pub records_manager: MutableRecordsManager,
 }
 
 impl NodeRecordPool {
 
     pub fn new(record_manager: MutableRecordsManager) -> Self {
-        NodeRecordPool{ records: HashMap::new(), records_manager: record_manager }
+        NodeRecordPool{ records_map: HashMap::new(), records: Vec::with_capacity(1000), records_manager: record_manager }
     }
 
     pub fn is_empty_records_set(&mut self) -> bool {
@@ -47,42 +48,59 @@ impl NodeRecordPool {
     }
 
     pub fn load_node_record_clone(&mut self, id: u64) -> Option<BNodeRecord> {
-        if let std::collections::hash_map::Entry::Vacant(e) = self.records.entry(id) {
+        let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
-            e.insert(BNodeRecord::from_bytes(data));
-        }
-        Some(*self.records.get(&id)?)
+            let pos = self.records.len();
+            self.records.push(BNodeRecord::from_bytes(data));
+            e.insert(pos);
+            pos
+        } else {
+            *self.records_map.get(&id)?
+        };
+        Some(*self.records.get(pos)?)
     }
 
     pub fn load_node_record_ref(&mut self, id: u64) -> Option<&BNodeRecord> {
-        if let std::collections::hash_map::Entry::Vacant(e) = self.records.entry(id) {
+        let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
-            e.insert(BNodeRecord::from_bytes(data));
-        }
-        self.records.get(&id)
+            let pos = self.records.len();
+            self.records.push(BNodeRecord::from_bytes(data));
+            e.insert(pos);
+            pos
+        } else {
+            *self.records_map.get(&id)?
+        };
+        self.records.get(pos)
     }
 
     pub fn load_node_record_mut(&mut self, id: u64) -> Option<&mut BNodeRecord> {
-        if let std::collections::hash_map::Entry::Vacant(e) = self.records.entry(id) {
+        let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
-            e.insert(BNodeRecord::from_bytes(data));
-            
-        }
-        self.records.get_mut(&id)
+            let pos = self.records.len();
+            self.records.push(BNodeRecord::from_bytes(data));
+            e.insert(pos);
+            pos
+        } else {
+            *self.records_map.get(&id)?
+        };
+        self.records.get_mut(pos)
     }
 
     pub fn create_node_record(&mut self, node_record: BNodeRecord) -> Option<u64> {
         let id = self.records_manager.lock().unwrap().create(&node_record.to_bytes()).ok()?;
-        self.records.insert(id, node_record);
+        let pos = self.records.len();
+        self.records.push(node_record);
+        self.records_map.insert(id, pos);
         Some(id)
     }
 
     pub fn save_all_node_records(&mut self) -> Option<()> {
-        for r in &self.records {
-            self.records_manager.lock().unwrap().save(*r.0, &r.1.to_bytes()).ok()?
+        for r in &self.records_map {
+            let record = self.records[*r.1];
+            self.records_manager.lock().unwrap().save(*r.0, &record.to_bytes()).ok()?
         }
         Some(())
     }
