@@ -38,13 +38,13 @@ pub struct HeaderPage {
     header_page_map: HeaderPageMap,
 }
 
-fn make_heap_page(id: PageId, data: PageData) -> HeapPage {
-    let page = Page::new(id, data);
+fn make_heap_page(data: PageData) -> HeapPage {
+    let page = Page::new(data);
     page
 }
 
-fn make_empty_heap_page(id: PageId) -> HeapPage {
-    let page = Page::new(id, [0u8; PAGE_SIZE]);
+fn make_empty_heap_page() -> HeapPage {
+    let page = Page::new([0u8; PAGE_SIZE]);
     page
 }
 
@@ -119,13 +119,12 @@ impl HeaderPage {
 }
 
 pub struct Page {
-    pub id: PageId,
     pub data: PageData,
 }
 
 impl Page {
-    fn new(id: PageId, data: PageData) -> Self {
-        Page{id, data}
+    fn new(data: PageData) -> Self {
+        Page{data}
     }
 }
 
@@ -180,13 +179,12 @@ pub struct Pager {
     records_file: FileAccess,
     page_cache: HashMap<PageId, usize>,
     pages: Vec<HeapPage>,
-    nb_pages: u64,
     header_page: HeaderPage,
 }
 
 
 fn load_or_create_header_page(io: &mut FileAccess) -> HeaderPage {
-    let mut header_page_data = make_empty_heap_page(0);
+    let mut header_page_data = make_empty_heap_page();
     if io.get_file_len() == 0 {
         io.write_at(0, &header_page_data.data);
     } else {
@@ -200,7 +198,7 @@ impl Pager {
     pub fn new(file: &str) -> Self {
         let mut file_io = FileAccess::new(file);
         let header_page = load_or_create_header_page(&mut file_io);
-        Pager { records_file: file_io, page_cache: HashMap::new(), pages: Vec::new(), nb_pages: 0u64, header_page }
+        Pager { records_file: file_io, page_cache: HashMap::new(), pages: Vec::new(), header_page }
     }
 
     pub fn get_header_page_ref(&self) -> &HeaderPage {
@@ -218,31 +216,41 @@ impl Pager {
         page_data
     }
 
-    pub fn load_page(&mut self, pid: PageId) -> Option<&mut HeapPage> {
+    pub fn load_page(&mut self, pid: PageId) -> Option<(PageId, &mut HeapPage)> {
         let nb_pages = self.header_page.get_page_count();
         if nb_pages >= pid {
             if !self.page_cache.contains_key(&pid) {
                 let page_data = self.read_page_data(pid);
-                let heap_page = make_heap_page(pid, page_data);
+                let heap_page = make_heap_page(page_data);
                 let pos = self.pages.len();
                 self.pages.push(heap_page);
                 self.page_cache.insert(pid, pos);
             }
-            self.page_cache.get(&pid).and_then(|pos| self.pages.get_mut(*pos))
+            self.page_cache.get(&pid).and_then(
+                |pos| self.pages.get_mut(*pos).map(|p| (pid, p))
+            )
         } else {
             None
         }
         
     }
 
-    pub fn append(&mut self) -> Option<&mut HeapPage> {
+    pub fn append(&mut self, nb_pages_to_create: usize) -> Vec<PageId> {
+        let mut pages = Vec::new();
+        for _ in 0..nb_pages_to_create {
+            pages.push(self._append_one_page());
+        }
+        pages
+    }
+
+    fn _append_one_page(&mut self) -> PageId {
         let next_pid = self.header_page.get_page_count() + 1;
         self.header_page.set_page_count(next_pid);
-        let page_data = make_empty_heap_page(next_pid);
+        let page_data = make_empty_heap_page();
         let pos = self.pages.len();
         self.pages.push(page_data);
         self.page_cache.insert(next_pid, pos);
-        self.pages.get_mut(pos)
+        next_pid
     }
     
     pub fn sync(&mut self) {

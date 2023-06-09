@@ -255,7 +255,7 @@ impl GraphEngine {
 #[cfg(test)]
 mod test_graph_engine_match {
     use crate::{model::{PropertyGraph, Node, Relationship, init::InitContext}, test_utils::{build_dir_path_and_rm_old}};
-    use std::time::{Duration, Instant};
+    use std::time::{Instant};
 
     use super::GraphEngine;
 
