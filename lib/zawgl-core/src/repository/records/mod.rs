@@ -487,3 +487,56 @@ impl RecordsManager {
         &mut self.pager
     }
 }
+
+
+#[cfg(test)]
+mod test_record_manager {
+    use super::*;
+    use super::super::super::test_utils::*;
+    #[test]
+    fn test_create() {
+        let file = build_file_path_and_rm_old("test_record_manager", "test_create.db").unwrap();
+        let mut rm = RecordsManager::new(&file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
+
+        let mut ids = vec![];
+        for i in 0..10000 {
+            let data = [i as u8; BTREE_NODE_RECORD_SIZE];
+            let id = rm.create(&data).expect("record id");
+            ids.push(id);
+        }
+
+        rm.sync();
+
+        for i in 0..10000 {
+            let content = [i as u8; BTREE_NODE_RECORD_SIZE];
+            let id = ids[i];
+            let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+            rm.load(id, &mut data).expect("load data");
+            assert_eq!(content, data);
+        }
+        
+        let mut rm_load = RecordsManager::new(&file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
+
+        for i in 0..10000 {
+            let data = [(i+1) as u8; BTREE_NODE_RECORD_SIZE];
+            let id = ids[i];
+            rm_load.save(id, &data).expect("load data");
+        }
+
+        rm.sync();
+        
+        for i in 0..10000 {
+            let content = [(i+1) as u8; BTREE_NODE_RECORD_SIZE];
+            let id = ids[i];
+            let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+            rm_load.load(id, &mut data).expect("load data");
+            assert_eq!(content, data);
+        }
+
+        let mut rm_load_2 = RecordsManager::new(&file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
+
+        assert_eq!(rm_load_2.retrieve_all_records_ids().expect("ids"), ids)
+
+    }
+
+}
