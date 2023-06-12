@@ -81,11 +81,12 @@ pub fn handle_graph_request(tx_handler: TxHandler, graph_request_handler: Reques
         },
         TxStatus::NoTx => {
             trace!("No TX {:?}", tx_context);
-            if needs_write_lock(steps) {
+            //if needs_write_lock(steps) {
                 graph_request_handler.write().unwrap().handle_graph_request(steps)
-            } else {
-                graph_request_handler.read().unwrap().handle_graph_request(steps)
-            }
+            //} 
+            //else {
+                //graph_request_handler.read().unwrap().handle_graph_request(steps)
+            //}
         },
     }
 }

@@ -38,17 +38,19 @@ pub type RequestHandler<'a> = Arc<RwLock<GraphRequestHandler<'a>>>;
 pub struct GraphRequestHandler <'a> {
     conf: InitContext<'a>,
     map_session_graph_engine: HashMap<String, GraphEngine>,
+    graph_engine: GraphEngine,
 }
 
 impl <'a> GraphRequestHandler<'a> {
     pub fn new(ctx: InitContext<'a>) -> Self {
-        GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new()}
+        let graph_engine = GraphEngine::new(&ctx);
+        GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new(), graph_engine }
     }
 
-    pub fn handle_graph_request(&self, steps: &Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
-        let mut graph_engine = GraphEngine::new(&self.conf);
-        let matched_graphs = handle_query_steps(steps, &mut graph_engine).ok_or(DatabaseError::EngineError)?;
-        graph_engine.sync();
+    pub fn handle_graph_request(&mut self, steps: &Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
+        
+        let matched_graphs = handle_query_steps(steps, &mut self.graph_engine).ok_or(DatabaseError::EngineError)?;
+        self.graph_engine.sync();
         Ok(matched_graphs)
     }
 

@@ -314,8 +314,19 @@ impl RecordsManager {
             wrapper.set_page_in_use();
             wrapper.write_to_bounds(payload_bounds.sub(location.record_id_in_page * record_size, record_size), data);
             if wrapper.is_page_free_list_empty() {
-                let next_free_page_ptr = wrapper.get_free_next_page_ptr();
-                self.pager.get_header_page_mut().set_header_first_free_page_ptr(next_free_page_ptr);
+                let mut next_free_page_ptr = self.pager.get_header_page_mut().get_header_first_free_page_ptr();
+                let mut has_free_slot = false;
+                while !has_free_slot && next_free_page_ptr != 0 {
+                    let curr_free_page_candidate = self.pager.load_page(next_free_page_ptr);
+                    let wrapper_free_page_candidate = curr_free_page_candidate.map(|p| RecordPageWrapper::new(p.0, p.1, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
+                    has_free_slot = !wrapper_free_page_candidate.is_page_free_list_empty();
+                    if has_free_slot {
+                        self.pager.get_header_page_mut().set_header_first_free_page_ptr(next_free_page_ptr);
+                    } else {
+                        next_free_page_ptr = wrapper_free_page_candidate.get_free_next_page_ptr();
+                    }
+                }
+                
             }
         }
         self.increment_records_version_counter();
@@ -349,7 +360,7 @@ impl RecordsManager {
             if is_multi_page_record {
                 let mut first = true;
                 for page_count in 0..nb_pages_per_record {
-                    let pages = self.pager.append(1000);
+                    let pages = self.pager.append(10000);
                     let page_id = self.configure_free_pages(pages)?;
                     let page = self.pager.load_page(page_id);
                     let mut wrapper = page.map(|p| RecordPageWrapper::new(p.0, p.1, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
@@ -362,7 +373,7 @@ impl RecordsManager {
                     }
                 }
             } else {
-                let pages = self.pager.append(1000);
+                let pages = self.pager.append(10000);
                 let page_id = self.configure_free_pages(pages)?;
                 let page = self.pager.load_page(page_id);
                 let mut wrapper = page.map(|p| RecordPageWrapper::new(p.0, p.1, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
@@ -520,22 +531,41 @@ mod test_record_manager {
         for i in 0..10000 {
             let data = [(i+1) as u8; BTREE_NODE_RECORD_SIZE];
             let id = ids[i];
-            rm_load.save(id, &data).expect("load data");
+            rm_load.save(id, &data).expect(&format!("load data {}", id));
         }
 
-        rm.sync();
+        rm_load.sync();
         
         for i in 0..10000 {
-            let content = [(i+1) as u8; BTREE_NODE_RECORD_SIZE];
+            let data_1 = [(i+1) as u8; BTREE_NODE_RECORD_SIZE];
+            let data_10 = [(i+10) as u8; BTREE_NODE_RECORD_SIZE];
+            let id = ids[i];
+            let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
+            if i % 2 == 0 {
+                rm_load.save(id, &data_10).expect("save data");
+            } else {
+                rm_load.load(id, &mut data).expect("load data");
+                assert_eq!(data_1, data);
+            }
+        }
+
+        rm_load.sync();
+        let mut rm_load_2 = RecordsManager::new(&file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
+
+        assert_eq!(rm_load_2.retrieve_all_records_ids().expect("ids"), ids);
+
+        for i in 0..10000 {
+            let data_1 = [(i+1) as u8; BTREE_NODE_RECORD_SIZE];
+            let data_10 = [(i+10) as u8; BTREE_NODE_RECORD_SIZE];
             let id = ids[i];
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             rm_load.load(id, &mut data).expect("load data");
-            assert_eq!(content, data);
+            if i % 2 == 0 {
+                assert_eq!(data_10, data);
+            } else {
+                assert_eq!(data_1, data);
+            }
         }
-
-        let mut rm_load_2 = RecordsManager::new(&file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
-
-        assert_eq!(rm_load_2.retrieve_all_records_ids().expect("ids"), ids)
 
     }
 
