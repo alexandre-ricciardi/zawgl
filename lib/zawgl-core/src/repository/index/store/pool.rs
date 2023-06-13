@@ -52,7 +52,7 @@ impl NodeRecordPool {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
             let pos = self.records.len();
-            self.records.push(BNodeRecord::from_bytes(data));
+            self.records.push(BNodeRecord::from_bytes(&data));
             e.insert(pos);
             pos
         } else {
@@ -66,7 +66,7 @@ impl NodeRecordPool {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
             let pos = self.records.len();
-            self.records.push(BNodeRecord::from_bytes(data));
+            self.records.push(BNodeRecord::from_bytes(&data));
             e.insert(pos);
             pos
         } else {
@@ -80,7 +80,7 @@ impl NodeRecordPool {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
             self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
             let pos = self.records.len();
-            self.records.push(BNodeRecord::from_bytes(data));
+            self.records.push(BNodeRecord::from_bytes(&data));
             e.insert(pos);
             pos
         } else {

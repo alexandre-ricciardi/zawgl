@@ -22,11 +22,11 @@
 pub mod handler;
 pub mod tx_context;
 pub mod request_handler;
-use std::{fmt, future::Future, sync::Arc};
+use std::{fmt, sync::Arc};
 use log::*;
 
 use request_handler::RequestHandler;
-use handler::{Scenario, TxHandler, TxStatus, needs_write_lock};
+use handler::{Scenario, TxHandler, TxStatus};
 
 use zawgl_core::model::PropertyGraph;
 use zawgl_cypher_query_model::QueryStep;

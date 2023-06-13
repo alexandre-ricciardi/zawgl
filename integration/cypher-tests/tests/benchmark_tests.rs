@@ -49,7 +49,7 @@ async fn benchmark_test(mut client: Client) {
     println!("Time to create 1000 nodes: {:?}", duration)
 }
 
-//#[tokio::test]
+#[tokio::test]
 async fn test_benchmark_createss() {
     let client = Client::new("ws://localhost:8182").await;
     benchmark_test(client).await;

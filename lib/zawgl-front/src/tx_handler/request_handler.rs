@@ -19,10 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
 
 use std::sync::Mutex;
 use zawgl_core::graph_engine::GraphEngine;

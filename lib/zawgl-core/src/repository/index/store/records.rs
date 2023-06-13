@@ -149,7 +149,7 @@ impl BNodeRecord {
         }
         bytes
     }
-    pub fn from_bytes(bytes: [u8; BTREE_NODE_RECORD_SIZE]) -> Self {
+    pub fn from_bytes(bytes: &[u8; BTREE_NODE_RECORD_SIZE]) -> Self {
         let mut index = 0;
         let header = bytes[index];
         index += BTREE_NODE_HEADER_SIZE;

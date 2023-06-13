@@ -39,17 +39,24 @@ pub struct GraphRepository {
     nodes_labels_index: BTreeIndex,
     relationships_labels_index: BTreeIndex,
     labels_store: dynamic_store::DynamicStore,
+    nodes_ids: Option<Vec<u64>>,
 }
 
 impl GraphRepository {
     pub fn new(init_ctx: init::InitContext) -> Self {
-        GraphRepository {nodes_store: nodes_store::NodesStore::new(&init_ctx.get_nodes_store_path().unwrap()),
+        let mut nodes_store = nodes_store::NodesStore::new(&init_ctx.get_nodes_store_path().unwrap());
+        let nodes_ids = nodes_store.borrow_mut().retrieve_all_nodes_ids();
+        GraphRepository {nodes_store: nodes_store, nodes_ids,
             relationships_store: relationships_store::RelationshipsStore::new(&init_ctx.get_relationships_store_path().unwrap()),
             properties_repository: PropertiesRespository::new(&init_ctx.get_properties_store_path().unwrap(), &init_ctx.get_dynamic_store_path().unwrap()),
             nodes_labels_index: BTreeIndex::new(&init_ctx.get_nodes_labels_index_path().unwrap()),
             relationships_labels_index: BTreeIndex::new(&init_ctx.get_relationships_types_index_path().unwrap()),
             labels_store: dynamic_store::DynamicStore::new(&init_ctx.get_labels_store_path().unwrap()),
         }
+    }
+
+    pub fn get_node_ids(&self) -> &Option<Vec<u64>> {
+        &self.nodes_ids
     }
 
     pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> HashSet<u64> {
@@ -61,10 +68,6 @@ impl GraphRepository {
             }
         }
         res
-    }
-
-    pub fn retrieve_all_nodes_ids(&mut self) -> Option<Vec<u64>> {
-        self.nodes_store.borrow_mut().retrieve_all_nodes_ids()
     }
 
     pub fn retrieve_node_by_id(&mut self, node_id: u64) -> Option<(Node, DbVertexData)> {
@@ -140,7 +143,9 @@ impl GraphRepository {
         for label in node.get_labels_ref() {
             self.nodes_labels_index.insert(label, nid);
         }
-        
+        if let Some(nids) = &mut self.nodes_ids {
+            nids.push(nid);
+        }
         res.set_id(Some(nid));
         Some(res)
     }
