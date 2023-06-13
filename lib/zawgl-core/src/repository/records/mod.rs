@@ -21,6 +21,7 @@
 use super::super::buf_config::*;
 
 use super::pager::*;
+use super::pager::page_cache::{PageId, PageData};
 
 pub type RecordId = u64;
 pub type PageRecordId = usize;
@@ -49,26 +50,26 @@ pub struct RecordsManager {
 }
 
 struct RecordPageWrapper<'a> {
-    page: &'a mut HeapPage,
+    page: &'a mut PageData,
     page_map: PageMap,
     page_id: PageId,
 }
 
 impl<'a> RecordPageWrapper<'a> {
-    fn new(page_id: PageId, page: &'a mut HeapPage, page_map: PageMap) -> Self {
+    fn new(page_id: PageId, page: &'a mut PageData, page_map: PageMap) -> Self {
         RecordPageWrapper{page, page_map, page_id}
     }
     fn get_id(&self) -> PageId {
         self.page_id
     }
     fn has_next_page_record(&self) -> bool {
-        (self.page.data[0] & MULTI_PAGE_RECORD_FLAG) > 0
+        (self.page[0] & MULTI_PAGE_RECORD_FLAG) > 0
     }
     fn set_page_in_use(&mut self) {
-        self.page.data[0] |= IS_FREE_PAGE_FLAG;
+        self.page[0] |= IS_FREE_PAGE_FLAG;
     }
     fn is_page_in_use(&self) -> bool {
-        (self.page.data[0] & IS_FREE_PAGE_FLAG) > 0
+        (self.page[0] & IS_FREE_PAGE_FLAG) > 0
     }
     fn get_free_next_page_ptr(&self) -> PageId {
         let mut bytes = [0u8; NEXT_PAGE_PTR];
@@ -80,11 +81,11 @@ impl<'a> RecordPageWrapper<'a> {
         self.write_to_bounds(bounds, &id.to_be_bytes());
     }
     fn read_from_bounds(&self, bounds: Bounds, bytes: &mut [u8]) {
-        let slice = &self.page.data[bounds.begin..bounds.end];
+        let slice = &self.page[bounds.begin..bounds.end];
         bytes.copy_from_slice(slice);
     }
     fn write_to_bounds(&mut self, bounds: Bounds, bytes: &[u8]) {
-        self.page.data[bounds.begin..bounds.end].copy_from_slice(bytes);
+        self.page[bounds.begin..bounds.end].copy_from_slice(bytes);
     }
     fn get_free_list_len(&self) -> usize {
         let mut bytes = [0u8; FREE_LIST_ITEM_COUNTER_SIZE];
@@ -97,7 +98,7 @@ impl<'a> RecordPageWrapper<'a> {
     }
     fn get_page_free_list(&self) -> Vec<PageRecordId> {
         let mut res = Vec::new();
-        let free_list_slice = &self.page.data[self.page_map.free_list.begin..self.page_map.free_list.end];
+        let free_list_slice = &self.page[self.page_map.free_list.begin..self.page_map.free_list.end];
         let free_list_len = self.get_free_list_len();
         for count in 0..free_list_len {
             let offset = count * FREE_LIST_PTR_SIZE;
@@ -269,7 +270,7 @@ impl RecordsManager {
                 let payload_bounds = self.page_map.payload;
                 {
                     let (_page_id, page) = self.pager.load_page(location.page_id).ok_or(RecordsManagerError::NotFound)?;
-                    let current_payload_slice = &page.data[payload_bounds.begin..payload_bounds.end];
+                    let current_payload_slice = &page[payload_bounds.begin..payload_bounds.end];
                     copy_payload_to_buffer(&mut data[page_count*payload_bounds.len()..], current_payload_slice);
                 }
                 let page = self.pager.load_page(location.page_id);
@@ -282,7 +283,7 @@ impl RecordsManager {
             let payload_bounds = self.page_map.payload;
             let record_size = self.record_size;
             let (_page_id, page) = self.pager.load_page(location.page_id).ok_or(RecordsManagerError::NotFound)?;
-            let current_payload_slice = &page.data[payload_bounds.begin..payload_bounds.end];
+            let current_payload_slice = &page[payload_bounds.begin..payload_bounds.end];
             data.copy_from_slice(&current_payload_slice[location.payload_record_address..location.payload_record_address+record_size]);
             Ok(())
         }
@@ -473,7 +474,8 @@ impl RecordsManager {
         let nb_records_per_page = self.page_map.nb_records_per_page;
         let mut res = Vec::new();
         for pid in 0..page_count {
-            let mut page = self.pager.load_page(pid + 1);
+            let page_id = pid + 1;
+            let mut page = self.pager.load_page(page_id);
             let wrapper = page.as_mut().map(|p| RecordPageWrapper::new(p.0, p.1, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
             if wrapper.is_page_in_use() {
                 let free_list = wrapper.get_page_free_list();
@@ -488,6 +490,7 @@ impl RecordsManager {
                     }
                 }
             }
+            self.pager.drop_page(&page_id)
         }
         Ok(res)
     }

@@ -31,29 +31,31 @@ use bson::Document;
 use futures_util::{
     SinkExt, StreamExt,
 };
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::task::JoinHandle;
+use zawgl_front::cypher::query_engine::CypherError;
+use std::sync::Mutex;
 use zawgl_front::tx_handler::request_handler::GraphRequestHandler;
-use zawgl_front::tx_handler::request_handler::RequestHandler;
 use zawgl_front::tx_handler::handler::GraphTxHandler;
-use zawgl_front::tx_handler::handler::TxHandler;
 use parking_lot::ReentrantMutex;
 use tokio_tungstenite::tungstenite::Message;
 use std::cell::RefCell;
-use std::sync::RwLock;
 use std::sync::Arc;
 use log::*;
-use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::Error};
 use std::result::Result;
 use crate::open_cypher_request_handler::handle_open_cypher_request;
-
+use tokio::sync::oneshot::{self, Sender};
 mod result;
 mod open_cypher_request_handler;
 use self::result::ServerError;
 use zawgl_core::model::init::InitContext;
 
-async fn accept_connection(peer: SocketAddr, tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, stream: TcpStream) {
-    if let Err(e) = handle_connection(peer, tx_handler, graph_request_handler, stream).await {
+type ResponseMessage = (Document, Sender<Result<Document, CypherError>>);
+
+async fn accept_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMessage>) {
+    if let Err(e) = handle_connection(stream, msg_tx).await {
         match e {
             ServerError::WebsocketError(te) => match te {
                 Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
@@ -62,14 +64,14 @@ async fn accept_connection(peer: SocketAddr, tx_handler: TxHandler, graph_reques
             ServerError::ParsingError(err_msg) => error!("parsing error: {}", err_msg),
             ServerError::HeaderError => error!("wrong header"),
             ServerError::CypherTxError(err) => error!("tx error {}", err),
+            ServerError::ConcurrencyError => error!("cocurrency error"),
         }
     }
 }
 
 
-async fn handle_connection(peer: SocketAddr, tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, stream: TcpStream) -> Result<(), ServerError> {
+async fn handle_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMessage>) -> Result<(), ServerError> {
     let ws_stream = accept_async(stream).await.expect("Failed to accept");
-    info!("New WebSocket connection: {}", peer);
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
     let mut msg_fut = ws_receiver.next();
@@ -78,22 +80,16 @@ async fn handle_connection(peer: SocketAddr, tx_handler: TxHandler, graph_reques
             Some(msg) => {
                 let msg = msg.map_err(ServerError::WebsocketError)?;
                 if msg.is_binary() {
-                    let json_gremlin_prefix = "!application/vnd.gremlin-v3.0+json".as_bytes();
                     let open_cypher_prefix = "!application/openCypher".as_bytes();
                     let data = msg.into_data();
-                    if data.len() > json_gremlin_prefix.len() && &data[..json_gremlin_prefix.len()] == json_gremlin_prefix {
-                        //let v: Value = serde_json::from_reader(&data[json_gremlin_prefix.len()..]).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                        //let gremlin_reply = handle_gremlin_json_request(tx_handler.clone(), graph_request_handler.clone(), &v).map_err(|err| ServerError::GremlinTxError(err))?;
-                        //let res_msg = serde_json::to_string(&gremlin_reply).map_err(|err| ServerError::ParsingError(err.to_string()))?;
-                        //debug!("gremlin response msg: {}", res_msg);
-                        //let response = Message::Text(res_msg);
-                        //ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
-                    } else if data.len() > open_cypher_prefix.len() &&  &data[..open_cypher_prefix.len()] == open_cypher_prefix {
+                    if data.len() > open_cypher_prefix.len() &&  &data[..open_cypher_prefix.len()] == open_cypher_prefix {
                         let doc = Document::from_reader(&data[open_cypher_prefix.len()..]).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                         debug!("incoming message {}", doc.to_string());
-                        let cypher_reply = handle_open_cypher_request(tx_handler.clone(), graph_request_handler.clone(), &doc).map_err(|err| ServerError::CypherTxError(err))?;
+                        let (tx, rx) = oneshot::channel();
+                        msg_tx.send((doc, tx)).map_err(|_| ServerError::ConcurrencyError)?;
+                        let cypher_reply = rx.await.map_err(|_| ServerError::ConcurrencyError)?;
                         let mut response_data = Vec::new();
-                        cypher_reply.to_writer(&mut response_data).map_err(|err| ServerError::ParsingError(err.to_string()))?;
+                        cypher_reply.map_err(ServerError::CypherTxError)?.to_writer(&mut response_data).map_err(|err| ServerError::ParsingError(err.to_string()))?;
                         let response = Message::Binary(response_data);
                         ws_sender.send(response).await.map_err(ServerError::WebsocketError)?;
                     } else {
@@ -114,15 +110,32 @@ async fn handle_connection(peer: SocketAddr, tx_handler: TxHandler, graph_reques
 
 
 
-pub async fn run_server<F>(addr: &str, conf: InitContext<'static>, callback: F) where F : FnOnce() -> () {
-    let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
-    let graph_request_handler = Arc::new(RwLock::new(GraphRequestHandler::new(conf)));
+pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F) -> JoinHandle<()> where F : FnOnce() -> () {
+    
+    
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Websocket listening on: {}", addr);
     callback();
+    let (msg_tx, mut msg_rx) = tokio::sync::mpsc::unbounded_channel::<ResponseMessage>();
+
+    let jh = tokio::spawn(async move {
+        let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
+        let graph_request_handler = Arc::new(Mutex::new(GraphRequestHandler::new(conf)));
+        while let Some(message) = msg_rx.recv().await {
+            let doc = message.0;
+            let sender = message.1;
+            let cypher_reply = handle_open_cypher_request(Arc::clone(&tx_handler), Arc::clone(&graph_request_handler), &doc);
+            if let Err(_err) = sender.send(cypher_reply) {
+                error!("sending reply");
+                break;
+            }
+        }
+    });
+
     while let Ok((stream, _)) = listener.accept().await {
         let peer = stream.peer_addr().expect("connected streams should have a peer address");
         info!("Peer address: {}", peer);
-        tokio::spawn(accept_connection(peer, tx_handler.clone(), graph_request_handler.clone(), stream));
+        tokio::spawn(accept_connection(stream, msg_tx.clone()));
     }
+    jh
 }

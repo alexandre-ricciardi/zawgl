@@ -42,7 +42,7 @@ pub struct GraphRepository {
 }
 
 impl GraphRepository {
-    pub fn new(init_ctx: &init::InitContext) -> Self {
+    pub fn new(init_ctx: init::InitContext) -> Self {
         GraphRepository {nodes_store: nodes_store::NodesStore::new(&init_ctx.get_nodes_store_path().unwrap()),
             relationships_store: relationships_store::RelationshipsStore::new(&init_ctx.get_relationships_store_path().unwrap()),
             properties_repository: PropertiesRespository::new(&init_ctx.get_properties_store_path().unwrap(), &init_ctx.get_dynamic_store_path().unwrap()),

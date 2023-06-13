@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TxContext {
     pub session_id: String,
     pub commit: bool,

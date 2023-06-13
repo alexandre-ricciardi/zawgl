@@ -119,8 +119,8 @@ pub enum AstVisitorError {
 
 pub type AstVisitorResult = std::result::Result<(), AstVisitorError>;
 
-pub trait Ast : fmt::Display {
-    fn append(&mut self, ast: Box<dyn Ast>);
+pub trait Ast : fmt::Display + Send  {
+    fn append(&mut self, ast: Box<dyn Ast >);
     fn accept(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult;
     fn accept_exit(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult;
     fn get_childs(&self) -> &Vec<Box<dyn Ast>>;

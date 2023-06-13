@@ -47,7 +47,7 @@ fn compare_relationships(r0: &Relationship, r1: &Relationship) -> bool {
 }
 
 impl GraphEngine {
-    pub fn new(ctx: &init::InitContext) -> Self {
+    pub fn new(ctx: init::InitContext) -> Self {
         GraphEngine{repository: Arc::new(Mutex::new(GraphRepository::new(ctx)))}
     }
 
@@ -280,14 +280,14 @@ mod test_graph_engine_match {
             r32.set_labels(vec!["Type32".to_string()]);
             graph.add_relationship(r32, id3, id2);
             let conf = InitContext::new(&main_dir).expect("can't create context");
-            let mut ge = GraphEngine::new(&conf);
+            let mut ge = GraphEngine::new(conf);
             ge.create_graph(&graph);
             ge.sync();
 
         }
 
         let conf = InitContext::new(&main_dir).expect("can't create context");
-        let mut ge_load = GraphEngine::new(&conf);
+        let mut ge_load = GraphEngine::new(conf);
 
         let mut pattern = PropertyGraph::new();
         let mut n2 = Node::new();
@@ -330,14 +330,14 @@ mod test_graph_engine_match {
             r33.set_labels(vec!["Type33".to_string()]);
             graph.add_relationship(r33, id3, id3);
             let conf = InitContext::new(&main_dir).expect("can't create context");
-            let mut ge = GraphEngine::new(&conf);
+            let mut ge = GraphEngine::new(conf);
             ge.create_graph(&graph);
             ge.sync();
 
         }
 
         let conf = InitContext::new(&main_dir).expect("can't create context");
-        let mut ge_load = GraphEngine::new(&conf);
+        let mut ge_load = GraphEngine::new(conf);
 
         let mut pattern = PropertyGraph::new();
         let mut n3 = Node::new();
@@ -377,14 +377,14 @@ mod test_graph_engine_match {
             r33.set_labels(vec!["Type33".to_string()]);
             graph.add_relationship(r33, id3, id3);
             let conf = InitContext::new(&main_dir).expect("can't create context");
-            let mut ge = GraphEngine::new(&conf);
+            let mut ge = GraphEngine::new(conf);
             ge.create_graph(&graph);
             ge.sync();
 
         }
 
         let conf = InitContext::new(&main_dir).expect("can't create context");
-        let mut ge_load = GraphEngine::new(&conf);
+        let mut ge_load = GraphEngine::new(conf);
 
         let mut pattern = PropertyGraph::new();
         let mut n3 = Node::new();
@@ -403,7 +403,7 @@ mod test_graph_engine_match {
     fn text_bench_create_nodes() {
         let main_dir = build_dir_path_and_rm_old("text_bench_create_nodes").expect("db path");
         let conf = InitContext::new(&main_dir).expect("can't create context");
-        let mut ge = GraphEngine::new(&conf);
+        let mut ge = GraphEngine::new(conf);
         let mut n = Node::new();
         n.set_labels(vec!["Label1".to_string()]);
         let start = Instant::now();

@@ -279,11 +279,11 @@ mod test_b_tree {
 
         for i in 0..3000 {
             index.insert("same key", i);
-            index.sync();
             if i % 1000 == 0 {
                 println!("inserted {} values", i);
             }
         }
+        index.sync();
 
 
         let optrs = index.search("same key");

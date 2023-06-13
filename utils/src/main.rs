@@ -33,7 +33,7 @@ fn main() {
     let main_dir = build_dir_path_and_rm_old("zawgl-db").expect("db dir path");
     build_test_graph(&main_dir);
     let conf = InitContext::new(&main_dir).expect("can't create context");
-    let mut graph_engine = GraphEngine::new(&conf);
+    let mut graph_engine = GraphEngine::new(conf);
     let mut full_graph = graph_engine.retrieve_graph().unwrap();
     println!("{:?}", full_graph.get_nodes_ids());
     depth_first_search(&mut full_graph);
@@ -96,7 +96,7 @@ fn iterate_adjacent_nodes(labeled: &mut HashSet<ProxyNodeId>, graph: &mut GraphP
 
 fn build_test_graph(main_dir: &str) {
     let conf = InitContext::new(&main_dir).expect("can't create context");
-    let mut graph_engine = GraphEngine::new(&conf);
+    let mut graph_engine = GraphEngine::new(conf);
     let mut n0 = Node::new();
     n0.set_labels(vec!["Test".to_string(), "Label".to_string()]);
     n0.set_properties(vec![Property::new("name".to_string(), PropertyValue::PBool(true))]);

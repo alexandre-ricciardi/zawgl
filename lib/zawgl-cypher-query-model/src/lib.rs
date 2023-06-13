@@ -27,10 +27,13 @@ pub mod parameters;
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+#[derive(Clone)]
 pub enum StepType {
     MATCH, CREATE, DELETE, WHERE
 }
 
+#[derive(Clone)]
 pub struct QueryStep {
     pub patterns: Vec<PropertyGraph>,
     pub step_type: StepType,

@@ -22,7 +22,7 @@
 pub mod planner;
 pub mod tx_handler;
 
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
 use bson::{Bson, Document, doc};
 use cypher::query_engine::{process_cypher_query, CypherError};
@@ -36,7 +36,7 @@ extern crate bson;
 
 pub mod cypher;
 
-pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, cypher_request: &Document) -> Result<Document, CypherError> {
+pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, cypher_request: &Document) -> Result<Document, CypherError> {
     let query = cypher_request.get_str("query").map_err(|_err| CypherError::RequestError)?;
     let request_id = cypher_request.get_str("request_id").map_err(|_err| CypherError::RequestError)?;
     let parameters = cypher_request.get_document("parameters");
@@ -44,9 +44,11 @@ pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: 
     let request = process_cypher_query(query, params);
     match request {
         Ok(r) => {
-            let matched_graphs = handle_graph_request(tx_handler, graph_request_handler.clone(), &r.steps, None);
+            let matched_graphs = handle_graph_request(tx_handler, graph_request_handler.clone(), r.steps.to_vec(), None);
             match matched_graphs {
-                Ok(mg) => build_response(request_id, mg, &r),
+                Ok(mg) => {
+                    build_response(request_id, mg, &r)
+                },
                 Err(e) => build_error(request_id, e),
             }
         },
