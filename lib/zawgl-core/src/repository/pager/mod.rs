@@ -29,7 +29,7 @@ use super::io::file_access::*;
 pub enum PagerError {
     FileOverflow,
 }
-
+pub const IS_PAGE_IN_USE_FLAG: u8 = 0b0100_0000;
 pub type PagerResult = std::result::Result<PageId, PagerError>;
 pub type CountValue = u64;
 pub struct HeaderPage {
@@ -199,17 +199,42 @@ impl Pager {
         page_data
     }
 
-    pub fn load_page(&mut self, pid: PageId) -> Option<(PageId, &mut PageData)> {
+    fn read_page_header(&mut self, pid: PageId) -> [u8; 1] {
+        let mut page_data = [0u8];
+        let page_begin_pos = pid * PAGE_SIZE as u64;
+        self.records_file.read_at(page_begin_pos, &mut page_data);
+        page_data
+    }
+
+    pub fn load_page(&mut self, pid: PageId) -> Option<&mut PageData> {
         let nb_pages = self.header_page.get_page_count();
         if nb_pages >= pid {
             if self.page_cache.contains_page_id(&pid) {
-                self.page_cache.get_mut(&pid).map(|data| (pid, data))
+                self.page_cache.get_mut(&pid)
             } else {
                 let data = self.read_page_data(pid);
-                self.page_cache.put(data, pid).map(|data| (pid, data))
+                self.page_cache.put(data, pid)
             }
         } else {
             None
+        }
+    }
+
+    pub fn fetch_non_empty_page(&mut self, pid: PageId) -> Option<PageData> {
+        if self.page_cache.contains_page_id(&pid) {
+            Some(self.page_cache.get_ref(&pid).unwrap().clone())
+        } else {
+            let nb_pages = self.header_page.get_page_count();
+            if nb_pages >= pid {
+                let header = self.read_page_header(pid);
+                if (header[0] & IS_PAGE_IN_USE_FLAG) > 0 {
+                    Some(self.read_page_data(pid))
+                } else { 
+                    None
+                }
+            } else {
+                None
+            }
         }
     }
 
@@ -234,12 +259,10 @@ impl Pager {
     
     pub fn sync(&mut self) {
         self.records_file.write_at(0, &self.header_page.page);
-        let mut pids = self.page_cache.get_page_ids();
-        pids.sort();
-        for pid in pids {
-            let pos = pid * PAGE_SIZE as u64;
-            let data = self.page_cache.get_ref(&pid).unwrap();
-            self.records_file.write_at(pos, data);
+        let pages = self.page_cache.get_mut_pages_ref();
+        for p in pages {
+            let pos = p.0 * PAGE_SIZE as u64;
+            self.records_file.write_at(pos, p.1);
         }
     }
     fn copy_from_bounds(&self, bounds: Bounds, bytes: &mut [u8]) {

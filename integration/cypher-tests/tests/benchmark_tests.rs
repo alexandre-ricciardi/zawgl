@@ -34,13 +34,13 @@ async fn benchmark_test(mut client: Client) {
         println!("{}", r.to_string());
     }
     let start = Instant::now();
-    for i in 0..101 {
+    for i in 0..10100 {
         let result = client.execute_cypher_request("create (test:Person) return test").await;
         if let Err(r) = result {
             println!("{}", r.to_string());
             assert!(false, "error {}", i)
         }
-        if i % 10 == 0 {
+        if i % 100 == 0 {
             //println!("created {} nodes", i);
         }
     }
