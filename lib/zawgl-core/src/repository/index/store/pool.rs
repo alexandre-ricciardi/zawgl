@@ -40,17 +40,17 @@ pub struct NodeRecordPool {
 impl NodeRecordPool {
 
     pub fn new(record_manager: MutableRecordsManager) -> Self {
-        NodeRecordPool{ records_map: HashMap::new(), records: Vec::with_capacity(1000), records_manager: record_manager }
+        NodeRecordPool{ records_map: HashMap::new(), records: Vec::with_capacity(10000), records_manager: record_manager }
     }
 
     pub fn is_empty_records_set(&mut self) -> bool {
         self.records_manager.lock().unwrap().is_empty()
     }
 
-    pub fn load_node_record_clone(&mut self, id: u64) -> Option<BNodeRecord> {
-        let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(id) {
+    pub fn load_node_record_clone(&mut self, id: &u64) -> Option<BNodeRecord> {
+        let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(*id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-            self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
+            self.records_manager.lock().unwrap().load(*id, &mut data).ok()?;
             let pos = self.records.len();
             self.records.push(BNodeRecord::from_bytes(&data));
             e.insert(pos);
@@ -75,10 +75,10 @@ impl NodeRecordPool {
         self.records.get(pos)
     }
 
-    pub fn load_node_record_mut(&mut self, id: u64) -> Option<&mut BNodeRecord> {
-        let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(id) {
+    pub fn load_node_record_mut(&mut self, id: &u64) -> Option<&mut BNodeRecord> {
+        let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(*id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-            self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
+            self.records_manager.lock().unwrap().load(*id, &mut data).ok()?;
             let pos = self.records.len();
             self.records.push(BNodeRecord::from_bytes(&data));
             e.insert(pos);
@@ -112,7 +112,7 @@ impl NodeRecordPool {
     pub fn insert_cell_in_free_slot(&mut self, cell_record: &CellRecord) -> Option<BtreeCellLoc> {
         let mut iter = self.free_cell_iter();
         let next_free_cell_loc = iter.next()?;
-        let mut nr = self.load_node_record_mut(next_free_cell_loc.0)?;
+        let mut nr = self.load_node_record_mut(&next_free_cell_loc.0)?;
         nr.cells[next_free_cell_loc.1 as usize] = *cell_record;
         Some(next_free_cell_loc)
     }
@@ -120,7 +120,7 @@ impl NodeRecordPool {
     pub fn disable_cell_records(&mut self, root_cell_record_loc: BtreeCellLoc) -> Option<()> {
         let mut next_cell_loc = root_cell_record_loc;
         while next_cell_loc.0 != 0 {
-            let nr = self.load_node_record_mut(next_cell_loc.0)?;
+            let nr = self.load_node_record_mut(&next_cell_loc.0)?;
             let mut curr_cell = nr.cells[next_cell_loc.1 as usize];
             curr_cell.set_inactive();
             next_cell_loc = curr_cell.get_next_cell_location();
@@ -206,7 +206,7 @@ impl <'a> Iterator for FreeCellIterator<'a> {
     type Item = BtreeCellLoc;
     fn next(&mut self) -> Option<Self::Item> {
         let free_cell_node_id = self.load_or_create_free_cells_overflow_node()?;
-        if let Some(node_with_free_cells) = self.pool.load_node_record_mut(free_cell_node_id) {
+        if let Some(node_with_free_cells) = self.pool.load_node_record_mut(&free_cell_node_id) {
             for (cell_id, cell) in node_with_free_cells.cells.iter_mut().enumerate() {
                 if !cell.is_active() {
                     return Some((free_cell_node_id, cell_id.try_into().unwrap()));

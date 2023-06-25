@@ -23,7 +23,7 @@ use super::super::super::buf_config::*;
 pub type NodeId = u64;
 pub type CellId = u32;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct CellChangeState {
     is_new_instance: bool,
     is_added: bool,
@@ -54,6 +54,7 @@ impl CellChangeState {
         self.list_data_pointer_changed
     }
 }
+#[derive(Debug, Clone)]
 pub struct Cell {
     key: String,
     node_ptr: Option<NodeId>,
@@ -100,6 +101,7 @@ impl Cell {
 
 }
 
+#[derive(Debug, Clone)]
 pub struct CellChangeLogItem {
     is_add: bool,
     is_remove: bool,
@@ -124,6 +126,7 @@ impl CellChangeLogItem {
     }
 }
 
+#[derive(Debug, Clone)]
 
 pub struct NodeChangeState {
     node_ptr_changed: bool,
@@ -149,6 +152,7 @@ impl NodeChangeState {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct BTreeNode {
     id: Option<NodeId>,
     cells: Vec<Cell>,
