@@ -150,6 +150,10 @@ impl NodeChangeState {
     pub fn get_list_change_log(&self) -> &Vec<CellChangeLogItem> {
         &self.list_cell_change_log_items
     }
+
+    pub fn reset(&mut self) {
+        self.list_cell_change_log_items.clear();
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -253,5 +257,9 @@ impl BTreeNode {
 
     pub fn get_node_changes_state(&self) -> &NodeChangeState {
         &self.node_change_state
+    }
+
+    pub fn reset(&mut self) {
+        self.node_change_state.reset();
     }
 }

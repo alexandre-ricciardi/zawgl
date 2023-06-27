@@ -146,10 +146,11 @@ impl BTreeNodeStore {
 
     pub fn retrieve_node(&mut self, nid: &NodeId) -> Option<()> {
         let pool_node = self.nodes_pool.contains(nid);
-        if pool_node {
-            self._retrieve_node(nid).and_then(|n| self.nodes_pool.put(n));
+        if !pool_node {
+            self._retrieve_node(nid).and_then(|n| self.nodes_pool.put(n)).map(|_| ())
+        } else {
+            Some(())
         }
-        Some(())
     }
 
     pub fn get_node_ref(&self, node_id: &NodeId) -> Option<&BTreeNode> {
@@ -189,6 +190,7 @@ impl BTreeNodeStore {
     }
     pub fn get_node_mut(&mut self, node_id: &NodeId) -> Option<&mut BTreeNode> {
         self.nodes_pool.get_mut(node_id)
+        
     }
 
     fn update_overflow_cells(&mut self, cell_records: &Vec<CellRecord>, prev_cell_record: &CellRecord) -> Option<(NodeId, CellId)> {
@@ -307,8 +309,9 @@ impl BTreeNodeStore {
         if node.is_root() {
             self.set_root_node_ptr(id);
         }
-
-        self.nodes_pool.put(node.clone());
+        let mut clone = node.clone();
+        clone.reset();
+        self.nodes_pool.put(clone);
         self.pool.save_all_node_records()?;
 
         Some(())
@@ -533,6 +536,10 @@ impl BTreeNodeStore {
 
         self.pool.save_all_node_records()?;
 
+        if let Some(n) = self.get_node_mut(node_id) {
+            n.reset();
+        }
+
         Some(())
     }
 
@@ -643,11 +650,11 @@ mod test_btree_node_store {
         node.set_node_ptr(Some(42));
         store.create(&mut node);
         store.sync();
-
+        let id = node.get_id().unwrap();
         let mut load_store = BTreeNodeStore::new(&file);
-        let load =  node.get_id().and_then(|id| load_store.retrieve_node(&id));
+        load_store.retrieve_node(&id);
 
-        if let Some(loaded) = node.get_id().and_then(|id| load_store.get_node_ref(&id)) {
+        if let Some(loaded) = load_store.get_node_ref(&id) {
             assert_eq!(loaded.get_node_ptr(), Some(42));
             let cell = loaded.get_cell_ref(3);
             assert_eq!(cell.get_key(), &String::from("blabla4"));
@@ -679,7 +686,7 @@ mod test_btree_node_store {
         store.sync();
 
         let mut load_store = BTreeNodeStore::new(&file);
-        let load =  node.get_id().and_then(|id| load_store.retrieve_node(&id));
+        node.get_id().and_then(|id| load_store.retrieve_node(&id));
 
         if let Some(loaded) = node.get_id().and_then(|id| load_store.get_node_ref(&id)) {
             let long_key_cell = loaded.get_cell_ref(0);
@@ -719,13 +726,15 @@ mod test_btree_node_store {
         let mut node = BTreeNode::new(true, false, cells);
         store.create(&mut node);
         store.sync();
+        let id = node.get_id().unwrap();
+        {
+            let mref = store.get_node_mut(&id).unwrap();
+            mref.insert_cell(1, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9], true));
+            mref.insert_cell(2, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98], true));
+            store.save(&id).unwrap();
 
-        node.insert_cell(1, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9], true));
-        node.insert_cell(2, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98], true));
-        store.save(&node.get_id().unwrap()).unwrap();
-
-        store.sync();
-
+            store.sync();
+        }
         for data_ptr in 0..100 {
             node.get_id().and_then(|id| store.retrieve_node(&id)).unwrap();
             let nid = node.get_id().unwrap();
