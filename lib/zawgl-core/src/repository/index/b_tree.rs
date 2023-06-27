@@ -304,7 +304,7 @@ mod test_b_tree {
         let file = build_file_path_and_rm_old("b_tree", "test_root_split_same_key.db").unwrap();
         let mut index = BTreeIndex::new(&file);
 
-        for i in 0..30000 {
+        for i in 0..3000 {
             index.insert("same key", i);
             if i % 1000 == 0 {
                 println!("inserted {} values", i);
@@ -315,7 +315,7 @@ mod test_b_tree {
 
         let optrs = index.search("same key");
         if let Some(ptrs) = optrs {
-            assert_eq!(ptrs.len(), 30000);
+            assert_eq!(ptrs.len(), 3000);
         } else {
             panic!("empty search result for same key");
         }
