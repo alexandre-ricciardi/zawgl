@@ -22,7 +22,6 @@ mod records;
 mod pool;
 
 use log::*;
-use std::cmp::{max};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -348,14 +347,10 @@ impl BTreeNodeStore {
     fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>, start_index: usize) -> Option<()> {
         
         let overflow_cell_records = self.load_overflow_cell_records(root_cell_record)?;
-        let skip = if start_index > 0 {
-            start_index - 1
-        } else {
-            0
-        };
+
         let mut list_ptr_cells = Vec::new();
         let mut prev_cell_record = *root_cell_record;
-        for cell_record in overflow_cell_records.iter().skip(skip) {
+        for cell_record in &overflow_cell_records {
             if cell_record.is_list_ptr() {
                 list_ptr_cells.push(*cell_record);
             } else {
@@ -370,19 +365,26 @@ impl BTreeNodeStore {
         let mut whole_data_ptr_count = 0;
         let mut curr_list_ptr_cell = list_ptr_cells.pop()?;
         let mut to_create= false;
-        for data_ptr in data_ptrs {
-            data_ptr_offset += insert_data_ptr(&mut curr_list_ptr_cell.key, data_ptr_offset, data_ptr);
+        for (index, data_ptr) in data_ptrs.iter().enumerate() {
+            let to_update_or_create = index >= start_index;
+            if to_update_or_create {
+                data_ptr_offset += insert_data_ptr(&mut curr_list_ptr_cell.key, data_ptr_offset, data_ptr);
+            } else {
+                data_ptr_offset += NODE_PTR_SIZE;
+            }
             data_ptr_count += 1;
             whole_data_ptr_count += 1;
             if data_ptr_offset + NODE_PTR_SIZE >= KEY_SIZE {
                 update_counter(&mut curr_list_ptr_cell.key, data_ptr_count);
-                if to_create {
+                data_ptr_offset = 2;
+                data_ptr_count = 0;
+                if !to_update_or_create {
+                    continue;
+                } else if to_create {
                     cells_to_create.push(curr_list_ptr_cell);
                 } else {
                     cells_to_update.push(curr_list_ptr_cell);
                 }
-                data_ptr_offset = 2;
-                data_ptr_count = 0;
                 curr_list_ptr_cell = {
                     if let Some(cell) = list_ptr_cells.pop() {
                         to_create = false;
