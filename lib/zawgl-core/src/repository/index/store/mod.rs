@@ -22,6 +22,7 @@ mod records;
 mod pool;
 
 use log::*;
+use std::cmp::{max};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -344,13 +345,17 @@ impl BTreeNodeStore {
         Some(cells)
     }
 
-    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>) -> Option<()> {
+    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>, start_index: usize) -> Option<()> {
         
         let overflow_cell_records = self.load_overflow_cell_records(root_cell_record)?;
-
+        let skip = if start_index > 0 {
+            start_index - 1
+        } else {
+            0
+        };
         let mut list_ptr_cells = Vec::new();
         let mut prev_cell_record = *root_cell_record;
-        for cell_record in &overflow_cell_records {
+        for cell_record in overflow_cell_records.iter().skip(skip) {
             if cell_record.is_list_ptr() {
                 list_ptr_cells.push(*cell_record);
             } else {
@@ -494,9 +499,14 @@ impl BTreeNodeStore {
         for (new_cell_id, ctx) in cells_context.iter().enumerate() {
             if !ctx.is_added {
                 let current_cell = node.get_cell_ref(new_cell_id);
-                if current_cell.get_change_state().did_list_data_ptr_changed() {        
+                if current_cell.get_change_state().did_list_data_ptr_changed() || current_cell.get_change_state().is_append_only() {      
+                    let start_index = if current_cell.get_change_state().is_append_only() {
+                        current_cell.get_change_state().append_index()
+                    } else {
+                        0
+                    };
                     let main_node_record = self.pool.load_node_record_clone(node_record_id)?;
-                    self.update_cell_data_ptrs(&main_node_record.cells[new_cell_id], current_cell.get_data_ptrs_ref())?;
+                    self.update_cell_data_ptrs(&main_node_record.cells[new_cell_id], current_cell.get_data_ptrs_ref(), start_index)?;
                 }
             }
         }
