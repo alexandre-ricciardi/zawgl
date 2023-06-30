@@ -344,12 +344,29 @@ impl BTreeNodeStore {
         Some(cells)
     }
 
-    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>, start_index: usize) -> Option<()> {
+    fn load_overflow_cell_records_head(&mut self, root_cell_record: &CellRecord) -> Option<CellRecord> {
+        let curr_node_id = root_cell_record.node_ptr;
+        let curr_overflow_cell_id = root_cell_record.overflow_cell_ptr;
+        let has_overflow = root_cell_record.has_overflow();
+        if has_overflow {
+            let curr_node = self.pool.load_node_record_ref(curr_node_id)?;
+            let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
+            Some(*overflow_cell)
+        } else {
+            None
+        }
+    }
+
+    fn update_cell_data_ptrs(&mut self, root_cell_record: &CellRecord, data_ptrs: &Vec<NodeId>, start_index: usize, is_append_only: bool) -> Option<()> {
         
-        let overflow_cell_records = self.load_overflow_cell_records(root_cell_record)?;
+        let overflow_cell_records = if is_append_only {
+            vec![self.load_overflow_cell_records_head(root_cell_record)?]
+        } else {
+            self.load_overflow_cell_records(root_cell_record)?
+        };
 
         let mut list_ptr_cells = Vec::new();
-        let mut prev_cell_record = *root_cell_record;
+        let prev_cell_record = *root_cell_record;
         for cell_record in &overflow_cell_records {
             if cell_record.is_list_ptr() {
                 list_ptr_cells.push(*cell_record);
@@ -363,22 +380,15 @@ impl BTreeNodeStore {
         let mut whole_data_ptr_count = 0;
         let mut curr_list_ptr_cell = list_ptr_cells.pop()?;
         let mut to_create= false;
-        for (index, data_ptr) in data_ptrs.iter().enumerate() {
-            let to_update_or_create = index >= start_index;
-            if to_update_or_create {
-                data_ptr_offset += insert_data_ptr(&mut curr_list_ptr_cell.key, data_ptr_offset, data_ptr);
-            } else {
-                data_ptr_offset += NODE_PTR_SIZE;
-            }
+        for data_ptr in data_ptrs.iter().skip(start_index) {
+            data_ptr_offset += insert_data_ptr(&mut curr_list_ptr_cell.key, data_ptr_offset, data_ptr);
             data_ptr_count += 1;
             whole_data_ptr_count += 1;
             if data_ptr_offset + NODE_PTR_SIZE >= KEY_SIZE {
                 update_counter(&mut curr_list_ptr_cell.key, data_ptr_count);
                 data_ptr_offset = 2;
                 data_ptr_count = 0;
-                if !to_update_or_create {
-                    continue;
-                } else if to_create {
+                if to_create {
                     cells_to_create.push(curr_list_ptr_cell);
                 } else {
                     cells_to_update.push(curr_list_ptr_cell);
@@ -504,7 +514,7 @@ impl BTreeNodeStore {
                         0
                     };
                     let main_node_record = self.pool.load_node_record_clone(node_record_id)?;
-                    self.update_cell_data_ptrs(&main_node_record.cells[new_cell_id], current_cell.get_data_ptrs_ref(), start_index)?;
+                    self.update_cell_data_ptrs(&main_node_record.cells[new_cell_id], current_cell.get_data_ptrs_ref(), start_index, current_cell.get_change_state().is_append_only())?;
                 }
             }
         }

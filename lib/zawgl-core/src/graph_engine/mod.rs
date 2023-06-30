@@ -400,8 +400,8 @@ mod test_graph_engine_match {
     }
 
     #[test]
-    fn text_bench_create_nodes() {
-        let main_dir = build_dir_path_and_rm_old("text_bench_create_nodes").expect("db path");
+    fn test_bench_create_nodes() {
+        let main_dir = build_dir_path_and_rm_old("test_bench_create_nodes").expect("db path");
         let conf = InitContext::new(&main_dir).expect("can't create context");
         let mut ge = GraphEngine::new(conf);
         let mut n = Node::new();
