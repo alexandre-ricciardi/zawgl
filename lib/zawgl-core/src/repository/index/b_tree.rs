@@ -45,7 +45,9 @@ impl BTreeIndex {
         BTreeIndex{node_store: BTreeNodeStore::new(file)}
     }
 
-    fn tree_search(&mut self, value: &str, node: &BTreeNode) -> Option<Vec<DataPtr>> {
+    fn tree_search(&mut self, value: &str, node_id: &NodeId) -> Option<Vec<DataPtr>> {
+        self.node_store.retrieve_node(node_id)?;
+        let node = self.node_store.get_node_ref(node_id)?;
         let keys = node.get_keys();
         let res = binary_search_keys(&keys, value);
         match res {
@@ -53,7 +55,7 @@ impl BTreeIndex {
                 if node.is_leaf() {
                     Some(node.get_cell_ref(found).get_data_ptrs_ref().clone())
                 } else {
-                    let child = node.get_cell_ref(found).get_node_ptr().and_then(|id|self.node_store.retrieve_node(id))?;
+                    let child = node.get_cell_ref(found).get_node_ptr()?;
                     self.tree_search(value, &child)
                 }
             },
@@ -62,119 +64,144 @@ impl BTreeIndex {
                     None
                 } else {
                     let node_ptr = get_node_ptr(not_found, node)?;
-                    let child = self.node_store.retrieve_node(node_ptr)?;
-                    self.tree_search(value, &child)
+                    self.tree_search(value, &node_ptr)
                 }
             }
         }
     }
 
 
-    fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode, new_cell_index: usize) -> Option<BTreeNode> {
-        node.insert_cell(new_cell_index, Cell::new_leaf(value, data_ptr));
-        let split = node.get_cells_ref().len() / 2;
-        let mut new_node_cells = Vec::new();
-        while node.get_cells_ref().len() > split {
-            if let Some(cell) = node.pop_cell() {
-                new_node_cells.push(cell);
-            }
+    fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node_id: &NodeId, new_cell_index: usize) -> Option<BTreeNode> {
+        {   
+            let node = self.node_store.get_node_mut(node_id)?;
+            node.insert_cell(new_cell_index, Cell::new_leaf(value, data_ptr));
         }
-        new_node_cells.reverse();
-
+        let new_node_cells = {
+            let node = self.node_store.get_node_mut(node_id)?;
+            let split = node.get_cells_ref().len() / 2;
+            let mut new_node_cells = Vec::new();
+            while node.get_cells_ref().len() > split {
+                if let Some(cell) = node.pop_cell() {
+                    new_node_cells.push(cell);
+                }
+            }
+            new_node_cells.reverse();
+            new_node_cells
+        };
         let new_first_cell = &new_node_cells[0];
         let mut middle_key = Cell::new_ptr(new_first_cell.get_key(), None);
         let mut new = BTreeNode::new(true, false, new_node_cells);
 
-        if node.get_node_ptr().is_some() {
-            let next = node.get_node_ptr().and_then(|id| self.node_store.retrieve_node(id))?;
-            new.set_node_ptr(next.get_id());
+        let node_ptr = self.node_store.get_node_ptr(node_id);
+        if node_ptr.is_some() {
+            let ptr = node_ptr?;
+            self.node_store.retrieve_node(&ptr)?;
+            new.set_node_ptr(node_ptr);
         }
         
         self.node_store.create(&mut new)?;
-        node.set_node_ptr(new.get_id());
         
-
-        if node.is_root() {
-            node.set_is_root(false);
-            self.node_store.save(node)?;
+        self.node_store.set_node_ptr(node_id, new.get_id());
+        
+        if self.node_store.is_root_node(node_id) {
+            self.node_store.set_is_root(node_id, false);
+            self.node_store.save(&node_id)?;
             middle_key.set_node_ptr(new.get_id());
             let mut new_root = BTreeNode::new(false, true, vec![middle_key]);
-            new_root.set_node_ptr(node.get_id());
+            new_root.set_node_ptr(Some(*node_id));
             self.node_store.create(&mut new_root)?;
             None
         } else {
-            self.node_store.save(node)?;
+            self.node_store.save(&node_id)?;
             Some(new)
         }
     }
 
-    fn split_interior_node(&mut self, new_key: &str, new_node_ptr: Option<NodeId>, node: &mut BTreeNode, new_cell_index: usize) -> Option<BTreeNode> {
-        node.insert_cell(new_cell_index, Cell::new_ptr(new_key, new_node_ptr));
-        let split = node.get_cells_ref().len() / 2;
-        let mut new_node_cells = Vec::new();
-        while node.get_cells_ref().len() > split {
-            if let Some(cell) = node.pop_cell() {
-                new_node_cells.push(cell);
+    fn split_interior_node(&mut self, new_key: &str, new_node_ptr: Option<NodeId>, node_id: &NodeId, new_cell_index: usize) -> Option<BTreeNode> {
+        
+        
+        let new_node_cells = {
+            let node = self.node_store.get_node_mut(node_id)?;
+            node.insert_cell(new_cell_index, Cell::new_ptr(new_key, new_node_ptr));
+            let split = node.get_cells_ref().len() / 2;
+            let mut new_node_cells = Vec::new();
+            while node.get_cells_ref().len() > split {
+                if let Some(cell) = node.pop_cell() {
+                    new_node_cells.push(cell);
+                }
             }
-        }
-        new_node_cells.reverse();
-
+            new_node_cells.reverse();
+            new_node_cells
+        };
         let new_first_cell = &new_node_cells[0];
         let mut middle_key = Cell::new_ptr(new_first_cell.get_key(), None);
         let mut new = BTreeNode::new(false, false, new_node_cells);
         self.node_store.create(&mut new);
 
-        if node.is_root() {
-            node.set_is_root(false);
-            self.node_store.save(node)?;
-            middle_key.set_node_ptr(new.get_id());
+        if self.node_store.is_root_node(node_id) {
+            self.node_store.set_is_root(node_id, false);
+            self.node_store.save(node_id)?;
+            middle_key.set_node_ptr(Some(*node_id));
             let mut new_root = BTreeNode::new(false, true, vec![middle_key]);
-            new_root.set_node_ptr(node.get_id());
+            new_root.set_node_ptr(Some(*node_id));
             self.node_store.create(&mut new_root)?;
             None
         } else {
-            self.node_store.save(node)?;
+            self.node_store.save(&node_id)?;
             Some(new)
         }
     }
 
-    fn insert_or_update_key_ptrs(&mut self, value: &str, data_ptr: u64, node: &mut BTreeNode) -> Option<BTreeNode> {
-        let keys = node.get_keys();
-        let res = binary_search_keys(&keys, value);
-        match res {
+    fn insert_or_update_key_ptrs(&mut self, value: &str, data_ptr: u64, node_id: &NodeId) -> Option<BTreeNode> {
+        self.node_store.retrieve_node(node_id)?;
+        let search_res = {
+            let node = self.node_store.get_node_ref(node_id)?;
+            let keys = node.get_keys();
+            let res = binary_search_keys(&keys, value);
+            (res, keys.iter().map(|key| key.to_string()).collect::<Vec<String>>())
+        };
+        match search_res.0 {
             Ok(found) => {
+                let node = self.node_store.get_node_mut(node_id)?;
                 if node.is_leaf() {
                     node.get_cell_mut(found).append_data_ptr(data_ptr);
-                    self.node_store.save(node)?;
+                    self.node_store.save(node_id)?;
                     None
                 } else {
-                    let mut child = node.get_cell_ref(found).get_node_ptr().and_then(|id| self.node_store.retrieve_node(id))?;
-                    self.insert_or_update_key_ptrs(value, data_ptr, &mut child)
+                    let child_id = node.get_cell_ref(found).get_node_ptr()?;
+                    self.insert_or_update_key_ptrs(value, data_ptr, &child_id)
                 }
             },
             Err(not_found) => {
-                if node.is_leaf() {
+                if self.node_store.is_leaf_node(node_id) {
+                    let node = self.node_store.get_node_mut(node_id)?;
                     if node.is_full() {
-                        self.split_leaf_node(value, data_ptr, node, not_found)
+                        self.split_leaf_node(value, data_ptr, node_id, not_found)
                     } else {
                         node.insert_cell(not_found, Cell::new_leaf(value, data_ptr));
-                        self.node_store.save(node)?;
+                        self.node_store.save(node_id)?;
                         None
                     }
                 } else {
-                    let node_ptr = get_node_ptr(not_found, node)?;
-                    let mut child = self.node_store.retrieve_node(node_ptr)?;
-                    let split_node = self.insert_or_update_key_ptrs(value, data_ptr, &mut child)?;
+                    let node_ptr = {
+                        let node = self.node_store.get_node_ref(node_id)?;
+                        let node_ptr = get_node_ptr(not_found, node)?;
+                        node_ptr
+                    };
+                    self.node_store.retrieve_node(&node_ptr)?;
+                    let split_node = self.insert_or_update_key_ptrs(value, data_ptr, &node_ptr)?;
                     let first_cell = split_node.get_cell_ref(0);
                     let first_cell_key = first_cell.get_key();
+                    let keys = search_res.1.iter().map(|key| key.as_str()).collect::<Vec<&str>>();
                     let first_split_cell_key_search = binary_search_keys(&keys, first_cell_key);
                     match first_split_cell_key_search {
                         Err(not_found) => {
-                            if node.is_full() {
-                                self.split_interior_node(first_cell.get_key(), split_node.get_id(), node, not_found)
+                            if self.node_store.is_full_node(node_id) {
+                                self.split_interior_node(first_cell.get_key(), split_node.get_id(), node_id, not_found)
                             } else {
+                                let node = self.node_store.get_node_mut(node_id)?;
                                 node.insert_cell(not_found, Cell::new_ptr(first_cell.get_key(), split_node.get_id()));
-                                self.node_store.save(node)?;
+                                self.node_store.save(&node_ptr)?;
                                 None
                             }
                         },
@@ -192,8 +219,8 @@ impl BTreeIndex {
     }
 
     pub fn insert(&mut self, value: &str, data_ptr: u64) -> Option<()> {
-        let mut root = self.node_store.load_or_create_root_node()?;
-        self.insert_or_update_key_ptrs(value, data_ptr, &mut root).map(|_node|())
+        let root = self.node_store.load_or_create_root_node()?;
+        self.insert_or_update_key_ptrs(value, data_ptr, &root).map(|_node|())
     }
 
     pub fn delete(&mut self, _value: u64) {
@@ -279,16 +306,15 @@ mod test_b_tree {
 
         for i in 0..3000 {
             index.insert("same key", i);
-            index.sync();
             if i % 1000 == 0 {
                 println!("inserted {} values", i);
             }
         }
+        index.sync();
 
 
         let optrs = index.search("same key");
         if let Some(ptrs) = optrs {
-            println!("{:?}", ptrs);
             assert_eq!(ptrs.len(), 3000);
         } else {
             panic!("empty search result for same key");

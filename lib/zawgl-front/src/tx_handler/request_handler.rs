@@ -21,8 +21,9 @@
 
 use std::collections::HashMap;
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
 
+use std::sync::Mutex;
 use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::model::{PropertyGraph};
 use zawgl_core::model::init::InitContext;
@@ -33,43 +34,47 @@ use crate::tx_handler::tx_context::TxContext;
 use super::{DatabaseError};
 
 
-pub type RequestHandler<'a> = Arc<RwLock<GraphRequestHandler<'a>>>;
+pub type RequestHandler = Arc<Mutex<GraphRequestHandler>>;
 
-pub struct GraphRequestHandler <'a> {
-    conf: InitContext<'a>,
+pub struct GraphRequestHandler {
+    conf: InitContext,
     map_session_graph_engine: HashMap<String, GraphEngine>,
     graph_engine: GraphEngine,
 }
 
-impl <'a> GraphRequestHandler<'a> {
-    pub fn new(ctx: InitContext<'a>) -> Self {
-        let graph_engine = GraphEngine::new(&ctx);
+impl <'a> GraphRequestHandler {
+    pub fn new(ctx: InitContext) -> Self {
+        let graph_engine = GraphEngine::new(ctx.clone());
         GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new(), graph_engine }
     }
 
-    pub fn handle_graph_request(&mut self, steps: &Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
+    pub fn handle_graph_request(&mut self, steps: Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
         
         let matched_graphs = handle_query_steps(steps, &mut self.graph_engine).ok_or(DatabaseError::EngineError)?;
-        self.graph_engine.sync();
+        self.commit_graph_request();
         Ok(matched_graphs)
     }
 
+    pub fn commit_graph_request(&mut self) {
+        self.graph_engine.sync();
+    }
+
     
-    pub fn handle_graph_request_tx(&mut self, steps: &Vec<QueryStep>, tx_context: &TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
+    pub fn handle_graph_request_tx(&mut self, steps: Vec<QueryStep>, tx_context: TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
         let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or(DatabaseError::TxError)?;
         let matched_graphs = handle_query_steps(steps, graph_engine).ok_or(DatabaseError::EngineError)?;
         Ok(matched_graphs)
     }
 
-    pub fn commit_tx(&mut self, tx_context: & TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
+    pub fn commit_tx(&mut self, tx_context: TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
         let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or(DatabaseError::TxError)?;
         graph_engine.sync();
         self.map_session_graph_engine.remove(&tx_context.session_id);
         Ok(Vec::new())
     }
 
-    pub fn open_graph_tx(&mut self, tx_context: &TxContext) {
-        self.map_session_graph_engine.insert(tx_context.session_id.clone(), GraphEngine::new(&self.conf));
+    pub fn open_graph_tx(&mut self, tx_context: TxContext) {
+        self.map_session_graph_engine.insert(tx_context.session_id.clone(), GraphEngine::new(self.conf.clone()));
     }
 }
 

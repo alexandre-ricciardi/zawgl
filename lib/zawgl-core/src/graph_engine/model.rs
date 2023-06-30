@@ -374,7 +374,7 @@ impl GraphProxy {
         }
         for v in pattern.get_nodes() {
             if v.get_labels_ref().is_empty() && v.get_id().is_none() {
-                    ids = repo.lock().unwrap().retrieve_all_nodes_ids().map(|v| v.into_iter().map(ProxyNodeId::new_db).collect())?;
+                    ids = repo.lock().unwrap().get_node_ids().as_ref().map(|v| v.iter().map(|nid|ProxyNodeId::new_db(*nid)).collect())?;
                     break;
             }
         }
@@ -388,7 +388,7 @@ impl GraphProxy {
     }
 
     pub fn new_full(repo: MutableGraphRepository) -> Option<Self> {
-        let ids = repo.lock().unwrap().retrieve_all_nodes_ids().map(|v| v.into_iter().map(ProxyNodeId::new_db).collect())?;
+        let ids = repo.lock().unwrap().get_node_ids().as_ref().map(|v| v.iter().map(|nid|ProxyNodeId::new_db(*nid)).collect())?;
 
         Some(GraphProxy{repository: repo, nodes: Vec::new(),
             relationships: Vec::new(),

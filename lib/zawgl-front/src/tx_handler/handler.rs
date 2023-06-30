@@ -28,10 +28,10 @@ use super::tx_context::TxContext;
 
 pub type TxHandler = Arc<ReentrantMutex<RefCell<GraphTxHandler>>>;
 
-pub enum TxStatus<'a> {
-    OpenNewTx(&'a TxContext),
-    ContinueCurrentTx(&'a TxContext),
-    CommitCurrentTx(&'a TxContext),
+pub enum TxStatus {
+    OpenNewTx(TxContext),
+    ContinueCurrentTx(TxContext),
+    CommitCurrentTx(TxContext),
     WaitForCurrentTx,
     NoTx,
 }
@@ -54,7 +54,7 @@ impl GraphTxHandler {
         GraphTxHandler{current_session_id: None, session_lock: Mutex::new(()), is_session_locked: false, tx_start_date: None}
     }
 
-    pub fn get_session_status<'a>(&mut self, tx_context: &'a Option<TxContext>) -> TxStatus<'a> {
+    pub fn get_session_status(&mut self, tx_context: Option<TxContext>) -> TxStatus {
         if let Some(ctx) = tx_context {
             if let Some(s_id) = &self.current_session_id {
                 if &ctx.session_id == s_id {

@@ -18,49 +18,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+pub mod page_cache;
+
+use self::page_cache::{PageId, PageCache, PageData};
+
 use super::super::buf_config::*;
 use super::io::file_access::*;
-use std::collections::HashMap;
-
-pub type PageId = u64;
 
 #[derive(Debug, Clone)]
 pub enum PagerError {
     FileOverflow,
 }
-
+pub const IS_PAGE_IN_USE_FLAG: u8 = 0b0100_0000;
 pub type PagerResult = std::result::Result<PageId, PagerError>;
-pub type PageData = [u8; PAGE_SIZE];
-pub type HeapPage = Page;
 pub type CountValue = u64;
 pub struct HeaderPage {
-    pub page: HeapPage,
+    pub page: PageData,
     header_page_map: HeaderPageMap,
 }
 
-fn make_heap_page(data: PageData) -> HeapPage {
-    let page = Page::new(data);
-    page
-}
 
-fn make_empty_heap_page() -> HeapPage {
-    let page = Page::new([0u8; PAGE_SIZE]);
-    page
+fn make_empty_heap_page() -> PageData {
+    [0u8; PAGE_SIZE]
 }
 
 impl HeaderPage {
-    fn new(data: HeapPage) -> Self {
+    fn new(data: PageData) -> Self {
         HeaderPage{page: data, header_page_map: HeaderPageMap::new()}
     }
 
     pub fn get_page_count(&self) -> u64 {
         let mut bytes = [0u8; PAGE_COUNTER_SIZE];
-        bytes.copy_from_slice(&self.page.data[..PAGE_COUNTER_SIZE]);
+        bytes.copy_from_slice(&self.page[..PAGE_COUNTER_SIZE]);
         u64::from_be_bytes(bytes)
     }
 
     pub fn set_page_count(&mut self, count: u64) {
-        self.page.data[..PAGE_COUNTER_SIZE].copy_from_slice(&count.to_be_bytes());
+        self.page[..PAGE_COUNTER_SIZE].copy_from_slice(&count.to_be_bytes());
     }
     
     pub fn get_header_first_free_page_ptr(&self) -> PageId {
@@ -99,32 +93,22 @@ impl HeaderPage {
     }
     
     pub fn read_header_from_bounds(&self, bounds: Bounds, bytes: &mut [u8]) {
-        bytes.copy_from_slice(&self.page.data[bounds.begin..bounds.end]);
+        bytes.copy_from_slice(&self.page[bounds.begin..bounds.end]);
     }
     
     pub fn write_header_to_bounds(&mut self, bounds: Bounds, bytes: &[u8]) {
-        self.page.data[bounds.begin..bounds.end].copy_from_slice(bytes);
+        self.page[bounds.begin..bounds.end].copy_from_slice(bytes);
     }
     
     pub fn read_header_payload_from_bounds(&self, bounds: Bounds, bytes: &mut [u8]) {
         let payload_bounds = self.header_page_map.header_page_payload.sub(bounds.begin, bounds.len());
-        let slice = &self.page.data[payload_bounds.begin..payload_bounds.end];
+        let slice = &self.page[payload_bounds.begin..payload_bounds.end];
         bytes.copy_from_slice(slice);
     }
     
     pub fn write_header_payload_to_bounds(&mut self, bounds: Bounds, bytes: &[u8]) {
         let payload_bounds = self.header_page_map.header_page_payload.sub(bounds.begin, bounds.len());
-        self.page.data[payload_bounds.begin..payload_bounds.end].copy_from_slice(bytes);
-    }
-}
-
-pub struct Page {
-    pub data: PageData,
-}
-
-impl Page {
-    fn new(data: PageData) -> Self {
-        Page{data}
+        self.page[payload_bounds.begin..payload_bounds.end].copy_from_slice(bytes);
     }
 }
 
@@ -177,8 +161,7 @@ impl HeaderPageMap {
 
 pub struct Pager {
     records_file: FileAccess,
-    page_cache: HashMap<PageId, usize>,
-    pages: Vec<HeapPage>,
+    page_cache: PageCache,
     header_page: HeaderPage,
 }
 
@@ -186,9 +169,9 @@ pub struct Pager {
 fn load_or_create_header_page(io: &mut FileAccess) -> HeaderPage {
     let mut header_page_data = make_empty_heap_page();
     if io.get_file_len() == 0 {
-        io.write_at(0, &header_page_data.data);
+        io.write_at(0, &header_page_data);
     } else {
-        let bmut_data = &mut header_page_data.data;
+        let bmut_data = &mut header_page_data;
         io.read_at(0, bmut_data);
     }
     HeaderPage{page: header_page_data, header_page_map: HeaderPageMap::new()}
@@ -198,7 +181,7 @@ impl Pager {
     pub fn new(file: &str) -> Self {
         let mut file_io = FileAccess::new(file);
         let header_page = load_or_create_header_page(&mut file_io);
-        Pager { records_file: file_io, page_cache: HashMap::new(), pages: Vec::new(), header_page }
+        Pager { records_file: file_io, page_cache: PageCache::new(1000), header_page }
     }
 
     pub fn get_header_page_ref(&self) -> &HeaderPage {
@@ -216,23 +199,47 @@ impl Pager {
         page_data
     }
 
-    pub fn load_page(&mut self, pid: PageId) -> Option<(PageId, &mut HeapPage)> {
+    fn read_page_header(&mut self, pid: PageId) -> [u8; 1] {
+        let mut page_data = [0u8];
+        let page_begin_pos = pid * PAGE_SIZE as u64;
+        self.records_file.read_at(page_begin_pos, &mut page_data);
+        page_data
+    }
+
+    pub fn load_page(&mut self, pid: PageId) -> Option<&mut PageData> {
         let nb_pages = self.header_page.get_page_count();
         if nb_pages >= pid {
-            if !self.page_cache.contains_key(&pid) {
-                let page_data = self.read_page_data(pid);
-                let heap_page = make_heap_page(page_data);
-                let pos = self.pages.len();
-                self.pages.push(heap_page);
-                self.page_cache.insert(pid, pos);
+            if self.page_cache.contains_page_id(&pid) {
+                self.page_cache.get_mut(&pid)
+            } else {
+                let data = self.read_page_data(pid);
+                self.page_cache.put(data, pid)
             }
-            self.page_cache.get(&pid).and_then(
-                |pos| self.pages.get_mut(*pos).map(|p| (pid, p))
-            )
         } else {
             None
         }
-        
+    }
+
+    pub fn fetch_non_empty_page(&mut self, pid: PageId) -> Option<PageData> {
+        if self.page_cache.contains_page_id(&pid) {
+            Some(self.page_cache.get_ref(&pid).unwrap().clone())
+        } else {
+            let nb_pages = self.header_page.get_page_count();
+            if nb_pages >= pid {
+                let header = self.read_page_header(pid);
+                if (header[0] & IS_PAGE_IN_USE_FLAG) > 0 {
+                    Some(self.read_page_data(pid))
+                } else { 
+                    None
+                }
+            } else {
+                None
+            }
+        }
+    }
+
+    pub fn drop_page(&mut self, pid: &PageId) {
+        self.page_cache.drop_page(pid);
     }
 
     pub fn append(&mut self, nb_pages_to_create: usize) -> Vec<PageId> {
@@ -245,27 +252,21 @@ impl Pager {
 
     fn _append_one_page(&mut self) -> PageId {
         let next_pid = self.header_page.get_page_count() + 1;
+        self.page_cache.put([0u8; PAGE_SIZE], next_pid);
         self.header_page.set_page_count(next_pid);
-        let page_data = make_empty_heap_page();
-        let pos = self.pages.len();
-        self.pages.push(page_data);
-        self.page_cache.insert(next_pid, pos);
         next_pid
     }
     
     pub fn sync(&mut self) {
-        self.records_file.write_at(0, &self.header_page.page.data);
-        let mut pids = self.page_cache.keys().cloned().collect::<Vec<PageId>>();
-        pids.sort();
-        for pid in pids {
-            let pos = pid * PAGE_SIZE as u64;
-            let rrb_data = self.page_cache.get(&pid).unwrap();
-            let data = &self.pages.get(*rrb_data).unwrap().data;
-            self.records_file.write_at(pos, data);
+        self.records_file.write_at(0, &self.header_page.page);
+        let pages = self.page_cache.get_mut_pages_ref();
+        for p in pages {
+            let pos = p.0 * PAGE_SIZE as u64;
+            self.records_file.write_at(pos, p.1);
         }
     }
     fn copy_from_bounds(&self, bounds: Bounds, bytes: &mut [u8]) {
-        let slice = &self.header_page.page.data[bounds.begin..bounds.end];
+        let slice = &self.header_page.page[bounds.begin..bounds.end];
         bytes.copy_from_slice(slice);
     }
 }

@@ -22,6 +22,6 @@
 use bson::Document;
 use zawgl_front::{tx_handler::{request_handler::RequestHandler, handler::TxHandler}, cypher::query_engine::CypherError};
 
-pub fn handle_open_cypher_request<'a>(tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, cypher_request: &Document) -> Result<Document, CypherError> {
+pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, cypher_request: &Document) -> Result<Document, CypherError> {
     zawgl_front::handle_open_cypher_request(tx_handler, graph_request_handler, cypher_request)
 }

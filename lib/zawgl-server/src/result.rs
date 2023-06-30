@@ -28,4 +28,5 @@ pub enum ServerError {
     ParsingError(String),
     WebsocketError(Error),
     CypherTxError(CypherError),
+    ConcurrencyError,
 }

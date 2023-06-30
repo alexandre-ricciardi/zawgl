@@ -51,7 +51,7 @@ fn make_cartesian_product(pools: &[Vec<PropertyGraph>]) -> Vec<Vec<&PropertyGrap
     res
 }
 
-pub fn handle_query_steps(steps: &Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Option<Vec<PropertyGraph>> {
+pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Option<Vec<PropertyGraph>> {
     let mut results = Vec::<Vec<PropertyGraph>>::new();
     for step in steps {
         match step.step_type {

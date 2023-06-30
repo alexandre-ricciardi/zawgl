@@ -23,20 +23,22 @@ use super::super::super::buf_config::*;
 pub type NodeId = u64;
 pub type CellId = u32;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct CellChangeState {
     is_new_instance: bool,
     is_added: bool,
     is_removed: bool,
     list_data_pointer_changed: bool,
+    is_append_only: bool,
+    append_index: usize,
 }
 
 impl CellChangeState {
-    fn new(new: bool) -> Self {
+    fn new(new: bool, append_index: usize) -> Self {
         CellChangeState{is_new_instance: new, 
             is_added: false,
             is_removed: false, 
-            list_data_pointer_changed: false}
+            list_data_pointer_changed: false, append_index, is_append_only: false}
     }
     fn set_is_removed(&mut self) {
         self.is_removed = true;
@@ -53,7 +55,14 @@ impl CellChangeState {
     pub fn did_list_data_ptr_changed(&self) -> bool {
         self.list_data_pointer_changed
     }
+    pub fn is_append_only(&self) -> bool {
+        self.is_append_only
+    }
+    pub fn append_index(&self) -> usize {
+        self.append_index
+    }
 }
+#[derive(Debug, Clone)]
 pub struct Cell {
     key: String,
     node_ptr: Option<NodeId>,
@@ -64,21 +73,28 @@ pub struct Cell {
 
 impl Cell {
     pub fn new_ptr(key: &str, ptr: Option<NodeId>) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active: true, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new(true)}
+        Cell{key: String::from(key), node_ptr: ptr, is_active: true, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new(true, 0)}
     }
     pub fn new_leaf(key: &str, data_ptr: NodeId) -> Self {
-        Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true)}
+        Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true, 0)}
     }
     pub fn new(key: &str, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>, is_active: bool) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active, data_ptrs, cell_change_state: CellChangeState::new(false)}
+        let index = data_ptrs.len();
+        Cell{key: String::from(key), node_ptr: ptr, is_active, data_ptrs, cell_change_state: CellChangeState::new(false, index)}
     }
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
-        self.cell_change_state.list_data_pointer_changed = true;
+        if !self.cell_change_state.list_data_pointer_changed {
+            self.cell_change_state.is_append_only = true;
+            self.cell_change_state.append_index += 1;
+        } else {
+            self.cell_change_state.is_append_only = false;
+        }
         self.data_ptrs.push(data_ptr);
     }
     
     pub fn delete_data_ptr(&mut self, data_ptr: NodeId) {
         self.cell_change_state.list_data_pointer_changed = true;
+        self.cell_change_state.is_append_only = false;
         self.data_ptrs.retain(|&curr| curr != data_ptr);
     }
 
@@ -100,6 +116,7 @@ impl Cell {
 
 }
 
+#[derive(Debug, Clone)]
 pub struct CellChangeLogItem {
     is_add: bool,
     is_remove: bool,
@@ -124,6 +141,7 @@ impl CellChangeLogItem {
     }
 }
 
+#[derive(Debug, Clone)]
 
 pub struct NodeChangeState {
     node_ptr_changed: bool,
@@ -147,8 +165,13 @@ impl NodeChangeState {
     pub fn get_list_change_log(&self) -> &Vec<CellChangeLogItem> {
         &self.list_cell_change_log_items
     }
+
+    pub fn reset(&mut self) {
+        self.list_cell_change_log_items.clear();
+    }
 }
 
+#[derive(Debug, Clone)]
 pub struct BTreeNode {
     id: Option<NodeId>,
     cells: Vec<Cell>,
@@ -249,5 +272,9 @@ impl BTreeNode {
 
     pub fn get_node_changes_state(&self) -> &NodeChangeState {
         &self.node_change_state
+    }
+
+    pub fn reset(&mut self) {
+        self.node_change_state.reset();
     }
 }

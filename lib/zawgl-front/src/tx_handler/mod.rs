@@ -22,11 +22,11 @@
 pub mod handler;
 pub mod tx_context;
 pub mod request_handler;
-use std::fmt;
+use std::{fmt, sync::Arc};
 use log::*;
 
 use request_handler::RequestHandler;
-use handler::{Scenario, TxHandler, TxStatus, needs_write_lock};
+use handler::{Scenario, TxHandler, TxStatus};
 
 use zawgl_core::model::PropertyGraph;
 use zawgl_cypher_query_model::QueryStep;
@@ -53,40 +53,33 @@ impl fmt::Display for DatabaseError {
     }
 }
 
-
-pub fn handle_graph_request(tx_handler: TxHandler, graph_request_handler: RequestHandler<'_>, steps: &Vec<QueryStep>, tx_context: Option<TxContext>) -> Result<Vec<PropertyGraph>, DatabaseError> {
+pub fn handle_graph_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, steps: Vec<QueryStep>, tx_context: Option<TxContext>) -> Result<Vec<PropertyGraph>, DatabaseError> {
     let tx_lock = tx_handler.lock();
-    let tx_status = tx_lock.borrow_mut().get_session_status(&tx_context);
+    let tx_status = tx_lock.borrow_mut().get_session_status(tx_context.clone());
     match tx_status {
         TxStatus::OpenNewTx(ctx) => {
             trace!("Open new TX {}", ctx.session_id);
             tx_lock.borrow_mut().acquire_session_lock();
-            graph_request_handler.write().unwrap().open_graph_tx(ctx);
-            graph_request_handler.write().unwrap().handle_graph_request_tx(steps, ctx)
+            graph_request_handler.lock().unwrap().open_graph_tx(ctx.clone());
+            graph_request_handler.lock().unwrap().handle_graph_request_tx(steps, ctx.clone())
         },
         TxStatus::ContinueCurrentTx(ctx) => {
             trace!("Continue current TX {}", ctx.session_id);
-            graph_request_handler.write().unwrap().handle_graph_request_tx(steps, ctx)
+            graph_request_handler.lock().unwrap().handle_graph_request_tx(steps, ctx)
         },
         TxStatus::CommitCurrentTx(ctx) => { 
             trace!("Commit current TX {}", ctx.session_id);
-            let res = graph_request_handler.write().unwrap().commit_tx(ctx);
             tx_lock.borrow_mut().release_session_lock();
-            res
+            graph_request_handler.lock().unwrap().commit_tx(ctx)
         },
         TxStatus::WaitForCurrentTx => {
             trace!("Wait for current TX {:?}", tx_context);
             tx_lock.borrow_mut().acquire_session_lock();
-            handle_graph_request(tx_handler.clone(), graph_request_handler, steps, tx_context)
+            handle_graph_request(Arc::clone(&tx_handler), Arc::clone(&graph_request_handler), steps, tx_context)
         },
         TxStatus::NoTx => {
             trace!("No TX {:?}", tx_context);
-            //if needs_write_lock(steps) {
-                graph_request_handler.write().unwrap().handle_graph_request(steps)
-            //} 
-            //else {
-                //graph_request_handler.read().unwrap().handle_graph_request(steps)
-            //}
+            graph_request_handler.lock().unwrap().handle_graph_request(steps)
         },
     }
 }

@@ -149,7 +149,7 @@ impl BNodeRecord {
         }
         bytes
     }
-    pub fn from_bytes(bytes: [u8; BTREE_NODE_RECORD_SIZE]) -> Self {
+    pub fn from_bytes(bytes: &[u8; BTREE_NODE_RECORD_SIZE]) -> Self {
         let mut index = 0;
         let header = bytes[index];
         index += BTREE_NODE_HEADER_SIZE;
@@ -230,7 +230,7 @@ mod test_btree_node_records {
         node.set_has_next_node();
         node.cells[0].set_is_active();
         let bytes = node.to_bytes();
-        let mut from = BNodeRecord::from_bytes(bytes);
+        let mut from = BNodeRecord::from_bytes(&bytes);
 
         assert!(from.is_leaf());
         assert_eq!(from.next_free_cells_node_ptr, 28967);
@@ -240,7 +240,7 @@ mod test_btree_node_records {
         from.cells[0].set_inactive();
 
         let fbytes = from.to_bytes();
-        let from_1 = BNodeRecord::from_bytes(fbytes);
+        let from_1 = BNodeRecord::from_bytes(&fbytes);
 
         assert!(from_1.is_leaf());
         assert!(from_1.has_next_node());
