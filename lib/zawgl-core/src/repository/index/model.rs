@@ -79,7 +79,7 @@ impl Cell {
         Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true, 0)}
     }
     pub fn new(key: &str, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>, is_active: bool) -> Self {
-        let index = data_ptrs.len() - 1;
+        let index = data_ptrs.len();
         Cell{key: String::from(key), node_ptr: ptr, is_active, data_ptrs, cell_change_state: CellChangeState::new(false, index)}
     }
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {

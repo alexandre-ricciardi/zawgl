@@ -89,7 +89,7 @@ impl BTreeNodeStore {
         let overflow_cell_records = self.load_overflow_cell_records(cell_record)?;
         let mut is_leaf_cell = false;
         let mut ptrs = Vec::new();
-        for overflow_cell in &overflow_cell_records {
+        for overflow_cell in overflow_cell_records.iter().rev() {
             if overflow_cell.is_list_ptr() {
                 is_leaf_cell = true;
                 append_list_ptr(&mut ptrs, &overflow_cell.key);
@@ -210,9 +210,9 @@ impl BTreeNodeStore {
         Some((curr_node_id, curr_cell_id))
     }
 
-    fn create_overflow_cells(&mut self, reverse_cell_records: &mut [CellRecord], cell_node_ptr: BTreeNodeId) -> Option<BtreeCellLoc> {
+    fn create_overflow_cells(&mut self, cell_records: &mut [CellRecord], cell_node_ptr: BTreeNodeId) -> Option<BtreeCellLoc> {
         let mut prev_cell_loc = (cell_node_ptr, 0);
-        for cell in reverse_cell_records {
+        for cell in cell_records {
             cell.chain_with_cell_location(prev_cell_loc);
             prev_cell_loc = self.pool.insert_cell_in_free_slot(cell)?;
         }
@@ -269,16 +269,16 @@ impl BTreeNodeStore {
 
         let nb_records = cell_records.len();
         if nb_records > 1 {
-            cell_records.reverse();
-            for cell in cell_records.iter_mut().take(nb_records).skip(1) {
-                cell.set_has_overflow();
+            for cell_record in cell_records.iter_mut().skip(2) {
+                cell_record.set_has_overflow();
             }
 
             let cell_node_ptr = cell.get_node_ptr().unwrap_or_default();
 
-            let ptrs = self.create_overflow_cells(&mut cell_records[..nb_records-1], cell_node_ptr)?;
-            cell_records.reverse();
+            let ptrs = self.create_overflow_cells(&mut cell_records[1..], cell_node_ptr)?;
+
             let main_cell_record = cell_records.first_mut()?;
+            main_cell_record.set_has_overflow();
             main_cell_record.chain_with_cell_location(ptrs);
         } else if let (Some(last_cell_record), Some(node_ptr)) = (cell_records.first_mut(), cell.get_node_ptr()) {
             last_cell_record.node_ptr = node_ptr;
@@ -353,8 +353,6 @@ impl BTreeNodeStore {
         for cell_record in &overflow_cell_records {
             if cell_record.is_list_ptr() {
                 list_ptr_cells.push(*cell_record);
-            } else {
-                prev_cell_record = *cell_record;
             }
         }
         
@@ -407,10 +405,8 @@ impl BTreeNodeStore {
                 break;
             }
         }
-        cells_to_update.reverse();
         let last_updated_cell_pos = self.update_overflow_cells(&cells_to_update, &prev_cell_record)?;
         if !cells_to_create.is_empty() {
-            cells_to_create.reverse();
             let created_first_cell_pos = self.create_overflow_cells(&mut cells_to_create, 0)?;
             //link last updated cell to created cells
             let last_updated_node =  self.pool.load_node_record_mut(&last_updated_cell_pos.0)?;
@@ -488,7 +484,7 @@ impl BTreeNodeStore {
 
         //move and update old records
         for (new_cell_id, ctx) in cells_context.iter().enumerate() {
-            if !ctx.is_added {
+            if !ctx.is_added && new_cell_id != ctx.old_cell_id {
                 main_node_record.cells[new_cell_id] = old_cell_records[ctx.old_cell_id];
             }
         }
