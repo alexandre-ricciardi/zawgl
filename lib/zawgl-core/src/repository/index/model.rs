@@ -85,6 +85,7 @@ impl Cell {
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
         if !self.cell_change_state.list_data_pointer_changed {
             self.cell_change_state.is_append_only = true;
+            self.cell_change_state.append_index += 1;
         } else {
             self.cell_change_state.is_append_only = false;
         }
