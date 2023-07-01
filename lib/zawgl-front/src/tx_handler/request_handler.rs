@@ -40,18 +40,18 @@ pub struct GraphRequestHandler {
     conf: InitContext,
     map_session_graph_engine: HashMap<String, GraphEngine>,
     graph_engine: GraphEngine,
+    commit_tx: Vec<String>, 
 }
 
 impl <'a> GraphRequestHandler {
     pub fn new(ctx: InitContext) -> Self {
         let graph_engine = GraphEngine::new(ctx.clone());
-        GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new(), graph_engine }
+        GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new(), graph_engine , commit_tx: Vec::new()}
     }
 
     pub fn handle_graph_request(&mut self, steps: Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
         
         let matched_graphs = handle_query_steps(steps, &mut self.graph_engine).ok_or(DatabaseError::EngineError)?;
-        self.commit_graph_request();
         Ok(matched_graphs)
     }
 
@@ -59,7 +59,14 @@ impl <'a> GraphRequestHandler {
         self.graph_engine.sync();
     }
 
-    
+    pub fn commit(&mut self) {
+        self.graph_engine.sync();
+        for session_id in self.commit_tx.clone() {
+            self._commit_tx(&session_id);
+        }
+        self.commit_tx.clear();
+    }
+
     pub fn handle_graph_request_tx(&mut self, steps: Vec<QueryStep>, tx_context: TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
         let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or(DatabaseError::TxError)?;
         let matched_graphs = handle_query_steps(steps, graph_engine).ok_or(DatabaseError::EngineError)?;
@@ -67,10 +74,16 @@ impl <'a> GraphRequestHandler {
     }
 
     pub fn commit_tx(&mut self, tx_context: TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
-        let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or(DatabaseError::TxError)?;
-        graph_engine.sync();
-        self.map_session_graph_engine.remove(&tx_context.session_id);
+        self.commit_tx.push(tx_context.session_id.to_string());
         Ok(Vec::new())
+    }
+
+    fn _commit_tx(&mut self, session_id: &str) {
+        let graph_engine = self.map_session_graph_engine.get_mut(session_id);
+        if let Some(ge) = graph_engine {
+            ge.sync();
+            self.map_session_graph_engine.remove(session_id);
+        }
     }
 
     pub fn open_graph_tx(&mut self, tx_context: TxContext) {
