@@ -467,6 +467,7 @@ impl RecordsManager {
 
     pub fn sync(&mut self) {
         self.pager.sync();
+        self.pager.clear();
     }
 
     pub fn retrieve_all_records_ids(&mut self) -> RecordsManagerResult<Vec<u64>> {

@@ -269,4 +269,7 @@ impl Pager {
         let slice = &self.header_page.page[bounds.begin..bounds.end];
         bytes.copy_from_slice(slice);
     }
+    pub fn clear(&mut self) {
+        self.page_cache.clear();
+    }
 }

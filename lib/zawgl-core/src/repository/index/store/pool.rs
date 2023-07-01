@@ -22,6 +22,7 @@ use crate::repository::pager::Bounds;
 
 use super::{MutableRecordsManager, records::*};
 use super::super::super::super::buf_config::*;
+use std::cell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
@@ -60,6 +61,12 @@ impl NodeRecordPool {
         };
         Some(*self.records.get(pos)?)
     }
+
+
+    pub fn load_node_cell_record_clone(&mut self, id: &u64, cell_id: usize) -> Option<CellRecord> {
+        self.load_node_record_ref(*id).map(|n| n.cells[cell_id])
+    }
+
 
     pub fn load_node_record_ref(&mut self, id: u64) -> Option<&BNodeRecord> {
         let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(id) {
@@ -141,6 +148,10 @@ impl NodeRecordPool {
 
     fn set_first_free_list_node_ptr(&mut self, id: BTreeNodeId) {
         self.records_manager.lock().unwrap().get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &id.to_be_bytes());
+    }
+    pub fn clear(&mut self) {
+        self.records.clear();
+        self.records_map.clear();
     }
 }
 

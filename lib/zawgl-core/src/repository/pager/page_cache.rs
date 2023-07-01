@@ -164,4 +164,10 @@ impl PageCache {
         }
         res
     }
+
+    pub fn clear(&mut self) {
+        self.pages.clear();
+        self.pages_map.clear();
+        self.dropped_pages.clear();
+    }
 }
