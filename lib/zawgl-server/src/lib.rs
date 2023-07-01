@@ -32,7 +32,7 @@ use futures_util::{
     SinkExt, StreamExt,
 };
 use tokio::sync::mpsc::UnboundedSender;
-use tokio::task::JoinHandle;
+use tokio::sync::mpsc::Receiver;
 use zawgl_front::cypher::query_engine::CypherError;
 use std::sync::Mutex;
 use zawgl_front::tx_handler::request_handler::GraphRequestHandler;
@@ -109,14 +109,11 @@ async fn handle_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMe
     Ok(())
 }
 
-
-
-pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F) -> JoinSet<()> where F : FnOnce() -> () {
-    
-    
+pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_run: Receiver<bool>) -> JoinSet<()> where F : FnOnce() -> () {
+        
+        
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Websocket listening on: {}", addr);
-    callback();
     let (msg_tx, mut msg_rx) = tokio::sync::mpsc::unbounded_channel::<ResponseMessage>();
         
     let graph_request_handler = Arc::new(Mutex::new(GraphRequestHandler::new(conf)));
@@ -134,10 +131,14 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F) -> JoinSe
     });
     let commit_ref = Arc::clone(&graph_request_handler);
     set.spawn(async move {
-        let sleep = std::time::Duration::from_millis(500);
-        std::thread::sleep(sleep);
-        commit_ref.lock().unwrap().commit();
+        while let Some(run) = rx_run.recv().await {
+            commit_ref.lock().unwrap().commit();
+            if !run {
+                break;
+            }
+        }
     });
+    callback();
 
     while let Ok((stream, _)) = listener.accept().await {
         let peer = stream.peer_addr().expect("connected streams should have a peer address");

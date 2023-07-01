@@ -22,12 +22,12 @@ use zawgl_client::Client;
 use cypher_tests::run_test;
 use zawgl_client::parameters::*;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_cypher_create() {
     run_test("test_create", 7182, test_create).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_create_match() {
     run_test("test_filter_on_property_value", 7183, test_filter_on_property_value).await;
 }

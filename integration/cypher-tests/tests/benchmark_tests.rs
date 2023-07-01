@@ -18,12 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::time::Instant;
+use std::{time::Instant};
 
 use zawgl_client::Client;
 use cypher_tests::run_test;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_benchmark_create() {
     run_test("benchmark_test", 6182, benchmark_test).await;
 }
@@ -34,7 +34,7 @@ async fn benchmark_test(mut client: Client) {
         println!("{}", r.to_string());
     }
     let start = Instant::now();
-    for i in 0..1010 {
+    for i in 0..101000 {
         let result = client.execute_cypher_request("create (test:Person) return test").await;
         if let Err(r) = result {
             println!("{}", r.to_string());
@@ -49,7 +49,7 @@ async fn benchmark_test(mut client: Client) {
     println!("Time to create 1000 nodes: {:?}", duration)
 }
 
-//#[tokio::test]
+#[tokio::test]
 async fn test_benchmark_createss() {
     let client = Client::new("ws://localhost:8182").await;
     benchmark_test(client).await;

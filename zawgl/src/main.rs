@@ -23,21 +23,39 @@ extern crate zawgl_server;
 extern crate tokio;
 extern crate serde;
 mod settings;
-use log::info;
+use log::*;
 use zawgl_core::model::init::InitContext;
 use settings::Settings;
 use simple_logger::SimpleLogger;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() {
     let settings = Settings::new();
     let log_level = settings.get_log_level();
     SimpleLogger::new().with_level(log_level).init().unwrap();
     let ctx = InitContext::new(&settings.server.database_dir).expect("can't create database context");
+    let (tx_run, rx_run) = tokio::sync::mpsc::channel::<bool>(1);
+    let stop_tx = tx_run.clone();
+    let commit_loop = tokio::spawn(async move {
+        let sleep_duration = std::time::Duration::from_millis(500);
+        loop {
+            std::thread::sleep(sleep_duration);
+            if let Err(_) = tx_run.send(true).await {
+                break;
+            }
+        }
+    });
+    let exit = tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.unwrap();
+        if let Err(_) = stop_tx.send(false).await {
+            error!("Exiting commit loop");
+        }
+    });
     tokio::select! {
         _ = zawgl_server::run_server(&settings.server.address, ctx, || {
             info!("Database started");
-        }) => 0,
-        _ = tokio::signal::ctrl_c() => 0
+        }, rx_run) => 0,
+        _ = commit_loop => 1,
+        _ = exit => 0
     };
 }

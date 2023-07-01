@@ -21,7 +21,7 @@
 use zawgl_client::Client;
 use cypher_tests::run_test;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_cypher_error_0() {
     run_test("test_cypher_syntax_error", 9182, test_cypher_syntax_error).await;
 }
