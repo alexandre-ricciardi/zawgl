@@ -22,7 +22,6 @@ use crate::repository::pager::Bounds;
 
 use super::{MutableRecordsManager, records::*};
 use super::super::super::super::buf_config::*;
-use std::cell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
