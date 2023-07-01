@@ -34,7 +34,7 @@ async fn benchmark_test(mut client: Client) {
         println!("{}", r.to_string());
     }
     let start = Instant::now();
-    for i in 0..101000 {
+    for i in 0..1010 {
         let result = client.execute_cypher_request("create (test:Person) return test").await;
         if let Err(r) = result {
             println!("{}", r.to_string());

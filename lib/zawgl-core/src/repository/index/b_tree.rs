@@ -230,6 +230,10 @@ impl BTreeIndex {
     pub fn sync(&mut self) {
         self.node_store.sync();
     }
+    
+    pub fn soft_sync(&mut self) {
+        self.node_store.soft_sync();
+    }
 }
 
 #[cfg(test)]
@@ -283,7 +287,7 @@ mod test_b_tree {
             index.insert(&format!("key # {}", i), i);
         }
 
-        index.sync();
+        index.soft_sync();
 
         for i in 0..1000 {
             let optrs = index.search(&format!("key # {}", i));
@@ -310,7 +314,7 @@ mod test_b_tree {
                 println!("inserted {} values", i);
             }
         }
-        index.sync();
+        index.soft_sync();
 
 
         let optrs = index.search("same key");

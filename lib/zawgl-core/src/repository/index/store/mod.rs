@@ -592,6 +592,9 @@ impl BTreeNodeStore {
         self.pool.clear();
         self.nodes_pool.clear();
     }
+    pub fn soft_sync(&mut self) {
+        self.records_manager.lock().unwrap().sync();
+    }
 }
 
 struct BTreeNodePool {
@@ -749,7 +752,7 @@ mod test_btree_node_store {
         let cells =  vec![Cell::new("same key", None, vec![12, 98, 77867867, 21, 9], true)];
         let mut node = BTreeNode::new(true, false, cells);
         store.create(&mut node);
-        store.sync();
+        store.soft_sync();
         let id = node.get_id().unwrap();
         {
             let mref = store.get_node_mut(&id).unwrap();
@@ -757,7 +760,7 @@ mod test_btree_node_store {
             mref.insert_cell(2, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98], true));
             store.save(&id).unwrap();
 
-            store.sync();
+            store.soft_sync();
         }
         for data_ptr in 0..100 {
             node.get_id().and_then(|id| store.retrieve_node(&id)).unwrap();

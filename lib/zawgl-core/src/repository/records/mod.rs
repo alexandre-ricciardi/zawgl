@@ -470,6 +470,10 @@ impl RecordsManager {
         self.pager.clear();
     }
 
+    pub fn soft_sync(&mut self) {
+        self.pager.sync();
+    }
+
     pub fn retrieve_all_records_ids(&mut self) -> RecordsManagerResult<Vec<u64>> {
         let page_count = self.pager.get_header_page_ref().get_page_count();
         let nb_records_per_page = self.page_map.nb_records_per_page;
@@ -520,7 +524,7 @@ mod test_record_manager {
             ids.push(id);
         }
 
-        rm.sync();
+        rm.soft_sync();
 
         for i in 0..10000 {
             let content = [i as u8; BTREE_NODE_RECORD_SIZE];
@@ -538,7 +542,7 @@ mod test_record_manager {
             rm_load.save(id, &data).expect(&format!("load data {}", id));
         }
 
-        rm_load.sync();
+        rm_load.soft_sync();
         
         for i in 0..10000 {
             let data_1 = [(i+1) as u8; BTREE_NODE_RECORD_SIZE];
@@ -553,7 +557,7 @@ mod test_record_manager {
             }
         }
 
-        rm_load.sync();
+        rm_load.soft_sync();
         let mut rm_load_2 = RecordsManager::new(&file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
 
         assert_eq!(rm_load_2.retrieve_all_records_ids().expect("ids"), ids);
