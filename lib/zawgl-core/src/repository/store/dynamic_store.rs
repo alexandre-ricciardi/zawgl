@@ -88,6 +88,16 @@ impl DynamicStore {
         self.records_manager.load(dr_id, &mut data).ok()?;
         Some(dr_from_bytes(data))
     }
+
+    pub fn retrieve_all_string(&mut self) -> Option<Vec<(String, u64)>> {
+        let ids = self.records_manager.retrieve_all_records_ids().ok()?;
+        let mut res = Vec::new();
+        for id in ids {
+            res.push((self.load_string(id)?, id))
+        }
+        Some(res)
+    }
+
     pub fn sync(&mut self) {
         self.records_manager.sync();
     }

@@ -47,6 +47,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Error};
 use std::result::Result;
 use crate::open_cypher_request_handler::handle_open_cypher_request;
 use tokio::sync::oneshot::{self, Sender};
+use tokio::task::JoinSet;
 mod result;
 mod open_cypher_request_handler;
 use self::result::ServerError;
@@ -110,26 +111,32 @@ async fn handle_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMe
 
 
 
-pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F) -> JoinHandle<()> where F : FnOnce() -> () {
+pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F) -> JoinSet<()> where F : FnOnce() -> () {
     
     
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Websocket listening on: {}", addr);
     callback();
     let (msg_tx, mut msg_rx) = tokio::sync::mpsc::unbounded_channel::<ResponseMessage>();
-
-    let jh = tokio::spawn(async move {
+        
+    let graph_request_handler = Arc::new(Mutex::new(GraphRequestHandler::new(conf)));
+    let tx_ref = Arc::clone(&graph_request_handler);
+    let mut set = JoinSet::new();
+    set.spawn(async move {
         let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
-        let graph_request_handler = Arc::new(Mutex::new(GraphRequestHandler::new(conf)));
-        while let Some(message) = msg_rx.recv().await {
-            let doc = message.0;
-            let sender = message.1;
-            let cypher_reply = handle_open_cypher_request(Arc::clone(&tx_handler), Arc::clone(&graph_request_handler), &doc);
+        while let Some((doc, sender)) = msg_rx.recv().await {
+            let cypher_reply = handle_open_cypher_request(Arc::clone(&tx_handler), Arc::clone(&tx_ref), &doc);
             if let Err(_err) = sender.send(cypher_reply) {
                 error!("sending reply");
                 break;
             }
         }
+    });
+    let commit_ref = Arc::clone(&graph_request_handler);
+    set.spawn(async move {
+        let sleep = std::time::Duration::from_millis(500);
+        std::thread::sleep(sleep);
+        commit_ref.lock().unwrap().commit();
     });
 
     while let Ok((stream, _)) = listener.accept().await {
@@ -137,5 +144,6 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F) -> JoinHa
         info!("Peer address: {}", peer);
         tokio::spawn(accept_connection(stream, msg_tx.clone()));
     }
-    jh
+    
+    set
 }

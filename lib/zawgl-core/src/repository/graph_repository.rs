@@ -40,18 +40,27 @@ pub struct GraphRepository {
     relationships_labels_index: BTreeIndex,
     labels_store: dynamic_store::DynamicStore,
     nodes_ids: Option<Vec<u64>>,
+    labels: HashMap<String, u64>,
 }
 
 impl GraphRepository {
     pub fn new(init_ctx: init::InitContext) -> Self {
         let mut nodes_store = nodes_store::NodesStore::new(&init_ctx.get_nodes_store_path().unwrap());
         let nodes_ids = nodes_store.borrow_mut().retrieve_all_nodes_ids();
+        let mut labels_store = dynamic_store::DynamicStore::new(&init_ctx.get_labels_store_path().unwrap());
+        let all_labels = labels_store.retrieve_all_string();
+        let mut labels = HashMap::new();
+        if let Some(stored_labels) = all_labels {
+            for (label, id) in stored_labels {
+                labels.insert(label, id);
+            } 
+        }
         GraphRepository {nodes_store: nodes_store, nodes_ids,
             relationships_store: relationships_store::RelationshipsStore::new(&init_ctx.get_relationships_store_path().unwrap()),
             properties_repository: PropertiesRespository::new(&init_ctx.get_properties_store_path().unwrap(), &init_ctx.get_dynamic_store_path().unwrap()),
             nodes_labels_index: BTreeIndex::new(&init_ctx.get_nodes_labels_index_path().unwrap()),
             relationships_labels_index: BTreeIndex::new(&init_ctx.get_relationships_types_index_path().unwrap()),
-            labels_store: dynamic_store::DynamicStore::new(&init_ctx.get_labels_store_path().unwrap()),
+            labels_store, labels
         }
     }
 
@@ -137,7 +146,14 @@ impl GraphRepository {
         let mut res = node.clone();
         nr.next_prop_id = self.properties_repository.create_list(res.get_properties_mut())?;
         if !node.get_labels_ref().is_empty() {
-            nr.node_type = self.labels_store.save_data(node.get_labels_ref().join(":").as_bytes())?;
+            let full_label = node.get_labels_ref().join(":");
+            if self.labels.contains_key(&full_label) {
+                nr.node_type = self.labels[&full_label];
+            } else {
+                let label_id = self.labels_store.save_data(full_label.as_bytes())?;
+                self.labels.insert(full_label, label_id);
+                nr.node_type = label_id;
+            }
         }
         let nid = self.nodes_store.create(&nr)?;
         for label in node.get_labels_ref() {
@@ -160,7 +176,14 @@ impl GraphRepository {
         let mut res = rel.clone();
         rr.next_prop_id = self.properties_repository.create_list(res.get_properties_mut())?;
         if !rel.get_labels_ref().is_empty() {
-            rr.relationship_type = self.labels_store.save_data(rel.get_labels_ref().join(":").as_bytes())?;
+            let full_label = rel.get_labels_ref().join(":");
+            if self.labels.contains_key(&full_label) {
+                rr.relationship_type = self.labels[&full_label];
+            } else {
+                let label_id = self.labels_store.save_data(full_label.as_bytes())?;
+                self.labels.insert(full_label, label_id);
+                rr.relationship_type = label_id;
+            }
         }
         let rid = self.relationships_store.create(&rr)?;
        
