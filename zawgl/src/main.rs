@@ -34,18 +34,17 @@ async fn main() {
     let log_level = settings.get_log_level();
     SimpleLogger::new().with_level(log_level).init().unwrap();
     let ctx: InitContext = InitContext::new(&settings.server.database_dir).expect("can't create database context");
-    let (tx_run, rx_run, commit_loop) = zawgl_server::keep_commit_loop(500);
+    let (tx_run, rx_run) = zawgl_server::keep_commit_loop(500);
     let exit = tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
         if let Err(_) = tx_run.send(false).await {
-            error!("Exiting commit loop");
+            info!("Exiting commit loop");
         }
     });
     tokio::select! {
         _ = zawgl_server::run_server(&settings.server.address, ctx, || {
             info!("Database started");
         }, rx_run) => 0,
-        _ = commit_loop => 0,
         _ = exit => 0
     };
 }

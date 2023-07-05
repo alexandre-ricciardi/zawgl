@@ -31,7 +31,7 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
     let (tx_start, rx_start) = tokio::sync::oneshot::channel::<()>();
     let address = format!("localhost:{}", port);
     
-    let (tx_run, rx_run, commit_loop) = zawgl_server::keep_commit_loop(500);
+    let (tx_run, rx_run) = zawgl_server::keep_commit_loop(500);
 
     let server = zawgl_server::run_server(&address, ctx, || {
         if let Err(_) = tx_start.send(()) {
@@ -50,7 +50,7 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
                 let client = Client::new(&server_address).await;
                 lambda(client).await;
                 if let Err(_) = tx_run.send(false).await {
-                    println!("Error stoping database")
+                    println!("Stoping database")
                 };
             }.await,
             Err(_) => error_cb().await,
@@ -59,7 +59,6 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
     tokio::select! {
         _ = server => 0,
         _ = trigger()  => 0,
-        _ = commit_loop => 0,
     };
    
 }

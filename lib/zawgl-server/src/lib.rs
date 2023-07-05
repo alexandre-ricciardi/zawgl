@@ -149,10 +149,10 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
     set
 }
 
-pub fn keep_commit_loop(period: u64) -> (tokio::sync::mpsc::Sender<bool>, Receiver<bool>, tokio::task::JoinHandle<()>) {
+pub fn keep_commit_loop(period: u64) -> (tokio::sync::mpsc::Sender<bool>, Receiver<bool>) {
     let (tx_run, rx_run) = tokio::sync::mpsc::channel::<bool>(1);
     let tx_commit = tx_run.clone();
-    let commit_loop = tokio::spawn(async move {
+    tokio::spawn(async move {
         let sleep_duration = std::time::Duration::from_millis(period);
         loop {
             std::thread::sleep(sleep_duration);
@@ -161,5 +161,5 @@ pub fn keep_commit_loop(period: u64) -> (tokio::sync::mpsc::Sender<bool>, Receiv
             }
         }
     });
-    (tx_run, rx_run, commit_loop)
+    (tx_run, rx_run)
 }
