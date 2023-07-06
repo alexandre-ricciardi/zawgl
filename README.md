@@ -28,7 +28,7 @@ Zawgl exposes a WebSocket on the configured that transports [Bson](https://crate
 Zawgl replies contain a list of graphs representing all the matching instance of the query. 
 
 ## Usage
-To run zawgl simply run
+To launch zawgl simply run
 ```shell
 zawgl
 ```
