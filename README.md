@@ -25,6 +25,7 @@ This will expose an endpoint on 8182 port.
 
 ## Interface
 Zawgl exposes a WebSocket on the configured that transports [Bson](https://crates.io/crates/bson) documents.
+
 Zawgl replies contain a list of graphs representing all the matching instance of the query. 
 
 ## Usage
