@@ -30,18 +30,8 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
     let ctx = InitContext::new(&db_dir).expect("can't create database context");
     let (tx_start, rx_start) = tokio::sync::oneshot::channel::<()>();
     let address = format!("localhost:{}", port);
-    let (tx_run, rx_run) = tokio::sync::mpsc::channel::<bool>(1);
-    let tx_run_commit = tx_run.clone();
-    let commit_loop = tokio::spawn(async move {
-        let sleep_duration = std::time::Duration::from_millis(500);
-        loop {
-            std::thread::sleep(sleep_duration);
-            if let Err(_) = tx_run_commit.send(true).await {
-                println!("Commit loop error");
-                break;
-            }
-        }
-    });
+    
+    let (tx_run, rx_run) = zawgl_server::keep_commit_loop(500);
 
     let server = zawgl_server::run_server(&address, ctx, || {
         if let Err(_) = tx_start.send(()) {
@@ -60,7 +50,7 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
                 let client = Client::new(&server_address).await;
                 lambda(client).await;
                 if let Err(_) = tx_run.send(false).await {
-                    println!("Error stoping database")
+                    println!("Stoping database")
                 };
             }.await,
             Err(_) => error_cb().await,
@@ -69,7 +59,6 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
     tokio::select! {
         _ = server => 0,
         _ = trigger()  => 0,
-        _ = commit_loop => 0,
     };
    
 }
