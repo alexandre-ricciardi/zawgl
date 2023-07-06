@@ -3,12 +3,12 @@ Open Source Timelined Graph Database (Work In Progress)
 
 
 ## About Graph Timeline
-Timelining feature aims to version graph states, changes made to the graph shall persist and client could retrieve pas graph states by passing the version ID in the request.
+Timelining feature aims to version graph states, changes made to the graph shall persist in order to allow to retrieve past graph states by passing the graph version ID in the request.
 
 
 
 ## Status
-* At the moment Zawgl Database supports a few cypher queries.
+* At the moment Zawgl Database supports some cypher queries.
 * Pattern Matching with a VF2 sub-graph isomorphism algorithm.
 * Property Graph storage
 * With a B+Tree for indexes
@@ -34,7 +34,7 @@ zawgl
 ```
 It will generate its default configuration into .zawgl/Settings.toml file in the current execution directory.
 
-Rust Zawgl client is available on crates.io : [zawgl-client](https://crates.io/crates/zawgl-client)
+Rust Zawgl client is available on crates.io [zawgl-client](https://crates.io/crates/zawgl-client)
 
 A Deno TypeScript client is also available [ZawglClient](client/zawgl-deno-ts-client/zawgl_client.ts)
 
@@ -55,5 +55,7 @@ let r = client.execute_cypher_request_with_parameters("match (n:Person) where id
 * Improve Cypher support
 * Implement transactions tests
 * Implement client transactions API
+* Procedures
 * Documentation
+* Benchmarks
 
