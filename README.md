@@ -41,6 +41,9 @@ A Deno TypeScript client is also available [ZawglClient](client/zawgl-deno-ts-cl
 
 Example request:
 ```rust
+use zawgl_client::Client;
+use zawgl_client::parameters::{Parameters, Value};
+
 let client = Client::new("ws://localhost:8182").await;
 let mut params = Parameters::new();
 params.insert("pid".to_string(), Value::Integer(12));
