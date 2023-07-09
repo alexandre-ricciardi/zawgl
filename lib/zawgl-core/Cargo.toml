@@ -3,6 +3,8 @@ name = "zawgl-core"
 version = "0.1.2"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
 edition = "2021"
+description = "Zawgl Graph Core Library"
+license = "MIT"
 
 [lib]
 name = "zawgl_core"
