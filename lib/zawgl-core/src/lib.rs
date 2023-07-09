@@ -28,6 +28,6 @@ mod config;
 mod buf_config;
 pub mod graph;
 pub mod model;
-mod repository;
+pub mod repository;
 mod matcher;
 pub mod graph_engine;
