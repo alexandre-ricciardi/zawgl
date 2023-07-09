@@ -21,7 +21,7 @@
 
 use std::collections::HashMap;
 
-use std::sync::{Arc};
+use std::sync::Arc;
 
 use std::sync::Mutex;
 use zawgl_core::graph_engine::GraphEngine;

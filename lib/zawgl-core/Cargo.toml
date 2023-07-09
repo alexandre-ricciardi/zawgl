@@ -1,6 +1,6 @@
 [package]
 name = "zawgl-core"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
 edition = "2021"
 description = "Zawgl Graph Core Library"
