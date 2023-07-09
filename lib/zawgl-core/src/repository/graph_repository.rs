@@ -142,6 +142,14 @@ impl GraphRepository {
     }
 
     pub fn create_node(&mut self, node: &Node) -> Option<Node> {
+        let node = self.create_node_with_properties(node)?;
+        for label in node.get_labels_ref() {
+            self.nodes_labels_index.insert(label, node.get_id()?);
+        }
+        Some(node)
+    }
+    
+    pub fn create_node_with_properties(&mut self, node: &Node) -> Option<Node> {
         let mut nr = NodeRecord::new();
         let mut res = node.clone();
         nr.next_prop_id = self.properties_repository.create_list(res.get_properties_mut())?;
@@ -156,9 +164,6 @@ impl GraphRepository {
             }
         }
         let nid = self.nodes_store.create(&nr)?;
-        for label in node.get_labels_ref() {
-            self.nodes_labels_index.insert(label, nid);
-        }
         if let Some(nids) = &mut self.nodes_ids {
             nids.push(nid);
         }
@@ -167,7 +172,7 @@ impl GraphRepository {
     }
     
 
-    pub fn create_relationship(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
+    pub fn create_relationship_with_properties(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
         let mut source_record = self.nodes_store.load(source)?;
         let mut target_record = self.nodes_store.load(target)?;
         let mut rr = RelationshipRecord::new(source, target);
@@ -188,7 +193,6 @@ impl GraphRepository {
         let rid = self.relationships_store.create(&rr)?;
        
         res.set_id(Some(rid));
-        
 
         if source == target {
             source_record.first_outbound_edge = rid;
@@ -200,11 +204,14 @@ impl GraphRepository {
             self.nodes_store.save(source, &source_record)?;
             self.nodes_store.save(target, &target_record)?;
         }
-        
-        for label in rel.get_labels_ref() {
-            self.relationships_labels_index.insert(label, rid);
-        }
+        Some(res)
+    }
 
+    pub fn create_relationship(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
+        let res = self.create_relationship_with_properties(rel, source, target)?;
+        for label in rel.get_labels_ref() {
+            self.relationships_labels_index.insert(label, res.get_id()?);
+        }
         Some(res)
     }
 
