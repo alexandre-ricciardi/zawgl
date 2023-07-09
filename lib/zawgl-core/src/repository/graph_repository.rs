@@ -261,6 +261,13 @@ impl GraphRepository {
         self.properties_repository.sync();
         self.labels_store.sync();
     }
+    pub fn clear(&mut self) {
+        self.nodes_labels_index.clear();
+        self.relationships_store.clear();
+        self.nodes_store.clear();
+        self.properties_repository.clear();
+        self.labels_store.clear();
+    }
 }
 
 #[derive(Copy, Clone)]

@@ -44,6 +44,9 @@ impl RelationshipsStore {
     pub fn sync(&mut self) {
         self.records_manager.sync();
     }
+    pub fn clear(&mut self) {
+        self.records_manager.clear();
+    }
 }
 
 

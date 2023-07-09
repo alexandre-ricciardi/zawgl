@@ -101,6 +101,10 @@ impl DynamicStore {
     pub fn sync(&mut self) {
         self.records_manager.sync();
     }
+
+    pub fn clear(&mut self) {
+        self.records_manager.clear();
+    }
 }
 
 #[cfg(test)]

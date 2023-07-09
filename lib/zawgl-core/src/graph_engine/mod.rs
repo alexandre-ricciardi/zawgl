@@ -245,6 +245,10 @@ impl GraphEngine {
     pub fn sync(&mut self) {
         self.repository.sync();
     }
+
+    pub fn clear(&mut self) {
+        self.repository.clear();
+    }
 }
 
 

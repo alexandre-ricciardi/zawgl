@@ -31,7 +31,7 @@ use zawgl_cypher_query_model::QueryStep;
 use crate::planner::handle_query_steps;
 
 use crate::tx_handler::tx_context::TxContext;
-use super::{DatabaseError};
+use super::DatabaseError;
 
 
 pub type RequestHandler = Arc<Mutex<GraphRequestHandler>>;
@@ -76,6 +76,10 @@ impl <'a> GraphRequestHandler {
     pub fn commit_tx(&mut self, tx_context: TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
         self.commit_tx.push(tx_context.session_id.to_string());
         Ok(Vec::new())
+    }
+
+    pub fn cancel(&mut self) {
+        self.graph_engine.clear();
     }
 
     fn _commit_tx(&mut self, session_id: &str) {

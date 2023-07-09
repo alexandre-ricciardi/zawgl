@@ -239,6 +239,11 @@ impl PropertiesRespository {
     pub fn sync(&mut self) {
         self.prop_store.sync();
         self.dyn_store.sync();
+        
+    }
+    pub fn clear(&mut self) {
+        self.prop_store.clear();
+        self.dyn_store.clear();
     }
 }
 

@@ -234,6 +234,9 @@ impl BTreeIndex {
     pub fn soft_sync(&mut self) {
         self.node_store.soft_sync();
     }
+    pub fn clear(&mut self) {
+        self.node_store.clear();
+    }
 }
 
 #[cfg(test)]

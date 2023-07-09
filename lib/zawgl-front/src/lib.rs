@@ -49,7 +49,10 @@ pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: 
                 Ok(mg) => {
                     build_response(request_id, mg, &r)
                 },
-                Err(e) => build_error(request_id, e),
+                Err(e) => {
+                    graph_request_handler.lock().unwrap().cancel();
+                    build_error(request_id, e)
+                },
             }
         },
         Err(ce) => build_cypher_error(request_id, ce),

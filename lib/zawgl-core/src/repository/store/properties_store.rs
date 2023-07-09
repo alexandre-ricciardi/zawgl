@@ -40,5 +40,9 @@ impl PropertiesStore {
     }
     pub fn sync(&mut self) {
         self.records_manager.sync();
+        self.clear();
+    }
+    pub fn clear(&mut self) {
+        self.records_manager.clear();
     }
 }

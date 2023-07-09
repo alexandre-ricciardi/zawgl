@@ -474,6 +474,9 @@ impl RecordsManager {
         self.pager.sync();
     }
 
+    pub fn clear(&mut self) {
+        self.pager.clear();
+    }
     pub fn retrieve_all_records_ids(&mut self) -> RecordsManagerResult<Vec<u64>> {
         let page_count = self.pager.get_header_page_ref().get_page_count();
         let nb_records_per_page = self.page_map.nb_records_per_page;

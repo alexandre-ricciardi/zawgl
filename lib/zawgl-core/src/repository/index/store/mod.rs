@@ -589,11 +589,14 @@ impl BTreeNodeStore {
 
     pub fn sync(&mut self) {
         self.records_manager.lock().unwrap().sync();
-        self.pool.clear();
-        self.nodes_pool.clear();
+        self.clear();
     }
     pub fn soft_sync(&mut self) {
         self.records_manager.lock().unwrap().sync();
+    }
+    pub fn clear(&mut self) {
+        self.pool.clear();
+        self.nodes_pool.clear();
     }
 }
 
@@ -634,7 +637,7 @@ impl BTreeNodePool {
         self.nodes_map.get(id).and_then(|pos| self.nodes.get(*pos).map(|n| n.clone()))
     }
 
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.nodes_map.clear();
         self.nodes.clear();
     }

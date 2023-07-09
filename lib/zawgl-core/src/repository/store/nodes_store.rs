@@ -48,6 +48,9 @@ impl NodesStore {
     pub fn retrieve_all_nodes_ids(&mut self) -> Option<Vec<u64>> {
         self.records_manager.retrieve_all_records_ids().ok()
     }
+    pub fn clear(&mut self) {
+        self.records_manager.clear();
+    }
 }
 
 #[cfg(test)]
