@@ -89,25 +89,25 @@ impl <T> VecIterator<T> {
     }
 }
 
-pub struct Matcher<'g0: 'g1, 'g1, VCOMP, ECOMP, CALLBACK>
+pub struct Matcher<'g0, VCOMP, ECOMP, CALLBACK>
     where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
-    CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy) -> Option<bool> {
-        state: State<'g0, 'g1, VCOMP, ECOMP>,
+    CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>) -> Option<bool> {
+        state: State<'g0, VCOMP, ECOMP>,
         callback: CALLBACK,
 }
 
-impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBACK>
+impl <'g0, VCOMP, ECOMP, CALLBACK> Matcher <'g0, VCOMP, ECOMP, CALLBACK>
     where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
-    CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy) -> Option<bool> {
+    CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>) -> Option<bool> {
 
-        pub fn new(graph_0: &'g0 PropertyGraph, graph_1: &'g1 mut GraphProxy, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
+        pub fn new(graph_0: &'g0 PropertyGraph, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
             Matcher {
-                state: State::new(graph_0, graph_1, vcomp, ecomp),
+                state: State::new(graph_0, vcomp, ecomp),
                 callback,
             }
         }
 
-        pub fn process(&mut self, ids0: Vec<NodeIndex>, ids1: Vec<ProxyNodeId>) -> Option<bool> {
+        pub fn process(&mut self, ids0: Vec<NodeIndex>, ids1: Vec<ProxyNodeId>, graph_1: &mut GraphProxy<'_>) -> Option<bool> {
             let mut index0 = VecIterator::new(ids0);
             let mut index1 = VecIterator::new(ids1);
             let mut state = IterationStates::Process;
@@ -118,7 +118,7 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                     IterationStates::Process => {
                         if self.state.success() {
                             found_match = true;
-                            if !self.state.call_back(&mut self.callback)? {
+                            if !self.state.call_back(&mut self.callback, graph_1)? {
                                 return Some(true);
                             } else {
                                 state = IterationStates::Backtrack;
@@ -148,9 +148,9 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                     IterationStates::Graph1Loop => {
                         let mut backtrack = true;
                         while !index1.end() {
-                            if self.state.possible_candidate_1(index1.value()) && self.state.feasible(index0.value(), index1.value())? {
+                            if self.state.possible_candidate_1(index1.value()) && self.state.feasible(index0.value(), index1.value(), graph_1)? {
                                 match_continuation.push((index0.index(), index1.index()));
-                                self.state.push(index0.value(), index1.value());
+                                self.state.push(index0.value(), index1.value(), graph_1);
                                 backtrack = false;
                                 break;
                             }
@@ -166,7 +166,7 @@ impl <'g0, 'g1, VCOMP, ECOMP, CALLBACK> Matcher <'g0, 'g1, VCOMP, ECOMP, CALLBAC
                         if let Some(back) = match_continuation.pop() {
                             index0.set_index(back.0);
                             index1.set_index(back.1);
-                            self.state.pop(index0.value_at(back.0), index1.value_at(back.1));
+                            self.state.pop(index0.value_at(back.0), index1.value_at(back.1), graph_1);
                             index1.inc();
                             state = IterationStates::Graph1Loop;
                         } else {
@@ -184,14 +184,14 @@ fn sort_nodes(graph: &'_ PropertyGraph) -> Vec<NodeIndex> {
     res
 }
 
-pub fn sub_graph_isomorphism<'g0: 'g1, 'g1, VCOMP, ECOMP, CALLBACK>
-(graph_0: &'g0 PropertyGraph, graph_1: &'g1 mut GraphProxy, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Option<bool>
+pub fn sub_graph_isomorphism<'g0: 'g1, 'g1: 'a, 'a, VCOMP, ECOMP, CALLBACK>
+(graph_0: &'g0 PropertyGraph, graph_1: &'g1 mut GraphProxy<'a>, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Option<bool>
 where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
-CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy)-> Option<bool>  {
+CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>)-> Option<bool>  {
 
     let id0 = sort_nodes(graph_0);
     let id1 = graph_1.get_nodes_ids();
-    let mut matcher = Matcher::new(graph_0, graph_1, vcomp, ecomp, callback);
+    let mut matcher = Matcher::new(graph_0, vcomp, ecomp, callback);
     
-    matcher.process(id0, id1)
+    matcher.process(id0, id1, graph_1)
 }

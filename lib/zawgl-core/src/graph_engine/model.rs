@@ -103,22 +103,51 @@ pub struct InnerEdgeData<NID: MemGraphId, EID: MemGraphId> {
     pub next_inbound_edge: Option<EID>,
 }
 
-pub struct GraphProxy {
+pub struct GraphProxy<'a> {
     nodes: Vec<Node>,
     relationships: Vec<Relationship>,
-    vertices: Rc<RefCell<Vec<InnerVertexData<ProxyRelationshipId>>>>,
-    edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
-    repository: MutableGraphRepository,
+    vertices: Vec<InnerVertexData<ProxyRelationshipId>>,
+    edges: Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>,
+    repository: &'a mut GraphRepository,
     retrieved_nodes_ids: Vec<ProxyNodeId>,
-    map_vertices: Rc<RefCell<HashMap<u64, (ProxyNodeId, DbVertexData)>>>,
-    map_edges: Rc<RefCell<HashMap<u64, (ProxyRelationshipId, DbEdgeData)>>>,
+    map_vertices: HashMap<u64, (ProxyNodeId, DbVertexData)>,
+    map_edges: HashMap<u64, (ProxyRelationshipId, DbEdgeData)>,
 }
 
 
-impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy {
+fn get_relationship_clone(proxy: &mut GraphProxy, id: ProxyRelationshipId) -> Option<Relationship> {
+    let ordata = proxy.map_edges.get(&id.get_store_id()).copied();
+    let index = {
+        let mut retrieve = true;
+        let mut edge_exists = false;
+        let mut res = 0;
+        if let Some(rdata) = ordata {
+            edge_exists = true;
+            if rdata.0.get_index() < proxy.relationships.len() {
+                res = rdata.0.get_index();
+                if proxy.relationships[res].get_id().is_some() {
+                    retrieve = false;
+                }
+            }
+        }
+        if retrieve {
+            let rrel = proxy.repository.retrieve_relationship_by_id(id.get_store_id())?;
+            get_or_retrieve_vertex_data(proxy, rrel.1.source)?;
+            get_or_retrieve_vertex_data(proxy, rrel.1.target)?;
+            let pid = proxy.add_relationship(&rrel.0, !edge_exists)?;
+            proxy.map_edges.insert(pid.get_store_id(), (pid, rrel.1));
+            res = pid.get_index();
+        }
+        res
+    };
+    Some(proxy.relationships[index].clone())
+}
+
+
+impl <'a> GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relationship> for GraphProxy<'a> {
 
     fn get_node_ref(&mut self, id: &ProxyNodeId) -> Option<&Node> {
-        let ondata = self.map_vertices.borrow().get(&id.get_store_id()).copied();
+        let ondata = self.map_vertices.get(&id.get_store_id()).copied();
         let index = {
             let mut retrieve = true;
             let mut vertex_exists = false;
@@ -133,9 +162,9 @@ impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relatio
                 }
             }
             if retrieve {
-                let rnode = self.repository.lock().unwrap().retrieve_node_by_id(id.get_store_id())?;
+                let rnode = self.repository.retrieve_node_by_id(id.get_store_id())?;
                 let pid = self.add_node(&rnode, !vertex_exists)?;
-                self.map_vertices.borrow_mut().insert(pid.get_store_id(), (pid, rnode.1));
+                self.map_vertices.insert(pid.get_store_id(), (pid, rnode.1));
                 res = pid.get_index();
             }
             res
@@ -144,7 +173,7 @@ impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relatio
     }
 
     fn get_relationship_ref(&mut self, id: &ProxyRelationshipId) -> Option<&Relationship> {
-        let ordata = self.map_edges.borrow().get(&id.get_store_id()).copied();
+        let ordata = self.map_edges.get(&id.get_store_id()).copied();
         let index = {
             let mut retrieve = true;
             let mut edge_exists = false;
@@ -159,11 +188,11 @@ impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relatio
                 }
             }
             if retrieve {
-                let rrel = self.repository.lock().unwrap().retrieve_relationship_by_id(id.get_store_id())?;
-                get_or_retrieve_vertex_data(self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), rrel.1.source)?;
-                get_or_retrieve_vertex_data(self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), rrel.1.target)?;
+                let rrel = self.repository.retrieve_relationship_by_id(id.get_store_id())?;
+                get_or_retrieve_vertex_data(self, rrel.1.source)?;
+                get_or_retrieve_vertex_data(self, rrel.1.target)?;
                 let pid = self.add_relationship(&rrel.0, !edge_exists)?;
-                self.map_edges.borrow_mut().insert(pid.get_store_id(), (pid, rrel.1));
+                self.map_edges.insert(pid.get_store_id(), (pid, rrel.1));
                 res = pid.get_index();
             }
             res
@@ -173,83 +202,80 @@ impl GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Relatio
 
 }
 
-pub struct InEdges {
-    edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
+pub struct InEdges<'a: 'b, 'b> {
     current_edge_index: Option<ProxyRelationshipId>,
-    repository: MutableGraphRepository,
-    vertices: Rc<RefCell<Vec<InnerVertexData<ProxyRelationshipId>>>>,
-    map_edges: Rc<RefCell<HashMap<u64, (ProxyRelationshipId, DbEdgeData)>>>,
-    map_vertices: Rc<RefCell<HashMap<u64, (ProxyNodeId, DbVertexData)>>>,
+    proxy: &'b mut GraphProxy<'a>,
 }
 
-impl Iterator for InEdges {
-    type Item = ProxyRelationshipId;
+impl <'a, 'b> Iterator for InEdges<'a, 'b> {
+    type Item = (ProxyRelationshipId, ProxyNodeId, Relationship);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let ordata = self.map_edges.borrow().get(&edge_index.get_store_id()).copied();
+                let ordata = self.proxy.map_edges.get(&edge_index.get_store_id()).copied();
                 if let Some(rdata) = ordata {
-                    let edges = self.edges.borrow();
+                    let edges = &mut self.proxy.edges;
                     let curr_edge = edges.get(rdata.0.get_index())?;
                     self.current_edge_index = curr_edge.next_inbound_edge;
-                    Some(rdata.0)
+                    let pid = rdata.0;
+                    Some((rdata.0, self.proxy.edges[pid.get_index()].source, self.proxy.get_relationship_ref(&pid)?.clone()))
                 } else {
-                    let edge_data = self.repository.lock().unwrap().retrieve_edge_data_by_id(edge_index.get_store_id())?;
-                    let pid = add_edge(self.edges.clone(), self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), &edge_data, edge_index.get_store_id())?;
-                    self.map_edges.borrow_mut().insert(edge_index.get_store_id(), (pid, edge_data));
-                    let edges = self.edges.borrow();
+                    let edge_data = self.proxy.repository.retrieve_edge_data_by_id(edge_index.get_store_id())?;
+                    let pid = add_edge(self.proxy, &edge_data, edge_index.get_store_id())?;
+                    self.proxy.map_edges.insert(edge_index.get_store_id(), (pid, edge_data));
+                    let edges = &mut self.proxy.edges;
                     let curr_edge = edges.get(pid.get_index())?;
                     self.current_edge_index = curr_edge.next_inbound_edge;
-                    Some(pid)
+                    Some((pid, self.proxy.edges[pid.get_index()].source, self.proxy.get_relationship_ref(&pid)?.clone()))
                 }
             }
         }
     }
 }
 
-fn add_vertex(vertices: Rc<RefCell<Vec<InnerVertexData<ProxyRelationshipId>>>>, db_id: u64, vdata: DbVertexData) -> (ProxyNodeId, InnerVertexData<ProxyRelationshipId>) {
-    let index = vertices.borrow().len();
+fn add_vertex(vertices: &mut Vec<InnerVertexData<ProxyRelationshipId>>, db_id: u64, vdata: DbVertexData) -> (ProxyNodeId, InnerVertexData<ProxyRelationshipId>) {
+    let index = vertices.len();
     let inbound = vdata.first_inbound_edge.map(ProxyRelationshipId::new_db);
     let outbound = vdata.first_outbound_edge.map(ProxyRelationshipId::new_db);
     let ivdata = InnerVertexData{first_outbound_edge: outbound, first_inbound_edge: inbound};
-    vertices.borrow_mut().push(ivdata);
+    vertices.push(ivdata);
     (ProxyNodeId::new(index, db_id), ivdata)
 }
 
 
-fn get_or_retrieve_vertex_data(vertices: Rc<RefCell<Vec<InnerVertexData<ProxyRelationshipId>>>>, map_vertices: Rc<RefCell<HashMap<u64, (ProxyNodeId, DbVertexData)>>>, repository: MutableGraphRepository, id: u64) -> Option<(ProxyNodeId, InnerVertexData<ProxyRelationshipId>)> {
-    let ovdata = map_vertices.borrow().get(&id).copied();
+fn get_or_retrieve_vertex_data<'a>(proxy: &'a mut GraphProxy, id: u64) -> Option<(ProxyNodeId, InnerVertexData<ProxyRelationshipId>)> {
+    let ovdata = proxy.map_vertices.get(&id).copied();
     if let Some(vdata) = ovdata {
-        vertices.borrow().get(vdata.0.get_index()).map(|v| (vdata.0, *v))
+        proxy.vertices.get(vdata.0.get_index()).map(|v| (vdata.0, *v))
     } else {
-        let vdata = repository.lock().unwrap().retrieve_vertex_data_by_id(id)?;
-        let pid = add_vertex(vertices, id, vdata);
-        map_vertices.borrow_mut().insert(id, (pid.0, vdata));
+        let vdata = proxy.repository.retrieve_vertex_data_by_id(id)?;
+        let pid = add_vertex(&mut proxy.vertices, id, vdata);
+        proxy.map_vertices.insert(id, (pid.0, vdata));
         Some(pid)
     }
 }
 
-fn add_edge(edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>, vertices: Rc<RefCell<Vec<InnerVertexData<ProxyRelationshipId>>>>, map_vertices: Rc<RefCell<HashMap<u64, (ProxyNodeId, DbVertexData)>>>, repository: MutableGraphRepository, db_edge_data: &DbEdgeData, rel_db_id: u64) -> Option<ProxyRelationshipId> {
-    let index = edges.borrow().len();
+fn add_edge<'a>(proxy: &'a mut GraphProxy, db_edge_data: &DbEdgeData, rel_db_id: u64) -> Option<ProxyRelationshipId> {
+    let index = proxy.edges.len();
     
-    let source_data = get_or_retrieve_vertex_data(vertices.clone(), map_vertices.clone(), repository.clone(), db_edge_data.source)?;
-    let target_data = get_or_retrieve_vertex_data(vertices.clone(), map_vertices, repository, db_edge_data.target)?;
+    let source_data = get_or_retrieve_vertex_data(proxy, db_edge_data.source)?;
+    let target_data = get_or_retrieve_vertex_data(proxy, db_edge_data.target)?;
     {
-        edges.borrow_mut().push(InnerEdgeData{source: source_data.0, target: target_data.0,
+        proxy.edges.push(InnerEdgeData{source: source_data.0, target: target_data.0,
             next_inbound_edge: db_edge_data.next_inbound_edge.map(ProxyRelationshipId::new_db), 
             next_outbound_edge: db_edge_data.next_outbound_edge.map(ProxyRelationshipId::new_db)});
     }
     let pid = ProxyRelationshipId::new(index, rel_db_id);
     {
-        let ms = &mut vertices.borrow_mut()[source_data.0.get_index()];
+        let ms = &mut proxy.vertices[source_data.0.get_index()];
         if ms.first_outbound_edge.is_none() {
             ms.first_outbound_edge = Some(pid);
         }
     }
     {
-        let mt = &mut vertices.borrow_mut()[target_data.0.get_index()];
+        let mt = &mut proxy.vertices[target_data.0.get_index()];
         if mt.first_inbound_edge.is_none() {
             mt.first_inbound_edge = Some(pid);
         }
@@ -257,75 +283,68 @@ fn add_edge(edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId
     Some(pid)
 }
 
-pub struct OutEdges {
-    edges: Rc<RefCell<Vec<InnerEdgeData<ProxyNodeId, ProxyRelationshipId>>>>,
+pub struct OutEdges<'a: 'b, 'b> {
     current_edge_index: Option<ProxyRelationshipId>,
-    repository: MutableGraphRepository,
-    vertices: Rc<RefCell<Vec<InnerVertexData<ProxyRelationshipId>>>>,
-    map_edges: Rc<RefCell<HashMap<u64, (ProxyRelationshipId, DbEdgeData)>>>,
-    map_vertices: Rc<RefCell<HashMap<u64, (ProxyNodeId, DbVertexData)>>>,
+    proxy: &'b mut GraphProxy<'a>,
 }
 
-impl Iterator for OutEdges {
-    type Item = ProxyRelationshipId;
+impl <'a, 'b> Iterator for OutEdges<'a, 'b> {
+    type Item = (ProxyRelationshipId, ProxyNodeId, Relationship);
 
-    fn next(&mut self) -> Option<ProxyRelationshipId> {
+    fn next(&mut self) -> Option<Self::Item> {
         match self.current_edge_index {
             None => None,
             Some(edge_index) => {
-                let ordata = self.map_edges.borrow().get(&edge_index.get_store_id()).copied();
+                let ordata = self.proxy.map_edges.get(&edge_index.get_store_id()).copied();
                 if let Some(rdata) = ordata {
-                    let edges = self.edges.borrow();
+                    let edges = &mut self.proxy.edges;
                     let curr_edge = edges.get(rdata.0.get_index())?;
                     self.current_edge_index = curr_edge.next_outbound_edge;
-                    Some(rdata.0)
+                    let pid = rdata.0;
+                    Some((rdata.0, self.proxy.edges[pid.get_index()].target, self.proxy.get_relationship_ref(&pid)?.clone()))
                 } else {
-                    let edge_data = self.repository.lock().unwrap().retrieve_edge_data_by_id(edge_index.get_store_id())?;
-                    let pid = add_edge(self.edges.clone(), self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), &edge_data, edge_index.get_store_id())?;
-                    self.map_edges.borrow_mut().insert(edge_index.get_store_id(), (pid, edge_data));
-                    let edges = self.edges.borrow();
+                    let edge_data = self.proxy.repository.retrieve_edge_data_by_id(edge_index.get_store_id())?;
+                    let pid = add_edge(&mut self.proxy, &edge_data, edge_index.get_store_id())?;
+                    self.proxy.map_edges.insert(edge_index.get_store_id(), (pid, edge_data));
+                    let edges = &mut self.proxy.edges;
                     let curr_edge = edges.get(pid.get_index())?;
                     self.current_edge_index = curr_edge.next_outbound_edge;
-                    Some(pid)
+                    Some((pid, self.proxy.edges[pid.get_index()].target, self.proxy.get_relationship_ref(&pid)?.clone()))
                 }
             }
         }
     }
 }
 
-impl GrowableGraphIteratorTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy {
-    type OutIt = OutEdges;
-    type InIt = InEdges;
-    fn out_edges(&mut self, source: &ProxyNodeId) -> Self::OutIt {
-        let pid = &self.map_vertices.borrow_mut()[&source.get_store_id()];
-        let first_outbound_edge = self.vertices.borrow()[pid.0.get_index()].first_outbound_edge;
-        OutEdges{ edges: self.edges.clone(), current_edge_index: first_outbound_edge, repository: self.repository.clone(),
-            map_vertices: self.map_vertices.clone(), map_edges: self.map_edges.clone(), vertices: self.vertices.clone() }
+impl <'a> GraphProxy<'a> {
+    pub fn out_edges<'b>(&'b mut self, source: &ProxyNodeId) -> OutEdges<'a, 'b> {
+        let pid = &self.map_vertices[&source.get_store_id()];
+        let first_outbound_edge = self.vertices[pid.0.get_index()].first_outbound_edge;
+        OutEdges{ proxy: self, current_edge_index: first_outbound_edge }
     }
 
-    fn in_edges(&mut self, target: &ProxyNodeId) -> Self::InIt {
-        let pid = &self.map_vertices.borrow_mut()[&target.get_store_id()];
-        let first_inbound_edge = self.vertices.borrow()[pid.0.get_index()].first_inbound_edge;
-        InEdges{ edges: self.edges.clone(), current_edge_index: first_inbound_edge, repository: self.repository.clone(),
-            map_edges: self.map_edges.clone(), vertices: self.vertices.clone(), map_vertices: self.map_vertices.clone() }
+    pub fn in_edges<'b>(&'b mut self, target: &ProxyNodeId) -> InEdges<'a, 'b> {
+        let pid = &self.map_vertices[&target.get_store_id()];
+        let first_inbound_edge = self.vertices[pid.0.get_index()].first_inbound_edge;
+        InEdges{ proxy: self, current_edge_index: first_inbound_edge }
     }
-    fn in_degree(&mut self, node: &ProxyNodeId) -> usize {
+    pub fn in_degree(&'a mut self, node: &ProxyNodeId) -> usize {
         self.in_edges(node).count()
     }
-    fn out_degree(&mut self, node: &ProxyNodeId) -> usize {
+    pub fn out_degree(&'a mut self, node: &ProxyNodeId) -> usize {
         self.out_edges(node).count()
     }
 }
 
 
-impl GrowableGraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy {
+impl <'a> GrowableGraphTrait<ProxyNodeId, ProxyRelationshipId> for GraphProxy<'a> {
     fn get_source_index(&self, edge_index: &ProxyRelationshipId) -> ProxyNodeId {
-        let pid = self.map_edges.borrow()[&edge_index.get_store_id()];
-        self.edges.borrow()[pid.0.get_index()].source
+        let pid = self.map_edges[&edge_index.get_store_id()];
+        self.edges[pid.0.get_index()].source
     }
     fn get_target_index(&self, edge_index: &ProxyRelationshipId) -> ProxyNodeId {
-        let pid = self.map_edges.borrow()[&edge_index.get_store_id()];
-        self.edges.borrow()[pid.0.get_index()].target
+        let pid = self.map_edges[&edge_index.get_store_id()];
+        self.edges[pid.0.get_index()].target
     }
     fn nodes_len(&self) -> usize {
         self.retrieved_nodes_ids.len()
@@ -349,8 +368,8 @@ fn extract_nodes_labels(pattern: &PropertyGraph) -> Vec<String> {
     res
 }
 
-fn retrieve_db_nodes_ids(repository: MutableGraphRepository, labels: &Vec<String>) -> Vec<ProxyNodeId> {
-    let db_node_ids = repository.lock().unwrap().fetch_nodes_ids_with_labels(labels);
+fn retrieve_db_nodes_ids(repository: &mut GraphRepository, labels: &Vec<String>) -> Vec<ProxyNodeId> {
+    let db_node_ids = repository.fetch_nodes_ids_with_labels(labels);
     let mut res = Vec::new();
     for id in db_node_ids {
         res.push(ProxyNodeId::new_db(id))
@@ -358,10 +377,10 @@ fn retrieve_db_nodes_ids(repository: MutableGraphRepository, labels: &Vec<String
     res
 }
 
-impl GraphProxy {
-    pub fn new(repo: MutableGraphRepository, pattern: &PropertyGraph) -> Option<Self> {
+impl <'a> GraphProxy<'a> {
+    pub fn new(repo: &'a mut GraphRepository, pattern: &PropertyGraph) -> Option<Self> {
         let labels = extract_nodes_labels(pattern);
-        let mut ids = retrieve_db_nodes_ids(repo.clone(), &labels);
+        let mut ids = retrieve_db_nodes_ids(repo, &labels);
         let labels_set = labels.iter().collect::<HashSet<&String>>();
         for n_index in pattern.get_nodes_ids() {
             let pattern_node = pattern.get_node_ref(&n_index);
@@ -374,38 +393,38 @@ impl GraphProxy {
         }
         for v in pattern.get_nodes() {
             if v.get_labels_ref().is_empty() && v.get_id().is_none() {
-                    ids = repo.lock().unwrap().get_node_ids().as_ref().map(|v| v.iter().map(|nid|ProxyNodeId::new_db(*nid)).collect())?;
+                    ids = repo.get_node_ids().as_ref().map(|v| v.iter().map(|nid|ProxyNodeId::new_db(*nid)).collect())?;
                     break;
             }
         }
         Some(GraphProxy{repository: repo, nodes: Vec::new(),
             relationships: Vec::new(),
-            retrieved_nodes_ids: ids, vertices: Rc::new(RefCell::new(Vec::new())),
-            edges: Rc::new(RefCell::new(Vec::new())),
-            map_vertices: Rc::new(RefCell::new(HashMap::new())),
-            map_edges: Rc::new(RefCell::new(HashMap::new())),
+            retrieved_nodes_ids: ids, vertices: Vec::new(),
+            edges: Vec::new(),
+            map_vertices: HashMap::new(),
+            map_edges: HashMap::new(),
         })
     }
 
-    pub fn new_full(repo: MutableGraphRepository) -> Option<Self> {
-        let ids = repo.lock().unwrap().get_node_ids().as_ref().map(|v| v.iter().map(|nid|ProxyNodeId::new_db(*nid)).collect())?;
+    pub fn new_full(repo: &'a mut GraphRepository) -> Option<Self> {
+        let ids = repo.get_node_ids().as_ref().map(|v| v.iter().map(|nid|ProxyNodeId::new_db(*nid)).collect())?;
 
         Some(GraphProxy{repository: repo, nodes: Vec::new(),
             relationships: Vec::new(),
-            retrieved_nodes_ids: ids, vertices: Rc::new(RefCell::new(Vec::new())),
-            edges: Rc::new(RefCell::new(Vec::new())),
-            map_vertices: Rc::new(RefCell::new(HashMap::new())),
-            map_edges: Rc::new(RefCell::new(HashMap::new())),
+            retrieved_nodes_ids: ids, vertices: Vec::new(),
+            edges: Vec::new(),
+            map_vertices: HashMap::new(),
+            map_edges: HashMap::new(),
         })
     }
 
     fn add_edge(&mut self, rel_db_id: u64) -> Option<ProxyRelationshipId> {
-        let db_edge_data = self.repository.lock().unwrap().retrieve_edge_data_by_id(rel_db_id)?;
-        add_edge(self.edges.clone(), self.vertices.clone(), self.map_vertices.clone(), self.repository.clone(), &db_edge_data, rel_db_id)
+        let db_edge_data = self.repository.retrieve_edge_data_by_id(rel_db_id)?;
+        add_edge(self, &db_edge_data, rel_db_id)
     }
 
     fn add_vertex(&mut self, db_id: u64, vdata: DbVertexData) -> (ProxyNodeId, InnerVertexData<ProxyRelationshipId>) {
-        add_vertex(self.vertices.clone(), db_id, vdata)
+        add_vertex(&mut self.vertices, db_id, vdata)
     }
 
     fn add_node(&mut self, node: &(Node, DbVertexData), retrieve_vertex: bool) -> Option<ProxyNodeId> {
@@ -414,7 +433,7 @@ impl GraphProxy {
             if retrieve_vertex {
                 self.add_vertex(id, node.1).0
             } else {
-                self.map_vertices.borrow()[&id].0
+                self.map_vertices[&id].0
             }
         };
         while pid.get_index() > self.nodes.len() {
@@ -430,7 +449,7 @@ impl GraphProxy {
             if retrieve_edge {
                 self.add_edge(id)?
             } else {
-                self.map_edges.borrow()[&id].0
+                self.map_edges[&id].0
             }
         };
         while pid.get_index() > self.relationships.len() {
@@ -445,7 +464,7 @@ impl GraphProxy {
     }
 
     pub fn get_edges_with_relationships(&self) -> Vec<(InnerEdgeData<ProxyNodeId, ProxyRelationshipId>, Relationship)> {
-        self.edges.borrow().clone().into_iter().zip(self.relationships.clone()).collect()
+        self.edges.clone().into_iter().zip(self.relationships.clone()).collect()
     }
 
 }
