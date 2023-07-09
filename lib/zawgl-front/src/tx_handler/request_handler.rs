@@ -25,7 +25,7 @@ use std::sync::{Arc};
 
 use std::sync::Mutex;
 use zawgl_core::graph_engine::GraphEngine;
-use zawgl_core::model::{PropertyGraph};
+use zawgl_core::model::PropertyGraph;
 use zawgl_core::model::init::InitContext;
 use zawgl_cypher_query_model::QueryStep;
 use crate::planner::handle_query_steps;
