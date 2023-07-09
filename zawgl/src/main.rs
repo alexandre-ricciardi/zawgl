@@ -28,7 +28,7 @@ use zawgl_core::model::init::InitContext;
 use settings::Settings;
 use simple_logger::SimpleLogger;
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
+#[tokio::main(flavor = "multi_thread", worker_threads = 20)]
 async fn main() {
     let settings = Settings::new();
     let log_level = settings.get_log_level();

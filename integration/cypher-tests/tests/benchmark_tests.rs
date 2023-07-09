@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::{time::Instant};
+use std::time::Instant;
 
 use zawgl_client::Client;
 use cypher_tests::run_test;
