@@ -3,9 +3,9 @@ pub mod parameters;
 use std::sync::{Arc, Mutex};
 use std::{io::Cursor, collections::HashMap};
 
-use futures_channel::mpsc::{UnboundedSender};
+use futures_channel::mpsc::UnboundedSender;
 use futures_channel::oneshot::{Sender, Canceled};
-use futures_util::{StreamExt};
+use futures_util::StreamExt;
 use parameters::{Parameters, Value};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use bson::{Document, doc, Bson};

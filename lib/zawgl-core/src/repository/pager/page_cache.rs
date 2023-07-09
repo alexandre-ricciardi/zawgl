@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 use super::super::super::buf_config::*;
-use std::{collections::{HashMap}, cmp::Ordering};
+use std::{collections::HashMap, cmp::Ordering};
 
 pub type PageId = u64;
 pub type HitsCount = u64;
