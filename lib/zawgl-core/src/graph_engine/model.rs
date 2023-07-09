@@ -21,11 +21,8 @@
 use super::super::model::*;
 use super::super::graph::traits::*;
 use super::super::repository::graph_repository::*;
-use super::MutableGraphRepository;
 
 use std::hash::{Hash, Hasher};
-use std::rc::Rc;
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Copy, Clone, Debug)]

@@ -21,7 +21,7 @@
 mod base_state;
 mod state;
 
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use crate::graph_engine::model::{ProxyNodeId, GraphProxy};
 use crate::model::{PropertyGraph, Relationship, Node};
 

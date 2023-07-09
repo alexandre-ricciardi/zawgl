@@ -148,7 +148,7 @@ pub fn push_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, grap
         }
     }
 
-    for (edge_index, ancestor, _rel) in graph.in_edges(v0) {
+    for (_edge_index, ancestor, _rel) in graph.in_edges(v0) {
         if let std::collections::hash_map::Entry::Vacant(e) = base_state.in_map.entry(ancestor) {
             e.insert(base_state.core_count);
             base_state.term_in_count += 1;
@@ -157,7 +157,7 @@ pub fn push_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, grap
             }
         }
     }
-    for (edge_index, successor, _rel) in graph.out_edges(v0) {
+    for (_edge_index, successor, _rel) in graph.out_edges(v0) {
         if let std::collections::hash_map::Entry::Vacant(e) = base_state.out_map.entry(successor) {
             e.insert(base_state.core_count);
             base_state.term_out_count += 1;
@@ -183,7 +183,7 @@ pub fn pop_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph
         }
     }
 
-    for (in_edge, source, rel) in graph.in_edges(v0) {
+    for (_in_edge, source, _rel) in graph.in_edges(v0) {
         if let Some(in_count) = base_state.in_map.get(&source) {
             if *in_count == base_state.core_count {
                 base_state.in_map.remove(&source);
@@ -205,7 +205,7 @@ pub fn pop_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph
         }
     }
 
-    for (out_edge, target, _rel) in graph.out_edges(v0) {
+    for (_out_edge, target, _rel) in graph.out_edges(v0) {
         if let Some(out_count) = base_state.out_map.get(&target) {
             if *out_count == base_state.core_count {
                 base_state.out_map.remove(&target);
@@ -297,7 +297,7 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
                 let mut rest1_count = 0;
                 {
                     let mut matched_edge_set = HashSet::new();
-                    for (edge_index, source_index, rel) in graph_1.in_edges(w_new) {
+                    for (edge_index, source_index, _rel) in graph_1.in_edges(w_new) {
                         if !self.inc_counters_match_edge_1(true, &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index, v_new, &edge_index, 
                             &mut matched_edge_set)? {
                             return Some(false);
@@ -306,7 +306,7 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
                 }
                 {
                     let mut matched_edge_set = HashSet::new();
-                    for (edge_index, target_index, rel) in graph_1.out_edges(w_new) {
+                    for (edge_index, target_index, _rel) in graph_1.out_edges(w_new) {
                         if !self.inc_counters_match_edge_1(false, &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index, v_new, &edge_index, 
                             &mut matched_edge_set)? {
                             return Some(false);
