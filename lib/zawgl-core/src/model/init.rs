@@ -23,6 +23,7 @@ use std::path;
 use std::env;
 use log::info;
 
+/// Zawgl database initialization context
 #[derive(Debug, Clone)]
 pub struct InitContext {
     db_dir: String,
@@ -43,6 +44,7 @@ fn build_path(dir: &str, file: &str) -> Option<String> {
 }
 
 impl InitContext {
+    /// Builds an initialization context by providing the database data directory
     pub fn new(dir: &str) -> Option<Self> {
         let mut dir_path_buf = path::PathBuf::new();
         let dir_path = path::Path::new(dir);

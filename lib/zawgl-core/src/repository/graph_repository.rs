@@ -32,6 +32,7 @@ fn parse_labels(labels: &str) -> Option<Vec<String>> {
     Some(labels.split(":").map(|s| String::from(s)).collect())
 }
 
+/// A graph repository enabling to store a directed property graph on the disk 
 pub struct GraphRepository {
     nodes_store: nodes_store::NodesStore,
     relationships_store: relationships_store::RelationshipsStore,
@@ -44,6 +45,8 @@ pub struct GraphRepository {
 }
 
 impl GraphRepository {
+
+    /// Builds a GraphRepository with its context
     pub fn new(init_ctx: init::InitContext) -> Self {
         let mut nodes_store = nodes_store::NodesStore::new(&init_ctx.get_nodes_store_path().unwrap());
         let nodes_ids = nodes_store.borrow_mut().retrieve_all_nodes_ids();
@@ -68,6 +71,7 @@ impl GraphRepository {
         &self.nodes_ids
     }
 
+    /// Retrieve nodes IDs by labels
     pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> HashSet<u64> {
         let mut res = HashSet::new();
         for label in labels {
@@ -78,7 +82,8 @@ impl GraphRepository {
         }
         res
     }
-
+    
+    /// Retrieve an node with its ID
     pub fn retrieve_node_by_id(&mut self, node_id: u64) -> Option<(Node, DbVertexData)> {
         let nr = self.nodes_store.load(node_id)?;
         let mut node = Node::new();
@@ -98,6 +103,7 @@ impl GraphRepository {
         Some((node, vertex))
     }
 
+    /// Retrieve a vertex with its ID
     pub fn retrieve_vertex_data_by_id(&mut self, node_id: u64) -> Option<DbVertexData> {
         let nr = self.nodes_store.load(node_id)?;
         let mut vertex = DbVertexData::new();
@@ -110,6 +116,7 @@ impl GraphRepository {
         Some(vertex)
     }
 
+    /// Retrieve an relationship with its ID
     pub fn retrieve_relationship_by_id(&mut self, rel_id: u64) -> Option<(Relationship, DbEdgeData)> {
         let rr = self.relationships_store.load(rel_id)?;
         let mut rel = Relationship::new();
@@ -129,6 +136,7 @@ impl GraphRepository {
         Some((rel, edge))
     }
 
+    /// Retrieve an edge with its ID
     pub fn retrieve_edge_data_by_id(&mut self, rel_id: u64) -> Option<DbEdgeData> {
         let rr = self.relationships_store.load(rel_id)?;
         let mut edge = DbEdgeData::new(rr.source, rr.target);
@@ -141,6 +149,7 @@ impl GraphRepository {
         Some(edge)
     }
 
+    /// Create a node and index its labels
     pub fn create_node(&mut self, node: &Node) -> Option<Node> {
         let node = self.create_node_with_properties(node)?;
         for label in node.get_labels_ref() {
@@ -149,6 +158,7 @@ impl GraphRepository {
         Some(node)
     }
     
+    /// Create a node with properties
     pub fn create_node_with_properties(&mut self, node: &Node) -> Option<Node> {
         let mut nr = NodeRecord::new();
         let mut res = node.clone();
@@ -171,7 +181,7 @@ impl GraphRepository {
         Some(res)
     }
     
-
+    /// Create a relationship with properties
     pub fn create_relationship_with_properties(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
         let mut source_record = self.nodes_store.load(source)?;
         let mut target_record = self.nodes_store.load(target)?;
@@ -207,6 +217,7 @@ impl GraphRepository {
         Some(res)
     }
 
+    /// Create a relationship and index its labels
     pub fn create_relationship(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
         let res = self.create_relationship_with_properties(rel, source, target)?;
         for label in rel.get_labels_ref() {
@@ -215,6 +226,7 @@ impl GraphRepository {
         Some(res)
     }
 
+    /// Create a graph and index its labels
     pub fn create_graph(&mut self, pgraph: &PropertyGraph) -> Option<PropertyGraph> {
         let mut res = pgraph.clone();
         let mut map_nodes = HashMap::new();
@@ -254,6 +266,7 @@ impl GraphRepository {
         Some(res)
     }
 
+    /// Write data on disk
     pub fn sync(&mut self) {
         self.nodes_labels_index.sync();
         self.relationships_store.sync();
@@ -261,6 +274,8 @@ impl GraphRepository {
         self.properties_repository.sync();
         self.labels_store.sync();
     }
+
+    /// Clears the caches
     pub fn clear(&mut self) {
         self.nodes_labels_index.clear();
         self.relationships_store.clear();
