@@ -16,7 +16,7 @@ fn main() {
     let mut node = Node::new();
     node.set_labels(vec!["Person".to_string()]);
     node.set_properties(vec![Property::new("age".to_string(), PropertyValue::PInteger(42))]);
-    let rtx_node = gr.create_node(&node).unwrap();
+    let node_with_id = gr.create_node(&node).unwrap();
     gr.sync();
  }
 ```
