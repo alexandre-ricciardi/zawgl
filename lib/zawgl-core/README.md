@@ -5,8 +5,6 @@ Zawgl graph core library
 
 Sample usage:
 ```rust
-
-use zawgl_client::parameters::{Parameters, Value};
 use zawgl_core::{model::{init::InitContext, Node, Property, PropertyValue, Relationship}, repository::graph_repository::GraphRepository};
 
 fn main() {
