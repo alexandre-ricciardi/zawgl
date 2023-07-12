@@ -285,10 +285,13 @@ impl GraphRepository {
     }
 
     pub fn rebuild_index(&mut self) -> Option<()> {
+        self.nodes_labels_index.reset();
         let ids = self.nodes_store.retrieve_all_nodes_ids()?;
         for id in ids {
-            let node = self.retrieve_node_by_id(id)?;
-            self.nodes_labels_index.reset();
+            let (node, _v) = self.retrieve_node_by_id(id)?;
+            for label in node.get_labels_ref() {
+                self.nodes_labels_index.insert(label, node.get_id()?);
+            }
         }
         Some(())
     }

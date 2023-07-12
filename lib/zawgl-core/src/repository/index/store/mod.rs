@@ -23,10 +23,6 @@ mod pool;
 
 use log::*;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
-use crate::repository::pager::Bounds;
-
 use self::records::*;
 use super::super::super::buf_config::*;
 use super::model::*;
