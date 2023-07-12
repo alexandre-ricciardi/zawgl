@@ -272,4 +272,7 @@ impl Pager {
     pub fn clear(&mut self) {
         self.page_cache.clear();
     }
+    pub fn erase(&mut self) {
+        self.records_file.erase();
+    }
 }

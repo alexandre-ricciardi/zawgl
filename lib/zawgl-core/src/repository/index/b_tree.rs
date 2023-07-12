@@ -237,6 +237,10 @@ impl BTreeIndex {
     pub fn clear(&mut self) {
         self.node_store.clear();
     }
+    pub fn reset(&mut self) {
+        self.node_store.erase();
+        self.clear();
+    }
 }
 
 #[cfg(test)]

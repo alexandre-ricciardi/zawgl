@@ -283,6 +283,15 @@ impl GraphRepository {
         self.properties_repository.clear();
         self.labels_store.clear();
     }
+
+    pub fn rebuild_index(&mut self) -> Option<()> {
+        let ids = self.nodes_store.retrieve_all_nodes_ids()?;
+        for id in ids {
+            let node = self.retrieve_node_by_id(id)?;
+            self.nodes_labels_index.reset();
+        }
+        Some(())
+    }
 }
 
 #[derive(Copy, Clone)]

@@ -34,10 +34,9 @@ use super::super::records::*;
 use self::pool::*;
 
 
-pub type MutableRecordsManager = Arc<Mutex<RecordsManager>>;
+pub type MutableRecordsManager = RecordsManager;
 
 pub struct BTreeNodeStore {
-    records_manager: MutableRecordsManager,
     pool: NodeRecordPool,
     nodes_pool: BTreeNodePool,
 }
@@ -78,11 +77,10 @@ enum CellLoadRes {
 
 impl BTreeNodeStore {
     pub fn new(file: &str) -> Self {
-        let rec_mngr = RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
-        let records_manager = Arc::new(Mutex::new(rec_mngr));
-        let pool = NodeRecordPool::new(Arc::clone(&records_manager));
+        let records_manager = RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
+        let pool = NodeRecordPool::new(records_manager);
         let nodes_pool = BTreeNodePool::new();
-        BTreeNodeStore{records_manager, pool, nodes_pool}
+        BTreeNodeStore{pool, nodes_pool}
     }
 
     fn retrieve_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> Option<CellLoadRes> {
@@ -307,7 +305,7 @@ impl BTreeNodeStore {
         let id = self.pool.create_node_record(node_record)?;
         node.set_id(id);
         if node.is_root() {
-            self.set_root_node_ptr(id);
+            self.pool.set_root_node_ptr(id);
         }
         let mut clone = node.clone();
         clone.reset();
@@ -439,7 +437,7 @@ impl BTreeNodeStore {
         if !is_root {
             main_node_record.set_is_not_root();
         } else {
-            self.set_root_node_ptr(*node_id);
+            self.pool.set_root_node_ptr(*node_id);
         }
         Some(*node_id)
     }
@@ -560,23 +558,13 @@ impl BTreeNodeStore {
         Some(())
     }
 
-    fn get_root_node_ptr(&self) -> NodeId {
-        let mut buf = [0u8; NODE_PTR_SIZE];
-        self.records_manager.lock().unwrap().get_pager_mut().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(0, NODE_PTR_SIZE), &mut buf);
-        u64::from_be_bytes(buf)
-    }
-
-    fn set_root_node_ptr(&mut self, id: NodeId) {
-        self.records_manager.lock().unwrap().get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(0, NODE_PTR_SIZE), &id.to_be_bytes());
-    }
-
     pub fn load_or_create_root_node(&mut self) -> Option<NodeId> {
         if self.is_empty() {
             let mut root = BTreeNode::new(true, true, Vec::new());
             self.create(&mut root)?;
             self.nodes_pool.put(root)
         } else {
-            let root_node_id = self.get_root_node_ptr();
+            let root_node_id = self.pool.get_root_node_ptr();
             self.retrieve_node(&root_node_id);
             Some(root_node_id)
         }
@@ -584,19 +572,23 @@ impl BTreeNodeStore {
     }
 
     pub fn is_empty(&mut self) -> bool {
-        self.records_manager.lock().unwrap().is_empty()
+        self.pool.is_empty()
     }
 
     pub fn sync(&mut self) {
-        self.records_manager.lock().unwrap().sync();
+        self.pool.sync();
         self.clear();
     }
     pub fn soft_sync(&mut self) {
-        self.records_manager.lock().unwrap().sync();
+        self.pool.sync();
     }
     pub fn clear(&mut self) {
         self.pool.clear();
         self.nodes_pool.clear();
+    }
+    pub fn erase(&mut self) {
+        self.pool.erase();
+        self.clear();
     }
 }
 

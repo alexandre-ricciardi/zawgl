@@ -78,4 +78,9 @@ impl FileAccess {
             Ok(md) => {md.len()}
         }
     }
+    pub fn erase(&mut self) {
+        if let Err(res) = self.file.set_len(0) {
+            error!("erasing file {}", res);
+        }
+    }
 }
