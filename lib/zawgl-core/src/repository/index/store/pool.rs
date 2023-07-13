@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::repository::index::model::NodeId;
 use crate::repository::pager::Bounds;
 
 use super::{MutableRecordsManager, records::*};
@@ -44,13 +45,13 @@ impl NodeRecordPool {
     }
 
     pub fn is_empty_records_set(&mut self) -> bool {
-        self.records_manager.lock().unwrap().is_empty()
+        self.records_manager.is_empty()
     }
 
     pub fn load_node_record_clone(&mut self, id: &u64) -> Option<BNodeRecord> {
         let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(*id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-            self.records_manager.lock().unwrap().load(*id, &mut data).ok()?;
+            self.records_manager.load(*id, &mut data).ok()?;
             let pos = self.records.len();
             self.records.push(BNodeRecord::from_bytes(&data));
             e.insert(pos);
@@ -70,7 +71,7 @@ impl NodeRecordPool {
     pub fn load_node_record_ref(&mut self, id: u64) -> Option<&BNodeRecord> {
         let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-            self.records_manager.lock().unwrap().load(id, &mut data).ok()?;
+            self.records_manager.load(id, &mut data).ok()?;
             let pos = self.records.len();
             self.records.push(BNodeRecord::from_bytes(&data));
             e.insert(pos);
@@ -84,7 +85,7 @@ impl NodeRecordPool {
     pub fn load_node_record_mut(&mut self, id: &u64) -> Option<&mut BNodeRecord> {
         let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(*id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
-            self.records_manager.lock().unwrap().load(*id, &mut data).ok()?;
+            self.records_manager.load(*id, &mut data).ok()?;
             let pos = self.records.len();
             self.records.push(BNodeRecord::from_bytes(&data));
             e.insert(pos);
@@ -96,7 +97,7 @@ impl NodeRecordPool {
     }
 
     pub fn create_node_record(&mut self, node_record: BNodeRecord) -> Option<u64> {
-        let id = self.records_manager.lock().unwrap().create(&node_record.to_bytes()).ok()?;
+        let id = self.records_manager.create(&node_record.to_bytes()).ok()?;
         let pos = self.records.len();
         self.records.push(node_record);
         self.records_map.insert(id, pos);
@@ -106,7 +107,7 @@ impl NodeRecordPool {
     pub fn save_all_node_records(&mut self) -> Option<()> {
         for r in &self.records_map {
             let record = self.records[*r.1];
-            self.records_manager.lock().unwrap().save(*r.0, &record.to_bytes()).ok()?
+            self.records_manager.save(*r.0, &record.to_bytes()).ok()?
         }
         Some(())
     }
@@ -141,16 +142,35 @@ impl NodeRecordPool {
     
     fn get_first_free_list_node_ptr(&self) -> BTreeNodeId {
         let mut buf = [0u8; NODE_PTR_SIZE];
-        self.records_manager.lock().unwrap().get_pager_ref().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &mut buf);
+        self.records_manager.get_pager_ref().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &mut buf);
         u64::from_be_bytes(buf)
     }
 
     fn set_first_free_list_node_ptr(&mut self, id: BTreeNodeId) {
-        self.records_manager.lock().unwrap().get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &id.to_be_bytes());
+        self.records_manager.get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &id.to_be_bytes());
     }
     pub fn clear(&mut self) {
         self.records.clear();
         self.records_map.clear();
+    }
+    pub fn get_root_node_ptr(&mut self) -> NodeId {
+        let mut buf = [0u8; NODE_PTR_SIZE];
+        self.records_manager.get_pager_mut().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(0, NODE_PTR_SIZE), &mut buf);
+        u64::from_be_bytes(buf)
+    }
+    pub fn set_root_node_ptr(&mut self, id: NodeId) {
+        self.records_manager.get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(0, NODE_PTR_SIZE), &id.to_be_bytes());
+    }
+    pub fn sync(&mut self) {
+        self.records_manager.sync();
+        self.clear();
+    }
+    pub fn erase(&mut self) {
+        self.records_manager.erase();
+        self.clear();
+    }
+    pub fn is_empty(&mut self) -> bool {
+        self.records_manager.is_empty()
     }
 }
 
@@ -203,12 +223,12 @@ impl <'a> FreeCellIterator<'a> {
 
     fn get_first_free_list_node_ptr(&self) -> BTreeNodeId {
         let mut buf = [0u8; NODE_PTR_SIZE];
-        self.pool.records_manager.lock().unwrap().get_pager_ref().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &mut buf);
+        self.pool.records_manager.get_pager_ref().get_header_page_ref().read_header_payload_from_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &mut buf);
         u64::from_be_bytes(buf)
     }
 
     fn set_first_free_list_node_ptr(&mut self, id: BTreeNodeId) {
-        self.pool.records_manager.lock().unwrap().get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &id.to_be_bytes());
+        self.pool.records_manager.get_pager_mut().get_header_page_mut().write_header_payload_to_bounds(Bounds::new(NODE_PTR_SIZE, 2*NODE_PTR_SIZE), &id.to_be_bytes());
     }
 }
 

@@ -508,6 +508,9 @@ impl RecordsManager {
     pub fn get_pager_mut(&mut self) -> &mut Pager {
         &mut self.pager
     }
+    pub fn erase(&mut self) {
+        self.pager.erase();
+    }
 }
 
 
