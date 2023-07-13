@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::buf_config::PROPERTY_BLOCK_SIZE;
+
 use super::store::*;
 use super::super::model::*;
 
@@ -52,11 +54,11 @@ fn map_prop_type(prop: &Property) -> Option<u8> {
 }
 
 fn is_full_inlined(prop: &Property) -> Option<bool> {
-    compute_prop_size(prop).map(|psize| psize < 23)
+    compute_prop_size(prop).map(|psize| psize < PROPERTY_BLOCK_SIZE -1 -8)
 }
 
 fn is_key_inlined(prop: &Property) -> Option<bool> {
-    compute_prop_name_size(prop).map(|psize| psize < 23)
+    compute_prop_name_size(prop).map(|psize| psize < PROPERTY_BLOCK_SIZE -1 -8)
 }
 
 fn make_full_inlined_record(prop: &Property) -> Option<records::PropertyRecord> {
@@ -186,7 +188,7 @@ impl PropertiesRespository {
                 };
 
                 value_id.and_then(|dr_id| {
-                    let mut block = [0u8; 24];
+                    let mut block = [0u8; PROPERTY_BLOCK_SIZE];
                     block[..prop.get_name().len()].copy_from_slice(&String::from(prop.get_name()).into_bytes());
                     let beg = prop.get_name().len() + 1;
                     let end = beg + std::mem::size_of::<u64>();
@@ -312,6 +314,18 @@ mod test_prop_repo {
         assert_eq!(load.get_value(), prop.get_value());
     }
 
+    #[test]
+    fn test_save_inlined_key() {
+        let dyn_file = build_file_path_and_rm_old("test_save_load_2", "dyn.db").unwrap();
+        let props_file = build_file_path_and_rm_old("test_save_load_2", "prop.db").unwrap();
+        let mut pr = PropertiesRespository::new(&props_file, &dyn_file);
+        let mut prop = Property::new(String::from("qsfsqdfqsdfq"),
+        PropertyValue::PString(String::from("qgkfdgsdfqerqzerqzerqzerqzerqzerqzerarthdtrsdqeqtrshsreqsgstreq")));
+        pr.create(&mut prop);
+        let load = pr.load(prop.get_id().unwrap()).unwrap();
+        assert_eq!(load.get_name(), prop.get_name());
+        assert_eq!(load.get_value(), prop.get_value());
+    }
     #[test]
     fn test_save_load_2() {
         let dyn_file = build_file_path_and_rm_old("test_save_load_2", "dyn.db").unwrap();
