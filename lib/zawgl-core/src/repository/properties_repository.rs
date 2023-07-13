@@ -157,7 +157,7 @@ impl PropertiesRespository {
         let key_id = self.dyn_store.save_data(&String::from(prop.get_name()).into_bytes());
         value_id.and_then(|v_id| {
             key_id.and_then(|key_id| {
-                let mut block = [0u8; 24];
+                let mut block = [0u8; PROPERTY_BLOCK_SIZE];
                 let beg = 0;
                 let end = beg + std::mem::size_of::<u64>();
                 block[beg..end].copy_from_slice(&v_id.to_be_bytes());
@@ -216,12 +216,12 @@ impl PropertiesRespository {
         if pr.full_inlined {
             let name_index = extract_string(&pr.prop_block)?;
             let key_end = name_index.0;
-            Some(Property::new(name_index.1, extract_value(key_end + 1, pr.prop_type, &pr.prop_block)?))
+            Some(Property::new(name_index.1, extract_value(key_end, pr.prop_type, &pr.prop_block)?))
         } else if pr.key_inlined {
-            let name_index = extract_string(&pr.prop_block)?;
-            let value_id = extract_id(&pr.prop_block);
+            let (id_index, name_index) = extract_string(&pr.prop_block)?;
+            let value_id = extract_id_from(id_index, &pr.prop_block);
             let data = self.dyn_store.load_data(value_id)?;
-            Some(Property::new_with_id(value_id, name_index.1, extract_value(0, pr.prop_type, &data)?))
+            Some(Property::new_with_id(value_id, name_index, extract_value(0, pr.prop_type, &data)?))
         } else {
             let key = self.dyn_store.load_data(pr.key_id)?;
             let name = extract_string(&key)?.1;
@@ -254,15 +254,20 @@ fn extract_string(data: &[u8]) -> Option<(usize, String)> {
     let str_end = it.position(|&c| c == b'\0').unwrap_or(data.len());
     let mut string = Vec::with_capacity(str_end);
     string.extend_from_slice(&data[0..str_end]);
-    Some((str_end,  String::from_utf8(string).ok()?))
+    Some((str_end+1,  String::from_utf8(string).ok()?))
 }
 
 fn extract_id(data: &[u8]) -> u64 {
     let mut bytes = [0u8; std::mem::size_of::<u64>()];
-    bytes.copy_from_slice(&data[0..std::mem::size_of::<f64>()]);
+    bytes.copy_from_slice(&data[0..std::mem::size_of::<u64>()]);
     u64::from_be_bytes(bytes)
 }
 
+fn extract_id_from(start: usize, data: &[u8]) -> u64 {
+    let mut bytes = [0u8; std::mem::size_of::<u64>()];
+    bytes.copy_from_slice(&data[start..start+std::mem::size_of::<u64>()]);
+    u64::from_be_bytes(bytes)
+}
 fn extract_value(skip: usize, prop_type: u8, data: &[u8]) -> Option<PropertyValue> {
     if prop_type == 0 {
         let mut it = data.iter().skip(skip);
@@ -315,9 +320,21 @@ mod test_prop_repo {
     }
 
     #[test]
+    fn test_save_full_inlined() {
+        let dyn_file = build_file_path_and_rm_old("test_save_full_inlined_dyn", "dyn.db").unwrap();
+        let props_file = build_file_path_and_rm_old("test_save_full_inlined_prop", "prop.db").unwrap();
+        let mut pr = PropertiesRespository::new(&props_file, &dyn_file);
+        let mut prop = Property::new(String::from("age"),
+        PropertyValue::PInteger(19236));
+        pr.create(&mut prop);
+        let load = pr.load(prop.get_id().unwrap()).unwrap();
+        assert_eq!(load.get_name(), prop.get_name());
+        assert_eq!(load.get_value(), prop.get_value());
+    }
+    #[test]
     fn test_save_inlined_key() {
-        let dyn_file = build_file_path_and_rm_old("test_save_load_2", "dyn.db").unwrap();
-        let props_file = build_file_path_and_rm_old("test_save_load_2", "prop.db").unwrap();
+        let dyn_file = build_file_path_and_rm_old("test_save_inlined_key_dyn", "dyn.db").unwrap();
+        let props_file = build_file_path_and_rm_old("test_save_inlined_key_prop", "prop.db").unwrap();
         let mut pr = PropertiesRespository::new(&props_file, &dyn_file);
         let mut prop = Property::new(String::from("qsfsqdfqsdfq"),
         PropertyValue::PString(String::from("qgkfdgsdfqerqzerqzerqzerqzerqzerqzerarthdtrsdqeqtrshsreqsgstreq")));
