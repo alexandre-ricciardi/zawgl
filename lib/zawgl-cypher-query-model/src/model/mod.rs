@@ -30,7 +30,7 @@ pub enum Directive {
 
 pub struct FunctionCall {
     pub name: String,
-    pub args: Vec<String>,
+    pub args: Vec<ValueItem>,
     pub alias: Option<String>,
 }
 
@@ -40,17 +40,33 @@ impl FunctionCall {
     }
 }
 
+pub struct ItemPropertyName {
+    pub item_name: String,
+    pub property_name: String,
+}
+
+impl ItemPropertyName {
+    fn new(item_name: &str, prop_name: &str) -> Self {
+        ItemPropertyName { item_name: item_name.to_string(), property_name: prop_name.to_string() }
+    }
+}
+
+pub enum ValueItem {
+    ItemPropertyName(ItemPropertyName),
+    NamedItem(String)
+}
+
 pub struct ReturnItem {
-    pub name: String,
+    pub item: ValueItem,
     pub alias: Option<String>,
 }
 
 impl ReturnItem {
-    pub fn new_alias(name: &str, alias: &str) -> Self {
-        ReturnItem{name: String::from(name), alias: Some(alias.to_string())}
+    pub fn new_property(item_name: &str, prop_name: &str) -> Self {
+        ReturnItem{item: ValueItem::ItemPropertyName(ItemPropertyName::new(item_name, prop_name)), alias: None}
     }
-    pub fn new(name: &str) -> Self {
-        ReturnItem{name: String::from(name), alias: None}
+    pub fn new_named_item(name: &str) -> Self {
+        ReturnItem{item: ValueItem::NamedItem(name.to_string()), alias: None}
     }
 }
 pub enum ReturnExpression {

@@ -177,7 +177,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         todo!()
     }
 
-    fn exit_identifier(&mut self, key: &str) -> AstVisitorResult {
+    fn exit_identifier(&mut self, _key: &str) -> AstVisitorResult {
         Ok(())
     }
 

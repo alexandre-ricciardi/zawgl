@@ -75,12 +75,12 @@ fn build_cypher_error(request_id: &str, err: CypherError) -> Result<Document, Cy
 fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request: &Request) -> Result<Document, CypherError> {
     let mut result_doc = Document::new();
     let mut graph_list = Vec::new();
-    let mut return_set = HashSet::new();
+    let mut return_set = Vec::new();
     if let Some(ret) = &request.return_clause {
         for ret_exp in &ret.expressions {
             match ret_exp {
                 zawgl_cypher_query_model::model::ReturnExpression::FunctionCall(_) => todo!(),
-                zawgl_cypher_query_model::model::ReturnExpression::Item(item) => {return_set.insert(item);},
+                zawgl_cypher_query_model::model::ReturnExpression::Item(item) => {return_set.push(&item.item);},
             }
         }
     }
@@ -89,7 +89,7 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
         let mut nodes_doc = Vec::new();
         for node in pattern.get_nodes() {
             if let Some(var) = node.get_var() {
-                if return_set.contains(&"*".to_string()) || return_set.contains(var) {
+                //if return_set.contains(&"*".to_string()) || return_set.contains(var) {
                     let mut node_doc = doc!{
                         "name": node.get_var().as_ref().ok_or(CypherError::ResponseError)?.to_string(),
                         "id": node.get_id().ok_or(CypherError::ResponseError)? as i64,
@@ -98,7 +98,7 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
                     };
                     node_doc.insert("name", var.to_string());
                     nodes_doc.push(node_doc);
-                }
+                //}
             }
         }
         graph_doc.insert("nodes", nodes_doc);
@@ -106,7 +106,7 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
         let mut rels_doc = Vec::new();
         for rel in pattern.get_relationships_and_edges() {
             if let Some(var) = rel.relationship.get_var() {
-                if return_set.contains(&"*".to_string()) || return_set.contains(var) {
+                //if return_set.contains(&"*".to_string()) || return_set.contains(var) {
                     let mut rel_doc = doc!{
                         "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
                         "source_id": pattern.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64,
@@ -116,7 +116,7 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
                     };
                     rel_doc.insert("name", var.to_string());
                     rels_doc.push(rel_doc);
-                }
+                //}
             }
         }
         graph_doc.insert("relationships", rels_doc);

@@ -95,12 +95,13 @@ struct CypherAstVisitor {
     path_builders: Vec<PathBuilder>,
     params: Option<Parameters>,
     current_identifier: Option<String>,
+    item_prop_path: Vec<String>,
 }
 
 impl CypherAstVisitor {
     fn new(params: Option<Parameters>) -> Self {
         CypherAstVisitor { request: None, state: VisitorState::Init,
-            id_type: None, path_builders: Vec::new(), params: params, current_identifier: None}
+            id_type: None, path_builders: Vec::new(), params: params, current_identifier: None, item_prop_path: Vec::new()}
     }
 }
 
@@ -278,9 +279,12 @@ impl AstVisitor for CypherAstVisitor {
             VisitorState::ReturnItem => {
                 if let Some(req) = &mut self.request {
                     if let Some(ret) = &mut req.return_clause {
-                        ret.expressions.push(ReturnExpression::Item(ReturnItem::new(key)));
+                        ret.expressions.push(ReturnExpression::Item(ReturnItem::new_named_item(key)));
                     }
                 }
+            }
+            VisitorState::ItemPropertyIdentifier => {
+                self.item_prop_path.push(key.to_string());
             }
             _ => {}
         }
@@ -327,7 +331,10 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_label(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_query(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_return(&mut self) -> AstVisitorResult { Ok(())}
-    fn exit_function(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_function(&mut self) -> AstVisitorResult { 
+        self.state = VisitorState::Empty;    
+        Ok(())
+    }
     fn exit_function_arg(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_item(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_where(&mut self) -> AstVisitorResult { Ok(())}
@@ -358,10 +365,13 @@ impl AstVisitor for CypherAstVisitor {
     }
 
     fn enter_item_property_identifier(&mut self) -> AstVisitorResult {
+        self.state = VisitorState::ItemPropertyIdentifier;
+        self.item_prop_path.clear();
         Ok(())
     }
 
     fn exit_item_property_identifier(&mut self) -> AstVisitorResult {
+        self.state = VisitorState::Empty;
         Ok(())
     }
 
@@ -564,7 +574,7 @@ mod test_query_engine {
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
             assert_eq!(rel.get_status(), &Status::Match);
-            let ret = req.return_clause.expect("return clause").expressions.first().expect("a return function with alias");
+            let ret = req.return_clause.as_ref().expect("return clause").expressions.first().expect("a return function with alias");
             if let ReturnExpression::FunctionCall(func) = ret {
                 assert_eq!(func.alias, Some("total".to_string()));
                 assert_eq!(func.name, "sum".to_string());

@@ -344,8 +344,11 @@ impl Ast for AstTokenNode {
         }
     }
 
-    fn accept_exit(&self, _visitor: &mut dyn AstVisitor) -> AstVisitorResult {
-        Ok(())
+    fn accept_exit(&self, visitor: &mut dyn AstVisitor) -> AstVisitorResult {
+        match self.token_type {
+            TokenType::Identifier => visitor.exit_identifier(&self.token_value),
+            _ => Ok(())
+        }
     }
 
     fn clone_ast(&self) -> Box<dyn Ast> {
