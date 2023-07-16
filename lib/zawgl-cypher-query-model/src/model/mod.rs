@@ -46,7 +46,7 @@ pub struct ItemPropertyName {
 }
 
 impl ItemPropertyName {
-    fn new(item_name: &str, prop_name: &str) -> Self {
+    pub fn new(item_name: &str, prop_name: &str) -> Self {
         ItemPropertyName { item_name: item_name.to_string(), property_name: prop_name.to_string() }
     }
 }
@@ -81,6 +81,19 @@ pub struct ReturnClause {
 impl ReturnClause {
     pub fn new() -> Self {
         ReturnClause{expressions: Vec::new()}
+    }
+
+    pub fn has_wildcard(&self) -> bool {
+        for exp in &self.expressions {
+            if let ReturnExpression::Item(item) = exp {
+                if let ValueItem::NamedItem(ni) = &item.item {
+                    if ni == "*" {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }
 

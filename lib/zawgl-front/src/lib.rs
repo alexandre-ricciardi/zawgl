@@ -22,12 +22,12 @@
 pub mod planner;
 pub mod tx_handler;
 
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 use bson::{Bson, Document, doc};
 use cypher::query_engine::{process_cypher_query, CypherError};
 use zawgl_core::model::{Property, PropertyValue, PropertyGraph};
-use zawgl_cypher_query_model::{parameters::build_parameters, model::Request};
+use zawgl_cypher_query_model::{parameters::build_parameters, model::{Request, ReturnExpression}};
 use tx_handler::{handle_graph_request, request_handler::RequestHandler, handler::TxHandler, DatabaseError};
 
 extern crate zawgl_core;
@@ -75,51 +75,42 @@ fn build_cypher_error(request_id: &str, err: CypherError) -> Result<Document, Cy
 fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request: &Request) -> Result<Document, CypherError> {
     let mut result_doc = Document::new();
     let mut graph_list = Vec::new();
-    let mut return_set = Vec::new();
-    if let Some(ret) = &request.return_clause {
-        for ret_exp in &ret.expressions {
-            match ret_exp {
-                zawgl_cypher_query_model::model::ReturnExpression::FunctionCall(_) => todo!(),
-                zawgl_cypher_query_model::model::ReturnExpression::Item(item) => {return_set.push(&item.item);},
-            }
-        }
-    }
     for pattern in &matched_graphs {
         let mut graph_doc = Document::new();  
         let mut nodes_doc = Vec::new();
-        for node in pattern.get_nodes() {
-            if let Some(var) = node.get_var() {
-                //if return_set.contains(&"*".to_string()) || return_set.contains(var) {
-                    let mut node_doc = doc!{
-                        "name": node.get_var().as_ref().ok_or(CypherError::ResponseError)?.to_string(),
-                        "id": node.get_id().ok_or(CypherError::ResponseError)? as i64,
-                        "properties": build_properties(node.get_properties_ref()),
-                        "labels": Bson::from(node.get_labels_ref()),
-                    };
-                    node_doc.insert("name", var.to_string());
-                    nodes_doc.push(node_doc);
-                //}
-            }
-        }
-        graph_doc.insert("nodes", nodes_doc);
-
         let mut rels_doc = Vec::new();
-        for rel in pattern.get_relationships_and_edges() {
-            if let Some(var) = rel.relationship.get_var() {
-                //if return_set.contains(&"*".to_string()) || return_set.contains(var) {
-                    let mut rel_doc = doc!{
-                        "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
-                        "source_id": pattern.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64,
-                        "target_id": pattern.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64,
-                        "properties": build_properties(rel.relationship.get_properties_ref()),
-                        "labels": Bson::from(rel.relationship.get_labels_ref()),
-                    };
-                    rel_doc.insert("name", var.to_string());
-                    rels_doc.push(rel_doc);
-                //}
+        if let Some(ret) = &request.return_clause {
+            let wildcard = ret.has_wildcard();
+            for ret_exp in &ret.expressions {
+                match ret_exp {
+                    ReturnExpression::FunctionCall(fun) => {
+                        if let Some(alias) = &fun.alias {
+                            
+                            
+                        } else {
+    
+                        }
+                    },
+                    ReturnExpression::Item(item) => {
+                        match &item.item {
+                            zawgl_cypher_query_model::model::ValueItem::ItemPropertyName(prop_name) => {
+
+                            },
+                            zawgl_cypher_query_model::model::ValueItem::NamedItem(named_item) => {
+                                get_node_named(wildcard, item.alias.as_ref(), named_item, pattern, &mut nodes_doc)?;
+                                get_relationship_named(wildcard, item.alias.as_ref(), named_item, pattern, &mut rels_doc)?;
+                            }
+                        }
+                    },
+                }
             }
         }
-        graph_doc.insert("relationships", rels_doc);
+        if !nodes_doc.is_empty() {
+            graph_doc.insert("nodes", nodes_doc);
+        }
+        if !rels_doc.is_empty() {
+            graph_doc.insert("relationships", rels_doc);
+        }
         graph_list.push(graph_doc);
     }
     result_doc.insert("graphs", graph_list);
@@ -128,6 +119,51 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
     response_doc.insert("request_id", request_id);
     response_doc.insert("result", result_doc);
     Ok(response_doc)
+}
+
+fn get_node_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph, nodes_doc: &mut Vec<Document>) -> Result<(), CypherError> {
+    for node in graph.get_nodes() {
+        if let Some(var) = node.get_var() {
+            if var == name || ret_all {
+                let ret_name = if let Some(a) = alias {
+                    a.to_string()
+                } else {
+                    name.to_string()
+                };
+                let node_doc = doc!{
+                    "name": ret_name,
+                    "id": node.get_id().ok_or(CypherError::ResponseError)? as i64,
+                    "properties": build_properties(node.get_properties_ref()),
+                    "labels": Bson::from(node.get_labels_ref()),
+                };
+                nodes_doc.push(node_doc);
+            }
+        }
+    }
+    Ok(())
+}
+fn get_relationship_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph, rels_doc: &mut Vec<Document>) -> Result<(), CypherError> {
+    for rel in graph.get_relationships_and_edges() {
+        if let Some(var) = rel.relationship.get_var() {
+            if var == name || ret_all {
+                let ret_name = if let Some(a) = alias {
+                    a.to_string()
+                } else {
+                    name.to_string()
+                };
+                let rel_doc = doc!{
+                    "name": ret_name,
+                    "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
+                    "source_id": graph.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64,
+                    "target_id": graph.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64,
+                    "properties": build_properties(rel.relationship.get_properties_ref()),
+                    "labels": Bson::from(rel.relationship.get_labels_ref()),
+                };
+                rels_doc.push(rel_doc);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn build_properties(item_properties: &Vec<Property>) -> Vec<Document> {
