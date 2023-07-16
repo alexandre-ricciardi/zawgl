@@ -33,7 +33,7 @@ pub mod where_clause_filter;
 use zawgl_cypher_query_model::parameters::Parameters;
 use zawgl_cypher_query_model::{QueryStep, StepType};
 use zawgl_cypher_query_model::ast::{AstTagNode, Ast, AstVisitorResult, AstVisitor};
-use zawgl_cypher_query_model::model::{Request, ReturnClause, WhereClause, ReturnExpression, FunctionCall};
+use zawgl_cypher_query_model::model::{Request, ReturnClause, WhereClause, ReturnExpression, FunctionCall, ReturnItem};
 
 use states::*;
 use path_builder::*;
@@ -94,12 +94,13 @@ struct CypherAstVisitor {
     id_type: Option<IdentifierType>,    
     path_builders: Vec<PathBuilder>,
     params: Option<Parameters>,
+    current_identifier: Option<String>,
 }
 
 impl CypherAstVisitor {
     fn new(params: Option<Parameters>) -> Self {
         CypherAstVisitor { request: None, state: VisitorState::Init,
-            id_type: None, path_builders: Vec::new(), params: params}
+            id_type: None, path_builders: Vec::new(), params: params, current_identifier: None}
     }
 }
 
@@ -277,7 +278,7 @@ impl AstVisitor for CypherAstVisitor {
             VisitorState::ReturnItem => {
                 if let Some(req) = &mut self.request {
                     if let Some(ret) = &mut req.return_clause {
-                        ret.expressions.push(ReturnExpression::Item(String::from(key)));
+                        ret.expressions.push(ReturnExpression::Item(ReturnItem::new(key)));
                     }
                 }
             }
@@ -317,7 +318,11 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_float_value(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_string_value(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_bool_value(&mut self) -> AstVisitorResult { Ok(())}
-    fn exit_identifier(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_identifier(&mut self, key: &str) -> AstVisitorResult {
+        self.current_identifier = Some(key.to_string());
+        Ok(())
+    
+    }
     fn exit_variable(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_label(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_query(&mut self) -> AstVisitorResult { Ok(())}
@@ -390,6 +395,26 @@ impl AstVisitor for CypherAstVisitor {
 
     fn exit_lte_operator(&mut self) -> AstVisitorResult {
         todo!()
+    }
+
+    fn enter_as_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
+
+    fn exit_as_operator(&mut self) -> AstVisitorResult {
+        if let Some(alias) = &self.current_identifier {
+            if let Some(req) = &mut self.request {
+                if let Some(ret) = &mut req.return_clause {
+                    if let Some(expr) = ret.expressions.last_mut() {
+                        match expr {
+                            ReturnExpression::FunctionCall(fun) => fun.alias = Some(alias.to_string()),
+                            ReturnExpression::Item(item) => item.alias = Some(alias.to_string()),
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -522,4 +547,32 @@ mod test_query_engine {
             assert!(false, "no request found");
         }
     }
+
+    #[test]
+    fn test_return_sum() {
+        let request = process_cypher_query("MATCH (m:Movie), (a:Actor) MATCH (a)-[r:PLAYED_IN]->(m) RETURN sum(a.age) as total", None);
+        if let  Ok(req) = request {
+            let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
+            assert_eq!(movie.get_var(), &Some(String::from("a")));
+            assert_eq!(movie.get_labels_ref()[0], String::from("Actor"));
+            assert_eq!(movie.get_status(), &Status::Match);
+            let actor = req.steps[0].patterns[1].get_node_ref(&NodeIndex::new(0));
+            assert_eq!(actor.get_var(), &Some(String::from("m")));
+            assert_eq!(actor.get_status(), &Status::Match);
+            assert_eq!(actor.get_labels_ref()[0], String::from("Movie"));
+            let rel = req.steps[1].patterns[0].get_relationship_ref(&EdgeIndex::new(0));
+            assert_eq!(rel.get_var(), &Some(String::from("r")));
+            assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
+            assert_eq!(rel.get_status(), &Status::Match);
+            let ret = req.return_clause.expect("return clause").expressions.first().expect("a return function with alias");
+            if let ReturnExpression::FunctionCall(func) = ret {
+                assert_eq!(func.alias, Some("total".to_string()));
+                assert_eq!(func.name, "sum".to_string());
+                assert_eq!(func.args.len(), 1);
+            }
+        } else {
+            assert!(false, "no request found");
+        }
+    }
+
 }

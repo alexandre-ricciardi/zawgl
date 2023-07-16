@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 use bson::Document;
+use cypher_tests::extract_node_id;
 use zawgl_client::Client;
 use zawgl_client::parameters::*;
 use cypher_tests::run_test;
@@ -257,22 +258,7 @@ async fn test_mutliple_match(mut client: Client) {
 }
 
 
-fn extract_node_id(d: Document) -> Option<i64> {
-    let res = d.get_document("result").ok()?;
-    let graphs = res.get_array("graphs").ok()?;
-    assert_eq!(graphs.len(), 1);
-    let mut res = None;
-    for g in graphs {
-        let graph = g.as_document()?;
-        let nodes = graph.get_array("nodes").ok()?;
-        for n in nodes {
-            let nid = n.as_document()?.get_i64("id").ok();
-            res = nid;
-        }
-        assert_eq!(nodes.len(), 1);
-    }
-    res
-}
+
 
 
 async fn test_where_clause_on_ids(mut client: Client) {

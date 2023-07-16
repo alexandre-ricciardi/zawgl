@@ -177,7 +177,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         todo!()
     }
 
-    fn exit_identifier(&mut self) -> AstVisitorResult {
+    fn exit_identifier(&mut self, key: &str) -> AstVisitorResult {
         Ok(())
     }
 
@@ -443,6 +443,14 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
             
         }
         Ok(())
+    }
+
+    fn enter_as_operator(&mut self) -> AstVisitorResult {
+        todo!()
+    }
+
+    fn exit_as_operator(&mut self) -> AstVisitorResult {
+        todo!()
     }
 }
 

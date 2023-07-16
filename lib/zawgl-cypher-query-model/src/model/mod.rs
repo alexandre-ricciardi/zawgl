@@ -31,17 +31,31 @@ pub enum Directive {
 pub struct FunctionCall {
     pub name: String,
     pub args: Vec<String>,
+    pub alias: Option<String>,
 }
 
 impl FunctionCall {
     pub fn new(name: &str) -> Self {
-        FunctionCall{name: String::from(name), args: Vec::new()}
+        FunctionCall{name: String::from(name), args: Vec::new(), alias: None}
     }
 }
 
+pub struct ReturnItem {
+    pub name: String,
+    pub alias: Option<String>,
+}
+
+impl ReturnItem {
+    pub fn new_alias(name: &str, alias: &str) -> Self {
+        ReturnItem{name: String::from(name), alias: Some(alias.to_string())}
+    }
+    pub fn new(name: &str) -> Self {
+        ReturnItem{name: String::from(name), alias: None}
+    }
+}
 pub enum ReturnExpression {
     FunctionCall(FunctionCall),
-    Item(String),
+    Item(ReturnItem),
 }
 
 pub struct ReturnClause {

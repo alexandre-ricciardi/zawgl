@@ -92,6 +92,7 @@ impl <'a> Lexer<'a> {
                             (TokenType::Comma, ","), (TokenType::Equals, "="),
                             (TokenType::Pipe, "|"), (TokenType::Minus, "-"),
                             (TokenType::GreaterThan, ">"), (TokenType::GreaterThanOrEqual, ">="),
+                            (TokenType::As, "as"),
                             (TokenType::LessThan, "<"), (TokenType::LessThanOrEqual, "<=")],
             input: input, position: 0, lookahead: 0}
     }
