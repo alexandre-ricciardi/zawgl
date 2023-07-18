@@ -61,6 +61,7 @@ pub enum TokenType {
     LessThan,
     GreaterThanOrEqual,
     LessThanOrEqual,
+    As,
 }
 
 

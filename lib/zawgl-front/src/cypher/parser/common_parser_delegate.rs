@@ -39,7 +39,21 @@ fn parse_func_args(parser: &mut Parser, parent_node: &mut Box<AstTokenNode>) -> 
     while parser.check(TokenType::Identifier) {
         parser.advance();
         let mut func_arg = Box::new(AstTagNode::new_tag(AstTag::FunctionArg));
-        func_arg.append(make_ast_token(parser));
+        
+        if parser.check(TokenType::Dot) {
+            let mut item_prop = make_ast_tag(AstTag::ItemPropertyIdentifier);
+            item_prop.append(make_ast_token(parser));
+            parser.advance();
+            if parser.check(TokenType::Identifier) {
+                parser.advance();
+                item_prop.append(make_ast_token(parser));
+                func_arg.append(item_prop);
+            } else {
+                return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()));
+            }
+        } else {
+            func_arg.append(make_ast_token(parser));
+        }
         parent_node.append(func_arg);
         if !parser.check(TokenType::Comma) {
             break;

@@ -215,6 +215,10 @@ mod test_parser {
     fn test_greater_than_integer() {
         run("match (n:Person) where n.age > 40 return n");
     }
+    #[test]
+    fn test_return_sum() {
+        run("MATCH (m:Movie), (a:Actor) MATCH (a)-[r:PLAYED_IN]->(m) RETURN sum(a.age) as total, collect(a) as list");
+    }
     
 }
 

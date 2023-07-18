@@ -30,18 +30,48 @@ pub enum Directive {
 
 pub struct FunctionCall {
     pub name: String,
-    pub args: Vec<String>,
+    pub args: Vec<ValueItem>,
+    pub alias: Option<String>,
 }
 
 impl FunctionCall {
     pub fn new(name: &str) -> Self {
-        FunctionCall{name: String::from(name), args: Vec::new()}
+        FunctionCall{name: String::from(name), args: Vec::new(), alias: None}
     }
 }
 
+pub struct ItemPropertyName {
+    pub item_name: String,
+    pub property_name: String,
+}
+
+impl ItemPropertyName {
+    pub fn new(item_name: &str, prop_name: &str) -> Self {
+        ItemPropertyName { item_name: item_name.to_string(), property_name: prop_name.to_string() }
+    }
+}
+
+pub enum ValueItem {
+    ItemPropertyName(ItemPropertyName),
+    NamedItem(String)
+}
+
+pub struct ReturnItem {
+    pub item: ValueItem,
+    pub alias: Option<String>,
+}
+
+impl ReturnItem {
+    pub fn new_property(item_name: &str, prop_name: &str) -> Self {
+        ReturnItem{item: ValueItem::ItemPropertyName(ItemPropertyName::new(item_name, prop_name)), alias: None}
+    }
+    pub fn new_named_item(name: &str) -> Self {
+        ReturnItem{item: ValueItem::NamedItem(name.to_string()), alias: None}
+    }
+}
 pub enum ReturnExpression {
     FunctionCall(FunctionCall),
-    Item(String),
+    Item(ReturnItem),
 }
 
 pub struct ReturnClause {
@@ -51,6 +81,19 @@ pub struct ReturnClause {
 impl ReturnClause {
     pub fn new() -> Self {
         ReturnClause{expressions: Vec::new()}
+    }
+
+    pub fn has_wildcard(&self) -> bool {
+        for exp in &self.expressions {
+            if let ReturnExpression::Item(item) = exp {
+                if let ValueItem::NamedItem(ni) = &item.item {
+                    if ni == "*" {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }
 

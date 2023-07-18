@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use bson::Document;
 use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 use zawgl_client::Client;
 use std::future::Future;
@@ -61,4 +62,21 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
         _ = trigger()  => 0,
     };
    
+}
+
+pub fn extract_node_id(d: Document) -> Option<i64> {
+    let res = d.get_document("result").ok()?;
+    let graphs = res.get_array("graphs").ok()?;
+    assert_eq!(graphs.len(), 1);
+    let mut res = None;
+    for g in graphs {
+        let graph = g.as_document()?;
+        let nodes = graph.get_array("nodes").ok()?;
+        for n in nodes {
+            let nid = n.as_document()?.get_i64("id").ok();
+            res = nid;
+        }
+        assert_eq!(nodes.len(), 1);
+    }
+    res
 }
