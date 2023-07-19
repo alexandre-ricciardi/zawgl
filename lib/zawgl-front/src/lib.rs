@@ -26,8 +26,9 @@ use std::collections::{HashSet, HashMap};
 
 use bson::{Bson, Document, doc};
 use cypher::query_engine::{process_cypher_query, CypherError};
+use planner::make_cartesian_product;
 use zawgl_core::model::{Property, PropertyValue, PropertyGraph};
-use zawgl_cypher_query_model::{parameters::build_parameters, model::{Request, ReturnExpression}};
+use zawgl_cypher_query_model::{parameters::build_parameters, model::{Request, ReturnExpression, ValueItem}};
 use tx_handler::{handle_graph_request, request_handler::RequestHandler, handler::TxHandler, DatabaseError};
 
 extern crate zawgl_core;
@@ -79,29 +80,47 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
         let mut graph_doc = Document::new();  
         let mut nodes_doc = Vec::new();
         let mut rels_doc = Vec::new();
+        let mut values_doc = Vec::new();
         if let Some(ret) = &request.return_clause {
             let wildcard = ret.has_wildcard();
+            let mut grouping = HashSet::new();
             for ret_exp in &ret.expressions {
                 match ret_exp {
-                    ReturnExpression::FunctionCall(fun) => {
-                        if let Some(alias) = &fun.alias {
-                            
-                            
-                        } else {
-    
-                        }
-                    },
                     ReturnExpression::Item(item) => {
                         match &item.item {
-                            zawgl_cypher_query_model::model::ValueItem::ItemPropertyName(prop_name) => {
-
+                            ValueItem::ItemPropertyName(prop_name) => {
+                                get_item_property(item.alias.as_ref(), &prop_name.item_name, &prop_name.property_name, pattern, &mut values_doc)?;
                             },
-                            zawgl_cypher_query_model::model::ValueItem::NamedItem(named_item) => {
+                            ValueItem::NamedItem(named_item) => {
+                                grouping.insert(named_item);
                                 get_node_named(wildcard, item.alias.as_ref(), named_item, pattern, &mut nodes_doc)?;
                                 get_relationship_named(wildcard, item.alias.as_ref(), named_item, pattern, &mut rels_doc)?;
                             }
                         }
                     },
+                    _ => {}
+                }
+            }
+            for ret_exp in &ret.expressions {
+                match ret_exp {
+                    ReturnExpression::FunctionCall(fun) => {
+                        let mut values = Vec::new();
+                        match fun.name.as_str() {
+                            "sum" => {
+                                let sums = compute_sum(&fun.args, pattern, &grouping);
+                                values.extend(sums);},
+                            _ => {}
+                        }
+                        let ret_name = if let Some(a) = &fun.alias {
+                            a.to_string()
+                        } else {
+                            "sum".to_string()
+                        };
+                        if !values.is_empty() {
+                            values_doc.push(doc! {ret_name: values});
+                        }
+                    },
+                    _ => {}
                 }
             }
         }
@@ -111,6 +130,9 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
         if !rels_doc.is_empty() {
             graph_doc.insert("relationships", rels_doc);
         }
+        if !values_doc.is_empty() {
+            graph_doc.insert("values", values_doc);
+        }
         graph_list.push(graph_doc);
     }
     result_doc.insert("graphs", graph_list);
@@ -119,6 +141,151 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
     response_doc.insert("request_id", request_id);
     response_doc.insert("result", result_doc);
     Ok(response_doc)
+}
+
+fn compute_sum(args: &Vec<ValueItem>, graph: &PropertyGraph, grouping: &HashSet<&String>) -> Vec<Bson> {
+    let mut values = Vec::new();
+    let mut groups = Vec::<Vec<&PropertyValue>>::new();
+    for name in grouping {
+        let mut group = Vec::<&PropertyValue>::new();
+        for node in graph.get_nodes() {
+            if let Some(var) = node.get_var() {
+                if name == &var {
+                    for arg in args {
+                        match arg {
+                            ValueItem::ItemPropertyName(prop_arg) => {
+                                if &prop_arg.item_name == var {
+                                    for prop in node.get_properties_ref() {
+                                        if prop.get_name() == prop_arg.property_name {
+                                            group.push(prop.get_value())
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        for rel in graph.get_relationships() {
+            if let Some(var) = rel.get_var() {
+                if name == &var {
+                    for arg in args {
+                        match arg {
+                            ValueItem::ItemPropertyName(prop_arg) => {
+                                if &prop_arg.item_name == var {
+                                    for prop in rel.get_properties_ref() {
+                                        if prop.get_name() == prop_arg.property_name {
+                                            group.push(prop.get_value())
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        groups.push(group);
+    }
+
+    let product = make_cartesian_product(&groups);
+
+    for elements in product {
+        let mut sum_value = 0.;
+        for prop in elements {
+            sum_value += get_property_sum_value(prop);
+        }
+        for node in graph.get_nodes() {
+            if let Some(var) = node.get_var() {
+                if !grouping.contains(var) {
+                    for arg in args {
+                        match arg {
+                            ValueItem::ItemPropertyName(prop_arg) => {
+                                if &prop_arg.item_name == var {
+                                    for prop in node.get_properties_ref() {
+                                        if prop.get_name() == prop_arg.property_name {
+                                            sum_value += get_property_sum_value(prop.get_value());
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        for rel in graph.get_relationships() {
+            if let Some(var) = rel.get_var() {
+                if !grouping.contains(var) {
+                    for arg in args {
+                        match arg {
+                            ValueItem::ItemPropertyName(prop_arg) => {
+                                if &prop_arg.item_name == var {
+                                    for prop in rel.get_properties_ref() {
+                                        if prop.get_name() == prop_arg.property_name {
+                                            sum_value += get_property_sum_value(prop.get_value());
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        values.push(Bson::from(sum_value));
+    }
+    values
+}
+
+fn get_property_sum_value(prop: &PropertyValue) -> f64 {
+    match prop {
+        PropertyValue::PFloat(f) => *f,
+        PropertyValue::PInteger(i) => *i as f64,
+        PropertyValue::PUInteger(u) => *u as f64,
+        _ => 0.
+    }
+}
+
+fn get_item_property(alias: Option<&String>, item_name: &str, prop_name: &str, graph: &PropertyGraph, values_doc: &mut Vec<Document>) -> Result<(), CypherError> {
+    for node in graph.get_nodes() {
+        if let Some(var) = node.get_var() {
+            if var == item_name {
+                let ret_name = if let Some(a) = alias {
+                    a.to_string()
+                } else {
+                    item_name.to_string()
+                };
+                for prop in node.get_properties_ref() {
+                    if prop.get_name() == prop_name {
+                        values_doc.push(build_property_value(&ret_name, prop.get_value()));
+                    }
+                }
+            }
+        }
+    }
+    for rel in graph.get_relationships_and_edges() {
+        if let Some(var) = rel.relationship.get_var() {
+            if var == item_name {
+                let ret_name = if let Some(a) = alias {
+                    a.to_string()
+                } else {
+                    item_name.to_string()
+                };
+                for prop in rel.relationship.get_properties_ref() {
+                    if prop.get_name() == prop_name {
+                        values_doc.push(build_property_value(&ret_name, prop.get_value()));
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn get_node_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph, nodes_doc: &mut Vec<Document>) -> Result<(), CypherError> {
@@ -166,21 +333,32 @@ fn get_relationship_named(ret_all: bool, alias: Option<&String>, name: &str, gra
     Ok(())
 }
 
+fn build_property_value(name: &str, value: &PropertyValue) -> Document {
+    match value {
+        PropertyValue::PBool(v) => doc! {
+            name: v
+        },
+        PropertyValue::PFloat(f) => doc! {
+            name: f
+        },
+        PropertyValue::PInteger(i) => doc! {
+            name: i
+        },
+        PropertyValue::PUInteger(u) => doc! {
+            name: *u as i64
+        },
+        PropertyValue::PString(s) => doc! {
+            name: s
+        }
+    }
+}
+
 fn build_properties(item_properties: &Vec<Property>) -> Vec<Document> {
     let mut props = Vec::new();
     for p in item_properties {
-        
         let name = p.get_name();
         let value = p.get_value();
-        let mut bprop = Document::new();
-        match value {
-            PropertyValue::PBool(v) => bprop.insert(name, v),
-            PropertyValue::PFloat(f) => bprop.insert(name, f),
-            PropertyValue::PInteger(i) => bprop.insert(name, i),
-            PropertyValue::PUInteger(u) => bprop.insert(name, *u as i64),
-            PropertyValue::PString(s) => bprop.insert(name, s),
-        };
-        props.push(bprop);
+        props.push(build_property_value(name, value));
     }
     props
 }

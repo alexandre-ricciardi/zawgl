@@ -28,7 +28,7 @@ use zawgl_cypher_query_model::{QueryStep, StepType, model::WhereClause, ast::Ast
 
 use crate::cypher::{query_engine::where_clause_filter::WhereClauseAstVisitor, parser};
 
-fn make_cartesian_product(pools: &[Vec<PropertyGraph>]) -> Vec<Vec<&PropertyGraph>> {
+pub fn make_cartesian_product<T>(pools: &[Vec<T>]) -> Vec<Vec<&T>> {
     let mut res = vec![];
  
     let mut list_iter = pools.iter();

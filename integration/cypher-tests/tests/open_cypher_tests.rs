@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use bson::Document;
 use cypher_tests::extract_node_id;
 use zawgl_client::Client;
 use zawgl_client::parameters::*;
