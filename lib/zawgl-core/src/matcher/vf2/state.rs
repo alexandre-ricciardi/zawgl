@@ -20,6 +20,7 @@
 
 use std::collections::HashSet;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use log::trace;
 
 use crate::graph_engine::model::GraphProxy;
@@ -33,32 +34,48 @@ use super::base_state::*;
 use super::super::super::graph::traits::*;
 use super::super::super::graph::*;
 
-fn inc_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
-    if !base_state.in_map.contains_key(v0) {
-        base_state.in_map.insert(*v0, base_state.core_count);
-        base_state.term_in_count += 1;
-        if base_state.out_map.contains_key(v0) {
-            base_state.term_both_count += 1;
-        }
+fn inc_in<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    base_state.term_in_count += 1;
+    if base_state.out_map.contains_key(v0) {
+        base_state.term_both_count += 1;
     }
-    if !base_state.out_map.contains_key(v0) {
-        base_state.out_map.insert(*v0, base_state.core_count);
-        base_state.term_out_count += 1;
-        if base_state.in_map.contains_key(v0) {
-            base_state.term_both_count += 1;
-        }
+}
+fn inc_out<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    base_state.term_out_count += 1;
+    if base_state.in_map.contains_key(v0) {
+        base_state.term_both_count += 1;
     }
 }
 
 
+fn inc_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    if !base_state.in_map.contains_key(v0) {
+        base_state.in_map.insert(*v0, base_state.core_count);
+        inc_in(base_state, v0);
+    }
+    if !base_state.out_map.contains_key(v0) {
+        base_state.out_map.insert(*v0, base_state.core_count);
+        inc_out(base_state, v0);
+    }
+}
+
+fn dec_in<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    base_state.term_in_count -= 1;
+    if base_state.out_map.contains_key(v0) && base_state.term_both_count > 0 {
+        base_state.term_both_count -= 1;
+    }
+}
+fn dec_out<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    base_state.term_out_count -= 1;
+    if base_state.in_map.contains_key(v0) && base_state.term_both_count > 0 {
+        base_state.term_both_count -= 1;
+    }
+}
 fn dec_in_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if let Some(in_count) = base_state.in_map.get(v0) {
         if *in_count == base_state.core_count {
             base_state.in_map.remove(v0);
-            base_state.term_in_count -= 1;
-            if base_state.out_map.contains_key(v0) && base_state.term_both_count > 0 {
-                base_state.term_both_count -= 1;
-            }
+            dec_in(base_state, v0);
         }
     }
 }
@@ -67,10 +84,39 @@ fn dec_out_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<N
     if let Some(out_count) = base_state.out_map.get(v0) {
         if *out_count == base_state.core_count {
             base_state.out_map.remove(v0);
-            base_state.term_out_count -= 1;
-            if base_state.in_map.contains_key(v0) && base_state.term_both_count > 0 {
-                base_state.term_both_count -= 1;
-            }
+            dec_out(base_state, v0);
+        }
+    }
+}
+
+fn inc_source<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, ancestor: NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    if let Entry::Vacant(e) = base_state.in_map.entry(ancestor) {
+        e.insert(base_state.core_count);
+        inc_in(base_state, &ancestor);
+    }
+}
+
+fn inc_target<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, successor: NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    if let Entry::Vacant(e) = base_state.out_map.entry(successor) {
+        e.insert(base_state.core_count);
+        inc_out(base_state, &successor);
+    }
+}
+
+fn dec_source<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, source: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    if let Some(in_count) = base_state.in_map.get(source) {
+        if *in_count == base_state.core_count {
+            base_state.in_map.remove(source);
+            dec_in(base_state, source);
+        }
+    }
+}
+
+fn dec_target<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, target: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    if let Some(out_count) = base_state.out_map.get(target) {
+        if *out_count == base_state.core_count {
+            base_state.out_map.remove(target);
+            dec_out(base_state, target);
         }
     }
 }
@@ -82,23 +128,11 @@ pub fn push_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, grap
 
     for edge_index in graph.in_edges(v0) {
         let ancestor = graph.get_source_index(&edge_index);
-        if let std::collections::hash_map::Entry::Vacant(e) = base_state.in_map.entry(ancestor) {
-            e.insert(base_state.core_count);
-            base_state.term_in_count += 1;
-            if base_state.out_map.contains_key(&ancestor) {
-                base_state.term_both_count += 1;
-            }
-        }
+        inc_source(base_state, ancestor);
     }
     for edge_index in graph.out_edges(v0) {
         let successor = graph.get_target_index(&edge_index);
-        if let std::collections::hash_map::Entry::Vacant(e) = base_state.out_map.entry(successor) {
-            e.insert(base_state.core_count);
-            base_state.term_out_count += 1;
-            if base_state.in_map.contains_key(&successor) {
-                base_state.term_both_count += 1;
-            }
-        }
+        inc_target(base_state, successor);
     }
 }
 
@@ -110,30 +144,14 @@ pub fn pop_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph
     dec_in_term(base_state, v0);
     for in_edge in graph.in_edges(v0) {
         let source = graph.get_source_index(&in_edge);
-        if let Some(in_count) = base_state.in_map.get(&source) {
-            if *in_count == base_state.core_count {
-                base_state.in_map.remove(&source);
-                base_state.term_in_count -= 1;
-                if base_state.out_map.contains_key(&source) && base_state.term_both_count > 0 {
-                    base_state.term_both_count -= 1;
-                }
-            }
-        }
+        dec_source(base_state, &source);
     }
 
     dec_out_term(base_state, v0);
 
     for out_edge in graph.out_edges(v0) {
         let target = graph.get_target_index(&out_edge);
-        if let Some(out_count) = base_state.out_map.get(&target) {
-            if *out_count == base_state.core_count {
-                base_state.out_map.remove(&target);
-                base_state.term_out_count -= 1;
-                if base_state.in_map.contains_key(&target) && base_state.term_both_count > 0 {
-                    base_state.term_both_count -= 1;
-                }
-            }
-        }
+        dec_target(base_state, &target);
     }
 
     base_state.core_map.remove(v0);
@@ -147,22 +165,10 @@ pub fn push_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, grap
     base_state.core_map.insert(*v0, *v1);
     inc_term(base_state, v0);
     for (_edge_index, ancestor, _rel) in graph.in_edges(v0) {
-        if let std::collections::hash_map::Entry::Vacant(e) = base_state.in_map.entry(ancestor) {
-            e.insert(base_state.core_count);
-            base_state.term_in_count += 1;
-            if base_state.out_map.contains_key(&ancestor) {
-                base_state.term_both_count += 1;
-            }
-        }
+        inc_source(base_state, ancestor);
     }
     for (_edge_index, successor, _rel) in graph.out_edges(v0) {
-        if let std::collections::hash_map::Entry::Vacant(e) = base_state.out_map.entry(successor) {
-            e.insert(base_state.core_count);
-            base_state.term_out_count += 1;
-            if base_state.in_map.contains_key(&successor) {
-                base_state.term_both_count += 1;
-            }
-        }
+        inc_target(base_state, successor);
     }
 }
 
@@ -170,32 +176,17 @@ pub fn pop_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph
     if base_state.core_count == 0 {
         return;
     }
+
     dec_in_term(base_state, v0);
 
     for (_in_edge, source, _rel) in graph.in_edges(v0) {
-        if let Some(in_count) = base_state.in_map.get(&source) {
-            if *in_count == base_state.core_count {
-                base_state.in_map.remove(&source);
-                base_state.term_in_count -= 1;
-                if base_state.out_map.contains_key(&source) && base_state.term_both_count > 0 {
-                    base_state.term_both_count -= 1;
-                }
-            }
-        }
+        dec_source(base_state, &source);
     }
 
     dec_out_term(base_state, v0);
 
     for (_out_edge, target, _rel) in graph.out_edges(v0) {
-        if let Some(out_count) = base_state.out_map.get(&target) {
-            if *out_count == base_state.core_count {
-                base_state.out_map.remove(&target);
-                base_state.term_out_count -= 1;
-                if base_state.in_map.contains_key(&target) && base_state.term_both_count > 0 {
-                    base_state.term_both_count -= 1;
-                }
-            }
-        }
+        dec_target(base_state, &target);
     }
 
     base_state.core_map.remove(v0);
