@@ -166,7 +166,7 @@ impl <'g0, VCOMP, ECOMP, CALLBACK> Matcher <'g0, VCOMP, ECOMP, CALLBACK>
                         if let Some(back) = match_continuation.pop() {
                             index0.set_index(back.0);
                             index1.set_index(back.1);
-                            self.state.pop(index0.value_at(back.0), index1.value_at(back.1), graph_1);
+                            self.state.pop(index0.value(), index1.value(), graph_1);
                             index1.inc();
                             state = IterationStates::Graph1Loop;
                         } else {

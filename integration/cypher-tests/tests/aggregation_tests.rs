@@ -50,3 +50,25 @@ async fn _test_aggregation(mut client: Client) {
         assert!(false, "no response")
     }
 }
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_aggregation_issue() {
+    run_test("test_aggregation_issue", 11182, _test_aggregation_issue).await;
+}
+
+async fn _test_aggregation_issue(mut client: Client) {
+    let result1 = client.execute_cypher_request("create (test:Person) return test").await;
+    let result2 = client.execute_cypher_request("create (test:Person) return test").await;
+    if let (Ok(d1), Ok(d2))  = (result1, result2) {
+        let id1 = extract_node_id(d1).expect("node id");
+        let id2 = extract_node_id(d2).expect("node id");
+        for i in 0..100 {
+
+            let mut p = Parameters::new();
+            p.insert("pid1".to_string(), Value::Integer(id1));
+            p.insert("pid2".to_string(), Value::Integer(id2));
+            let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 return s, t", p).await;
+            let res = result.expect("new person");
+            println!("{}", res.to_string());
+        }
+    }
+}
