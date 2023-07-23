@@ -219,6 +219,10 @@ mod test_parser {
     fn test_return_sum() {
         run("MATCH (m:Movie), (a:Actor) MATCH (a)-[r:PLAYED_IN]->(m) RETURN sum(a.age) as total, collect(a) as list");
     }
+    #[test]
+    fn test_return_match_match_create() {
+        run("match (test:Person) where id(test) = $pid1 match (t:Person) where id(t) = $pid2 create (test:Person)-[:IsFriendOf]->(new:Person {weight: $weight})-[:IsFriendOf]->(t:Person) return new");
+    }
     
 }
 

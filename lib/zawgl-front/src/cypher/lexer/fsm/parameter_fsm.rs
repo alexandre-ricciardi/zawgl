@@ -27,7 +27,7 @@ pub enum ParameterState {
 }
 
 fn is_valid_id_char(c: char) -> bool {
-    c.is_alphabetic() || c == '_'
+    c.is_alphabetic() || c == '_' || c.is_numeric()
 }
 
 

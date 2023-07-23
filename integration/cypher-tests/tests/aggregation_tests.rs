@@ -32,13 +32,13 @@ async fn _test_aggregation(mut client: Client) {
     if let (Ok(d1), Ok(d2))  = (result1, result2) {
         let id1 = extract_node_id(d1).expect("node id");
         let id2 = extract_node_id(d2).expect("node id");
-        for _ in 0..100 {
+        for i in 0..100 {
 
             let mut p = Parameters::new();
             p.insert("pid1".to_string(), Value::Integer(id1));
             p.insert("pid2".to_string(), Value::Integer(id2));
-            p.insert("weight".to_string(), Value::Integer(10));
-            let result = client.execute_cypher_request_with_parameters("match (test:Person), (t:Person) where id(test) = $pid1 and id(t) = $pid2 return *", p).await;
+            p.insert("weight".to_string(), Value::Integer(i));
+            let result = client.execute_cypher_request_with_parameters("match (test:Person) where id(test) = $pid1 match (t:Person) where id(t) = $pid2 create (test:Person)-[:IsFriendOf]->(new:Person {weight: $weight})-[:IsFriendOf]->(t:Person) return new, test, t", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
         }

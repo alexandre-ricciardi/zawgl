@@ -58,9 +58,11 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
                 
             },
             TokenType::Match => {
-                parser.advance();
-                parse_match(parser, &mut query_node)?;
-                parse_where_clause(parser, &mut query_node)?;
+                while parser.check(TokenType::Match) {
+                    parser.advance();
+                    parse_match(parser, &mut query_node)?;
+                    parse_where_clause(parser, &mut query_node)?;
+                }
                 if parser.current_token_type_advance(TokenType::Create) {
                     parse_create(parser, &mut query_node)?;
                 }
