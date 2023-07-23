@@ -33,9 +33,7 @@ use super::base_state::*;
 use super::super::super::graph::traits::*;
 use super::super::super::graph::*;
 
-pub fn push_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &'g PropertyGraph, v0: &NodeIndex, v1: &ProxyNodeId) {  
-    base_state.core_count += 1;
-    base_state.core_map.insert(*v0, *v1);
+fn inc_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if !base_state.in_map.contains_key(v0) {
         base_state.in_map.insert(*v0, base_state.core_count);
         base_state.term_in_count += 1;
@@ -50,6 +48,37 @@ pub fn push_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, grap
             base_state.term_both_count += 1;
         }
     }
+}
+
+
+fn dec_in_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    if let Some(in_count) = base_state.in_map.get(v0) {
+        if *in_count == base_state.core_count {
+            base_state.in_map.remove(v0);
+            base_state.term_in_count -= 1;
+            if base_state.out_map.contains_key(v0) && base_state.term_both_count > 0 {
+                base_state.term_both_count -= 1;
+            }
+        }
+    }
+}
+
+fn dec_out_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+    if let Some(out_count) = base_state.out_map.get(v0) {
+        if *out_count == base_state.core_count {
+            base_state.out_map.remove(v0);
+            base_state.term_out_count -= 1;
+            if base_state.in_map.contains_key(v0) && base_state.term_both_count > 0 {
+                base_state.term_both_count -= 1;
+            }
+        }
+    }
+}
+
+pub fn push_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &'g PropertyGraph, v0: &NodeIndex, v1: &ProxyNodeId) {  
+    base_state.core_count += 1;
+    base_state.core_map.insert(*v0, *v1);
+    inc_term(base_state, v0);
 
     for edge_index in graph.in_edges(v0) {
         let ancestor = graph.get_source_index(&edge_index);
@@ -78,16 +107,7 @@ pub fn pop_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph
         return;
     }
 
-    if let Some(in_count) = base_state.in_map.get(v0) {
-        if *in_count == base_state.core_count {
-            base_state.in_map.remove(v0);
-            base_state.term_in_count -= 1;
-            if base_state.out_map.contains_key(v0) && base_state.term_both_count > 0 {
-                base_state.term_both_count -= 1;
-            }
-        }
-    }
-
+    dec_in_term(base_state, v0);
     for in_edge in graph.in_edges(v0) {
         let source = graph.get_source_index(&in_edge);
         if let Some(in_count) = base_state.in_map.get(&source) {
@@ -101,15 +121,7 @@ pub fn pop_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph
         }
     }
 
-    if let Some(out_count) = base_state.out_map.get(v0) {
-        if *out_count == base_state.core_count {
-            base_state.out_map.remove(v0);
-            base_state.term_out_count -= 1;
-            if base_state.in_map.contains_key(v0) && base_state.term_both_count > 0 {
-                base_state.term_both_count -= 1;
-            }
-        }
-    }
+    dec_out_term(base_state, v0);
 
     for out_edge in graph.out_edges(v0) {
         let target = graph.get_target_index(&out_edge);
@@ -133,21 +145,7 @@ pub fn pop_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph
 pub fn push_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: &'g mut GraphProxy, v0: &ProxyNodeId, v1: &NodeIndex) {  
     base_state.core_count += 1;
     base_state.core_map.insert(*v0, *v1);
-    if !base_state.in_map.contains_key(v0) {
-        base_state.in_map.insert(*v0, base_state.core_count);
-        base_state.term_in_count += 1;
-        if base_state.out_map.contains_key(v0) {
-            base_state.term_both_count += 1;
-        }
-    }
-    if !base_state.out_map.contains_key(v0) {
-        base_state.out_map.insert(*v0, base_state.core_count);
-        base_state.term_out_count += 1;
-        if base_state.in_map.contains_key(v0) {
-            base_state.term_both_count += 1;
-        }
-    }
-
+    inc_term(base_state, v0);
     for (_edge_index, ancestor, _rel) in graph.in_edges(v0) {
         if let std::collections::hash_map::Entry::Vacant(e) = base_state.in_map.entry(ancestor) {
             e.insert(base_state.core_count);
@@ -172,16 +170,7 @@ pub fn pop_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph
     if base_state.core_count == 0 {
         return;
     }
-
-    if let Some(in_count) = base_state.in_map.get(v0) {
-        if *in_count == base_state.core_count {
-            base_state.in_map.remove(v0);
-            base_state.term_in_count -= 1;
-            if base_state.out_map.contains_key(v0) && base_state.term_both_count > 0 {
-                base_state.term_both_count -= 1;
-            }
-        }
-    }
+    dec_in_term(base_state, v0);
 
     for (_in_edge, source, _rel) in graph.in_edges(v0) {
         if let Some(in_count) = base_state.in_map.get(&source) {
@@ -195,15 +184,7 @@ pub fn pop_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph
         }
     }
 
-    if let Some(out_count) = base_state.out_map.get(v0) {
-        if *out_count == base_state.core_count {
-            base_state.out_map.remove(v0);
-            base_state.term_out_count -= 1;
-            if base_state.in_map.contains_key(v0) && base_state.term_both_count > 0 {
-                base_state.term_both_count -= 1;
-            }
-        }
-    }
+    dec_out_term(base_state, v0);
 
     for (_out_edge, target, _rel) in graph.out_edges(v0) {
         if let Some(out_count) = base_state.out_map.get(&target) {
