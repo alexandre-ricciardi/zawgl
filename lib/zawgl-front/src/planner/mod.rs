@@ -60,6 +60,17 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                     for pattern in &step.patterns {
                         let matched = graph_engine.match_pattern(pattern);
                         if let Some(res) = matched {
+                            let mut c = 0;
+                            for g in &res {
+                                for n in g.get_nodes() {
+                                    if n.get_id() == Some(113) {
+                                        c += 1;
+                                    }
+                                }
+                            }
+                            if c > 1 {
+                                print!("mjjmjmmjmjmjlkmj");
+                            }
                             results.push(res);
                         }
                     }

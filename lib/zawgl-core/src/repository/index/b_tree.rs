@@ -294,7 +294,7 @@ mod test_b_tree {
             index.insert(&format!("key # {}", i), i);
         }
 
-        index.soft_sync();
+        //index.soft_sync();
 
         for i in 0..1000 {
             let optrs = index.search(&format!("key # {}", i));
@@ -321,7 +321,7 @@ mod test_b_tree {
                 println!("inserted {} values", i);
             }
         }
-        index.soft_sync();
+        //index.soft_sync();
 
 
         let optrs = index.search("same key");
@@ -329,6 +329,28 @@ mod test_b_tree {
             assert_eq!(ptrs.len(), 3000);
         } else {
             panic!("empty search result for same key");
+        }
+    }
+
+    #[test]
+    fn test_same_key_many_search() {
+
+        let file = build_file_path_and_rm_old("b_tree", "test_same_key_many_search.db").unwrap();
+        let mut index = BTreeIndex::new(&file);
+
+        for i in 0..3000 {
+            index.insert("same key", i);
+            if i % 1000 == 0 {
+                println!("inserted {} values", i);
+                
+            }
+            index.sync();
+            let optrs = index.search("same key");
+            if let Some(ptrs) = optrs {
+                assert_eq!(ptrs.len(), (i+1) as usize);
+            } else {
+                panic!("empty search result for same key");
+            }
         }
     }
 }

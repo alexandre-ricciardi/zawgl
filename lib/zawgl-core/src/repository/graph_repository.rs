@@ -23,7 +23,6 @@ use super::properties_repository::*;
 use super::super::model::*;
 use super::super::repository::index::b_tree::*;
 use self::records::*;
-use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use super::super::graph::traits::*;
@@ -49,7 +48,7 @@ impl GraphRepository {
     /// Builds a GraphRepository with its context
     pub fn new(init_ctx: init::InitContext) -> Self {
         let mut nodes_store = nodes_store::NodesStore::new(&init_ctx.get_nodes_store_path().unwrap());
-        let nodes_ids = nodes_store.borrow_mut().retrieve_all_nodes_ids();
+        let nodes_ids = nodes_store.retrieve_all_nodes_ids();
         let mut labels_store = dynamic_store::DynamicStore::new(&init_ctx.get_labels_store_path().unwrap());
         let all_labels = labels_store.retrieve_all_string();
         let mut labels = HashMap::new();
@@ -58,7 +57,7 @@ impl GraphRepository {
                 labels.insert(label, id);
             } 
         }
-        GraphRepository {nodes_store: nodes_store, nodes_ids,
+        GraphRepository {nodes_store, nodes_ids,
             relationships_store: relationships_store::RelationshipsStore::new(&init_ctx.get_relationships_store_path().unwrap()),
             properties_repository: PropertiesRespository::new(&init_ctx.get_properties_store_path().unwrap(), &init_ctx.get_dynamic_store_path().unwrap()),
             nodes_labels_index: BTreeIndex::new(&init_ctx.get_nodes_labels_index_path().unwrap()),

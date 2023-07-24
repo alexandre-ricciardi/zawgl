@@ -38,7 +38,7 @@ async fn _test_aggregation(mut client: Client) {
             p.insert("pid1".to_string(), Value::Integer(id1));
             p.insert("pid2".to_string(), Value::Integer(id2));
             p.insert("weight".to_string(), Value::Integer(i));
-            let result = client.execute_cypher_request_with_parameters("match (test:Person) where id(test) = $pid1 match (t:Person) where id(t) = $pid2 create (test:Person)-[:IsFriendOf]->(new:Person {weight: $weight})-[:IsFriendOf]->(t:Person) return new, test, t", p).await;
+            let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 create (s)-[:IsFriendOf]->(new:Person {weight: $weight})-[:IsFriendOf]->(t) return new, s, t", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
         }

@@ -33,7 +33,7 @@ use self::pool::*;
 pub type MutableRecordsManager = RecordsManager;
 
 pub struct BTreeNodeStore {
-    pool: NodeRecordPool,
+    records_pool: NodeRecordPool,
     nodes_pool: BTreeNodePool,
 }
 
@@ -44,9 +44,7 @@ fn append_key(vkey: &mut Vec<u8>, key_buf: &[u8]) {
 }
 
 fn append_list_ptr(ptrs: &mut Vec<u64>, buf: &[u8]) {
-    let mut counter_buf = [0u8; 2];
-    counter_buf.copy_from_slice(&buf[..2]);
-    let counter = u16::from_be_bytes(counter_buf);
+    let counter = read_counter(buf);
     for ptr_index in 0..counter {
         let offset = 2 + ptr_index as usize * 8 ;
         let mut ptr_buf = [0u8; 8];
@@ -66,6 +64,12 @@ fn update_counter(payload: &mut[u8], count: u16) -> usize {
     2
 }
 
+fn read_counter(payload: &[u8]) -> u16 {
+    let mut counter_buf = [0u8; 2];
+    counter_buf.copy_from_slice(&payload[..2]);
+    u16::from_be_bytes(counter_buf)
+}
+
 enum CellLoadRes {
     InteriorCell(NodeId),
     LeafCell(Vec<NodeId>),
@@ -74,9 +78,9 @@ enum CellLoadRes {
 impl BTreeNodeStore {
     pub fn new(file: &str) -> Self {
         let records_manager = RecordsManager::new(file, BTREE_NODE_RECORD_SIZE, BTREE_NB_RECORDS_PER_PAGE, BTREE_NB_PAGES_PER_RECORD);
-        let pool = NodeRecordPool::new(records_manager);
-        let nodes_pool = BTreeNodePool::new();
-        BTreeNodeStore{pool, nodes_pool}
+        let records_pool = NodeRecordPool::new(records_manager);
+        let nodes_pool: BTreeNodePool = BTreeNodePool::new();
+        BTreeNodeStore{records_pool, nodes_pool}
     }
 
     fn retrieve_overflow_cells(&mut self, cell_record: &CellRecord, vkey: &mut Vec<u8>) -> Option<CellLoadRes> {
@@ -120,7 +124,7 @@ impl BTreeNodeStore {
     }
 
     fn _retrieve_node(&mut self, nid: &NodeId) -> Option<BTreeNode> {
-        let node = self.pool.load_node_record_clone(nid)?;
+        let node = self.records_pool.load_node_record_clone(nid)?;
         let mut cells = Vec::new();
         for cell_record in &node.cells {
             if cell_record.is_active() {
@@ -190,11 +194,11 @@ impl BTreeNodeStore {
     fn update_overflow_cells(&mut self, cell_records: &Vec<CellRecord>, prev_cell_record: &CellRecord) -> Option<(NodeId, CellId)> {
         let mut curr_cell_id = prev_cell_record.overflow_cell_ptr;
         let mut curr_node_id = prev_cell_record.node_ptr;
-        let mut curr_node_record = self.pool.load_node_record_mut(&curr_node_id)?;
+        let mut curr_node_record = self.records_pool.load_node_record_mut(&curr_node_id)?;
         for cell in cell_records {
             curr_node_record.cells[curr_cell_id as usize] = *cell;
             if cell.node_ptr != 0 && cell.has_overflow() && curr_node_id != cell.node_ptr {
-                curr_node_record = self.pool.load_node_record_mut(&cell.node_ptr)?;
+                curr_node_record = self.records_pool.load_node_record_mut(&cell.node_ptr)?;
             } else if cell.node_ptr == 0 || !cell.has_overflow() {
                 break;
             }
@@ -204,11 +208,11 @@ impl BTreeNodeStore {
         Some((curr_node_id, curr_cell_id))
     }
 
-    fn create_overflow_cells(&mut self, cell_records: &mut [CellRecord], cell_node_ptr: BTreeNodeId) -> Option<BtreeCellLoc> {
-        let mut prev_cell_loc = (cell_node_ptr, 0);
+    fn create_overflow_cells(&mut self, cell_records: &mut [CellRecord], prev_cell_loc: (BTreeNodeId, CellId)) -> Option<BtreeCellLoc> {
+        let mut prev_cell_loc = prev_cell_loc;
         for cell in cell_records {
             cell.chain_with_cell_location(prev_cell_loc);
-            prev_cell_loc = self.pool.insert_cell_in_free_slot(cell)?;
+            prev_cell_loc = self.records_pool.insert_cell_in_free_slot(cell)?;
         }
         Some(prev_cell_loc)
     }
@@ -267,9 +271,7 @@ impl BTreeNodeStore {
                 cell_record.set_has_overflow();
             }
 
-            let cell_node_ptr = cell.get_node_ptr().unwrap_or_default();
-
-            let ptrs = self.create_overflow_cells(&mut cell_records[1..], cell_node_ptr)?;
+            let ptrs = self.create_overflow_cells(&mut cell_records[1..], (0, 0))?;
 
             let main_cell_record = cell_records.first_mut()?;
             main_cell_record.set_has_overflow();
@@ -298,15 +300,15 @@ impl BTreeNodeStore {
             let cell_records = self.create_cell(cell)?;
             node_record.cells[cell_id] = *cell_records.first()?;
         }
-        let id = self.pool.create_node_record(node_record)?;
+        let id = self.records_pool.create_node_record(node_record)?;
         node.set_id(id);
         if node.is_root() {
-            self.pool.set_root_node_ptr(id);
+            self.records_pool.set_root_node_ptr(id);
         }
         let mut clone = node.clone();
         clone.reset();
         self.nodes_pool.put(clone);
-        self.pool.save_all_node_records()?;
+        self.records_pool.save_all_node_records()?;
 
         Some(())
     }
@@ -317,7 +319,7 @@ impl BTreeNodeStore {
         let mut curr_overflow_cell_id = root_cell_record.overflow_cell_ptr;
         let mut has_overflow = root_cell_record.has_overflow();
         if has_overflow {
-            let mut curr_node = self.pool.load_node_record_ref(curr_node_id)?;
+            let mut curr_node = self.records_pool.load_node_record_ref(curr_node_id)?;
             while has_overflow {
                 let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
                 has_overflow = overflow_cell.has_overflow();
@@ -330,7 +332,7 @@ impl BTreeNodeStore {
                 curr_overflow_cell_id = overflow_cell.overflow_cell_ptr;
                 cells.push(*overflow_cell);
                 if prev_node_id != curr_node_id && curr_node_id != 0 {
-                    curr_node = self.pool.load_node_record_ref(curr_node_id)?;
+                    curr_node = self.records_pool.load_node_record_ref(curr_node_id)?;
                 }
             }
         }
@@ -343,7 +345,7 @@ impl BTreeNodeStore {
         let curr_overflow_cell_id = root_cell_record.overflow_cell_ptr;
         let has_overflow = root_cell_record.has_overflow();
         if has_overflow {
-            let curr_node = self.pool.load_node_record_ref(curr_node_id)?;
+            let curr_node = self.records_pool.load_node_record_ref(curr_node_id)?;
             let overflow_cell = &curr_node.cells[curr_overflow_cell_id as usize];
             Some(*overflow_cell)
         } else {
@@ -352,7 +354,7 @@ impl BTreeNodeStore {
     }
 
     fn update_cell_data_ptrs(&mut self, root_node_record_id: &NodeId, new_cell_id: usize, data_ptrs: &Vec<NodeId>, start_index: usize, is_append_only: bool) -> Option<()> {
-        let root_cell_record = &self.pool.load_node_cell_record_clone(root_node_record_id, new_cell_id)?;
+        let root_cell_record = &self.records_pool.load_node_cell_record_clone(root_node_record_id, new_cell_id)?;
         let overflow_cell_records = if is_append_only {
             vec![self.load_overflow_cell_records_head(root_cell_record)?]
         } else {
@@ -360,7 +362,6 @@ impl BTreeNodeStore {
         };
 
         let mut list_ptr_cells = Vec::new();
-        let prev_cell_record = *root_cell_record;
         for cell_record in &overflow_cell_records {
             if cell_record.is_list_ptr() {
                 list_ptr_cells.push(*cell_record);
@@ -368,60 +369,43 @@ impl BTreeNodeStore {
         }
         
         let mut cells_to_create = Vec::new();
-        let mut cells_to_update = Vec::new();
-        let mut data_ptr_offset = 2;
-        let mut data_ptr_count: u16 = 0;
-        let mut whole_data_ptr_count = 0;
-        let mut curr_list_ptr_cell = list_ptr_cells.pop()?;
-        let mut to_create= false;
-        for data_ptr in data_ptrs.iter().skip(start_index) {
-            data_ptr_offset += insert_data_ptr(&mut curr_list_ptr_cell.key, data_ptr_offset, data_ptr);
-            data_ptr_count += 1;
-            whole_data_ptr_count += 1;
-            if data_ptr_offset + NODE_PTR_SIZE >= KEY_SIZE {
-                update_counter(&mut curr_list_ptr_cell.key, data_ptr_count);
+        let cell_capacity = (KEY_SIZE - 2) / NODE_PTR_SIZE;
+        let mut cells_to_update = vec![list_ptr_cells.pop()?];
+        let mut curr_list_ptr_cell = cells_to_update.last_mut()?;
+        let mut data_ptr_count: u16 = read_counter(&curr_list_ptr_cell.key);
+        let mut data_ptr_offset = 2 + NODE_PTR_SIZE * data_ptr_count as usize ;
+
+        for data_ptr in data_ptrs.iter().skip(start_index - 1) {
+            if data_ptr_count >= cell_capacity as u16 {
                 data_ptr_offset = 2;
                 data_ptr_count = 0;
-                if to_create {
-                    cells_to_create.push(curr_list_ptr_cell);
+                if let Some(cell) = list_ptr_cells.pop() {
+                    cells_to_update.push(cell);
+                    curr_list_ptr_cell = cells_to_update.last_mut()?;
                 } else {
-                    cells_to_update.push(curr_list_ptr_cell);
+                    let mut new_cell = CellRecord::new();
+                    new_cell.set_is_active();
+                    new_cell.set_is_list_ptr();
+                    cells_to_create.push(new_cell);
+                    curr_list_ptr_cell = cells_to_create.last_mut()?;
                 }
-                curr_list_ptr_cell = {
-                    if let Some(cell) = list_ptr_cells.pop() {
-                        to_create = false;
-                        cell
-                    } else {
-                        to_create = true;
-                        let mut new_cell = CellRecord::new();
-                        new_cell.set_is_active();
-                        new_cell.set_is_list_ptr();
-                        new_cell
-                    }
-                };
-            } else if whole_data_ptr_count == data_ptrs.len() {
-                update_counter(&mut curr_list_ptr_cell.key, data_ptr_count);
-                if to_create {
-                    cells_to_create.push(curr_list_ptr_cell);
-                } else {
-                    cells_to_update.push(curr_list_ptr_cell);
-                }
-                break;
+
             }
+            data_ptr_offset += insert_data_ptr(&mut curr_list_ptr_cell.key, data_ptr_offset, data_ptr);
+            data_ptr_count += 1;
+            update_counter(&mut curr_list_ptr_cell.key, data_ptr_count);
         }
-        let last_updated_cell_pos = self.update_overflow_cells(&cells_to_update, &prev_cell_record)?;
+        let mut head_cell_pos = self.update_overflow_cells(&cells_to_update, root_cell_record)?;
         if !cells_to_create.is_empty() {
-            let created_first_cell_pos = self.create_overflow_cells(&mut cells_to_create, 0)?;
-            //link last updated cell to created cells
-            let last_updated_node =  self.pool.load_node_record_mut(&last_updated_cell_pos.0)?;
-            let last_updated_cell = &mut last_updated_node.cells[last_updated_cell_pos.1 as usize];
-            last_updated_cell.set_has_overflow();
-            last_updated_cell.chain_with_cell_location(created_first_cell_pos);
+            head_cell_pos = self.create_overflow_cells(&mut cells_to_create, head_cell_pos)?;
         }
 
+        //link last updated cell to created cells
+        let root_cell_record = self.records_pool.load_node_cell_record_mut(root_node_record_id, new_cell_id)?;
+        root_cell_record.chain_with_cell_location(head_cell_pos);
         //disable unused cells
         if !list_ptr_cells.is_empty() {
-            self.pool.disable_cell_records(last_updated_cell_pos);
+            self.records_pool.disable_cell_records(head_cell_pos);
         }
         
         Some(())
@@ -429,11 +413,11 @@ impl BTreeNodeStore {
 
     fn select_root_node(&mut self, node_id: &NodeId) -> Option<NodeId>  {
         let is_root = self.is_root_node(node_id);
-        let main_node_record = self.pool.load_node_record_mut(node_id)?;
+        let main_node_record = self.records_pool.load_node_record_mut(node_id)?;
         if !is_root {
             main_node_record.set_is_not_root();
         } else {
-            self.pool.set_root_node_ptr(*node_id);
+            self.records_pool.set_root_node_ptr(*node_id);
         }
         Some(*node_id)
     }
@@ -442,7 +426,7 @@ impl BTreeNodeStore {
         let node = self.get_node_clone(node_id)?;
         let mut cells_context = Vec::new();
         let list_old_ids_to_delete = {
-            let main_node_record = self.pool.load_node_record_mut(node_id)?;
+            let main_node_record = self.records_pool.load_node_record_mut(node_id)?;
             for index in 0..main_node_record.cells.len() {
                 if main_node_record.cells[index].is_active() {
                     cells_context.push(CellChangeContext::old(index));
@@ -476,14 +460,14 @@ impl BTreeNodeStore {
         
         //delete old records
         for cell_id in list_old_ids_to_delete {
-            self.pool.disable_cell_records((id, cell_id as u32));
+            self.records_pool.disable_cell_records((id, cell_id as u32));
         }
 
         Some(cells_context)
     }
 
     fn move_old_cell_records(&mut self, node_record_id: NodeId, cells_context: &[CellChangeContext]) -> Option<()> {
-        let main_node_record = self.pool.load_node_record_mut(&node_record_id)?;
+        let main_node_record = self.records_pool.load_node_record_mut(&node_record_id)?;
         let old_cell_records = main_node_record.cells;
 
         //move and update old records
@@ -521,7 +505,7 @@ impl BTreeNodeStore {
             if ctx.is_added {
                 let current_cell = node.get_cell_ref(new_cell_id);
                 let cell_records = self.create_cell(current_cell)?;
-                let main_node_record = self.pool.load_node_record_mut(&node_record_id)?;
+                let main_node_record = self.records_pool.load_node_record_mut(&node_record_id)?;
                 main_node_record.cells[new_cell_id] = cell_records[0];
             }
         }
@@ -545,7 +529,7 @@ impl BTreeNodeStore {
         
         self.create_new_records(root_id, &cells_context, node_id)?;
 
-        self.pool.save_all_node_records()?;
+        self.records_pool.save_all_node_records()?;
 
         if let Some(n) = self.get_node_mut(node_id) {
             n.reset();
@@ -560,7 +544,7 @@ impl BTreeNodeStore {
             self.create(&mut root)?;
             self.nodes_pool.put(root)
         } else {
-            let root_node_id = self.pool.get_root_node_ptr();
+            let root_node_id = self.records_pool.get_root_node_ptr();
             self.retrieve_node(&root_node_id);
             Some(root_node_id)
         }
@@ -568,22 +552,22 @@ impl BTreeNodeStore {
     }
 
     pub fn is_empty(&mut self) -> bool {
-        self.pool.is_empty()
+        self.records_pool.is_empty()
     }
 
     pub fn sync(&mut self) {
-        self.pool.sync();
+        self.records_pool.sync();
         self.clear();
     }
     pub fn soft_sync(&mut self) {
-        self.pool.sync();
+        self.records_pool.sync();
     }
     pub fn clear(&mut self) {
-        self.pool.clear();
+        self.records_pool.clear();
         self.nodes_pool.clear();
     }
     pub fn erase(&mut self) {
-        self.pool.erase();
+        self.records_pool.erase();
         self.clear();
     }
 }

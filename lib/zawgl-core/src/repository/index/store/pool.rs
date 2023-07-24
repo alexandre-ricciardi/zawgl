@@ -68,6 +68,10 @@ impl NodeRecordPool {
     }
 
 
+    pub fn load_node_cell_record_mut(&mut self, id: &u64, cell_id: usize) -> Option<&mut CellRecord> {
+        self.load_node_record_mut(id).map(|n| &mut n.cells[cell_id])
+    }
+
     pub fn load_node_record_ref(&mut self, id: u64) -> Option<&BNodeRecord> {
         let pos = if let std::collections::hash_map::Entry::Vacant(e) = self.records_map.entry(id) {
             let mut data = [0u8; BTREE_NODE_RECORD_SIZE];
