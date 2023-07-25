@@ -347,6 +347,7 @@ mod test_b_tree {
             index.sync();
             let optrs = index.search("same key");
             if let Some(ptrs) = optrs {
+                println!("{i}");
                 assert_eq!(ptrs.len(), (i+1) as usize);
             } else {
                 panic!("empty search result for same key");

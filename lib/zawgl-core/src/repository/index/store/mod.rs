@@ -271,7 +271,9 @@ impl BTreeNodeStore {
                 cell_record.set_has_overflow();
             }
 
-            let ptrs = self.create_overflow_cells(&mut cell_records[1..], (0, 0))?;
+            let cell_node_ptr = cell.get_node_ptr().unwrap_or_default();
+
+            let ptrs = self.create_overflow_cells(&mut cell_records[1..], (cell_node_ptr, 0))?;
 
             let main_cell_record = cell_records.first_mut()?;
             main_cell_record.set_has_overflow();
@@ -376,7 +378,7 @@ impl BTreeNodeStore {
         let mut data_ptr_offset = 2 + NODE_PTR_SIZE * data_ptr_count as usize ;
 
         for data_ptr in data_ptrs.iter().skip(start_index - 1) {
-            if data_ptr_count >= cell_capacity as u16 {
+            if data_ptr_count >= (cell_capacity as u16) {
                 data_ptr_offset = 2;
                 data_ptr_count = 0;
                 if let Some(cell) = list_ptr_cells.pop() {
@@ -386,6 +388,7 @@ impl BTreeNodeStore {
                     let mut new_cell = CellRecord::new();
                     new_cell.set_is_active();
                     new_cell.set_is_list_ptr();
+                    new_cell.set_has_overflow();
                     cells_to_create.push(new_cell);
                     curr_list_ptr_cell = cells_to_create.last_mut()?;
                 }
@@ -395,17 +398,17 @@ impl BTreeNodeStore {
             data_ptr_count += 1;
             update_counter(&mut curr_list_ptr_cell.key, data_ptr_count);
         }
-        let mut head_cell_pos = self.update_overflow_cells(&cells_to_update, root_cell_record)?;
+        let mut end_cell_pos = self.update_overflow_cells(&cells_to_update, root_cell_record)?;
         if !cells_to_create.is_empty() {
-            head_cell_pos = self.create_overflow_cells(&mut cells_to_create, head_cell_pos)?;
+            end_cell_pos = self.create_overflow_cells(&mut cells_to_create, end_cell_pos)?;
+            //link last updated cell to created cells
+            let mut_root_cell_record = self.records_pool.load_node_cell_record_mut(root_node_record_id, new_cell_id)?;
+            mut_root_cell_record.chain_with_cell_location(end_cell_pos);
         }
 
-        //link last updated cell to created cells
-        let root_cell_record = self.records_pool.load_node_cell_record_mut(root_node_record_id, new_cell_id)?;
-        root_cell_record.chain_with_cell_location(head_cell_pos);
         //disable unused cells
         if !list_ptr_cells.is_empty() {
-            self.records_pool.disable_cell_records(head_cell_pos);
+            self.records_pool.disable_cell_records(end_cell_pos);
         }
         
         Some(())
