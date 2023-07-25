@@ -205,7 +205,7 @@ impl BTreeNodeStore {
             curr_cell_id = cell.overflow_cell_ptr;
             curr_node_id = cell.node_ptr;
         }
-        Some((curr_node_id, curr_cell_id))
+        Some((prev_cell_record.node_ptr, prev_cell_record.overflow_cell_ptr))
     }
 
     fn create_overflow_cells(&mut self, cell_records: &mut [CellRecord], prev_cell_loc: (BTreeNodeId, CellId)) -> Option<BtreeCellLoc> {
@@ -342,7 +342,7 @@ impl BTreeNodeStore {
         Some(cells)
     }
 
-    fn load_overflow_cell_records_head(&mut self, root_cell_record: &CellRecord) -> Option<CellRecord> {
+    fn load_overflow_cell_records_tail(&mut self, root_cell_record: &CellRecord) -> Option<CellRecord> {
         let curr_node_id = root_cell_record.node_ptr;
         let curr_overflow_cell_id = root_cell_record.overflow_cell_ptr;
         let has_overflow = root_cell_record.has_overflow();
@@ -358,7 +358,7 @@ impl BTreeNodeStore {
     fn update_cell_data_ptrs(&mut self, root_node_record_id: &NodeId, new_cell_id: usize, data_ptrs: &Vec<NodeId>, start_index: usize, is_append_only: bool) -> Option<()> {
         let root_cell_record = &self.records_pool.load_node_cell_record_clone(root_node_record_id, new_cell_id)?;
         let overflow_cell_records = if is_append_only {
-            vec![self.load_overflow_cell_records_head(root_cell_record)?]
+            vec![self.load_overflow_cell_records_tail(root_cell_record)?]
         } else {
             self.load_overflow_cell_records(root_cell_record)?
         };
