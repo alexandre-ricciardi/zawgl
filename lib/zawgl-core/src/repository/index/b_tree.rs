@@ -337,18 +337,29 @@ mod test_b_tree {
 
         let file = build_file_path_and_rm_old("b_tree", "test_same_key_many_search.db").unwrap();
         let mut index = BTreeIndex::new(&file);
-
-        for i in 0..3000 {
-            index.insert("same key", i);
+        let mut count = 0;
+        for i in 0..10000 {
+            index.insert("same key", count);
+            count += 1;
+            index.insert("same key", count);
+            count += 1;
+            index.insert("same key", count);
+            count += 1;
             if i % 1000 == 0 {
                 println!("inserted {} values", i);
-                
+                index.sync();
+                index.sync();
+                index.sync();
+                index = BTreeIndex::new(&file);
             }
-            index.sync();
             let optrs = index.search("same key");
             if let Some(ptrs) = optrs {
-                println!("{i}");
-                assert_eq!(ptrs.len(), (i+1) as usize);
+                assert_eq!(ptrs.len(), 3*(i+1) as usize);
+                let mut check = 0;
+                for p in ptrs {
+                    assert_eq!(p, check);
+                    check += 1;
+                }
             } else {
                 panic!("empty search result for same key");
             }
