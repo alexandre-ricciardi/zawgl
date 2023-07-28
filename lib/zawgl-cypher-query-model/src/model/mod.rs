@@ -78,6 +78,12 @@ pub struct ReturnClause {
     pub expressions: Vec<ReturnExpression>,
 }
 
+impl Default for ReturnClause {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReturnClause {
     pub fn new() -> Self {
         ReturnClause{expressions: Vec::new()}
@@ -93,7 +99,7 @@ impl ReturnClause {
                 }
             }
         }
-        return false;
+        false
     }
 }
 

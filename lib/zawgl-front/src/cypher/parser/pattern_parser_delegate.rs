@@ -165,12 +165,10 @@ fn enter_rel_id(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parse
         } else {
             Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
         }
+    } else if parser.current_token_type_advance(TokenType::Colon) {
+        Ok(enter_rel_tags(parser, parent_node)?)
     } else {
-        if parser.current_token_type_advance(TokenType::Colon) {
-            Ok(enter_rel_tags(parser, parent_node)?)
-        } else {
-            Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
-        }
+        Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
     }
 }
 

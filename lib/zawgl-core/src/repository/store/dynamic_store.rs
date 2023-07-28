@@ -42,9 +42,9 @@ impl DynamicStore {
         loop {
             let mut dr = DynamicStoreRecord {
                 in_use: true,
-                has_next: has_next,
+                has_next,
                 data: [0u8; 120],
-                next: next
+                next
             };
             let len = end - count * 120;
             dr.data[0..len].copy_from_slice(&data[count * 120..end]);

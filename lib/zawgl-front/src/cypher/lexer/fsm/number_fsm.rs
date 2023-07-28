@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::fsm::{FSM, RunnableFSM};
+use super::fsm_run::{FSM, RunnableFSM};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum NumberState {

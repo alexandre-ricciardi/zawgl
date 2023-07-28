@@ -222,7 +222,7 @@ impl Pager {
 
     pub fn fetch_non_empty_page(&mut self, pid: PageId) -> Option<PageData> {
         if self.page_cache.contains_page_id(&pid) {
-            Some(self.page_cache.get_ref(&pid).unwrap().clone())
+            Some(*self.page_cache.get_ref(&pid).unwrap())
         } else {
             let nb_pages = self.header_page.get_page_count();
             if nb_pages >= pid {

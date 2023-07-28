@@ -123,7 +123,7 @@ impl NodeRecordPool {
     pub fn insert_cell_in_free_slot(&mut self, cell_record: &CellRecord) -> Option<BtreeCellLoc> {
         let mut iter = self.free_cell_iter();
         let next_free_cell_loc = iter.next()?;
-        let mut nr = self.load_node_record_mut(&next_free_cell_loc.0)?;
+        let nr = self.load_node_record_mut(&next_free_cell_loc.0)?;
         nr.cells[next_free_cell_loc.1 as usize] = *cell_record;
         Some(next_free_cell_loc)
     }

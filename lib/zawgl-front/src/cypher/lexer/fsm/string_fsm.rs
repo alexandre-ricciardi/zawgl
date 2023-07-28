@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::fsm::{FSM, RunnableFSM};
+use super::fsm_run::{FSM, RunnableFSM};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum StringState {
@@ -60,11 +60,10 @@ pub fn make_string_fsm() -> Box<dyn RunnableFSM<StringState>>  {
     };
 
     let accepting_states = |s| -> bool {
-           let res = match s {
+           match s {
                 StringState::MatchEndSimpleQuote(_i) => true,
                 _ => false,
-            };
-            res
+            }
         };
 
     Box::new(FSM::new(StringState::Initial, accepting_states, next_state))

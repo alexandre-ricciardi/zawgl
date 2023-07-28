@@ -124,10 +124,8 @@ impl PropertiesRespository {
             ids.push(curr_id);
         }
         ids.reverse();
-        let mut index = 0;
-        for prop in props {
-            prop.set_id(ids.get(index).map(|id| *id));
-            index += 1;
+        for (index, prop) in props.iter_mut().enumerate() {
+            prop.set_id(ids.get(index).copied());
         }
         Some(curr_id)
     }
@@ -168,7 +166,7 @@ impl PropertiesRespository {
                         full_inlined: false,
                         has_next: false,
                         prop_type: ptype,
-                        key_id: key_id,
+                        key_id,
                         prop_block: block,
                         next_prop_id: 0,
                     })
@@ -274,7 +272,7 @@ fn extract_value(skip: usize, prop_type: u8, data: &[u8]) -> Option<PropertyValu
         let value_end = it.position(|&c| c == b'\0').unwrap_or(data.len()) + skip;
         let mut value = Vec::with_capacity(value_end - skip);
         value.extend_from_slice(&data[skip..value_end]);
-        String::from_utf8(value).ok().map(|v|PropertyValue::PString(v))
+        String::from_utf8(value).ok().map(PropertyValue::PString)
     } else if prop_type == 1 {
         let mut bytes = [0u8; std::mem::size_of::<i64>()];
         bytes.copy_from_slice(&data[skip..skip+std::mem::size_of::<i64>()]);

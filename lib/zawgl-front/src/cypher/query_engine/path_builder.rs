@@ -70,7 +70,7 @@ impl PathBuilder {
     pub fn new(params: Option<Parameters>) -> Self {
         PathBuilder {curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
             pattern_state: VisitorPatternState::Init,
-            id_type: None, curr_property_name: None, current_path: PropertyGraph::new(), params: params }
+            id_type: None, curr_property_name: None, current_path: PropertyGraph::new(), params }
     }
 
     pub fn get_path_graph(&self) -> &PropertyGraph {
@@ -153,11 +153,11 @@ impl PathBuilder {
     }
 
     pub fn enter_integer_value(&mut self, value: Option<i64>) {
-        let pv = value.map(|v| PropertyValue::PInteger(v));
+        let pv = value.map(PropertyValue::PInteger);
         self.set_property_value(pv);
     }
     pub fn enter_float_value(&mut self, value: Option<f64>) {
-        let pv = value.map(|v| PropertyValue::PFloat(v));
+        let pv = value.map(PropertyValue::PFloat);
         self.set_property_value(pv);
     }
     pub fn enter_string_value(&mut self, value: Option<&str>) {
@@ -165,7 +165,7 @@ impl PathBuilder {
         self.set_property_value(pv);
     }
     pub fn enter_bool_value(&mut self, value: Option<bool>) {
-        let pv = value.map(|v| PropertyValue::PBool(v));
+        let pv = value.map(PropertyValue::PBool);
         self.set_property_value(pv);
     }
     

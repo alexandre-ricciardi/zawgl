@@ -35,7 +35,7 @@ use self::error::*;
 pub fn walk_ast(visitor: &mut dyn AstVisitor, ast: &Box<dyn Ast>) -> AstVisitorResult  {
     ast.accept(visitor)?;
     for child in ast.get_childs() {
-        walk_ast(visitor, &child)?;
+        walk_ast(visitor, child)?;
     }
     ast.accept_exit(visitor)?;
     Ok(())
@@ -48,7 +48,7 @@ pub struct Parser<'a>  {
 
 impl <'a> Parser<'a> {
     pub fn new(tokens: Vec<Token>) -> Parser {
-        Parser {tokens : tokens, index: 0}
+        Parser {tokens, index: 0}
     }
 
     pub fn get_tokens(&self) -> &Vec<Token> {

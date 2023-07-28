@@ -42,7 +42,7 @@ fn parse_evaluation_expression(parser: &mut Parser) -> ParserResult<Box<dyn Ast>
             let fun = parse_function_definition(parser)?;
             Ok(fun)
         } else {
-            let item_id: Box<AstTokenNode> = make_ast_token(&parser);
+            let item_id: Box<AstTokenNode> = make_ast_token(parser);
             let mut item_node = make_ast_tag(AstTag::Item);
             item_node.append(item_id);
             Ok(item_node)
@@ -61,7 +61,7 @@ fn parse_return_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode
             let mut alias_node = make_ast_tag(AstTag::As);
             alias_node.append(eval);
             parser.require(TokenType::Identifier)?;
-            let alias_name = make_ast_token(&parser);
+            let alias_name = make_ast_token(parser);
             alias_node.append(alias_name);
             parent_node.append(alias_node);
         } else {

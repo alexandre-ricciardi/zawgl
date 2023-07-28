@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::fsm::{FSM, RunnableFSM};
+use super::fsm_run::{FSM, RunnableFSM};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum KeywordState {
@@ -29,7 +29,7 @@ pub enum KeywordState {
 
 fn check_equals_ignorecase(c: char, keyword: &'static str, i: usize) -> bool {
     keyword.chars().nth(i) == Some(c) ||
-    !c.to_lowercase().find(|lc|keyword.chars().nth(i) == Some(*lc)).is_none()
+    !c.to_lowercase().any(|lc|keyword.chars().nth(i) != Some(lc))
 }
 
 pub fn make_keyword_ignorecase_fsm(keyword: &'static str) -> Box<dyn RunnableFSM<KeywordState>>  {

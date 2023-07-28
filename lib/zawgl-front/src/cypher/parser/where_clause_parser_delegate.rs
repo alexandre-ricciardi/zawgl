@@ -154,9 +154,9 @@ fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>
                     eqop.append(func);
                     let right = parse_boolean_expression_terminal(parser)?;
                     eqop.append(right);
-                    return parse_boolean_operator(parser, eqop)
+                    parse_boolean_operator(parser, eqop)
                 } else {
-                    return parse_boolean_operator(parser, func)
+                    parse_boolean_operator(parser, func)
                 }
             } else if parser.check(TokenType::Dot) {
                 let mut item_prop = make_ast_tag(AstTag::ItemPropertyIdentifier);
@@ -167,10 +167,10 @@ fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>
                     item_prop.append(make_ast_token(parser));
                     parse_comparison_expression(parser, item_prop)
                 } else {
-                    return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
+                    Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
                 }
             } else {
-                return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
+                Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
             }
         },
         TokenType::OpenParenthesis => {

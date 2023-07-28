@@ -33,12 +33,12 @@ pub struct Lexer<'a> {
 }
 
 fn make_token(ttype: TokenType, beg: usize, end: usize, input: &str) -> Option<Token> {
-    input.get(beg..end).map(|tok_expr| Token {token_type: ttype, begin: beg, end: end, content: tok_expr})
+    input.get(beg..end).map(|tok_expr| Token {token_type: ttype, begin: beg, end, content: tok_expr})
 }
 
 fn run_keyword_fsm<'a>(tok_type: TokenType, keyword: &'static str, input: &'a str, index: usize) -> Option<Token<'a>> {
     let mut kfsm = fsm::keyword_fsm::make_keyword_ignorecase_fsm(keyword);
-    input.get(index..).and_then(|rest| kfsm.run(&rest)).and_then(|size| input.get(index..index + size.0)).map(|tok_expr| Token::new(tok_type, index, index + tok_expr.len(), tok_expr))
+    input.get(index..).and_then(|rest| kfsm.run(rest)).and_then(|size| input.get(index..index + size.0)).map(|tok_expr| Token::new(tok_type, index, index + tok_expr.len(), tok_expr))
 }
 
 #[derive(Debug, Clone)]
@@ -98,7 +98,7 @@ impl <'a> Lexer<'a> {
     }
     pub  fn  next_token(&mut self) -> LexerResult<Token<'a>> {
         
-        self.position = self.position + self.lookahead;
+        self.position += self.lookahead;
         if self.position >= self.input.len() {
             return Err(LexerError::EndOfFile(self.position));
         }
@@ -113,9 +113,9 @@ impl <'a> Lexer<'a> {
                     Some(numlen) =>{
                         self.lookahead = numlen.0;
                         match numlen.1 {
-                            fsm::number_fsm::NumberState::Integer => make_token(TokenType::Integer, self.position, self.position + numlen.0, &self.input).ok_or(LexerError::NotFound),
-                            fsm::number_fsm::NumberState::NumberWithFractionalPart => make_token(TokenType::Float, self.position, self.position + numlen.0, &self.input).ok_or(LexerError::NotFound),
-                            fsm::number_fsm::NumberState::NumberWithExponent => make_token(TokenType::Float, self.position, self.position + numlen.0, &self.input).ok_or(LexerError::NotFound),
+                            fsm::number_fsm::NumberState::Integer => make_token(TokenType::Integer, self.position, self.position + numlen.0, self.input).ok_or(LexerError::NotFound),
+                            fsm::number_fsm::NumberState::NumberWithFractionalPart => make_token(TokenType::Float, self.position, self.position + numlen.0, self.input).ok_or(LexerError::NotFound),
+                            fsm::number_fsm::NumberState::NumberWithExponent => make_token(TokenType::Float, self.position, self.position + numlen.0, self.input).ok_or(LexerError::NotFound),
                             _ => Err(LexerError::WrongNumberFormat(self.position))
                         }
                     } ,
@@ -123,7 +123,7 @@ impl <'a> Lexer<'a> {
                 };
             }
             for keyword in &self.keywords {
-                match run_keyword_fsm(keyword.0, keyword.1, &self.input, self.position) {
+                match run_keyword_fsm(keyword.0, keyword.1, self.input, self.position) {
                     Some(tok) => {
                         self.lookahead = tok.size();
                         return Ok(tok)
@@ -135,23 +135,23 @@ impl <'a> Lexer<'a> {
             match string_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(string_len) => {
                     self.lookahead = string_len.0;
-                    return make_token(TokenType::StringType, self.position, self.position + string_len.0, &self.input).ok_or(LexerError::NotFound);
+                    return make_token(TokenType::StringType, self.position, self.position + string_len.0, self.input).ok_or(LexerError::NotFound);
                 },
                 None => {},
             }
             if c =='$' {
                 let mut parameter_fsm = fsm::parameter_fsm::make_parameter_fsm();
-                match parameter_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
+                match parameter_fsm.run(self.input.get(self.position..self.input.len()).unwrap()) {
                     Some(idlen) => {
                         self.lookahead = idlen.0;
-                        return make_token(TokenType::Parameter, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
+                        return make_token(TokenType::Parameter, self.position, self.position + idlen.0, self.input).ok_or(LexerError::NotFound)
                     } ,
     
                     None => {},
                 }
             }
             let mut identifier_fsm = fsm::identifier_fsm::make_identifier_fsm();
-            return match identifier_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
+            return match identifier_fsm.run(self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(idlen) => {
                     self.lookahead = idlen.0;
                     return make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)

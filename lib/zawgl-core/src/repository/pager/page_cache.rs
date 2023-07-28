@@ -81,23 +81,23 @@ impl PageCache {
     }
 
     pub fn put(&mut self, data: PageData, page_id: PageId) -> Option<&mut PageData> {
-        if self.dropped_pages.len() > 0 {
+        if !self.dropped_pages.is_empty() {
             self.dropped_pages.pop().and_then(|dp| {
                 let page_hit = PageHits::new(page_id, dp);
                 self.insert_page(data, page_hit)})
         } else if self.pages_map.contains_key(&page_id) {
             let ph = self.pages_map[&page_id];
             self.insert_page(data, PageHits::new(page_id, ph.pos))
-        } else if self.pages.len() >= self.capacity && false {
-            let mut hits: Vec<PageHits> = self.pages_map.values().map(|ph| ph.clone()).collect();
-            hits.sort();
-            let mut hit = hits[0];
-            if hit.was_mut {
-                self.append_page(data, page_id)
-            } else {
-                hit.page_id = page_id;
-                self.insert_page(data, hit)
-            }
+        // } else if self.pages.len() >= self.capacity && false {
+        //     let mut hits: Vec<PageHits> = self.pages_map.values().map(|ph| ph.clone()).collect();
+        //     hits.sort();
+        //     let mut hit = hits[0];
+        //     if hit.was_mut {
+        //         self.append_page(data, page_id)
+        //     } else {
+        //         hit.page_id = page_id;
+        //         self.insert_page(data, hit)
+        //     }
         } else {
             self.append_page(data, page_id)
         }

@@ -77,14 +77,14 @@ fn depth_first_search(graph: &mut GraphProxy) {
 
 fn iterate_adjacent_nodes(labeled: &mut HashSet<ProxyNodeId>, graph: &mut GraphProxy, id: &ProxyNodeId) {
     labeled.insert(*id);
-    println!("{:?}", graph.get_node_ref(&id));
-    for (e_in, in_v, rel) in graph.in_edges(&id) {
+    println!("{:?}", graph.get_node_ref(id));
+    for (_e_in, in_v, rel) in graph.in_edges(id) {
         println!("{:?}", rel);
         if !labeled.contains(&in_v) {
             //iterate_adjacent_nodes(labeled, graph, &in_v);
         }
     }
-    for (e_in, out_v, rel) in graph.out_edges(&id) {
+    for (_e_in, out_v, rel) in graph.out_edges(id) {
         println!("{:?}", rel);
         if !labeled.contains(&out_v) {
             //iterate_adjacent_nodes(labeled, graph, &out_v);
@@ -93,7 +93,7 @@ fn iterate_adjacent_nodes(labeled: &mut HashSet<ProxyNodeId>, graph: &mut GraphP
 }
 
 fn build_test_graph(main_dir: &str) {
-    let conf = InitContext::new(&main_dir).expect("can't create context");
+    let conf = InitContext::new(main_dir).expect("can't create context");
     let mut graph_engine = GraphEngine::new(conf);
     let mut n0 = Node::new();
     n0.set_labels(vec!["Test".to_string(), "Label".to_string()]);

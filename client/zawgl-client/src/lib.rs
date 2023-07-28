@@ -106,7 +106,7 @@ fn build_parameters(params: Parameters) -> Document {
 async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, id: String, query: String, params: Parameters) -> Option<()> {
     let mut msg = "!application/openCypher".as_bytes().to_vec();
     let doc = doc!{
-        "request_id": String::from(id),
+        "request_id": id,
         "query" : query,
         "parameters": build_parameters(params),
     };

@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 pub mod number_fsm;
-pub mod fsm;
+pub mod fsm_run;
 pub mod keyword_fsm;
 pub mod identifier_fsm;
 pub mod parameter_fsm;

@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::fsm::{FSM, RunnableFSM};
+use super::fsm_run::{FSM, RunnableFSM};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum ParameterState {
@@ -55,11 +55,10 @@ pub fn make_parameter_fsm() -> Box<dyn RunnableFSM<ParameterState>>  {
     };
 
     let accepting_states = |s| -> bool {
-           let res = match s {
-            ParameterState::MatchParameter(_i) => true,
+           match s {
+                ParameterState::MatchParameter(_i) => true,
                 _ => false,
-            };
-            res
+            }
         };
 
     Box::new(FSM::new(ParameterState::Initial, accepting_states, next_state))

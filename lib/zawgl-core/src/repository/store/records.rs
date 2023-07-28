@@ -56,7 +56,7 @@ impl NodeRecord {
         offset += NODE_TYPE_SIZE;
         let node_type = u64_from_bytes(&bytes[offset..offset+NODE_TYPE_SIZE]);
         NodeRecord {first_outbound_edge: out_rel_id, first_inbound_edge: in_rel_id,
-            next_prop_id: prop_id, node_type: node_type}
+            next_prop_id: prop_id, node_type}
     }
 }
 
@@ -149,7 +149,7 @@ pub fn dr_from_bytes(bytes: [u8; 129]) -> DynamicStoreRecord {
     let next = u64_from_bytes(&bytes[1..9]);
     let mut data = [0u8; 120];
     data.copy_from_slice(&bytes[9..129]);
-    DynamicStoreRecord {in_use: in_use, has_next: has_next, next: next, data: data}
+    DynamicStoreRecord {in_use, has_next, next, data}
 }
 
 pub fn pr_to_bytes(pr: &PropertyRecord) -> [u8; 42] {
@@ -183,7 +183,7 @@ pub fn pr_from_bytes(bytes: [u8; 42]) -> PropertyRecord {
     let mut block = [0u8; 24];
     block.copy_from_slice(&bytes[10..34]);
     let next = u64_from_bytes(&bytes[34..42]);
-    PropertyRecord {in_use: in_use, full_inlined: inlined, key_inlined: key_inlined, has_next: has_next, prop_type: ptype, key_id: key, prop_block: block, next_prop_id: next}
+    PropertyRecord {in_use, full_inlined: inlined, key_inlined, has_next, prop_type: ptype, key_id: key, prop_block: block, next_prop_id: next}
 }
 
 

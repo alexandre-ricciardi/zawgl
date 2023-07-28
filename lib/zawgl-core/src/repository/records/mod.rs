@@ -383,7 +383,7 @@ impl RecordsManager {
                 let opage_record_id = wrapper.pop_free_list_item();
                 if let Some(page_record_id) = opage_record_id {
                     record_id = (wrapper.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64;
-                    wrapper.write_to_bounds(payload_bounds.sub(page_record_id * self.record_size, self.record_size), &data)
+                    wrapper.write_to_bounds(payload_bounds.sub(page_record_id * self.record_size, self.record_size), data)
                 }
                 if wrapper.get_free_list_len() > 0 {
                     self.pager.get_header_page_mut().set_header_first_free_page_ptr(page_id);
@@ -392,37 +392,36 @@ impl RecordsManager {
                     self.pager.get_header_page_mut().set_header_first_free_page_ptr(next_free_page_id);
                 }
             }
-        } else {
-            if is_multi_page_record {
+        } else if is_multi_page_record {
                 
-                let next_free_page_ptr = {
-                    let page = self.pager.load_page(first_free_page_ptr);
-                    let wrapper = page.map(|p| RecordPageWrapper::new(first_free_page_ptr, p, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
-                    wrapper.get_free_next_page_ptr()                    
-                };
-                self.pager.get_header_page_mut().set_header_first_free_page_ptr(next_free_page_ptr);
+            let next_free_page_ptr = {
                 let page = self.pager.load_page(first_free_page_ptr);
-                let mut wrapper = page.map(|p| RecordPageWrapper::new(first_free_page_ptr, p, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
-                let mut first = true;
-                for page_count in 0..nb_pages_per_record {
-                    if first {
-                        record_id = (wrapper.get_id() - 1) / nb_pages_per_record as u64;
-                        first = false;
-                    }
-                    copy_buffer_to_payload(&mut wrapper, payload_bounds, &data[page_count*payload_bounds.len()..]);
+                let wrapper = page.map(|p| RecordPageWrapper::new(first_free_page_ptr, p, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
+                wrapper.get_free_next_page_ptr()                    
+            };
+            self.pager.get_header_page_mut().set_header_first_free_page_ptr(next_free_page_ptr);
+            let page = self.pager.load_page(first_free_page_ptr);
+            let mut wrapper = page.map(|p| RecordPageWrapper::new(first_free_page_ptr, p, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
+            let mut first = true;
+            for page_count in 0..nb_pages_per_record {
+                if first {
+                    record_id = (wrapper.get_id() - 1) / nb_pages_per_record as u64;
+                    first = false;
                 }
-            } else {
-                let mut page = self.pager.load_page(first_free_page_ptr);
-                let mut wrapper = page.as_mut().map(|p| RecordPageWrapper::new(first_free_page_ptr, p, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
-                let page_record_id = wrapper.pop_free_list_item().ok_or(RecordsManagerError::NotFound)?;
-                record_id = (wrapper.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64;
-                wrapper.write_to_bounds(payload_bounds.sub(page_record_id * record_size, record_size), &data);
-                if wrapper.is_page_free_list_empty() {
-                    let next_free_page_ptr = wrapper.get_free_next_page_ptr();
-                    self.pager.get_header_page_mut().set_header_first_free_page_ptr(next_free_page_ptr);
-                }
+                copy_buffer_to_payload(&mut wrapper, payload_bounds, &data[page_count*payload_bounds.len()..]);
+            }
+        } else {
+            let mut page = self.pager.load_page(first_free_page_ptr);
+            let mut wrapper = page.as_mut().map(|p| RecordPageWrapper::new(first_free_page_ptr, p, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
+            let page_record_id = wrapper.pop_free_list_item().ok_or(RecordsManagerError::NotFound)?;
+            record_id = (wrapper.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64;
+            wrapper.write_to_bounds(payload_bounds.sub(page_record_id * record_size, record_size), &data);
+            if wrapper.is_page_free_list_empty() {
+                let next_free_page_ptr = wrapper.get_free_next_page_ptr();
+                self.pager.get_header_page_mut().set_header_first_free_page_ptr(next_free_page_ptr);
             }
         }
+    
         self.increment_records_version_counter();
         self.increment_records_counter();
         Ok(record_id + 1)

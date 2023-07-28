@@ -24,9 +24,9 @@ use zawgl_front::cypher::query_engine::CypherError;
 
 #[derive(Debug)]
 pub enum ServerError {
-    HeaderError,
-    ParsingError(String),
-    WebsocketError(Error),
-    CypherTxError(CypherError),
-    ConcurrencyError,
+    Header,
+    Parsing(String),
+    Websocket(Error),
+    CypherTx(CypherError),
+    Concurrency,
 }

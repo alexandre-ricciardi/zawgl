@@ -152,17 +152,14 @@ fn compute_sum(args: &Vec<ValueItem>, graph: &PropertyGraph, grouping: &HashSet<
             if let Some(var) = node.get_var() {
                 if name == &var {
                     for arg in args {
-                        match arg {
-                            ValueItem::ItemPropertyName(prop_arg) => {
-                                if &prop_arg.item_name == var {
-                                    for prop in node.get_properties_ref() {
-                                        if prop.get_name() == prop_arg.property_name {
-                                            group.push(prop.get_value())
-                                        }
+                        if let ValueItem::ItemPropertyName(prop_arg) = arg {
+                            if &prop_arg.item_name == var {
+                                for prop in node.get_properties_ref() {
+                                    if prop.get_name() == prop_arg.property_name {
+                                        group.push(prop.get_value())
                                     }
                                 }
                             }
-                            _ => {}
                         }
                     }
                 }
@@ -172,17 +169,14 @@ fn compute_sum(args: &Vec<ValueItem>, graph: &PropertyGraph, grouping: &HashSet<
             if let Some(var) = rel.get_var() {
                 if name == &var {
                     for arg in args {
-                        match arg {
-                            ValueItem::ItemPropertyName(prop_arg) => {
-                                if &prop_arg.item_name == var {
-                                    for prop in rel.get_properties_ref() {
-                                        if prop.get_name() == prop_arg.property_name {
-                                            group.push(prop.get_value())
-                                        }
+                        if let ValueItem::ItemPropertyName(prop_arg) = arg {
+                            if &prop_arg.item_name == var {
+                                for prop in rel.get_properties_ref() {
+                                    if prop.get_name() == prop_arg.property_name {
+                                        group.push(prop.get_value())
                                     }
                                 }
                             }
-                            _ => {}
                         }
                     }
                 }
@@ -202,17 +196,14 @@ fn compute_sum(args: &Vec<ValueItem>, graph: &PropertyGraph, grouping: &HashSet<
             if let Some(var) = node.get_var() {
                 if !grouping.contains(var) {
                     for arg in args {
-                        match arg {
-                            ValueItem::ItemPropertyName(prop_arg) => {
-                                if &prop_arg.item_name == var {
-                                    for prop in node.get_properties_ref() {
-                                        if prop.get_name() == prop_arg.property_name {
-                                            sum_value += get_property_sum_value(prop.get_value());
-                                        }
+                        if let ValueItem::ItemPropertyName(prop_arg) = arg {
+                            if &prop_arg.item_name == var {
+                                for prop in node.get_properties_ref() {
+                                    if prop.get_name() == prop_arg.property_name {
+                                        sum_value += get_property_sum_value(prop.get_value());
                                     }
                                 }
                             }
-                            _ => {}
                         }
                     }
                 }
@@ -222,17 +213,14 @@ fn compute_sum(args: &Vec<ValueItem>, graph: &PropertyGraph, grouping: &HashSet<
             if let Some(var) = rel.get_var() {
                 if !grouping.contains(var) {
                     for arg in args {
-                        match arg {
-                            ValueItem::ItemPropertyName(prop_arg) => {
-                                if &prop_arg.item_name == var {
-                                    for prop in rel.get_properties_ref() {
-                                        if prop.get_name() == prop_arg.property_name {
-                                            sum_value += get_property_sum_value(prop.get_value());
-                                        }
+                        if let ValueItem::ItemPropertyName(prop_arg) = arg {
+                            if &prop_arg.item_name == var {
+                                for prop in rel.get_properties_ref() {
+                                    if prop.get_name() == prop_arg.property_name {
+                                        sum_value += get_property_sum_value(prop.get_value());
                                     }
                                 }
                             }
-                            _ => {}
                         }
                     }
                 }

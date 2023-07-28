@@ -31,7 +31,7 @@ pub trait RunnableFSM<S>  {
 impl <S, NS, AC> FSM<S, NS, AC> where S: PartialEq + Copy + Clone, NS: Fn(S, char) -> Option<S>, AC: Fn(S) -> bool {
 
     pub fn new(initial_state: S, accepting_states: AC, next_state: NS) -> FSM<S, NS, AC> {
-        FSM {initial_state: initial_state, accepting_states: accepting_states, next_state: next_state}
+        FSM {initial_state, accepting_states, next_state}
     }
 }
 

@@ -25,10 +25,11 @@ use super::super::repository::index::b_tree::*;
 use self::records::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::hash_map::Entry;
 use super::super::graph::traits::*;
 
 fn parse_labels(labels: &str) -> Option<Vec<String>> {
-    Some(labels.split(":").map(|s| String::from(s)).collect())
+    Some(labels.split(":").map(String::from).collect())
 }
 
 /// A graph repository enabling to store a directed property graph on the disk 
@@ -164,12 +165,12 @@ impl GraphRepository {
         nr.next_prop_id = self.properties_repository.create_list(res.get_properties_mut())?;
         if !node.get_labels_ref().is_empty() {
             let full_label = node.get_labels_ref().join(":");
-            if self.labels.contains_key(&full_label) {
-                nr.node_type = self.labels[&full_label];
-            } else {
+            if let Entry::Vacant(e) = self.labels.entry(full_label.to_string()) {
                 let label_id = self.labels_store.save_data(full_label.as_bytes())?;
-                self.labels.insert(full_label, label_id);
+                e.insert(label_id);
                 nr.node_type = label_id;
+            } else {
+                nr.node_type = self.labels[&full_label];
             }
         }
         let nid = self.nodes_store.create(&nr)?;
@@ -191,12 +192,12 @@ impl GraphRepository {
         rr.next_prop_id = self.properties_repository.create_list(res.get_properties_mut())?;
         if !rel.get_labels_ref().is_empty() {
             let full_label = rel.get_labels_ref().join(":");
-            if self.labels.contains_key(&full_label) {
-                rr.relationship_type = self.labels[&full_label];
-            } else {
+            if let Entry::Vacant(e) = self.labels.entry(full_label.to_string()) {
                 let label_id = self.labels_store.save_data(full_label.as_bytes())?;
-                self.labels.insert(full_label, label_id);
+                e.insert(label_id);
                 rr.relationship_type = label_id;
+            } else {
+                rr.relationship_type = self.labels[&full_label];
             }
         }
         let rid = self.relationships_store.create(&rr)?;
@@ -229,37 +230,29 @@ impl GraphRepository {
     pub fn create_graph(&mut self, pgraph: &PropertyGraph) -> Option<PropertyGraph> {
         let mut res = pgraph.clone();
         let mut map_nodes = HashMap::new();
-        let mut node_index = 0;
         let mut node_records = Vec::new();
-        for node in res.get_nodes_mut() {
+        for (node_index, node) in res.get_nodes_mut().into_iter().enumerate() {
             let cnode = self.create_node(node)?;
             map_nodes.insert(node_index, cnode.get_id()?);
             node_records.push(cnode);
-            node_index += 1;
         }
 
-        let mut rel_index: usize = 0;
         let mut map_rel = HashMap::new();
         let mut rel_records = Vec::new();
-        for edge in res.get_edges_mut() {
+        for (rel_index, edge) in res.get_edges_mut().into_iter().enumerate() {
             let crel = self.create_relationship(&edge.relationship, 
                 *map_nodes.get(&edge.source.get_index())?,
                 *map_nodes.get(&edge.target.get_index())?)?;
             map_rel.insert(rel_index, crel.get_id()?);
             rel_records.push(crel);
-            rel_index += 1;
         }
         
-        let mut n_index = 0;
-        for n in res.get_nodes_mut() {
+        for (n_index, n) in res.get_nodes_mut().into_iter().enumerate() {
             n.set_id(Some(map_nodes[&n_index]));
-            n_index += 1;
         }
 
-        let mut r_index = 0;
-        for r  in res.get_relationships_mut() {
+        for (r_index, r)  in res.get_relationships_mut().into_iter().enumerate() {
             r.set_id(Some(map_rel[&r_index]));
-            r_index += 1;
         }
 
         Some(res)
@@ -319,6 +312,6 @@ pub struct DbEdgeData {
 
 impl DbEdgeData {
     fn new(source: u64, target: u64) -> Self {
-        DbEdgeData{source: source, target: target, next_outbound_edge: None, next_inbound_edge: None}
+        DbEdgeData{source, target, next_outbound_edge: None, next_inbound_edge: None}
     }
 }

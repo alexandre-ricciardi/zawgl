@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::fsm::{FSM, RunnableFSM};
+use super::fsm_run::{FSM, RunnableFSM};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum IdentifierState {
@@ -50,11 +50,10 @@ pub fn make_identifier_fsm() -> Box<dyn RunnableFSM<IdentifierState>>  {
     };
 
     let accepting_states = |s| -> bool {
-           let res = match s {
+            match s {
                 IdentifierState::MatchIdentifier(_i) => true,
                 _ => false,
-            };
-            res
+            }
         };
 
     Box::new(FSM::new(IdentifierState::Initial, accepting_states, next_state))

@@ -242,7 +242,7 @@ fn add_vertex(vertices: &mut Vec<InnerVertexData<ProxyRelationshipId>>, db_id: u
 }
 
 
-fn get_or_retrieve_vertex_data<'a>(proxy: &'a mut GraphProxy, id: u64) -> Option<(ProxyNodeId, InnerVertexData<ProxyRelationshipId>)> {
+fn get_or_retrieve_vertex_data(proxy: &mut GraphProxy, id: u64) -> Option<(ProxyNodeId, InnerVertexData<ProxyRelationshipId>)> {
     let ovdata = proxy.map_vertices.get(&id).copied();
     if let Some(vdata) = ovdata {
         proxy.vertices.get(vdata.0.get_index()).map(|v| (vdata.0, *v))
@@ -254,7 +254,7 @@ fn get_or_retrieve_vertex_data<'a>(proxy: &'a mut GraphProxy, id: u64) -> Option
     }
 }
 
-fn add_edge<'a>(proxy: &'a mut GraphProxy, db_edge_data: &DbEdgeData, rel_db_id: u64) -> Option<ProxyRelationshipId> {
+fn add_edge(proxy: &mut GraphProxy, db_edge_data: &DbEdgeData, rel_db_id: u64) -> Option<ProxyRelationshipId> {
     let index = proxy.edges.len();
     
     let source_data = get_or_retrieve_vertex_data(proxy, db_edge_data.source)?;
@@ -301,7 +301,7 @@ impl <'a, 'b> Iterator for OutEdges<'a, 'b> {
                     Some((rdata.0, self.proxy.edges[pid.get_index()].target, self.proxy.get_relationship_ref(&pid)?.clone()))
                 } else {
                     let edge_data = self.proxy.repository.retrieve_edge_data_by_id(edge_index.get_store_id())?;
-                    let pid = add_edge(&mut self.proxy, &edge_data, edge_index.get_store_id())?;
+                    let pid = add_edge(self.proxy, &edge_data, edge_index.get_store_id())?;
                     self.proxy.map_edges.insert(edge_index.get_store_id(), (pid, edge_data));
                     let edges = &mut self.proxy.edges;
                     let curr_edge = edges.get(pid.get_index())?;

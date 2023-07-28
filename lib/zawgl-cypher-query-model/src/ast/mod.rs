@@ -306,7 +306,7 @@ impl Ast for AstTagNode {
 
 impl AstTokenNode {
     pub fn new_token(token_id: usize, token_value: String, token_type: TokenType) -> Self {
-        AstTokenNode {token_id: token_id, token_value: token_value, childs: Vec::new(), token_type: token_type}
+        AstTokenNode {token_id, token_value, childs: Vec::new(), token_type}
     }
 }
 

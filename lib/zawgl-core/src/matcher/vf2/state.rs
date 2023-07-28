@@ -121,7 +121,7 @@ fn dec_target<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID
     }
 }
 
-pub fn push_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &'g PropertyGraph, v0: &NodeIndex, v1: &ProxyNodeId) {  
+pub fn push_state_0(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &PropertyGraph, v0: &NodeIndex, v1: &ProxyNodeId) {  
     base_state.core_count += 1;
     base_state.core_map.insert(*v0, *v1);
     inc_term(base_state, v0);
@@ -136,7 +136,7 @@ pub fn push_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, grap
     }
 }
 
-pub fn pop_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &'g PropertyGraph, v0: &NodeIndex) {  
+pub fn pop_state_0(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &PropertyGraph, v0: &NodeIndex) {  
     if base_state.core_count == 0 {
         return;
     }
@@ -160,7 +160,7 @@ pub fn pop_state_0<'g>(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph
 }
 
 
-pub fn push_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: &'g mut GraphProxy, v0: &ProxyNodeId, v1: &NodeIndex) {  
+pub fn push_state_1(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: & mut GraphProxy, v0: &ProxyNodeId, v1: &NodeIndex) {  
     base_state.core_count += 1;
     base_state.core_map.insert(*v0, *v1);
     inc_term(base_state, v0);
@@ -172,7 +172,7 @@ pub fn push_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, grap
     }
 }
 
-pub fn pop_state_1<'g>(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: &'g mut GraphProxy, v0: &ProxyNodeId) {  
+pub fn pop_state_1(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: &mut GraphProxy, v0: &ProxyNodeId) {  
     if base_state.core_count == 0 {
         return;
     }
@@ -337,14 +337,12 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
 
         fn edge_exists_1(&mut self, source: &ProxyNodeId, target: &ProxyNodeId, r0: &Relationship, matched_edge_set: &mut HashSet<ProxyRelationshipId>, graph_1: &mut GraphProxy<'_>) -> Option<bool> {
             for (out_edge_index, curr_target, r) in graph_1.out_edges(source) {
-                if curr_target == *target && !matched_edge_set.contains(&out_edge_index) {
-                    if (self.edge_comp)(r0, &r) {
-                        matched_edge_set.insert(out_edge_index);
-                        return Some(true);
-                    }
+                if curr_target == *target && !matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r0, &r){
+                    matched_edge_set.insert(out_edge_index);
+                    return Some(true);
                 }
             }
-            return  Some(false);
+            Some(false)
         }
 
         fn inc_counters_match_edge_1(&self, _is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, w_new: &ProxyNodeId, w_adj: &ProxyNodeId, _v_new: &NodeIndex, _edge_index: &ProxyRelationshipId, _matched_edge_set: &mut HashSet<EdgeIndex>) -> Option<bool> {
