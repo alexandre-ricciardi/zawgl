@@ -144,7 +144,7 @@ impl <'g0, VCOMP, ECOMP, CALLBACK> Matcher <'g0, VCOMP, ECOMP, CALLBACK>
                     },
                     IterationStates::Graph1Loop => {
                         let mut backtrack = true;
-                        while !index1.end() && !index0.end() {
+                        while !index1.end() {
                             if self.state.possible_candidate_1(index1.value()) && self.state.feasible(index0.value(), index1.value(), graph_1)? {
                                 match_continuation.push((index0.index(), index1.index()));
                                 self.state.push(index0.value(), index1.value(), graph_1);
