@@ -114,7 +114,7 @@ fn enter_labels(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parse
     Ok(())
 }
 
-fn enter_node_def(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+fn enter_node_def(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
     let mut node = Box::new(AstTagNode::new_tag(AstTag::Node));
     
     parser.require(TokenType::OpenParenthesis)?;

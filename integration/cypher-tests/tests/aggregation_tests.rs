@@ -61,7 +61,7 @@ async fn _test_aggregation_issue(mut client: Client) {
     if let (Ok(d1), Ok(d2))  = (result1, result2) {
         let id1 = extract_node_id(d1).expect("node id");
         let id2 = extract_node_id(d2).expect("node id");
-        for i in 0..100 {
+        for _ in 0..100 {
 
             let mut p = Parameters::new();
             p.insert("pid1".to_string(), Value::Integer(id1));
@@ -84,10 +84,10 @@ async fn _test_aggregation_match_issue(mut client: Client) {
     if let (Ok(d1), Ok(d2))  = (result1, result2) {
         let id1 = extract_node_id(d1).expect("node id");
         let id2 = extract_node_id(d2).expect("node id");
-        for i in 0..100 {
+        for _ in 0..100 {
             for _ in 0..10 {
                 let r = client.execute_cypher_request("create (test:Person) return test").await;
-                let res = r.expect("new person");
+                let _res = r.expect("new person");
 
             }
             let mut p = Parameters::new();
