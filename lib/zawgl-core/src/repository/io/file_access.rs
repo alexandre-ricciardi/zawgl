@@ -47,7 +47,7 @@ impl FileAccess {
         self.file.flush()?;
         Ok(())
     }
-    fn _read_at(&mut self, pos: u64 , mut data: &mut [u8]) -> std::io::Result<()> {
+    fn _read_at(&mut self, pos: u64 , data: &mut [u8]) -> std::io::Result<()> {
         self.file.seek(SeekFrom::Start(pos))?;
         self.file.read_exact(data)?;
         Ok(())
