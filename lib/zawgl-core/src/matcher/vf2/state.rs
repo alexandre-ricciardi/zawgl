@@ -332,7 +332,7 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
                     }
                 }
             }
-            return  Some(false);
+            Some(false)
         }
 
         fn edge_exists_1(&mut self, source: &ProxyNodeId, target: &ProxyNodeId, r0: &Relationship, matched_edge_set: &mut HashSet<ProxyRelationshipId>, graph_1: &mut GraphProxy<'_>) -> Option<bool> {

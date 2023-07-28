@@ -49,7 +49,7 @@ impl FileAccess {
     }
     fn _read_at(&mut self, pos: u64 , mut data: &mut [u8]) -> std::io::Result<()> {
         self.file.seek(SeekFrom::Start(pos))?;
-        self.file.read_exact(&mut data)?;
+        self.file.read_exact(data)?;
         Ok(())
     }
 

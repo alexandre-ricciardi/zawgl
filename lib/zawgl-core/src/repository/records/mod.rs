@@ -415,7 +415,7 @@ impl RecordsManager {
             let mut wrapper = page.as_mut().map(|p| RecordPageWrapper::new(first_free_page_ptr, p, self.page_map)).ok_or(RecordsManagerError::NotFound)?;
             let page_record_id = wrapper.pop_free_list_item().ok_or(RecordsManagerError::NotFound)?;
             record_id = (wrapper.get_id() - 1) * nb_records_per_page as u64 + page_record_id as u64;
-            wrapper.write_to_bounds(payload_bounds.sub(page_record_id * record_size, record_size), &data);
+            wrapper.write_to_bounds(payload_bounds.sub(page_record_id * record_size, record_size), data);
             if wrapper.is_page_free_list_empty() {
                 let next_free_page_ptr = wrapper.get_free_next_page_ptr();
                 self.pager.get_header_page_mut().set_header_first_free_page_ptr(next_free_page_ptr);

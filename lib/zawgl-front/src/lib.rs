@@ -22,7 +22,7 @@
 pub mod planner;
 pub mod tx_handler;
 
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashSet};
 
 use bson::{Bson, Document, doc};
 use cypher::query_engine::{process_cypher_query, CypherError};

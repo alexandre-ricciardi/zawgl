@@ -57,7 +57,7 @@ impl NodeRecordPool {
             e.insert(pos);
             pos
         } else {
-            *self.records_map.get(&id)?
+            *self.records_map.get(id)?
         };
         Some(*self.records.get(pos)?)
     }
@@ -95,7 +95,7 @@ impl NodeRecordPool {
             e.insert(pos);
             pos
         } else {
-            *self.records_map.get(&id)?
+            *self.records_map.get(id)?
         };
         self.records.get_mut(pos)
     }

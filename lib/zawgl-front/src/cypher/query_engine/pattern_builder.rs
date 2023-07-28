@@ -26,8 +26,7 @@ use std::{collections::{HashMap, HashSet}};
 pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {
     
     let mut var_paths: HashMap<String, HashSet<usize>> = HashMap::new();
-    let mut path_id: usize = 0;
-    for path in paths {
+    for (path_id, path) in paths.iter().enumerate() {
         for n in path.get_nodes() {
             if let Some(var_name) = n.get_var() {
                 let set = var_paths.get_mut(var_name);
@@ -38,7 +37,6 @@ pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {
                 }
             }
         }
-        path_id += 1;
     }
 
     let mut paths_set = Vec::<HashSet<usize>>::new();

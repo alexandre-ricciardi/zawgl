@@ -133,10 +133,10 @@ pub struct DynamicStoreRecord {
 pub fn dr_to_bytes(dr: &DynamicStoreRecord) -> [u8; 129] {
     let mut bytes: [u8; 129] = [0; 129];
     if dr.in_use {
-        bytes[0] = bytes[0] | 0b00000001;
+        bytes[0] |= 0b00000001;
     }
     if dr.has_next {
-        bytes[0] = bytes[0] | 0b0000_1000;
+        bytes[0] |= 0b0000_1000;
     }
     bytes[1..9].clone_from_slice(&u64_to_bytes(dr.next));
     bytes[9..129].clone_from_slice(&dr.data);
@@ -155,16 +155,16 @@ pub fn dr_from_bytes(bytes: [u8; 129]) -> DynamicStoreRecord {
 pub fn pr_to_bytes(pr: &PropertyRecord) -> [u8; 42] {
     let mut bytes: [u8; 42] = [0; 42];
     if pr.in_use {
-        bytes[0] = bytes[0] | 0b0000_0001;
+        bytes[0] |= 0b0000_0001;
     }
     if pr.full_inlined {
-        bytes[0] = bytes[0] | 0b0000_0010;
+        bytes[0] |= 0b0000_0010;
     }
     if pr.key_inlined {
-        bytes[0] = bytes[0] | 0b0000_0100;
+        bytes[0] |= 0b0000_0100;
     }
     if pr.has_next {
-        bytes[0] = bytes[0] | 0b0000_1000;
+        bytes[0] |= 0b0000_1000;
     }
     bytes[1] = pr.prop_type;
     bytes[2..10].copy_from_slice(&u64_to_bytes(pr.key_id));

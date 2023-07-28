@@ -76,35 +76,30 @@ async fn handle_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMe
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
     let mut msg_fut = ws_receiver.next();
-    loop {
-        match msg_fut.await {
-            Some(msg) => {
-                let msg = msg.map_err(ServerError::Websocket)?;
-                if msg.is_binary() {
-                    let open_cypher_prefix = "!application/openCypher".as_bytes();
-                    let data = msg.into_data();
-                    if data.len() > open_cypher_prefix.len() &&  &data[..open_cypher_prefix.len()] == open_cypher_prefix {
-                        let doc = Document::from_reader(&data[open_cypher_prefix.len()..]).map_err(|err| ServerError::Parsing(err.to_string()))?;
-                        debug!("incoming message {}", doc.to_string());
-                        let (tx, rx) = oneshot::channel();
-                        msg_tx.send((doc, tx)).map_err(|_| ServerError::Concurrency)?;
-                        let cypher_reply = rx.await.map_err(|_| ServerError::Concurrency)?;
-                        let mut response_data = Vec::new();
-                        cypher_reply.map_err(ServerError::CypherTx)?.to_writer(&mut response_data).map_err(|err| ServerError::Parsing(err.to_string()))?;
-                        let response = Message::Binary(response_data);
-                        ws_sender.send(response).await.map_err(ServerError::Websocket)?;
-                    } else {
-                        return Err(ServerError::Header);
-                    }
+        while let Some(msg) = msg_fut.await {
+            let msg = msg.map_err(ServerError::Websocket)?;
+            if msg.is_binary() {
+                let open_cypher_prefix = "!application/openCypher".as_bytes();
+                let data = msg.into_data();
+                if data.len() > open_cypher_prefix.len() &&  &data[..open_cypher_prefix.len()] == open_cypher_prefix {
+                    let doc = Document::from_reader(&data[open_cypher_prefix.len()..]).map_err(|err| ServerError::Parsing(err.to_string()))?;
+                    debug!("incoming message {}", doc.to_string());
+                    let (tx, rx) = oneshot::channel();
+                    msg_tx.send((doc, tx)).map_err(|_| ServerError::Concurrency)?;
+                    let cypher_reply = rx.await.map_err(|_| ServerError::Concurrency)?;
+                    let mut response_data = Vec::new();
+                    cypher_reply.map_err(ServerError::CypherTx)?.to_writer(&mut response_data).map_err(|err| ServerError::Parsing(err.to_string()))?;
+                    let response = Message::Binary(response_data);
+                    ws_sender.send(response).await.map_err(ServerError::Websocket)?;
+                } else {
+                    return Err(ServerError::Header);
                 }
-                else if msg.is_close() {
-                    break;
-                }
-                msg_fut = ws_receiver.next(); // Receive next WebSocket message.
             }
-            None => break, // WebSocket stream terminated.
+            else if msg.is_close() {
+                break;
+            }
+            msg_fut = ws_receiver.next(); // Receive next WebSocket message.
         }
-    }
 
     Ok(())
 }

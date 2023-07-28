@@ -156,7 +156,7 @@ impl BTreeNodeStore {
     }
 
     pub fn get_node_clone(&self, node_id: &NodeId) -> Option<BTreeNode> {
-        self.nodes_pool.get_ref(node_id).map(|nr| nr.clone())
+        self.nodes_pool.get_ref(node_id).cloned()
     }
 
     pub fn is_root_node(&self, node_id: &NodeId) -> bool {
@@ -355,7 +355,7 @@ impl BTreeNodeStore {
         }
     }
 
-    fn update_cell_data_ptrs(&mut self, root_node_record_id: &NodeId, new_cell_id: usize, data_ptrs: &Vec<NodeId>, start_index: usize, is_append_only: bool) -> Option<()> {
+    fn update_cell_data_ptrs(&mut self, root_node_record_id: &NodeId, new_cell_id: usize, data_ptrs: &[NodeId], start_index: usize, is_append_only: bool) -> Option<()> {
         let root_cell_record = &self.records_pool.load_node_cell_record_clone(root_node_record_id, new_cell_id)?;
         let overflow_cell_records = if is_append_only {
             vec![self.load_overflow_cell_records_tail(root_cell_record)?]
@@ -609,7 +609,7 @@ impl BTreeNodePool {
     }
     
     fn get_clone(&mut self, id: &u64) -> Option<BTreeNode> {
-        self.nodes_map.get(id).and_then(|pos| self.nodes.get(*pos).map(|n| n.clone()))
+        self.nodes_map.get(id).and_then(|pos| self.nodes.get(*pos).cloned())
     }
 
     pub fn clear(&mut self) {

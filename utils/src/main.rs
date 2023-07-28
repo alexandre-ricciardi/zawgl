@@ -50,7 +50,7 @@ fn main() {
                 print!("{}__{:?} ", p.get_name(), p.get_value());
             }
             print!("\"]");
-            println!("");
+            println!();
         }
     }
     for e in full_graph.get_edges_with_relationships() {

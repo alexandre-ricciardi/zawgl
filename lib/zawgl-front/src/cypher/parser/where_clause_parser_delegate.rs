@@ -177,7 +177,7 @@ fn parse_boolean_expression(parser: &mut Parser) -> ParserResult<Box<AstTagNode>
             parser.advance();
             let expr = parse_boolean_expression(parser)?;
             parser.require(TokenType::CloseParenthesis)?;
-            return parse_boolean_operator(parser, expr)
+            parse_boolean_operator(parser, expr)
         },
         _ => {
             Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))

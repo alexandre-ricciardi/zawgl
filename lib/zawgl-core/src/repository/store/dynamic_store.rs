@@ -80,7 +80,7 @@ impl DynamicStore {
         let str_end = it.position(|&c| c == b'\0').unwrap_or(load.len());
         let mut result = Vec::new();
         result.extend_from_slice(&load[0..str_end]);
-        Some(String::from_utf8(result).ok()?)
+        String::from_utf8(result).ok()
     }
 
     pub fn load(&mut self, dr_id: u64) -> Option<DynamicStoreRecord> {

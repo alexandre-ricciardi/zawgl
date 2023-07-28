@@ -101,7 +101,7 @@ struct CypherAstVisitor {
 impl CypherAstVisitor {
     fn new(params: Option<Parameters>) -> Self {
         CypherAstVisitor { request: None, state: vec![VisitorState::Init],
-            id_type: None, path_builders: Vec::new(), params: params, current_identifier: None, item_prop_path: Vec::new()}
+            id_type: None, path_builders: Vec::new(), params, current_identifier: None, item_prop_path: Vec::new()}
     }
 }
 

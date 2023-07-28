@@ -58,7 +58,7 @@ impl <S, NS, AC> RunnableFSM<S> for  FSM<S, NS, AC> where S: PartialEq + Copy + 
         if (self.accepting_states)(current_state) {
             return Some((position + 1, current_state));
         }
-        return None;
+        None
     }
 }
 

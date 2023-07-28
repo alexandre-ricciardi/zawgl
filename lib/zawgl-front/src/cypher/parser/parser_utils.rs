@@ -20,7 +20,7 @@
 
 use super::*;
 
-pub fn print_node(node: &Box<dyn Ast>, tokens: &Vec<Token>, depth: i32) {
+pub fn print_node(node: &Box<dyn Ast>, _tokens: &Vec<Token>, depth: i32) {
     let mut ws = 0;
     while ws < depth {
         print!(" ");
@@ -29,6 +29,6 @@ pub fn print_node(node: &Box<dyn Ast>, tokens: &Vec<Token>, depth: i32) {
     println!("|_>{}", node);
     
     for child in node.get_childs() {
-        print_node(&child, tokens, depth + 1);
+        print_node(child, _tokens, depth + 1);
     }
 }

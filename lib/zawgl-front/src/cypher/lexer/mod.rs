@@ -94,7 +94,7 @@ impl <'a> Lexer<'a> {
                             (TokenType::GreaterThan, ">"), (TokenType::GreaterThanOrEqual, ">="),
                             (TokenType::As, "as"),
                             (TokenType::LessThan, "<"), (TokenType::LessThanOrEqual, "<=")],
-            input: input, position: 0, lookahead: 0}
+            input, position: 0, lookahead: 0}
     }
     pub  fn  next_token(&mut self) -> LexerResult<Token<'a>> {
         
@@ -109,7 +109,7 @@ impl <'a> Lexer<'a> {
             }
             if c.is_numeric() {
                 let mut number_fsm = fsm::number_fsm::make_number_fsm();
-                return match number_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
+                return match number_fsm.run(self.input.get(self.position..self.input.len()).unwrap()) {
                     Some(numlen) =>{
                         self.lookahead = numlen.0;
                         match numlen.1 {
@@ -132,7 +132,7 @@ impl <'a> Lexer<'a> {
                 }
             }
             let mut string_fsm = fsm::string_fsm::make_string_fsm();
-            match string_fsm.run(&self.input.get(self.position..self.input.len()).unwrap()) {
+            match string_fsm.run(self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(string_len) => {
                     self.lookahead = string_len.0;
                     return make_token(TokenType::StringType, self.position, self.position + string_len.0, self.input).ok_or(LexerError::NotFound);
@@ -154,7 +154,7 @@ impl <'a> Lexer<'a> {
             return match identifier_fsm.run(self.input.get(self.position..self.input.len()).unwrap()) {
                 Some(idlen) => {
                     self.lookahead = idlen.0;
-                    return make_token(TokenType::Identifier, self.position, self.position + idlen.0, &self.input).ok_or(LexerError::NotFound)
+                    return make_token(TokenType::Identifier, self.position, self.position + idlen.0, self.input).ok_or(LexerError::NotFound)
                 } ,
 
                 None => Err(LexerError::WrongIdentifierFormat(self.position)),

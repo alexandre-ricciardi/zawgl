@@ -29,7 +29,7 @@ use std::collections::hash_map::Entry;
 use super::super::graph::traits::*;
 
 fn parse_labels(labels: &str) -> Option<Vec<String>> {
-    Some(labels.split(":").map(String::from).collect())
+    Some(labels.split(':').map(String::from).collect())
 }
 
 /// A graph repository enabling to store a directed property graph on the disk 
@@ -231,7 +231,7 @@ impl GraphRepository {
         let mut res = pgraph.clone();
         let mut map_nodes = HashMap::new();
         let mut node_records = Vec::new();
-        for (node_index, node) in res.get_nodes_mut().into_iter().enumerate() {
+        for (node_index, node) in res.get_nodes_mut().iter_mut().enumerate() {
             let cnode = self.create_node(node)?;
             map_nodes.insert(node_index, cnode.get_id()?);
             node_records.push(cnode);
@@ -239,7 +239,7 @@ impl GraphRepository {
 
         let mut map_rel = HashMap::new();
         let mut rel_records = Vec::new();
-        for (rel_index, edge) in res.get_edges_mut().into_iter().enumerate() {
+        for (rel_index, edge) in res.get_edges_mut().iter_mut().enumerate() {
             let crel = self.create_relationship(&edge.relationship, 
                 *map_nodes.get(&edge.source.get_index())?,
                 *map_nodes.get(&edge.target.get_index())?)?;
@@ -247,11 +247,11 @@ impl GraphRepository {
             rel_records.push(crel);
         }
         
-        for (n_index, n) in res.get_nodes_mut().into_iter().enumerate() {
+        for (n_index, n) in res.get_nodes_mut().iter_mut().enumerate() {
             n.set_id(Some(map_nodes[&n_index]));
         }
 
-        for (r_index, r)  in res.get_relationships_mut().into_iter().enumerate() {
+        for (r_index, r)  in res.get_relationships_mut().iter_mut().enumerate() {
             r.set_id(Some(map_rel[&r_index]));
         }
 

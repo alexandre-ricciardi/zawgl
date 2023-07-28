@@ -107,7 +107,7 @@ impl PropertiesRespository {
         Some(())
     }
 
-    pub fn create_list(&mut self, props: &mut Vec<Property>) -> Option<u64> {
+    pub fn create_list(&mut self, props: &mut [Property]) -> Option<u64> {
         let mut vec_records = Vec::new();
         for prop in props.iter() {
             let prop_record =  make_full_inlined_record(prop)

@@ -116,7 +116,7 @@ impl Clone for WhereClause {
 
 impl WhereClause {
     pub fn new(ast: Box<dyn Ast>, params: Option<Parameters>) -> Self {
-        WhereClause{expressions: ast, params: params}
+        WhereClause{expressions: ast, params}
     }
 }
 
@@ -141,5 +141,11 @@ pub struct Request {
 impl Request {
     pub fn new() -> Self {
         Request {steps: Vec::new(), return_clause: None}
+    }
+}
+
+impl Default for Request {
+    fn default() -> Self {
+        Self::new()
     }
 }

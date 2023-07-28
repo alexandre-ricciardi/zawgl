@@ -76,7 +76,7 @@ pub struct Token<'a> {
 
 impl <'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.content.to_string())
+        f.write_str(self.content)
     }
 }
 

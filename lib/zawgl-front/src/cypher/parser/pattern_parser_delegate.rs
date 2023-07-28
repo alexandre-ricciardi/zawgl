@@ -75,10 +75,7 @@ impl RelationshipFsm {
         }
     }
     fn has_invalid_state(&self) -> bool {
-        match self.state {
-            RelationshipState::Invalid => true,
-            _ => false
-        }
+        matches!(self.state, RelationshipState::Invalid)
     }
     fn convert_to_ast_tag(&self) -> Option<AstTag> {
         match self.state {
@@ -102,13 +99,13 @@ fn enter_identifier(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> P
     
 }
 
-fn enter_labels(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+fn enter_labels(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
     if parser.check(TokenType::Identifier) {
         let mut label_tag = Box::new(AstTagNode::new_tag(AstTag::Label));
         enter_identifier(parser, &mut label_tag)?;
         if parser.current_token_type_advance(TokenType::Colon) {
             parent_node.append(label_tag);
-            return enter_labels(parser, &mut parent_node);
+            return enter_labels(parser, parent_node);
         } else {
             parent_node.append(label_tag);
             return Ok(());
@@ -135,7 +132,7 @@ fn enter_node_def(parser: &mut Parser, mut parent_node: &mut Box<AstTagNode>) ->
     parent_node.append(node);
 
 
-    enter_rel_def(parser, &mut parent_node)?;
+    enter_rel_def(parser, parent_node)?;
     
     Ok(())
 }

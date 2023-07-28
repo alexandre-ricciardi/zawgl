@@ -41,7 +41,7 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
     }, rx_run);
 
     let error_cb = || async {
-        assert!(false, "error server");
+        panic!("error server");
     };
     let server_address = format!("ws://localhost:{}", port);
     

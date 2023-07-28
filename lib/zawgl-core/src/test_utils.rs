@@ -27,12 +27,11 @@ const UNIX_SEPARATOR: &str = "/";
 const WIN_SEPARATOR: &str = "\\";
 
 pub fn get_tmp_dir_path(dir_name: &str) -> String {
-    let dir = if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+    if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         format!("{}/{}", UNIX_TEST_DIR, dir_name)
     } else {
         format!("{}\\{}", WIN_TEST_DIR, dir_name)
-    };
-    dir
+    }
 }
 
 
@@ -61,7 +60,7 @@ pub fn build_file_path_and_rm_old(dir_name: &str, file_name: &str) -> std::io::R
     };
     let path = Path::new(&file);
     if path.exists() {
-        std::fs::remove_file(&path)?;
+        std::fs::remove_file(path)?;
     }
     Ok(file)
 }

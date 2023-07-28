@@ -105,14 +105,14 @@ impl BTreeIndex {
         
         if self.node_store.is_root_node(node_id) {
             self.node_store.set_is_root(node_id, false);
-            self.node_store.save(&node_id)?;
+            self.node_store.save(node_id)?;
             middle_key.set_node_ptr(new.get_id());
             let mut new_root = BTreeNode::new(false, true, vec![middle_key]);
             new_root.set_node_ptr(Some(*node_id));
             self.node_store.create(&mut new_root)?;
             None
         } else {
-            self.node_store.save(&node_id)?;
+            self.node_store.save(node_id)?;
             Some(new)
         }
     }
@@ -147,7 +147,7 @@ impl BTreeIndex {
             self.node_store.create(&mut new_root)?;
             None
         } else {
-            self.node_store.save(&node_id)?;
+            self.node_store.save(node_id)?;
             Some(new)
         }
     }
@@ -185,8 +185,7 @@ impl BTreeIndex {
                 } else {
                     let node_ptr = {
                         let node = self.node_store.get_node_ref(node_id)?;
-                        let node_ptr = get_node_ptr(not_found, node)?;
-                        node_ptr
+                        get_node_ptr(not_found, node)?
                     };
                     self.node_store.retrieve_node(&node_ptr)?;
                     let split_node = self.insert_or_update_key_ptrs(value, data_ptr, &node_ptr)?;
