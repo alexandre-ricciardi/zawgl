@@ -47,7 +47,8 @@ struct VecIterator<T> {
 
 impl <T> VecIterator<T> {
     fn new(v: Vec<T>) -> Self {
-        VecIterator { index: 0, end: false, vector: v }
+        let end = v.is_empty();
+        VecIterator { index: 0, end, vector: v }
     }
 
     fn end(&self) -> bool {
@@ -62,10 +63,6 @@ impl <T> VecIterator<T> {
         &self.vector[self.index]
     }
 
-    fn value_at(&self, index: usize) -> &T {
-        &self.vector[index]
-    }
-
     fn set_index(&mut self, index: usize) {
         if index < self.vector.len() {
             self.index = index;
@@ -76,7 +73,7 @@ impl <T> VecIterator<T> {
     }
 
     fn reset(&mut self) {
-        self.end = false;
+        self.end = self.vector.is_empty();
         self.index = 0;
     }
 
@@ -147,7 +144,7 @@ impl <'g0, VCOMP, ECOMP, CALLBACK> Matcher <'g0, VCOMP, ECOMP, CALLBACK>
                     },
                     IterationStates::Graph1Loop => {
                         let mut backtrack = true;
-                        while !index1.end() {
+                        while !index1.end() && !index0.end() {
                             if self.state.possible_candidate_1(index1.value()) && self.state.feasible(index0.value(), index1.value(), graph_1)? {
                                 match_continuation.push((index0.index(), index1.index()));
                                 self.state.push(index0.value(), index1.value(), graph_1);

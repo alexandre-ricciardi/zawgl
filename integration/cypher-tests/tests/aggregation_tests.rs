@@ -52,7 +52,7 @@ async fn _test_aggregation(mut client: Client) {
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_aggregation_issue() {
-    run_test("test_aggregation_issue", 11182, _test_aggregation_issue).await;
+    run_test("test_aggregation_issue", 11183, _test_aggregation_issue).await;
 }
 
 async fn _test_aggregation_issue(mut client: Client) {
@@ -69,6 +69,35 @@ async fn _test_aggregation_issue(mut client: Client) {
             let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 return s, t", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
+        }
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_aggregation_match_issue() {
+    run_test("test_aggregation_match_issue", 11184, _test_aggregation_match_issue).await;
+}
+
+async fn _test_aggregation_match_issue(mut client: Client) {
+    let result1 = client.execute_cypher_request("create (test:Person) return test").await;
+    let result2 = client.execute_cypher_request("create (test:Person) return test").await;
+    if let (Ok(d1), Ok(d2))  = (result1, result2) {
+        let id1 = extract_node_id(d1).expect("node id");
+        let id2 = extract_node_id(d2).expect("node id");
+        for i in 0..100 {
+            for _ in 0..10 {
+                let r = client.execute_cypher_request("create (test:Person) return test").await;
+                let res = r.expect("new person");
+
+            }
+            let mut p = Parameters::new();
+            p.insert("pid1".to_string(), Value::Integer(id1));
+            p.insert("pid2".to_string(), Value::Integer(id2));
+            let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 return s", p).await;
+            let res = result.expect("new person");
+            println!("{}", res.to_string());
+            let id = extract_node_id(res).expect("node id");
+            assert_eq!(id, id1)
         }
     }
 }

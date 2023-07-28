@@ -53,6 +53,7 @@ pub fn make_cartesian_product<T>(pools: &[Vec<T>]) -> Vec<Vec<&T>> {
 
 pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Option<Vec<PropertyGraph>> {
     let mut results = Vec::<Vec<PropertyGraph>>::new();
+    let mut first_step = true;
     for step in steps {
         match step.step_type {
             StepType::MATCH => {
@@ -80,7 +81,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                 }
             },
             StepType::CREATE => {
-                if results.is_empty() {
+                if results.is_empty() && first_step {
                     let created = graph_engine.match_patterns_and_create(&step.patterns);
                     if let Some(created_graphs) = created {
                         results = created_graphs;
@@ -116,6 +117,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                 }
             },
         }
+        first_step = false;
     }
     let mut result = Vec::new();
     for res in &mut results {
