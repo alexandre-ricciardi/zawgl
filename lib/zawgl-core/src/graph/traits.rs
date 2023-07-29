@@ -38,7 +38,7 @@ pub trait GraphContainerTrait<NID: MemGraphId, EID: MemGraphId, NODE, RELATIONSH
     fn get_relationship_ref(&self, id: &EID) -> &RELATIONSHIP;
 }
 
-pub trait GrowableGraphTrait<NodeId: MemGraphId, EdgeId: MemGraphId, > {
+pub trait GrowableGraphTrait<NodeId, EdgeId> {
     fn get_source_index(&self, edge_index: &EdgeId) -> NodeId;
     fn get_target_index(&self, edge_index: &EdgeId) -> NodeId;
     fn nodes_len(&self) -> usize;
@@ -48,7 +48,7 @@ pub trait GrowableGraphTrait<NodeId: MemGraphId, EdgeId: MemGraphId, > {
 
 
 
-pub trait GrowableGraphContainerTrait<NID: MemGraphId, EID: MemGraphId, NODE, RELATIONSHIP>: GrowableGraphTrait<NID, EID> {
+pub trait GrowableGraphContainerTrait<NID, EID, NODE, RELATIONSHIP>: GrowableGraphTrait<NID, EID> {
     fn get_node_ref(&mut self, id: &NID) -> Option<&NODE>;
     fn get_relationship_ref(&mut self, id: &EID) -> Option<&RELATIONSHIP>;
 }

@@ -21,7 +21,7 @@
 use std::collections::HashMap;
 use super::super::super::graph::traits::*;
 
-pub struct BaseState<NID0: MemGraphId, NID1: MemGraphId> where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+pub struct BaseState<NID0, NID1> where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     pub term_in_count: usize,
     pub term_out_count: usize,
     pub term_both_count: usize,
@@ -31,7 +31,7 @@ pub struct BaseState<NID0: MemGraphId, NID1: MemGraphId> where NID0: std::hash::
     pub out_map: HashMap<NID0, usize>,
 }
 
-impl <NID0: MemGraphId, NID1: MemGraphId> BaseState<NID0, NID1> where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+impl <NID0, NID1> BaseState<NID0, NID1> where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     
     pub fn new() -> Self {
         BaseState {

@@ -28,7 +28,7 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Copy, Clone, Debug)]
 pub struct ProxyNodeId {
-    pub mem_id: usize,
+    pub mem_id: Option<usize>,
     pub store_id: u64,
 }
 
@@ -44,22 +44,19 @@ impl Hash for ProxyNodeId {
     }
 }
 
-impl MemGraphId for ProxyNodeId {
-    fn get_index(&self) -> usize {
-        self.mem_id
-    }
-}
-
 impl ProxyNodeId {
 
     fn new_db(db_id: u64) -> Self {
-        ProxyNodeId{mem_id: 0, store_id: db_id}
+        ProxyNodeId{mem_id: None, store_id: db_id}
     }
     fn new(mem_id: usize, db_id: u64) -> Self {
-        ProxyNodeId{mem_id, store_id: db_id}
+        ProxyNodeId{mem_id: Some(mem_id), store_id: db_id}
     }
     fn get_store_id(&self) -> u64 {
         self.store_id
+    }
+    fn get_index(&self) -> Option<usize> {
+        self.mem_id
     }
 }
 
@@ -88,13 +85,13 @@ impl ProxyRelationshipId {
 }
 
 #[derive(Copy, Clone)]
-pub struct InnerVertexData<EID: MemGraphId> {
+pub struct InnerVertexData<EID> {
     first_outbound_edge: Option<EID>,
     first_inbound_edge: Option<EID>,
 }
 
 #[derive(Clone)]
-pub struct InnerEdgeData<NID: MemGraphId, EID: MemGraphId> {
+pub struct InnerEdgeData<NID, EID> {
     pub source: NID,
     pub target: NID,
     pub next_outbound_edge: Option<EID>,
@@ -152,8 +149,8 @@ impl <'a> GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Re
             let mut res = 0;
             if let Some(ndata) = ondata {
                 vertex_exists = true;
-                if ndata.0.get_index() < self.nodes.len() {
-                    res = ndata.0.get_index();
+                if ndata.0.get_index()? < self.nodes.len() {
+                    res = ndata.0.get_index()?;
                     if self.nodes[res].get_id().is_some() {
                         retrieve = false;
                     }
@@ -163,7 +160,7 @@ impl <'a> GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Re
                 let rnode = self.repository.retrieve_node_by_id(id.get_store_id())?;
                 let pid = self.add_node(&rnode, !vertex_exists)?;
                 self.map_vertices.insert(pid.get_store_id(), (pid, rnode.1));
-                res = pid.get_index();
+                res = pid.get_index()?;
             }
             res
         };
@@ -246,7 +243,7 @@ fn add_vertex(vertices: &mut Vec<InnerVertexData<ProxyRelationshipId>>, db_id: u
 fn get_or_retrieve_vertex_data(proxy: &mut GraphProxy, id: u64) -> Option<(ProxyNodeId, InnerVertexData<ProxyRelationshipId>)> {
     let ovdata = proxy.map_vertices.get(&id).copied();
     if let Some(vdata) = ovdata {
-        proxy.vertices.get(vdata.0.get_index()).map(|v| (vdata.0, *v))
+        proxy.vertices.get(vdata.0.get_index()?).map(|v| (vdata.0, *v))
     } else {
         let vdata = proxy.repository.retrieve_vertex_data_by_id(id)?;
         let pid = add_vertex(&mut proxy.vertices, id, vdata);
@@ -267,13 +264,13 @@ fn add_edge(proxy: &mut GraphProxy, db_edge_data: &DbEdgeData, rel_db_id: u64) -
     }
     let pid = ProxyRelationshipId::new(index, rel_db_id);
     {
-        let ms = &mut proxy.vertices[source_data.0.get_index()];
+        let ms = &mut proxy.vertices[source_data.0.get_index()?];
         if ms.first_outbound_edge.is_none() {
             ms.first_outbound_edge = Some(pid);
         }
     }
     {
-        let mt = &mut proxy.vertices[target_data.0.get_index()];
+        let mt = &mut proxy.vertices[target_data.0.get_index()?];
         if mt.first_inbound_edge.is_none() {
             mt.first_inbound_edge = Some(pid);
         }
@@ -317,17 +314,17 @@ impl <'a, 'b> Iterator for OutEdges<'a, 'b> {
 impl <'a> GraphProxy<'a> {
     pub fn out_edges<'b>(&'b mut self, source: &ProxyNodeId) -> Option<OutEdges<'a, 'b>> {
         let pid = self.get_or_retrieve_vertex(source);
-        pid.map(|(id, v)| {
-            let first_outbound_edge = self.vertices[id.get_index()].first_outbound_edge;
-            OutEdges{ proxy: self, current_edge_index: first_outbound_edge }
+        pid.and_then(|(id, v)| {
+            let first_outbound_edge = self.vertices[id.get_index()?].first_outbound_edge;
+            Some(OutEdges{ proxy: self, current_edge_index: first_outbound_edge })
         })
     }
 
     pub fn in_edges<'b>(&'b mut self, target: &ProxyNodeId) -> Option<InEdges<'a, 'b>> {
         let pid = self.get_or_retrieve_vertex(target);
-        pid.map(|(id, v)| {
-            let first_inbound_edge = self.vertices[id.get_index()].first_inbound_edge;
-            InEdges{ proxy: self, current_edge_index: first_inbound_edge }
+        pid.and_then(|(id, v)| {
+            let first_inbound_edge = self.vertices[id.get_index()?].first_inbound_edge;
+            Some(InEdges{ proxy: self, current_edge_index: first_inbound_edge })
         })
     }
     pub fn in_degree(&'a mut self, node: &ProxyNodeId) -> Option<usize> {
@@ -455,10 +452,10 @@ impl <'a> GraphProxy<'a> {
             } else {
                 self.map_vertices[&id].0
             };
-        while pid.get_index() > self.nodes.len() {
+        while pid.get_index()? > self.nodes.len() {
             self.nodes.push(Node::new());
         }
-        self.nodes.insert(pid.get_index(), node.0.clone());
+        self.nodes.insert(pid.get_index()?, node.0.clone());
         Some(pid)
     }
 

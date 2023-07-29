@@ -34,13 +34,13 @@ use super::base_state::*;
 use super::super::super::graph::traits::*;
 use super::super::super::graph::*;
 
-fn inc_in<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn inc_in<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     base_state.term_in_count += 1;
     if base_state.out_map.contains_key(v0) {
         base_state.term_both_count += 1;
     }
 }
-fn inc_out<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn inc_out<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     base_state.term_out_count += 1;
     if base_state.in_map.contains_key(v0) {
         base_state.term_both_count += 1;
@@ -48,7 +48,7 @@ fn inc_out<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, 
 }
 
 
-fn inc_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn inc_term<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if !base_state.in_map.contains_key(v0) {
         base_state.in_map.insert(*v0, base_state.core_count);
         inc_in(base_state, v0);
@@ -59,19 +59,19 @@ fn inc_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0,
     }
 }
 
-fn dec_in<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn dec_in<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     base_state.term_in_count -= 1;
     if base_state.out_map.contains_key(v0) && base_state.term_both_count > 0 {
         base_state.term_both_count -= 1;
     }
 }
-fn dec_out<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn dec_out<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     base_state.term_out_count -= 1;
     if base_state.in_map.contains_key(v0) && base_state.term_both_count > 0 {
         base_state.term_both_count -= 1;
     }
 }
-fn dec_in_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn dec_in_term<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if let Some(in_count) = base_state.in_map.get(v0) {
         if *in_count == base_state.core_count {
             base_state.in_map.remove(v0);
@@ -80,7 +80,7 @@ fn dec_in_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NI
     }
 }
 
-fn dec_out_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn dec_out_term<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, v0: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if let Some(out_count) = base_state.out_map.get(v0) {
         if *out_count == base_state.core_count {
             base_state.out_map.remove(v0);
@@ -89,21 +89,21 @@ fn dec_out_term<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<N
     }
 }
 
-fn inc_source<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, ancestor: NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn inc_source<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, ancestor: NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if let Entry::Vacant(e) = base_state.in_map.entry(ancestor) {
         e.insert(base_state.core_count);
         inc_in(base_state, &ancestor);
     }
 }
 
-fn inc_target<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, successor: NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn inc_target<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, successor: NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if let Entry::Vacant(e) = base_state.out_map.entry(successor) {
         e.insert(base_state.core_count);
         inc_out(base_state, &successor);
     }
 }
 
-fn dec_source<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, source: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn dec_source<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, source: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if let Some(in_count) = base_state.in_map.get(source) {
         if *in_count == base_state.core_count {
             base_state.in_map.remove(source);
@@ -112,7 +112,7 @@ fn dec_source<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID
     }
 }
 
-fn dec_target<NID0: MemGraphId, NID1: MemGraphId>(base_state: &mut BaseState<NID0, NID1>, target: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
+fn dec_target<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, target: &NID0)  where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     if let Some(out_count) = base_state.out_map.get(target) {
         if *out_count == base_state.core_count {
             base_state.out_map.remove(target);
