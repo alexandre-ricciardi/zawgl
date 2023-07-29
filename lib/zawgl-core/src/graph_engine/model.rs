@@ -426,13 +426,11 @@ impl <'a> GraphProxy<'a> {
 
     fn add_node(&mut self, node: &(Node, DbVertexData), retrieve_vertex: bool) -> Option<ProxyNodeId> {
         let id = node.0.get_id()?;
-        let pid = {
-            if retrieve_vertex {
+        let pid =  if retrieve_vertex {
                 self.add_vertex(id, node.1).0
             } else {
                 self.map_vertices[&id].0
-            }
-        };
+            };
         while pid.get_index() > self.nodes.len() {
             self.nodes.push(Node::new());
         }
@@ -442,13 +440,11 @@ impl <'a> GraphProxy<'a> {
 
     fn add_relationship(&mut self, rel: &Relationship, retrieve_edge: bool) -> Option<ProxyRelationshipId> {
         let id = rel.get_id()?;
-        let pid = {
-            if retrieve_edge {
+        let pid = if retrieve_edge {
                 self.add_edge(id)?
             } else {
                 self.map_edges[&id].0
-            }
-        };
+            };
         while pid.get_index() > self.relationships.len() {
             self.relationships.push(Relationship::new());
         }
@@ -471,7 +467,60 @@ impl <'a> GraphProxy<'a> {
 
 #[cfg(test)]
 mod test_cache_model {
+    use super::*;
+    use crate::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
+
+    fn create_stored_graph(gr: &mut GraphRepository) {
+        for i in 0..10 {
+            let node = create_node();
+            gr.create_node(&node);
+        }
+        let ids = gr.get_node_ids().clone().expect("node ids");
+        let mut source = ids[0];
+        for id in &ids[1..] {
+            let rel = create_relationship();
+            gr.create_relationship(&rel, source, *id);
+            source = *id;
+        }
+    }
+
+    fn create_node() -> Node {
+        let mut node = Node::new();
+        node.set_labels(vec!["Person".to_string()]);
+        node
+    }
+
+    fn create_relationship() -> Relationship {
+        let mut rel = Relationship::new();
+        rel.set_labels(vec!["IsFriendOf".to_string()]);
+        rel
+    }
+
+    fn create_pattern() -> PropertyGraph {
+        let mut pattern = PropertyGraph::new();
+        let n0 = pattern.add_node(create_node());
+        let n1 = pattern.add_node(create_node());
+        let n2 = pattern.add_node(create_node());
+        pattern.add_relationship(create_relationship(), n0, n1);
+        pattern.add_relationship(create_relationship(), n1, n2);
+        pattern
+    }
+    #[test]
     fn test_add_prop_graphs() {
+        let db_dir = build_dir_path_and_rm_old("graph_proxy_test").expect("error");
+        let ctx = InitContext::new(&db_dir).expect("error");
+        let mut gr = GraphRepository::new(ctx);
+        create_stored_graph(&mut gr);
+        let pattern = create_pattern();
+        let ids = gr.get_node_ids().clone().expect("ids");
+        let mut gp = GraphProxy::new(&mut gr, &pattern).expect("proxy");
+        for id in ids {
+            let pid = ProxyNodeId::new_db(id);
+            for (rel_id, target_id, rel) in gp.out_edges(&pid) {
+                println!("{target_id:?}")
+            }
+        }
+        
     }
 
 }
