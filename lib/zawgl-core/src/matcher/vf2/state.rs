@@ -160,38 +160,40 @@ pub fn pop_state_0(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &P
 }
 
 
-pub fn push_state_1(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: & mut GraphProxy, v0: &ProxyNodeId, v1: &NodeIndex) {  
+pub fn push_state_1(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: & mut GraphProxy, v0: &ProxyNodeId, v1: &NodeIndex) -> Option<()> {  
     base_state.core_count += 1;
     base_state.core_map.insert(*v0, *v1);
     inc_term(base_state, v0);
-    for (_edge_index, ancestor, _rel) in graph.in_edges(v0) {
+    for (_edge_index, ancestor, _rel) in graph.in_edges(v0)? {
         inc_source(base_state, ancestor);
     }
-    for (_edge_index, successor, _rel) in graph.out_edges(v0) {
+    for (_edge_index, successor, _rel) in graph.out_edges(v0)? {
         inc_target(base_state, successor);
     }
+    Some(())
 }
 
-pub fn pop_state_1(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: &mut GraphProxy, v0: &ProxyNodeId) {  
+pub fn pop_state_1(base_state: &mut BaseState<ProxyNodeId, NodeIndex>, graph: &mut GraphProxy, v0: &ProxyNodeId) -> Option<()> {  
     if base_state.core_count == 0 {
-        return;
+        return Some(());
     }
 
     dec_in_term(base_state, v0);
 
-    for (_in_edge, source, _rel) in graph.in_edges(v0) {
+    for (_in_edge, source, _rel) in graph.in_edges(v0)? {
         dec_source(base_state, &source);
     }
 
     dec_out_term(base_state, v0);
 
-    for (_out_edge, target, _rel) in graph.out_edges(v0) {
+    for (_out_edge, target, _rel) in graph.out_edges(v0)? {
         dec_target(base_state, &target);
     }
 
     base_state.core_map.remove(v0);
 
     base_state.core_count -= 1;
+    Some(())
 }
 
 pub struct State<'g0, VCOMP, ECOMP>
@@ -223,12 +225,12 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
             push_state_1(&mut self.base_state_1, graph_1, v1, v0);
         }
 
-        pub fn pop(&mut self, v0: &NodeIndex, _v1: &ProxyNodeId, graph_1: &mut GraphProxy<'_>) {
+        pub fn pop(&mut self, v0: &NodeIndex, _v1: &ProxyNodeId, graph_1: &mut GraphProxy<'_>) -> Option<()> {
             if let Some(&w) = self.base_state_0.core(v0) {
                 pop_state_0(&mut self.base_state_0, self.graph_0, v0);
                 pop_state_1(&mut self.base_state_1, graph_1, &w);
             }
-            
+            Some(())
         }
 
         pub fn feasible(&mut self, v_new: &NodeIndex, w_new: &ProxyNodeId, graph_1: &mut GraphProxy<'_>) -> Option<bool> {
@@ -269,7 +271,7 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
                 let mut rest1_count = 0;
                 {
                     let mut matched_edge_set = HashSet::new();
-                    for (edge_index, source_index, _rel) in graph_1.in_edges(w_new) {
+                    for (edge_index, source_index, _rel) in graph_1.in_edges(w_new)? {
                         if !self.inc_counters_match_edge_1(true, &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &source_index, v_new, &edge_index, 
                             &mut matched_edge_set)? {
                             return Some(false);
@@ -278,7 +280,7 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
                 }
                 {
                     let mut matched_edge_set = HashSet::new();
-                    for (edge_index, target_index, _rel) in graph_1.out_edges(w_new) {
+                    for (edge_index, target_index, _rel) in graph_1.out_edges(w_new)? {
                         if !self.inc_counters_match_edge_1(false, &mut term_in1_count, &mut term_out1_count, &mut rest1_count, w_new, &target_index, v_new, &edge_index, 
                             &mut matched_edge_set)? {
                             return Some(false);
@@ -336,7 +338,7 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
         }
 
         fn edge_exists_1(&mut self, source: &ProxyNodeId, target: &ProxyNodeId, r0: &Relationship, matched_edge_set: &mut HashSet<ProxyRelationshipId>, graph_1: &mut GraphProxy<'_>) -> Option<bool> {
-            for (out_edge_index, curr_target, r) in graph_1.out_edges(source) {
+            for (out_edge_index, curr_target, r) in graph_1.out_edges(source)? {
                 if curr_target == *target && !matched_edge_set.contains(&out_edge_index) && (self.edge_comp)(r0, &r){
                     matched_edge_set.insert(out_edge_index);
                     return Some(true);

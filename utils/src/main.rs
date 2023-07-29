@@ -78,13 +78,13 @@ fn depth_first_search(graph: &mut GraphProxy) {
 fn iterate_adjacent_nodes(labeled: &mut HashSet<ProxyNodeId>, graph: &mut GraphProxy, id: &ProxyNodeId) {
     labeled.insert(*id);
     println!("{:?}", graph.get_node_ref(id));
-    for (_e_in, in_v, rel) in graph.in_edges(id) {
+    for (_e_in, in_v, rel) in graph.in_edges(id).unwrap() {
         println!("{:?}", rel);
         if !labeled.contains(&in_v) {
             //iterate_adjacent_nodes(labeled, graph, &in_v);
         }
     }
-    for (_e_in, out_v, rel) in graph.out_edges(id) {
+    for (_e_in, out_v, rel) in graph.out_edges(id).unwrap() {
         println!("{:?}", rel);
         if !labeled.contains(&out_v) {
             //iterate_adjacent_nodes(labeled, graph, &out_v);

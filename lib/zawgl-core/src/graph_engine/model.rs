@@ -22,6 +22,7 @@ use super::super::model::*;
 use super::super::graph::traits::*;
 use super::super::repository::graph_repository::*;
 
+use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
 use std::collections::{HashMap, HashSet};
 
@@ -314,22 +315,26 @@ impl <'a, 'b> Iterator for OutEdges<'a, 'b> {
 }
 
 impl <'a> GraphProxy<'a> {
-    pub fn out_edges<'b>(&'b mut self, source: &ProxyNodeId) -> OutEdges<'a, 'b> {
-        let pid = &self.map_vertices[&source.get_store_id()];
-        let first_outbound_edge = self.vertices[pid.0.get_index()].first_outbound_edge;
-        OutEdges{ proxy: self, current_edge_index: first_outbound_edge }
+    pub fn out_edges<'b>(&'b mut self, source: &ProxyNodeId) -> Option<OutEdges<'a, 'b>> {
+        let pid = self.get_or_retrieve_vertex(source);
+        pid.map(|(id, v)| {
+            let first_outbound_edge = self.vertices[id.get_index()].first_outbound_edge;
+            OutEdges{ proxy: self, current_edge_index: first_outbound_edge }
+        })
     }
 
-    pub fn in_edges<'b>(&'b mut self, target: &ProxyNodeId) -> InEdges<'a, 'b> {
-        let pid = &self.map_vertices[&target.get_store_id()];
-        let first_inbound_edge = self.vertices[pid.0.get_index()].first_inbound_edge;
-        InEdges{ proxy: self, current_edge_index: first_inbound_edge }
+    pub fn in_edges<'b>(&'b mut self, target: &ProxyNodeId) -> Option<InEdges<'a, 'b>> {
+        let pid = self.get_or_retrieve_vertex(target);
+        pid.map(|(id, v)| {
+            let first_inbound_edge = self.vertices[id.get_index()].first_inbound_edge;
+            InEdges{ proxy: self, current_edge_index: first_inbound_edge }
+        })
     }
-    pub fn in_degree(&'a mut self, node: &ProxyNodeId) -> usize {
-        self.in_edges(node).count()
+    pub fn in_degree(&'a mut self, node: &ProxyNodeId) -> Option<usize> {
+        self.in_edges(node).map(|edges| edges.count())
     }
-    pub fn out_degree(&'a mut self, node: &ProxyNodeId) -> usize {
-        self.out_edges(node).count()
+    pub fn out_degree(&'a mut self, node: &ProxyNodeId) -> Option<usize> {
+        self.out_edges(node).map(|edges| edges.count())
     }
 }
 
@@ -420,6 +425,25 @@ impl <'a> GraphProxy<'a> {
         add_edge(self, &db_edge_data, rel_db_id)
     }
 
+    fn get_or_retrieve_vertex(&mut self, pid: &ProxyNodeId) -> Option<(ProxyNodeId, DbVertexData)> {
+        let db_id = pid.get_store_id();
+        if let Entry::Vacant(e) = self.map_vertices.entry(db_id) {
+            let vdata = self.repository.retrieve_vertex_data_by_id(db_id); 
+            let index = self.vertices.len();           
+            let res = vdata.map(|v| (ProxyNodeId::new(index, db_id), v));
+            if let Some(v) = res {
+                let inbound = v.1.first_inbound_edge.map(ProxyRelationshipId::new_db);
+                let outbound = v.1.first_outbound_edge.map(ProxyRelationshipId::new_db);
+                let ivdata = InnerVertexData{first_outbound_edge: outbound, first_inbound_edge: inbound};
+                self.vertices.push(ivdata);
+                e.insert(v);
+            }
+            res
+        } else {
+            self.map_vertices.get(&db_id).copied()
+        }
+    }
+
     fn add_vertex(&mut self, db_id: u64, vdata: DbVertexData) -> (ProxyNodeId, InnerVertexData<ProxyRelationshipId>) {
         add_vertex(&mut self.vertices, db_id, vdata)
     }
@@ -471,7 +495,7 @@ mod test_cache_model {
     use crate::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 
     fn create_stored_graph(gr: &mut GraphRepository) {
-        for i in 0..10 {
+        for _ in 0..10 {
             let node = create_node();
             gr.create_node(&node);
         }
@@ -516,11 +540,11 @@ mod test_cache_model {
         let mut gp = GraphProxy::new(&mut gr, &pattern).expect("proxy");
         for id in ids {
             let pid = ProxyNodeId::new_db(id);
-            for (rel_id, target_id, rel) in gp.out_edges(&pid) {
-                println!("{target_id:?}")
+            for (rel_id, target_id, rel) in gp.out_edges(&pid).expect("out edges") {
+                println!("{rel_id:?} {target_id:?}")
             }
         }
-        
+
     }
 
 }

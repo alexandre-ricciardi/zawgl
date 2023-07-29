@@ -142,7 +142,7 @@ impl GraphEngine {
                 let ptarget_id = &prel.target;
                 let proxy_source_id = map0[psource_id];
                 let proxy_target_id = map0[ptarget_id];
-                for (_rel_id, target_id, rel) in proxy.out_edges(&proxy_source_id) {
+                for (_rel_id, target_id, rel) in proxy.out_edges(&proxy_source_id)? {
                     if target_id == proxy_target_id && compare_relationships(&prel.relationship, &rel) {
                         let mut rel_clone = rel.clone();
                         rel_clone.set_option_var(prel.relationship.get_var());
