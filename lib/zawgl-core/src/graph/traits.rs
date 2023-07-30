@@ -39,8 +39,8 @@ pub trait GraphContainerTrait<NID: MemGraphId, EID: MemGraphId, NODE, RELATIONSH
 }
 
 pub trait GrowableGraphTrait<NodeId, EdgeId> {
-    fn get_source_index(&self, edge_index: &EdgeId) -> NodeId;
-    fn get_target_index(&self, edge_index: &EdgeId) -> NodeId;
+    fn get_source_index(&self, edge_index: &EdgeId) -> Option<NodeId>;
+    fn get_target_index(&self, edge_index: &EdgeId) -> Option<NodeId>;
     fn nodes_len(&self) -> usize;
     fn edges_len(&self) -> usize;
     fn get_nodes_ids(&self) -> Vec<NodeId>;

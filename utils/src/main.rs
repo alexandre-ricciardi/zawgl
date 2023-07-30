@@ -54,15 +54,15 @@ fn main() {
         }
     }
     for e in full_graph.get_edges_with_relationships() {
-        println!("    {} -> {}", e.0.source.store_id, e.0.target.store_id);
+        println!("    {} -> {}", e.source.store_id, e.target.store_id);
     }
     println!("}}");
-    for e in full_graph.get_edges_with_relationships() {
-        let src = full_graph.get_node_ref(&e.0.source).expect("source").get_labels_ref().join(":");
-        let trg = full_graph.get_node_ref(&e.0.target).expect("target").get_labels_ref().join(":");
+    for e in full_graph.get_edges_with_relationships().clone() {
+        let src = full_graph.get_node_ref(&e.source).expect("source").get_labels_ref().join(":");
+        let trg = full_graph.get_node_ref(&e.target).expect("target").get_labels_ref().join(":");
         println!("    {:?}[{:?}]--{:?}[{:?}](in:{:?}, out:{:?})-->{:?}[{:?}]", 
-        e.0.source.store_id, src, e.1.get_id().unwrap(), e.1.get_labels_ref().join(":"), e.0.next_inbound_edge, e.0.next_outbound_edge,
-        e.0.target.store_id, trg);
+        e.source.store_id, src, e.relationship.as_ref().unwrap().get_id(), e.relationship.as_ref().unwrap().get_labels_ref().join(":"), e.next_inbound_edge, e.next_outbound_edge,
+        e.target.store_id, trg);
     }
 }
 
