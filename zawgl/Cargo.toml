@@ -8,10 +8,10 @@ edition = "2021"
 zawgl-core = { path = "../lib/zawgl-core" }
 zawgl-server = { path = "../lib/zawgl-server" }
 tokio-tungstenite = "*"
-tokio = { version = "1.13.0", features = ["full"] }
+tokio = { version = "1.29.1", features = ["full"] }
 tungstenite = "*"
 futures-util = "0.3.8"
-log = "0.4"
+log = "0.4.19"
 config = "0.13.2"
 serde = {version = "1.0", features = ["derive"] }
 simple_logger = "4.1.0"

@@ -19,7 +19,6 @@
 // SOFTWARE.
 
 use std::collections::HashMap;
-use super::super::super::graph::traits::*;
 
 pub struct BaseState<NID0, NID1> where NID0: std::hash::Hash + Eq + Copy, NID1: std::hash::Hash + Eq + Copy {
     pub term_in_count: usize,
