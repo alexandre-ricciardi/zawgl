@@ -10,6 +10,6 @@ license = "MIT"
 name = "zawgl_core"
 
 [dependencies]
-log = "0.4.18"
-toml = "0.7.4"
-serde = { version = "1.0.163", features = ["derive"] }
+log = "0.4.19"
+toml = "0.7.6"
+serde = { version = "1.0.177", features = ["derive"] }
