@@ -101,6 +101,17 @@ impl ReturnClause {
         }
         false
     }
+
+    pub fn contains_aggregation_function(&self) -> bool {
+        for exp in &self.expressions {
+            if let ReturnExpression::FunctionCall(func) = exp {
+                if matches!(func.name.as_str(), "sum" | "collect" | "count") {
+                    return true
+                }
+            }
+        }
+        false
+    }
 }
 
 pub struct WhereClause {

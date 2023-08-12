@@ -43,7 +43,7 @@ async fn _test_aggregation(mut client: Client) {
             println!("{}", res.to_string());
         }
     }
-    let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(t:Person) return sum(new.weight) as sum").await;
+    let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(t:Person) return test, sum(new.weight) as sum").await;
     if let Ok(d) = result {
         println!("{}", d.to_string());
     } else {
