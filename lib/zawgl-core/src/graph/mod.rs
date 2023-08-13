@@ -76,7 +76,7 @@ impl <EID: MemGraphId + Copy, N> VertexData<EID, N> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EdgeData<NID: MemGraphId, EID: MemGraphId, R: Clone> {
     pub id: EID,
     pub source: NID,
