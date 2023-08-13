@@ -22,12 +22,11 @@
 pub mod planner;
 pub mod tx_handler;
 
-use std::collections::{HashSet};
+use std::{collections::{HashMap, hash_map::Entry}, slice::Iter};
 
 use bson::{Bson, Document, doc};
 use cypher::query_engine::{process_cypher_query, CypherError};
-use planner::make_cartesian_product;
-use zawgl_core::model::{Property, PropertyValue, PropertyGraph};
+use zawgl_core::{model::{Property, PropertyValue, PropertyGraph, Relationship, Node}, graph::{EdgeData, NodeIndex, EdgeIndex}};
 use zawgl_cypher_query_model::{parameters::build_parameters, model::{Request, ReturnExpression, ValueItem}};
 use tx_handler::{handle_graph_request, request_handler::RequestHandler, handler::TxHandler, DatabaseError};
 
@@ -76,66 +75,148 @@ fn build_cypher_error(request_id: &str, err: CypherError) -> Result<Document, Cy
 fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request: &Request) -> Result<Document, CypherError> {
     let mut result_doc = Document::new();
     let mut graph_list = Vec::new();
-    for pattern in &matched_graphs {
-        let mut graph_doc = Document::new();  
-        let mut nodes_doc = Vec::new();
-        let mut rels_doc = Vec::new();
-        let mut values_doc = Vec::new();
-        if let Some(ret) = &request.return_clause {
-            let wildcard = ret.has_wildcard();
-            let mut grouping = HashSet::new();
+    
+    if let Some(ret) = &request.return_clause {
+        let wildcard = ret.has_wildcard();
+        for pattern in &matched_graphs {
+            let mut graph_doc = Document::new();  
+            let mut nodes_doc = Vec::new();
+            let mut rels_doc = Vec::new();
+            
             for ret_exp in &ret.expressions {
                 match ret_exp {
                     ReturnExpression::Item(item) => {
                         match &item.item {
-                            ValueItem::ItemPropertyName(prop_name) => {
-                                get_item_property(item.alias.as_ref(), &prop_name.item_name, &prop_name.property_name, pattern, &mut values_doc)?;
-                            },
                             ValueItem::NamedItem(named_item) => {
-                                grouping.insert(named_item);
-                                get_node_named(wildcard, item.alias.as_ref(), named_item, pattern, &mut nodes_doc)?;
-                                get_relationship_named(wildcard, item.alias.as_ref(), named_item, pattern, &mut rels_doc)?;
-                            }
+                                nodes_doc.extend(get_nodes_named(wildcard, item.alias.as_ref(), named_item, pattern)?);
+                                rels_doc.extend(get_relationships_named(wildcard, item.alias.as_ref(), named_item, pattern)?);
+                            },
+                            _ => {}
                         }
                     },
                     _ => {}
                 }
             }
+            
+            if !nodes_doc.is_empty() {
+                graph_doc.insert("nodes", nodes_doc);
+            }
+            if !rels_doc.is_empty() {
+                graph_doc.insert("relationships", rels_doc);
+            }
+            if !graph_doc.is_empty() {
+                graph_list.push(graph_doc);
+            }
+        }
+
+        let mut grouping = Vec::new();
+        for ret_exp in &ret.expressions {
+            match ret_exp {
+                ReturnExpression::Item(item) => {
+                    match &item.item {
+                        ValueItem::ItemPropertyName(prop_name) => {
+                            grouping.push(&prop_name.item_name);
+                        },
+                        ValueItem::NamedItem(named_item) => {
+                            grouping.push(named_item);
+                        }
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        let mut combinations = vec![];
+        let mut curr_items = vec![];
+        for graph in &matched_graphs {
+            build_items_combinations(grouping.iter(), &graph, &mut combinations, &mut curr_items)?;
+        }
+
+        let mut values_doc = vec![];
+        
+        let mut aggregations = HashMap::new();
+
+        for combination in &combinations {
+            let ids = combination.get_item_ids();
+            if let Entry::Vacant(e) = aggregations.entry(ids) {
+                e.insert(vec![combination]);
+            } else {
+                let idsref = combination.get_item_ids();
+                aggregations.get_mut(&idsref).unwrap().push(combination);
+            }
+        }
+
+
+
+
+        for combinations in aggregations.values() {
+            let mut row = vec![];
+            if let Some(combination) = combinations.first() {
+                let items = combination.get_items();
+                for ret_exp in &ret.expressions {
+                    match ret_exp {
+                        ReturnExpression::Item(ret_item) => {
+                            match &ret_item.item {
+                                ValueItem::ItemPropertyName(prop_name) => {
+                                    row.push(get_property_in_items(ret_item.alias.as_ref(), &prop_name.item_name, &prop_name.property_name, items)?);
+                                },
+                                ValueItem::NamedItem(named_item) => {
+                                    for item in &combination.items {
+                                        match item {
+                                            Item::Node(n) => {
+                                                if let Some(var) = n.get_var() {
+                                                    if var == named_item {
+                                                        row.push(make_node_doc(ret_item.alias.as_ref(), &named_item, n)?);
+                                                    }
+                                                }
+                                            },
+                                            Item::Relationship(rel) => {
+                                                if let Some(var) = rel.relationship.get_var() {
+                                                    if var == named_item {
+                                                        row.push(make_relationship_doc(ret_item.alias.as_ref(), &named_item, rel, combination.graph)?);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+            }
+
+            let graphs = combinations.iter().map(|c| c.graph).collect::<Vec<&PropertyGraph>>();
             for ret_exp in &ret.expressions {
                 match ret_exp {
                     ReturnExpression::FunctionCall(fun) => {
-                        let mut values = Vec::new();
-                        match fun.name.as_str() {
-                            "sum" => {
-                                let sums = compute_sum(&fun.args, pattern, &grouping);
-                                values.extend(sums);},
-                            _ => {}
-                        }
                         let ret_name = if let Some(a) = &fun.alias {
                             a.to_string()
                         } else {
                             "sum".to_string()
                         };
-                        if !values.is_empty() {
-                            values_doc.push(doc! {ret_name: values});
+                        match fun.name.as_str() {
+                            "sum" => {
+                                let sum = compute_sum(&fun.args, &graphs);
+                                row.push(doc! {ret_name: sum});
+                            },
+                            _ => {}
                         }
                     },
                     _ => {}
                 }
             }
+            values_doc.push(row);
         }
-        if !nodes_doc.is_empty() {
-            graph_doc.insert("nodes", nodes_doc);
-        }
-        if !rels_doc.is_empty() {
-            graph_doc.insert("relationships", rels_doc);
-        }
+
         if !values_doc.is_empty() {
-            graph_doc.insert("values", values_doc);
+            result_doc.insert("values", values_doc);
         }
-        graph_list.push(graph_doc);
     }
-    result_doc.insert("graphs", graph_list);
+    if !graph_list.is_empty() {
+        result_doc.insert("graphs", graph_list);
+    }
 
     let mut response_doc = Document::new();
     response_doc.insert("request_id", request_id);
@@ -143,92 +224,51 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
     Ok(response_doc)
 }
 
-fn compute_sum(args: &Vec<ValueItem>, graph: &PropertyGraph, grouping: &HashSet<&String>) -> Vec<Bson> {
-    let mut values = Vec::new();
-    let mut groups = Vec::<Vec<&PropertyValue>>::new();
-    for name in grouping {
-        let mut group = Vec::<&PropertyValue>::new();
-        for node in graph.get_nodes() {
-            if let Some(var) = node.get_var() {
-                if name == &var {
-                    for arg in args {
-                        if let ValueItem::ItemPropertyName(prop_arg) = arg {
-                            if &prop_arg.item_name == var {
-                                for prop in node.get_properties_ref() {
-                                    if prop.get_name() == prop_arg.property_name {
-                                        group.push(prop.get_value())
-                                    }
-                                }
+fn get_properties<'a: 'b, 'b>(graph: &'a PropertyGraph, group: &'b mut Vec::<&'a PropertyValue>, args: &Vec<ValueItem>) {
+    for node in graph.get_nodes() {
+        if let Some(var) = node.get_var() {
+            for arg in args {
+                if let ValueItem::ItemPropertyName(prop_arg) = arg {
+                    if &prop_arg.item_name == var {
+                        for prop in node.get_properties_ref() {
+                            if prop.get_name() == prop_arg.property_name {
+                                group.push(prop.get_value())
                             }
                         }
                     }
                 }
             }
         }
-        for rel in graph.get_relationships() {
-            if let Some(var) = rel.get_var() {
-                if name == &var {
-                    for arg in args {
-                        if let ValueItem::ItemPropertyName(prop_arg) = arg {
-                            if &prop_arg.item_name == var {
-                                for prop in rel.get_properties_ref() {
-                                    if prop.get_name() == prop_arg.property_name {
-                                        group.push(prop.get_value())
-                                    }
-                                }
+    }
+    for rel in graph.get_relationships() {
+        if let Some(var) = rel.get_var() {
+            for arg in args {
+                if let ValueItem::ItemPropertyName(prop_arg) = arg {
+                    if &prop_arg.item_name == var {
+                        for prop in rel.get_properties_ref() {
+                            if prop.get_name() == prop_arg.property_name {
+                                group.push(prop.get_value())
                             }
                         }
                     }
                 }
             }
+            
         }
-        groups.push(group);
+    }
+}
+
+fn compute_sum(args: &Vec<ValueItem>, graphs: &Vec<&PropertyGraph>) -> Bson {
+    let mut group = Vec::<&PropertyValue>::new();
+    for graph in graphs {
+        get_properties(graph, &mut group, args);
     }
 
-    let product = make_cartesian_product(&groups);
-
-    for elements in product {
-        let mut sum_value = 0.;
-        for prop in elements {
-            sum_value += get_property_sum_value(prop);
-        }
-        for node in graph.get_nodes() {
-            if let Some(var) = node.get_var() {
-                if !grouping.contains(var) {
-                    for arg in args {
-                        if let ValueItem::ItemPropertyName(prop_arg) = arg {
-                            if &prop_arg.item_name == var {
-                                for prop in node.get_properties_ref() {
-                                    if prop.get_name() == prop_arg.property_name {
-                                        sum_value += get_property_sum_value(prop.get_value());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        for rel in graph.get_relationships() {
-            if let Some(var) = rel.get_var() {
-                if !grouping.contains(var) {
-                    for arg in args {
-                        if let ValueItem::ItemPropertyName(prop_arg) = arg {
-                            if &prop_arg.item_name == var {
-                                for prop in rel.get_properties_ref() {
-                                    if prop.get_name() == prop_arg.property_name {
-                                        sum_value += get_property_sum_value(prop.get_value());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        values.push(Bson::from(sum_value));
+    let mut sum_value = 0.;
+    for prop in group {
+        sum_value += get_property_sum_value(prop);
     }
-    values
+    Bson::from(sum_value)
 }
 
 fn get_property_sum_value(prop: &PropertyValue) -> f64 {
@@ -240,85 +280,162 @@ fn get_property_sum_value(prop: &PropertyValue) -> f64 {
     }
 }
 
-fn get_item_property(alias: Option<&String>, item_name: &str, prop_name: &str, graph: &PropertyGraph, values_doc: &mut Vec<Document>) -> Result<(), CypherError> {
-    for node in graph.get_nodes() {
-        if let Some(var) = node.get_var() {
-            if var == item_name {
-                let ret_name = if let Some(a) = alias {
-                    a.to_string()
-                } else {
-                    item_name.to_string()
-                };
-                for prop in node.get_properties_ref() {
-                    if prop.get_name() == prop_name {
-                        values_doc.push(build_property_value(&ret_name, prop.get_value()));
+#[derive(Debug, Clone)]
+enum Item<'a> {
+    Node(&'a Node),
+    Relationship(&'a EdgeData<NodeIndex, EdgeIndex, Relationship>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum ItemId {
+    NodeId(u64),
+    RelationshipId(u64),
+}
+
+struct Combination<'a> {
+    graph: &'a PropertyGraph,
+    items: Vec<Item<'a>>,
+}
+
+impl<'a> Combination<'a> {
+    fn get_item_ids(&self) -> Vec<ItemId> {
+        self.items.iter().map(|item| match item {
+            Item::Node(node) => ItemId::NodeId(node.get_id().unwrap()),
+            Item::Relationship(rel) => ItemId::RelationshipId(rel.relationship.get_id().unwrap())
+        }).collect::<Vec<ItemId>>()
+    }
+    fn get_items(&self) -> &'a Vec<Item> {
+        &self.items
+    }
+}
+
+fn get_property_in_items(alias: Option<&String>, item_name: &str, prop_name: &str, items: &Vec<Item>) -> Result<Document, CypherError> {
+    for item in items {
+        match item {
+            Item::Node(node) => {
+                if let Some(var) = node.get_var() {
+                    if var == item_name {
+                        let ret_name = if let Some(a) = alias {
+                            a.to_string()
+                        } else {
+                            item_name.to_string()
+                        };
+                        for prop in node.get_properties_ref() {
+                            if prop.get_name() == prop_name {
+                                return Ok(build_property_value(&ret_name, prop.get_value()));
+                            }
+                        }
+                    }
+                }
+            },
+            Item::Relationship(rel) => {
+                if let Some(var) = rel.relationship.get_var() {
+                    if var == item_name {
+                        let ret_name = if let Some(a) = alias {
+                            a.to_string()
+                        } else {
+                            item_name.to_string()
+                        };
+                        for prop in rel.relationship.get_properties_ref() {
+                            if prop.get_name() == prop_name {
+                                return Ok(build_property_value(&ret_name, prop.get_value()));
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    for rel in graph.get_relationships_and_edges() {
-        if let Some(var) = rel.relationship.get_var() {
-            if var == item_name {
-                let ret_name = if let Some(a) = alias {
-                    a.to_string()
-                } else {
-                    item_name.to_string()
-                };
-                for prop in rel.relationship.get_properties_ref() {
-                    if prop.get_name() == prop_name {
-                        values_doc.push(build_property_value(&ret_name, prop.get_value()));
-                    }
-                }
-            }
+    Err(CypherError::ResponseError)
+}
+
+fn build_items_combinations<'a: 'b, 'b>(mut grouping: Iter<&String>, graph: &'a PropertyGraph, combinations: &mut Vec::<Combination<'b>>, curr_items: &mut Vec<Item<'a>>) -> Result<(), CypherError> {
+    if let Some(next) = grouping.next() {
+        let items = get_named_items(next, graph)?;
+        for item in items {
+            curr_items.push(item);
+            build_items_combinations(grouping.clone(), graph, combinations, curr_items)?;
         }
+    } else {
+        combinations.push(Combination { graph: graph, items: curr_items.to_vec() });
+        curr_items.clear();
     }
     Ok(())
 }
 
-fn get_node_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph, nodes_doc: &mut Vec<Document>) -> Result<(), CypherError> {
+
+fn get_named_items<'a>(name: &str, graph: &'a PropertyGraph) -> Result<Vec<Item<'a>>, CypherError> {
+    let mut res = vec![];
+    for node in graph.get_nodes() {
+        if let Some(var) = node.get_var() {
+            if var == name {
+                res.push(Item::Node(&node));
+            }
+        }
+    }
+    for rel in graph.get_relationships_and_edges() {
+        if let Some(var) = rel.relationship.get_var() {
+            if var == name {
+                res.push(Item::Relationship(&rel));
+            }
+        }
+    }
+    Ok(res)
+}
+
+fn make_node_doc(alias: Option<&String>, name: &str, node: &Node) -> Result<Document, CypherError> {
+    let ret_name = if let Some(a) = alias {
+        a.to_string()
+    } else {
+        name.to_string()
+    };
+    let node_doc = doc!{
+        "name": ret_name,
+        "id": node.get_id().ok_or(CypherError::ResponseError)? as i64,
+        "properties": build_properties(node.get_properties_ref()),
+        "labels": Bson::from(node.get_labels_ref()),
+    };
+    Ok(node_doc)
+}
+
+fn make_relationship_doc(alias: Option<&String>, name: &str, rel: &EdgeData<NodeIndex, EdgeIndex, Relationship>, graph: &PropertyGraph) -> Result<Document, CypherError> {
+    let ret_name = if let Some(a) = alias {
+        a.to_string()
+    } else {
+        name.to_string()
+    };
+    let rel_doc = doc!{
+        "name": ret_name,
+        "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
+        "source_id": graph.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64,
+        "target_id": graph.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64,
+        "properties": build_properties(rel.relationship.get_properties_ref()),
+        "labels": Bson::from(rel.relationship.get_labels_ref()),
+    };
+    Ok(rel_doc)
+}
+
+fn get_nodes_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Result<Vec<Document>, CypherError> {
+    let mut nodes_doc = vec![];
     for node in graph.get_nodes() {
         if let Some(var) = node.get_var() {
             if var == name || ret_all {
-                let ret_name = if let Some(a) = alias {
-                    a.to_string()
-                } else {
-                    name.to_string()
-                };
-                let node_doc = doc!{
-                    "name": ret_name,
-                    "id": node.get_id().ok_or(CypherError::ResponseError)? as i64,
-                    "properties": build_properties(node.get_properties_ref()),
-                    "labels": Bson::from(node.get_labels_ref()),
-                };
-                nodes_doc.push(node_doc);
+                nodes_doc.push(make_node_doc(alias, name, node)?);
             }
         }
     }
-    Ok(())
+    Ok(nodes_doc)
 }
-fn get_relationship_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph, rels_doc: &mut Vec<Document>) -> Result<(), CypherError> {
+fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Result<Vec<Document>, CypherError> {
+    let mut rels_doc = vec![];
     for rel in graph.get_relationships_and_edges() {
         if let Some(var) = rel.relationship.get_var() {
             if var == name || ret_all {
-                let ret_name = if let Some(a) = alias {
-                    a.to_string()
-                } else {
-                    name.to_string()
-                };
-                let rel_doc = doc!{
-                    "name": ret_name,
-                    "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
-                    "source_id": graph.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64,
-                    "target_id": graph.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64,
-                    "properties": build_properties(rel.relationship.get_properties_ref()),
-                    "labels": Bson::from(rel.relationship.get_labels_ref()),
-                };
-                rels_doc.push(rel_doc);
+                rels_doc.push(make_relationship_doc(alias, name, rel, graph)?);
             }
         }
     }
-    Ok(())
+    Ok(rels_doc)
 }
 
 fn build_property_value(name: &str, value: &PropertyValue) -> Document {
