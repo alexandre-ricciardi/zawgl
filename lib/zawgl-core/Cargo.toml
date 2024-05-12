@@ -11,5 +11,5 @@ name = "zawgl_core"
 
 [dependencies]
 log = "0.4.19"
-toml = "0.7.6"
+toml = "0.8.12"
 serde = { version = "1.0.177", features = ["derive"] }

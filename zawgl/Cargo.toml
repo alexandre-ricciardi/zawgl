@@ -7,12 +7,12 @@ edition = "2021"
 [dependencies]
 zawgl-core = { path = "../lib/zawgl-core" }
 zawgl-server = { path = "../lib/zawgl-server" }
-tokio-tungstenite = "0.20.0"
+tokio-tungstenite = "0.21.0"
 tokio = { version = "1.29.1", features = ["full"] }
-tungstenite = "0.20.0"
+tungstenite = "0.21.0"
 futures-util = "0.3.28"
 log = "0.4.19"
-config = "0.13.3"
+config = "0.14.0"
 serde = {version = "1.0.177", features = ["derive"] }
-simple_logger = "4.2.0"
-toml = "0.7.6"
+simple_logger = "5.0.0"
+toml = "0.8.12"
