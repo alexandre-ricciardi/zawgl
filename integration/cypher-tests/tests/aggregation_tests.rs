@@ -101,3 +101,29 @@ async fn _test_aggregation_match_issue(mut client: Client) {
         }
     }
 }
+
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_aggregation_1() {
+    run_test("test_aggregation", 11182, _test_aggregation_1).await;
+}
+
+async fn _test_aggregation_1(mut client: Client) {
+    for _ in 0..10 {
+        let _ = client.execute_cypher_request("create (test:Person) return test").await;
+    }
+    for _ in 0..100 {
+
+        let mut p = Parameters::new();
+        p.insert("weight".to_string(), Value::Integer(1));
+        let result = client.execute_cypher_request_with_parameters("match (s:Person) create (s)-[:IsFriendOf]->(new:Person {weight: $weight}) return new, s", p).await;
+        let res = result.expect("new person");
+        println!("{}", res.to_string());
+    }
+    let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person) return test, sum(new.weight) as sum").await;
+    if let Ok(d) = result {
+        println!("{}", d.to_string());
+    } else {
+        assert!(false, "no response")
+    }
+}
