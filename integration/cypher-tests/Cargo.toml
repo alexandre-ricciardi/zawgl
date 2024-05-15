@@ -12,7 +12,7 @@ zawgl-server = { path = "../../lib/zawgl-server" }
 zawgl-core = { path = "../../lib/zawgl-core" }
 zawgl-client = { path = "../../client/zawgl-client" }
 log = "0.4"
-simple_logger = "4.1.0"
+simple_logger = "5.0.0"
 tokio = { version = "1.28.2", features = ["full"] }
 serde = { version = "1.0.105", features = ["derive"] }
 bson = "2.0.1"
