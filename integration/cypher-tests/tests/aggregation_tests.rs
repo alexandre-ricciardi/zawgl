@@ -165,11 +165,10 @@ async fn _test_aggregation_2(mut client: Client) {
         }
     }
 
-    let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(new1:Person) return test, new, new1").await;
+    let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(new1:Person) return test, new, sum(new1.weight) as sum").await;
     if let Ok(d) = result {
-        println!("{}", d.to_string());
         let values = d.get_document("result").expect("result").get_array("values").expect("values");
-        assert_eq!(200, values.len());
+        assert_eq!(100, values.len());
         for value in values {
             let sum = value.as_array().expect("row")[2].as_document().expect("res value").get_f64("sum").expect("the sum");
             assert_eq!(2., sum);

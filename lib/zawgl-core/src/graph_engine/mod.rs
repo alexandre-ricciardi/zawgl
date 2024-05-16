@@ -212,7 +212,8 @@ impl GraphEngine {
             for mut matched_graph in matched.1 {
                 for nid in matched.2.get_nodes_with_ids() {
                     if *nid.0.get_status() == Status::Create {
-                        let node = self.create_node(nid.0)?;
+                        let mut node = self.create_node(nid.0)?;
+                        node.set_status(Status::Match);
                         let node_id = matched_graph.add_node(node);
                         matched.0.insert(node_id, nid.1);
                     }
