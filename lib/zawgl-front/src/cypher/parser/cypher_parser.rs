@@ -40,6 +40,9 @@ fn parse_create(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Parse
     let mut create_node = make_ast_tag(AstTag::Create);
     parse_path(parser, &mut create_node)?;
     parent_node.append(create_node);
+    if parser.current_token_type_advance(TokenType::Create) {
+        parse_create(parser, parent_node)?;
+    }
     Ok(())
 }
 

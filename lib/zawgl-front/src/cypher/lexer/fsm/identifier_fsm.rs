@@ -26,8 +26,12 @@ pub enum IdentifierState {
         MatchIdentifier(usize),
 }
 
-fn is_valid_id_char(c: char) -> bool {
+fn is_valid_id_start(c: char) -> bool {
     c.is_alphabetic() || c == '_'
+}
+
+fn is_valid_id_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
 }
 
 pub fn make_identifier_fsm() -> Box<dyn RunnableFSM<IdentifierState>>  {
@@ -35,7 +39,7 @@ pub fn make_identifier_fsm() -> Box<dyn RunnableFSM<IdentifierState>>  {
         let mut res = None;
         match s {
                IdentifierState::Initial => {
-                   if is_valid_id_char(c) {
+                   if is_valid_id_start(c) {
                         res = Some(IdentifierState::MatchIdentifier(0));
                    }
                },

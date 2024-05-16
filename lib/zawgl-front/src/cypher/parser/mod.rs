@@ -223,6 +223,14 @@ mod test_parser {
     fn test_return_match_match_create() {
         run("match (test:Person) where id(test) = $pid1 match (t:Person) where id(t) = $pid2 create (test:Person)-[:IsFriendOf]->(new:Person {weight: $weight})-[:IsFriendOf]->(t:Person) return new");
     }
+    #[test]
+    fn test_return_match_create_create() {
+        run("match (s:Person) where id(s) = $pid 
+        create (s)-[:IsFriendOf]->(new:Person {weight: $weight})
+        create (new)-[:IsFriendOf]->(new1:Person {weight: $weight})
+        create (new)-[:IsFriendOf]->(new2:Person {weight: $weight})
+        return s, test, test");
+    }
     
 }
 
