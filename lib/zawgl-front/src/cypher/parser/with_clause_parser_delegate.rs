@@ -28,13 +28,10 @@ use super::common_parser_delegate::*;
 use super::where_clause_parser_delegate::*;
 
 pub fn parse_with_clause(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
-    if parser.has_next() && parser.check(TokenType::With) {
-        parser.require(TokenType::With)?;
-        let mut ret_node = make_ast_tag(AstTag::With);
-        parse_with(parser, &mut ret_node)?;
-        parse_where_clause(parser, &mut ret_node)?;
-        parent_node.append(ret_node);
-    }
+    let mut ret_node = make_ast_tag(AstTag::With);
+    parse_with(parser, &mut ret_node)?;
+    parse_where_clause(parser, &mut ret_node)?;
+    parent_node.append(ret_node);
     Ok(())
 }
 
