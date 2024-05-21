@@ -82,7 +82,7 @@ impl <'a> Lexer<'a> {
                             (TokenType::And, "and"), (TokenType::Or, "or"),
                             (TokenType::Plus, "+"), (TokenType::Dot, "."),
                             (TokenType::Divide, "/"), (TokenType::Mult, "*"),
-                            (TokenType::Match, "match"), (TokenType::Where, "where"),
+                            (TokenType::Match, "match"), (TokenType::Where, "where"), (TokenType::With, "with"),
                             (TokenType::Return, "return"), (TokenType::CloseParenthesis, ")"),
                             (TokenType::OpenParenthesis, "("), (TokenType::Colon, ":"),
                             (TokenType::OpenBrace, "{"), (TokenType::CloseBrace, "}"),

@@ -52,6 +52,7 @@ pub enum AstTag  {
     LessThan,
     LessThanOrEqual,
     As,
+    With
 }
 
 pub trait AstVisitor {
@@ -113,6 +114,8 @@ pub trait AstVisitor {
     fn exit_lte_operator(&mut self) -> AstVisitorResult;
     fn enter_as_operator(&mut self) -> AstVisitorResult;
     fn exit_as_operator(&mut self) -> AstVisitorResult;
+    fn enter_with_operator(&mut self) -> AstVisitorResult;
+    fn exit_with_operator(&mut self) -> AstVisitorResult;
 }
 
 #[derive(Debug, Clone)]
@@ -218,6 +221,7 @@ impl Ast for AstTagNode {
                     AstTag::LessThan => visitor.enter_lt_operator(),
                     AstTag::LessThanOrEqual => visitor.enter_lte_operator(),
                     AstTag::As => visitor.enter_as_operator(),
+                    AstTag::With => visitor.enter_with_operator(),
                     _ => Ok(()),
                 }
             },
@@ -287,6 +291,7 @@ impl Ast for AstTagNode {
                     AstTag::LessThan => visitor.exit_lt_operator(),
                     AstTag::LessThanOrEqual => visitor.exit_lte_operator(),
                     AstTag::As => visitor.exit_as_operator(),
+                    AstTag::With => visitor.exit_with_operator(),
                 }
             },
             None => {

@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use self::with_clause_parser_delegate::parse_with_clause;
+
 use super::error::*;
 use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, Ast};
 use zawgl_cypher_query_model::token::TokenType;
@@ -68,6 +70,9 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
                 }
                 if parser.current_token_type_advance(TokenType::Create) {
                     parse_create(parser, &mut query_node)?;
+                }
+                if parser.current_token_type_advance(TokenType::With) {
+                    parse_with_clause(parser, &mut query_node)?;
                 }
                 parse_return(parser, &mut query_node)?;
                 

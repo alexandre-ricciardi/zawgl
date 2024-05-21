@@ -452,6 +452,14 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     fn exit_as_operator(&mut self) -> AstVisitorResult {
         todo!()
     }
+    
+    fn enter_with_operator(&mut self) -> AstVisitorResult {
+        todo!()
+    }
+    
+    fn exit_with_operator(&mut self) -> AstVisitorResult {
+        todo!()
+    }
 }
 
 #[cfg(test)]

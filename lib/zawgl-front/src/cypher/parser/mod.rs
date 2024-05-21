@@ -24,6 +24,7 @@ mod pattern_parser_delegate;
 mod properties_parser_delegate;
 mod common_parser_delegate;
 mod return_clause_parser_delegate;
+mod with_clause_parser_delegate;
 pub mod where_clause_parser_delegate;
 pub mod cypher_parser;
 
@@ -230,6 +231,12 @@ mod test_parser {
         create (new)-[:IsFriendOf]->(new1:Person {weight: $weight})
         create (new)-[:IsFriendOf]->(new2:Person {weight: $weight})
         return s, test, test");
+    }
+    #[test]
+    fn test_with_collect() {
+        run("match (s:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(end:Person)
+        with collect(end) as ps
+        return ps");
     }
     
 }
