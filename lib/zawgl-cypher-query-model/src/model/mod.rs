@@ -28,6 +28,7 @@ pub enum Directive {
     DELETE
 }
 
+#[derive(Debug, Clone)]
 pub struct FunctionCall {
     pub name: String,
     pub args: Vec<ValueItem>,
@@ -39,7 +40,7 @@ impl FunctionCall {
         FunctionCall{name: String::from(name), args: Vec::new(), alias: None}
     }
 }
-
+#[derive(Debug, Clone)]
 pub struct ItemPropertyName {
     pub item_name: String,
     pub property_name: String,
@@ -50,12 +51,12 @@ impl ItemPropertyName {
         ItemPropertyName { item_name: item_name.to_string(), property_name: prop_name.to_string() }
     }
 }
-
+#[derive(Debug, Clone)]
 pub enum ValueItem {
     ItemPropertyName(ItemPropertyName),
     NamedItem(String)
 }
-
+#[derive(Debug, Clone)]
 pub struct ReturnItem {
     pub item: ValueItem,
     pub alias: Option<String>,
@@ -69,6 +70,8 @@ impl ReturnItem {
         ReturnItem{item: ValueItem::NamedItem(name.to_string()), alias: None}
     }
 }
+
+#[derive(Debug, Clone)]
 pub enum ReturnExpression {
     FunctionCall(FunctionCall),
     Item(ReturnItem),

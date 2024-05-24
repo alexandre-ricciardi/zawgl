@@ -31,6 +31,8 @@ pub enum VisitorState {
     ReturnItem,
     ItemPropertyIdentifier,
     Empty,
+    With,
+    WithVarScope,
 }
 #[derive(PartialEq)]
 pub enum VisitorPatternState {

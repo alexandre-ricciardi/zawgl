@@ -22,6 +22,7 @@
 use super::*;
 use super::lexer::LexerError;
 use super::parser::error::ParserError;
+use serde_json::StreamDeserializer;
 use zawgl_core::model::*;
 use crate::tx_handler::DatabaseError;
 
@@ -96,12 +97,14 @@ struct CypherAstVisitor {
     params: Option<Parameters>,
     current_identifier: Option<String>,
     item_prop_path: Vec<String>,
+    var_scope_filter: Vec<ReturnExpression>,
 }
 
 impl CypherAstVisitor {
     fn new(params: Option<Parameters>) -> Self {
         CypherAstVisitor { request: None, state: vec![VisitorState::Init],
-            id_type: None, path_builders: Vec::new(), params, current_identifier: None, item_prop_path: Vec::new()}
+            id_type: None, path_builders: Vec::new(), params, current_identifier: None,
+            item_prop_path: Vec::new(), var_scope_filter: Vec::new() }
     }
 }
 
@@ -130,6 +133,9 @@ impl CypherAstVisitor {
     fn pop_visitor_state(&mut self) -> VisitorState {
         self.state.pop();
         *self.state.last().expect("visitor state")
+    }
+    fn check_var_scope(&mut self, curr_var: &str) -> bool {
+        !self.var_scope_filter.is_empty() && self.var_scope_filter.iter().map(re => re.).contains(&curr_var.to_string())
     }
 }
 
@@ -252,10 +258,17 @@ impl AstVisitor for CypherAstVisitor {
     }
 
     fn enter_variable(&mut self) -> AstVisitorResult {
-        if let Some(pb) = self.current_path_builder() {
-            pb.enter_variable();
+        match self.get_visitor_state() {
+            VisitorState::With => {
+                self.set_visitor_state(VisitorState::WithVarScope);
+            },
+            _ => {
+                if let Some(pb) = self.current_path_builder() {
+                    pb.enter_variable();
+                }
+                self.id_type = Some(IdentifierType::Variable);
+            }
         }
-        self.id_type = Some(IdentifierType::Variable);
         Ok(())
     }
 
@@ -303,6 +316,9 @@ impl AstVisitor for CypherAstVisitor {
             VisitorState::ItemPropertyIdentifier => {
                 self.item_prop_path.push(key.to_string());
             }
+            VisitorState::WithVarScope => {
+                self.var_scope_filter.push(key.to_string());
+            }
             _ => {}
         }
         Ok(())
@@ -342,7 +358,6 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_identifier(&mut self, key: &str) -> AstVisitorResult {
         self.current_identifier = Some(key.to_string());
         Ok(())
-    
     }
     fn exit_variable(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_label(&mut self) -> AstVisitorResult { Ok(())}
@@ -460,11 +475,16 @@ impl AstVisitor for CypherAstVisitor {
     }
     
     fn enter_with_operator(&mut self) -> AstVisitorResult {
-        todo!()
+        self.var_scope_filter.clear();
+        self.set_visitor_state(VisitorState::With);
+        Ok(())
     }
     
     fn exit_with_operator(&mut self) -> AstVisitorResult {
-        todo!()
+        if let Some(request) = &mut self.request {
+            request.steps.push(QueryStep::new(StepType::WITH(())))
+        }
+        Ok(())
     }
 }
 

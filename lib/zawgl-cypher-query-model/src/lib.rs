@@ -1,4 +1,4 @@
-use model::WhereClause;
+use model::{ReturnExpression, WhereClause};
 use zawgl_core::model::PropertyGraph;
 
 pub mod model;
@@ -30,7 +30,7 @@ pub mod parameters;
 
 #[derive(Clone)]
 pub enum StepType {
-    MATCH, CREATE, DELETE, WHERE
+    MATCH, CREATE, DELETE, WHERE, WITH(Vec<ReturnExpression>)
 }
 
 #[derive(Clone)]

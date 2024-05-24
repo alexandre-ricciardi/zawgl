@@ -116,6 +116,9 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                     results = where_clause_results;
                 }
             },
+            StepType::WITH(scope) => {
+                
+            },
         }
         first_step = false;
     }
