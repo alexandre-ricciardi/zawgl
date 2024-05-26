@@ -24,15 +24,14 @@ pub enum VisitorState {
     Init,
     DirectiveCreate,
     DirectiveMatch,
-    MatchPattern,
-    CreatePattern,
+    Path,
     FunctionCall,
     FunctionArg,
     ReturnItem,
     ItemPropertyIdentifier,
     Empty,
-    With,
-    WithVarScope,
+    WithClause,
+    ReturnClause
 }
 #[derive(PartialEq)]
 pub enum VisitorPatternState {

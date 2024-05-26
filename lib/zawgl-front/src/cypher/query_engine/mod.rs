@@ -127,6 +127,12 @@ impl CypherAstVisitor {
         };
         *state
     }
+    fn get_first_visitor_state(&self) -> VisitorState {
+        let Some(state) = self.state.first() else {
+            panic!("empty visitor state")
+        };
+        *state
+    }
     fn push_visitor_state(&mut self, state: VisitorState) {
         self.state.push(state);
     }
@@ -135,7 +141,16 @@ impl CypherAstVisitor {
         *self.state.last().expect("visitor state")
     }
     fn check_var_scope(&mut self, curr_var: &str) -> bool {
-        !self.var_scope_filter.is_empty() && self.var_scope_filter.iter().map(re => re.).contains(&curr_var.to_string())
+        !self.var_scope_filter.is_empty() && self.var_scope_filter.iter().map(|re| {
+            match re {
+                ReturnExpression::FunctionCall(fc) => {
+                    fc.alias.clone()
+                }
+                ReturnExpression::Item(i) => {
+                    i.alias.clone()
+                }
+            }
+        }).collect::<Vec<Option<String>>>().contains(&Some(curr_var.to_string()))
     }
 }
 
@@ -147,19 +162,12 @@ impl AstVisitor for CypherAstVisitor {
         Ok(())
     }
     fn enter_path(&mut self) -> AstVisitorResult {
-        match self.get_visitor_state() {
-            VisitorState::DirectiveMatch => {
-                self.set_visitor_state(VisitorState::MatchPattern);
-            }
-            VisitorState::DirectiveCreate => {
-                self.set_visitor_state(VisitorState::CreatePattern);
-            }
-            _ => {}
-        }
+        self.push_visitor_state(VisitorState::Path);
         self.append_path();
         Ok(())
     }
     fn enter_return(&mut self) -> AstVisitorResult {
+        self.set_visitor_state(VisitorState::ReturnClause);
         if let Some(request) = &mut self.request {
             request.return_clause = Some(ReturnClause::new());
         }
@@ -174,7 +182,7 @@ impl AstVisitor for CypherAstVisitor {
     fn enter_function(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
             if let Some(_) = &mut request.return_clause {
-                self.set_visitor_state(VisitorState::FunctionCall);
+                self.push_visitor_state(VisitorState::FunctionCall);
             }
         }
         Ok(())
@@ -186,7 +194,7 @@ impl AstVisitor for CypherAstVisitor {
         Ok(())
     }
     fn enter_item(&mut self) -> AstVisitorResult {
-        self.set_visitor_state(VisitorState::ReturnItem);
+        self.push_visitor_state(VisitorState::ReturnItem);
         Ok(())
     }
     fn enter_create(&mut self) -> AstVisitorResult {
@@ -259,8 +267,7 @@ impl AstVisitor for CypherAstVisitor {
 
     fn enter_variable(&mut self) -> AstVisitorResult {
         match self.get_visitor_state() {
-            VisitorState::With => {
-                self.set_visitor_state(VisitorState::WithVarScope);
+            VisitorState::DirectiveMatch | VisitorState::DirectiveCreate => {
             },
             _ => {
                 if let Some(pb) = self.current_path_builder() {
@@ -280,45 +287,49 @@ impl AstVisitor for CypherAstVisitor {
     }
 
     fn enter_identifier(&mut self, key: &str) -> AstVisitorResult {
-        let state = self.get_visitor_state();
+        let state = self.get_first_visitor_state();
         match state {
-            VisitorState::MatchPattern |
-            VisitorState::CreatePattern => {
+            VisitorState::DirectiveCreate |
+            VisitorState::DirectiveMatch => {
                 if let Some(pb) = self.current_path_builder() {
                     pb.enter_identifier(state, key);
                 }
             }
-            VisitorState::FunctionCall => {
-                if let Some(req) = &mut self.request {
-                    if let Some(ret) = &mut req.return_clause {
-                        ret.expressions.push(ReturnExpression::FunctionCall(FunctionCall::new(key)));
-                    }
-                }
-            },
-            VisitorState::FunctionArg => {
-                if let Some(req) = &mut self.request {
-                    if let Some(ret) = &mut req.return_clause {
-                        if let Some(expr) = ret.expressions.last_mut() {
-                            if let ReturnExpression::FunctionCall(func_call) = expr {
-                                func_call.args.push(ValueItem::NamedItem(key.to_string()));
+            VisitorState::ReturnClause | VisitorState::WithClause => {
+                let curr_state = self.get_visitor_state();
+                match curr_state {
+                    VisitorState::FunctionCall => {
+                        if let Some(req) = &mut self.request {
+                            if let Some(ret) = &mut req.return_clause {
+                                ret.expressions.push(ReturnExpression::FunctionCall(FunctionCall::new(key)));
+                            }
+                        }
+                    },
+                    VisitorState::FunctionArg => {
+                        if let Some(req) = &mut self.request {
+                            if let Some(ret) = &mut req.return_clause {
+                                if let Some(expr) = ret.expressions.last_mut() {
+                                    if let ReturnExpression::FunctionCall(func_call) = expr {
+                                        func_call.args.push(ValueItem::NamedItem(key.to_string()));
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    VisitorState::ReturnItem => {
+                        if let Some(req) = &mut self.request {
+                            if let Some(ret) = &mut req.return_clause {
+                                ret.expressions.push(ReturnExpression::Item(ReturnItem::new_named_item(key)));
                             }
                         }
                     }
-                }
-            },
-            VisitorState::ReturnItem => {
-                if let Some(req) = &mut self.request {
-                    if let Some(ret) = &mut req.return_clause {
-                        ret.expressions.push(ReturnExpression::Item(ReturnItem::new_named_item(key)));
+                    VisitorState::ItemPropertyIdentifier => {
+                        self.item_prop_path.push(key.to_string());
                     }
+                    _ => {}
                 }
             }
-            VisitorState::ItemPropertyIdentifier => {
-                self.item_prop_path.push(key.to_string());
-            }
-            VisitorState::WithVarScope => {
-                self.var_scope_filter.push(key.to_string());
-            }
+            
             _ => {}
         }
         Ok(())
@@ -476,7 +487,7 @@ impl AstVisitor for CypherAstVisitor {
     
     fn enter_with_operator(&mut self) -> AstVisitorResult {
         self.var_scope_filter.clear();
-        self.set_visitor_state(VisitorState::With);
+        self.set_visitor_state(VisitorState::WithClause);
         Ok(())
     }
     

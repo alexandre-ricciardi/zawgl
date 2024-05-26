@@ -41,10 +41,10 @@ pub struct PathBuilder {
 fn make_relationship(visitor_state: &VisitorState) -> Relationship {
     let mut r = Relationship::new();
     match visitor_state {
-        VisitorState::CreatePattern => {
+        VisitorState::DirectiveCreate => {
             r.set_status(Status::Create);
         }
-        VisitorState::MatchPattern => {
+        VisitorState::DirectiveMatch => {
             r.set_status(Status::Match);
         },
         _ => {}
@@ -55,10 +55,10 @@ fn make_relationship(visitor_state: &VisitorState) -> Relationship {
 fn make_node(visitor_state: &VisitorState) -> Node {
     let mut n = Node::new();
     match visitor_state {
-        VisitorState::CreatePattern => {
+        VisitorState::DirectiveCreate => {
             n.set_status(Status::Create);
         }
-        VisitorState::MatchPattern => {
+        VisitorState::DirectiveMatch => {
             n.set_status(Status::Match);
         },
         _ => {}
@@ -178,8 +178,8 @@ impl PathBuilder {
     }
     pub fn enter_identifier(&mut self, visitor_state: VisitorState, key: &str) {
         match visitor_state {
-            VisitorState::MatchPattern |
-            VisitorState::CreatePattern => {
+            VisitorState::DirectiveCreate |
+            VisitorState::DirectiveMatch => {
                 match self.pattern_state {
                     VisitorPatternState::Node => {
                         if let Some(node_id) = self.curr_node {
