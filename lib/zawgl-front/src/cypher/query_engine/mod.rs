@@ -212,14 +212,14 @@ impl AstVisitor for CypherAstVisitor {
         Ok(())
     }
     fn enter_node(&mut self) -> AstVisitorResult {
-        let state = self.get_visitor_state();
+        let state = self.get_first_visitor_state();
         if let Some(pb) = self.current_path_builder() {
             pb.enter_node(state);
         }
         Ok(())
     }
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult {
-        let state = self.get_visitor_state();
+        let state = self.get_first_visitor_state();
         if let (Some(pb), Some(ast_tag)) = (self.current_path_builder(), node.ast_tag){
             pb.enter_relationship(ast_tag, state)
         }
@@ -493,7 +493,7 @@ impl AstVisitor for CypherAstVisitor {
     
     fn exit_with_operator(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
-            request.steps.push(QueryStep::new(StepType::WITH(())))
+            //request.steps.push(QueryStep::new(StepType::WITH(())))
         }
         Ok(())
     }
