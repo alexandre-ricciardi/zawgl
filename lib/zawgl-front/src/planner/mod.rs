@@ -19,14 +19,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use zawgl_core::{model::*, graph_engine::GraphEngine};
+use std::{collections::{hash_map::Entry, HashMap}, slice::Iter};
+
+use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::GraphEngine, model::*};
 
 mod pattern_builder;
 
 use pattern_builder::{build_pattern, merge_patterns};
-use zawgl_cypher_query_model::{QueryStep, StepType, model::WhereClause, ast::AstVisitorError};
+use zawgl_cypher_query_model::{ast::AstVisitorError, model::{BoolResult, EvalResultItem, EvalScopeExpression, NodeResult, RelationshipResult, ScalarResult, StringResult, ValueItem, WhereClause}, QueryStep, StepType};
 
-use crate::cypher::{query_engine::where_clause_filter::WhereClauseAstVisitor, parser};
+use crate::cypher::{parser, query_engine::{where_clause_filter::WhereClauseAstVisitor, CypherError}};
 
 pub fn make_cartesian_product<T>(pools: &[Vec<T>]) -> Vec<Vec<&T>> {
     let mut res: Vec<Vec<&T>> = vec![];
@@ -51,55 +53,32 @@ pub fn make_cartesian_product<T>(pools: &[Vec<T>]) -> Vec<Vec<&T>> {
     res
 }
 
-pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Option<Vec<PropertyGraph>> {
+pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Result<Vec<PropertyGraph>, CypherError> {
     let mut results = Vec::<Vec<PropertyGraph>>::new();
+    let mut eval_results = Vec::<Vec<EvalResultItem>>::new();
     let mut first_step = true;
     for step in steps {
         match step.step_type {
             StepType::MATCH => {
-                if results.is_empty() {
-                    for pattern in &step.patterns {
-                        let matched = graph_engine.match_pattern(pattern);
-                        if let Some(res) = matched {
-                            results.push(res);
-                        }
-                    }
+                if eval_results.is_empty() {
+                    results = handle_match(&results, graph_engine, &step, &vec![]);
                 } else {
-                    let mut new_res = Vec::new();
-                    for pattern in &step.patterns {
-                        let products = make_cartesian_product(&results);
-                        for product in &products {
-                            let merge_sources = merge_patterns(product);
-                            let merge = build_pattern(&merge_sources, pattern);
-                            let matched = graph_engine.match_pattern(&merge);
-                            if let Some(c) = matched {
-                                new_res.push(c);
-                            }
-                        }
+                    let mut res = vec![];
+                    for eval_row in &eval_results {
+                        res.append(&mut handle_match(&results, graph_engine, &step, eval_row));
                     }
-                    results = new_res;
+                    results = res;
                 }
             },
             StepType::CREATE => {
-                if results.is_empty() && first_step {
-                    let created = graph_engine.match_patterns_and_create(&step.patterns);
-                    if let Some(created_graphs) = created {
-                        results = created_graphs;
-                    }
+                if eval_results.is_empty() {
+                    results = handle_create(&results, graph_engine, &step, &vec![], first_step);
                 } else {
-                    let mut to_match_and_create = Vec::new();
-                    for pattern in &step.patterns {
-                        let products = make_cartesian_product(&results);
-                        for product in &products {
-                            let merge_sources = merge_patterns(product);
-                            let merge = build_pattern(&merge_sources, pattern);
-                            to_match_and_create.push(merge);
-                        }
+                    let mut res = vec![];
+                    for eval_row in &eval_results {
+                        res.append(&mut handle_create(&results, graph_engine, &step, eval_row, first_step));
                     }
-                    let created = graph_engine.match_patterns_and_create(&to_match_and_create);
-                    if let Some(created_graphs) = created {
-                        results = created_graphs;
-                    }
+                    results = res;
                 }
             },
             StepType::DELETE => todo!(),
@@ -108,25 +87,177 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                     let mut where_clause_results = Vec::new();
                     let products = make_cartesian_product(&results);
                     for product in &products {
-                        let merged_product = merge_patterns(product);
-                        if where_clause_filter(&merged_product, where_clause).ok()? {
+                        let merged_product = merge_patterns(product, &vec![]);
+                        if where_clause_filter(&merged_product, where_clause).map_err(|err| CypherError::EvalError)? {
                             where_clause_results.push(vec![merged_product]);
                         }
                     }
                     results = where_clause_results;
                 }
             },
-            StepType::WITH(scope) => {
+            StepType::WITH(eval_scope) => {
+                let matched_graphs = flatten_results(&mut results);
+                let mut grouping = Vec::new();
+                for ret_exp in &eval_scope.expressions {
+                    match ret_exp {
+                        EvalScopeExpression::Item(item) => {
+                            match &item.item {
+                                ValueItem::ItemPropertyName(prop_name) => {
+                                    grouping.push(&prop_name.item_name);
+                                },
+                                ValueItem::NamedItem(named_item) => {
+                                    grouping.push(named_item);
+                                }
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+        
+                let mut combinations = vec![];
+                let mut curr_items = vec![];
+                for graph in &matched_graphs {
+                    build_items_combinations(grouping.iter(), &graph, &mut combinations, &mut curr_items)?;
+                }
+        
+                let mut eval_result_scope = vec![];
                 
+                let mut aggregations = HashMap::new();
+        
+                for combination in &combinations {
+                    let ids = combination.get_item_ids();
+                    if let Entry::Vacant(e) = aggregations.entry(ids) {
+                        e.insert(vec![combination]);
+                    } else {
+                        let idsref = combination.get_item_ids();
+                        aggregations.get_mut(&idsref).unwrap().push(combination);
+                    }
+                }
+        
+                for combinations in aggregations.values() {
+                    let mut row = vec![];
+                    if let Some(combination) = combinations.first() {
+                        let items = combination.get_items();
+                        for ret_exp in &eval_scope.expressions {
+                            match ret_exp {
+                                EvalScopeExpression::Item(ret_item) => {
+                                    match &ret_item.item {
+                                        ValueItem::ItemPropertyName(prop_name) => {
+                                            row.push(get_property_in_items(ret_item.alias.as_ref(), &prop_name.item_name, &prop_name.property_name, items)?);
+                                        },
+                                        ValueItem::NamedItem(named_item) => {
+                                            for item in &combination.items {
+                                                match item {
+                                                    Item::Node(n) => {
+                                                        if let Some(var) = n.get_var() {
+                                                            if var == named_item {
+                                                                row.push(EvalResultItem::Node(make_node(ret_item.alias.as_ref(), &named_item, n)));
+                                                            }
+                                                        }
+                                                    },
+                                                    Item::Relationship(rel) => {
+                                                        if let Some(var) = rel.relationship.get_var() {
+                                                            if var == named_item {
+                                                                row.push(EvalResultItem::Relationship(make_relationship(ret_item.alias.as_ref(), &named_item, rel, combination.graph)));
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                _ => {}
+                            }
+                        }
+                    }
+        
+                    let graphs = combinations.iter().map(|c| c.graph).collect::<Vec<&PropertyGraph>>();
+                    for ret_exp in &eval_scope.expressions {
+                        match ret_exp {
+                            EvalScopeExpression::FunctionCall(fun) => {
+                                let ret_name = if let Some(a) = &fun.alias {
+                                    a.to_string()
+                                } else {
+                                    "sum".to_string()
+                                };
+                                match fun.name.as_str() {
+                                    "sum" => {
+                                        let sum = compute_sum(&fun.args, &graphs);
+                                        row.push(EvalResultItem::Scalar(ScalarResult::new(ret_name, sum)));
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            _ => {}
+                        }
+                    }
+                    eval_result_scope.push(row);
+                }
+                eval_results = eval_result_scope;
             },
         }
         first_step = false;
     }
+    Ok(flatten_results(&mut results))
+}
+
+fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>) -> Vec::<Vec<PropertyGraph>> {
+    let mut new_res = Vec::new();
+    if results.is_empty() {
+        for pattern in &step.patterns {
+            let matched = graph_engine.match_pattern(pattern);
+            if let Some(res) = matched {
+                new_res.push(res);
+            }
+        }
+    } else {
+        for pattern in &step.patterns {
+            let products = make_cartesian_product(&results);
+            for product in &products {
+                let merge_sources = merge_patterns(product, eval_row);
+                let merge = build_pattern(&merge_sources, pattern);
+                let matched = graph_engine.match_pattern(&merge);
+                if let Some(c) = matched {
+                    new_res.push(c);
+                }
+            }
+        }
+    }
+    new_res
+}
+
+fn handle_create(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>, first_step: bool) -> Vec::<Vec<PropertyGraph>> {
+    let mut new_res = Vec::new();
+    if results.is_empty() && first_step {
+        let created = graph_engine.match_patterns_and_create(&step.patterns);
+        if let Some(created_graphs) = created {
+            new_res = created_graphs;
+        }
+    } else {
+        let mut to_match_and_create = Vec::new();
+        for pattern in &step.patterns {
+            let products = make_cartesian_product(&results);
+            for product in &products {
+                let merge_sources = merge_patterns(product, eval_row);
+                let merge = build_pattern(&merge_sources, pattern);
+                to_match_and_create.push(merge);
+            }
+        }
+        let created = graph_engine.match_patterns_and_create(&to_match_and_create);
+        if let Some(created_graphs) = created {
+            new_res = created_graphs;
+        }
+    }
+    new_res
+}
+
+fn flatten_results(results: &mut Vec::<Vec<PropertyGraph>>) -> Vec<PropertyGraph> {
     let mut result = Vec::new();
-    for res in &mut results {
+    for res in results {
         result.append(res);
     }
-    Some(result)
+    result
 }
 
 fn where_clause_filter(graph: &PropertyGraph, where_clause: &WhereClause) -> Result<bool, AstVisitorError> {
@@ -134,4 +265,219 @@ fn where_clause_filter(graph: &PropertyGraph, where_clause: &WhereClause) -> Res
     let mut visitor = WhereClauseAstVisitor::new(graph, where_clause.params.clone());
     parser::walk_ast(&mut visitor, ast)?;
     Ok(visitor.eval_stack.pop() == Some(PropertyValue::PBool(true)))
+}
+
+fn get_properties<'a: 'b, 'b>(graph: &'a PropertyGraph, group: &'b mut Vec::<&'a PropertyValue>, args: &Vec<ValueItem>) {
+    for node in graph.get_nodes() {
+        if let Some(var) = node.get_var() {
+            for arg in args {
+                if let ValueItem::ItemPropertyName(prop_arg) = arg {
+                    if &prop_arg.item_name == var {
+                        for prop in node.get_properties_ref() {
+                            if prop.get_name() == prop_arg.property_name {
+                                group.push(prop.get_value())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for rel in graph.get_relationships() {
+        if let Some(var) = rel.get_var() {
+            for arg in args {
+                if let ValueItem::ItemPropertyName(prop_arg) = arg {
+                    if &prop_arg.item_name == var {
+                        for prop in rel.get_properties_ref() {
+                            if prop.get_name() == prop_arg.property_name {
+                                group.push(prop.get_value())
+                            }
+                        }
+                    }
+                }
+            }
+            
+        }
+    }
+}
+
+fn compute_sum(args: &Vec<ValueItem>, graphs: &Vec<&PropertyGraph>) -> f64 {
+    let mut group = Vec::<&PropertyValue>::new();
+    for graph in graphs {
+        get_properties(graph, &mut group, args);
+    }
+
+    let mut sum_value = 0.;
+    for prop in group {
+        sum_value += get_property_sum_value(prop);
+    }
+    sum_value
+}
+fn get_nodes_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Vec<NodeResult> {
+    let mut nodes = vec![];
+    for node in graph.get_nodes() {
+        if let Some(var) = node.get_var() {
+            if var == name || ret_all {
+                nodes.push(make_node(alias, name, node));
+            }
+        }
+    }
+    nodes
+}
+
+
+fn make_node(alias: Option<&String>, name: &str, node: &Node) -> NodeResult {
+    let ret_name = if let Some(a) = alias {
+        a.to_string()
+    } else {
+        name.to_string()
+    };
+    let mut ret_node = node.clone();
+    ret_node.set_var(&ret_name);
+    NodeResult::new(ret_name, ret_node)
+}
+
+fn make_relationship(alias: Option<&String>, name: &str, rel: &EdgeData<NodeIndex, EdgeIndex, Relationship>, graph: &PropertyGraph) -> RelationshipResult {
+    let ret_name = if let Some(a) = alias {
+        a.to_string()
+    } else {
+        name.to_string()
+    };
+    let mut ret_rel = rel.clone();
+    ret_rel.relationship.set_var(&ret_name);
+    RelationshipResult::new(ret_name, ret_rel)
+}
+
+fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Vec<RelationshipResult> {
+    let mut rels = vec![];
+    for rel in graph.get_relationships_and_edges() {
+        if let Some(var) = rel.relationship.get_var() {
+            if var == name || ret_all {
+                rels.push(make_relationship(alias, name, rel, graph));
+            }
+        }
+    }
+    rels
+}
+
+fn get_property_sum_value(prop: &PropertyValue) -> f64 {
+    match prop {
+        PropertyValue::PFloat(f) => *f,
+        PropertyValue::PInteger(i) => *i as f64,
+        PropertyValue::PUInteger(u) => *u as f64,
+        _ => 0.
+    }
+}
+
+#[derive(Debug, Clone)]
+enum Item<'a> {
+    Node(&'a Node),
+    Relationship(&'a EdgeData<NodeIndex, EdgeIndex, Relationship>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum ItemId {
+    NodeId(u64),
+    RelationshipId(u64),
+}
+
+struct Combination<'a> {
+    graph: &'a PropertyGraph,
+    items: Vec<Item<'a>>,
+}
+
+impl<'a> Combination<'a> {
+    fn get_item_ids(&self) -> Vec<ItemId> {
+        self.items.iter().map(|item| match item {
+            Item::Node(node) => ItemId::NodeId(node.get_id().unwrap()),
+            Item::Relationship(rel) => ItemId::RelationshipId(rel.relationship.get_id().unwrap())
+        }).collect::<Vec<ItemId>>()
+    }
+    fn get_items(&self) -> &'a Vec<Item> {
+        &self.items
+    }
+}
+
+fn get_property_in_items(alias: Option<&String>, item_name: &str, prop_name: &str, items: &Vec<Item>) -> Result<EvalResultItem, CypherError> {
+    for item in items {
+        match item {
+            Item::Node(node) => {
+                if let Some(var) = node.get_var() {
+                    if var == item_name {
+                        let ret_name = if let Some(a) = alias {
+                            a.to_string()
+                        } else {
+                            item_name.to_string()
+                        };
+                        for prop in node.get_properties_ref() {
+                            if prop.get_name() == prop_name {
+                                return Ok(build_property_value(ret_name, prop.get_value()));
+                            }
+                        }
+                    }
+                }
+            },
+            Item::Relationship(rel) => {
+                if let Some(var) = rel.relationship.get_var() {
+                    if var == item_name {
+                        let ret_name = if let Some(a) = alias {
+                            a.to_string()
+                        } else {
+                            item_name.to_string()
+                        };
+                        for prop in rel.relationship.get_properties_ref() {
+                            if prop.get_name() == prop_name {
+                                return Ok(build_property_value(ret_name, prop.get_value()));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Err(CypherError::EvalError)
+}
+
+fn build_property_value(ret_name: String, value: &PropertyValue) -> EvalResultItem {
+    match value {
+        PropertyValue::PBool(v) => EvalResultItem::Bool(BoolResult::new(ret_name, *v)),
+        PropertyValue::PFloat(f) => EvalResultItem::Scalar(ScalarResult::new(ret_name, *f)),
+        PropertyValue::PInteger(i) => EvalResultItem::Scalar(ScalarResult::new(ret_name,*i as f64)),
+        PropertyValue::PUInteger(u) => EvalResultItem::Scalar(ScalarResult::new(ret_name,*u as f64)),
+        PropertyValue::PString(s) => EvalResultItem::String(StringResult::new(ret_name,s.clone())),
+    }
+}
+
+fn build_items_combinations<'a: 'b, 'b>(mut grouping: Iter<&String>, graph: &'a PropertyGraph, combinations: &mut Vec::<Combination<'b>>, curr_items: &mut Vec<Item<'a>>) -> Result<(), CypherError> {
+    if let Some(next) = grouping.next() {
+        let items = get_named_items(next, graph)?;
+        for item in items {
+            curr_items.push(item);
+            build_items_combinations(grouping.clone(), graph, combinations, curr_items)?;
+        }
+    } else {
+        combinations.push(Combination { graph: graph, items: curr_items.to_vec() });
+        curr_items.clear();
+    }
+    Ok(())
+}
+
+
+fn get_named_items<'a>(name: &str, graph: &'a PropertyGraph) -> Result<Vec<Item<'a>>, CypherError> {
+    let mut res = vec![];
+    for node in graph.get_nodes() {
+        if let Some(var) = node.get_var() {
+            if var == name {
+                res.push(Item::Node(&node));
+            }
+        }
+    }
+    for rel in graph.get_relationships_and_edges() {
+        if let Some(var) = rel.relationship.get_var() {
+            if var == name {
+                res.push(Item::Relationship(&rel));
+            }
+        }
+    }
+    Ok(res)
 }

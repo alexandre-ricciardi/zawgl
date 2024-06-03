@@ -20,7 +20,8 @@
 // SOFTWARE.
 
 use zawgl_core::{model::{PropertyGraph, Node, Status}, graph::*};
-use std::{collections::{HashMap, HashSet}};
+use zawgl_cypher_query_model::model::EvalResultItem;
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 pub fn build_pattern(source_pattern: &PropertyGraph, target_pattern: &PropertyGraph) -> PropertyGraph {
     let mut result = PropertyGraph::new();
@@ -139,23 +140,41 @@ fn merge_nodes(var_name: &str, n0: &Node, n1: &Node) -> Node {
     res
 }
 
-pub fn merge_patterns(patterns: &Vec<&PropertyGraph>) -> PropertyGraph {
+pub fn merge_patterns(patterns: &Vec<&PropertyGraph>, eval_row: &Vec<EvalResultItem>) -> PropertyGraph {
     let mut result = PropertyGraph::new();
     let mut source_pattern_to_result_nid = HashMap::new();
     let mut map_var_name_to_pattern_nid = HashMap::new();
     let mut pattern_id = 0;
+    let mut map_eval_scope_items = HashMap::new();
+    for eval_item in eval_row {
+        match eval_item {
+            EvalResultItem::Node(n) => {map_eval_scope_items.insert(n.name.clone(), eval_item);},
+            EvalResultItem::Relationship(r) => {map_eval_scope_items.insert(r.name.clone(), eval_item);},
+            _ => {},
+        }
+    }
     for p in patterns {
         let mut source_pattern_nid_to_result_nid = HashMap::new();
         for nid in p.get_nodes_with_ids() {
             let n = nid.0;
+            let mut node = n.clone();
             if let Some(var_name) = n.get_var() {
-                if !map_var_name_to_pattern_nid.contains_key(var_name) {
+                if let Entry::Occupied(eval_item) = map_eval_scope_items.entry(var_name.clone()) {
+                    match eval_item.get() {
+                        EvalResultItem::Node(eval_node) => {
+                            node = eval_node.value.clone();
+                            node.set_var(eval_item.key());
+                        }
+                        _ => {}
+                    }
+                } else if !map_var_name_to_pattern_nid.contains_key(var_name) {
                     map_var_name_to_pattern_nid.insert(var_name, (pattern_id, nid.1));
                 } else {
                     continue;
                 }
             }
-            let id = result.add_node(n.clone());
+
+            let id = result.add_node(node);
             source_pattern_nid_to_result_nid.insert(nid.1, id);
         }
         source_pattern_to_result_nid.insert(pattern_id, source_pattern_nid_to_result_nid);
@@ -166,22 +185,41 @@ pub fn merge_patterns(patterns: &Vec<&PropertyGraph>) -> PropertyGraph {
         for e in p.get_edges() {
             let mut source_id = e.source;
             let mut target_id = e.target;
+            let mut rel = e.relationship.clone();
             let mut tmp_pattern_id = pattern_id;
-            if !source_pattern_to_result_nid[&pattern_id].contains_key(&e.source) {
-                if let Some(var_name) = patterns[pattern_id].get_node_ref(&e.source).get_var() {
-                    tmp_pattern_id = map_var_name_to_pattern_nid[var_name].0;
-                    source_id = map_var_name_to_pattern_nid[var_name].1;
+            let mut in_scope = false;
+            if let Some(var_name) = e.relationship.get_var() {
+                if let Entry::Occupied(eval_item) = map_eval_scope_items.entry(var_name.clone()) {
+                    match eval_item.get() {
+                        EvalResultItem::Relationship(eval_rel) => {
+                            in_scope = true;
+                            rel = eval_rel.value.relationship.clone();
+                            rel.set_var(eval_item.key());
+                            source_id = eval_rel.value.source;
+                            target_id = eval_rel.value.target;
+                        }
+                        _ => {}
+                    }
                 }
             }
-            if !source_pattern_to_result_nid[&pattern_id].contains_key(&e.target) {
-                if let Some(var_name) = patterns[pattern_id].get_node_ref(&e.target).get_var() {
-                    tmp_pattern_id = map_var_name_to_pattern_nid[var_name].0;
-                    target_id = map_var_name_to_pattern_nid[var_name].1;
+            if !in_scope {
+                if !source_pattern_to_result_nid[&pattern_id].contains_key(&e.source) {
+                    if let Some(var_name) = patterns[pattern_id].get_node_ref(&e.source).get_var() {
+                        tmp_pattern_id = map_var_name_to_pattern_nid[var_name].0;
+                        source_id = map_var_name_to_pattern_nid[var_name].1;
+                    }
+                }
+                if !source_pattern_to_result_nid[&pattern_id].contains_key(&e.target) {
+                    if let Some(var_name) = patterns[pattern_id].get_node_ref(&e.target).get_var() {
+                        tmp_pattern_id = map_var_name_to_pattern_nid[var_name].0;
+                        target_id = map_var_name_to_pattern_nid[var_name].1;
+                    }
                 }
             }
+
             let source = source_pattern_to_result_nid[&tmp_pattern_id][&source_id];
             let target = source_pattern_to_result_nid[&tmp_pattern_id][&target_id];
-            result.add_relationship(e.relationship.clone(), source, target);
+            result.add_relationship(rel, source, target);
         }
         pattern_id += 1;
     }

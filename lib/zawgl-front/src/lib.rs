@@ -27,7 +27,7 @@ use std::{collections::{HashMap, hash_map::Entry}, slice::Iter};
 use bson::{Bson, Document, doc};
 use cypher::query_engine::{process_cypher_query, CypherError};
 use zawgl_core::{model::{Property, PropertyValue, PropertyGraph, Relationship, Node}, graph::{EdgeData, NodeIndex, EdgeIndex}};
-use zawgl_cypher_query_model::{parameters::build_parameters, model::{Request, ReturnExpression, ValueItem}};
+use zawgl_cypher_query_model::{parameters::build_parameters, model::{Request, EvalScopeExpression, ValueItem}};
 use tx_handler::{handle_graph_request, request_handler::RequestHandler, handler::TxHandler, DatabaseError};
 
 extern crate zawgl_core;
@@ -85,7 +85,7 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
             
             for ret_exp in &ret.expressions {
                 match ret_exp {
-                    ReturnExpression::Item(item) => {
+                    EvalScopeExpression::Item(item) => {
                         match &item.item {
                             ValueItem::NamedItem(named_item) => {
                                 nodes_doc.extend(get_nodes_named(wildcard, item.alias.as_ref(), named_item, pattern)?);
@@ -112,7 +112,7 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
         let mut grouping = Vec::new();
         for ret_exp in &ret.expressions {
             match ret_exp {
-                ReturnExpression::Item(item) => {
+                EvalScopeExpression::Item(item) => {
                     match &item.item {
                         ValueItem::ItemPropertyName(prop_name) => {
                             grouping.push(&prop_name.item_name);
@@ -155,7 +155,7 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
                 let items = combination.get_items();
                 for ret_exp in &ret.expressions {
                     match ret_exp {
-                        ReturnExpression::Item(ret_item) => {
+                        EvalScopeExpression::Item(ret_item) => {
                             match &ret_item.item {
                                 ValueItem::ItemPropertyName(prop_name) => {
                                     row.push(get_property_in_items(ret_item.alias.as_ref(), &prop_name.item_name, &prop_name.property_name, items)?);
@@ -190,7 +190,7 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
             let graphs = combinations.iter().map(|c| c.graph).collect::<Vec<&PropertyGraph>>();
             for ret_exp in &ret.expressions {
                 match ret_exp {
-                    ReturnExpression::FunctionCall(fun) => {
+                    EvalScopeExpression::FunctionCall(fun) => {
                         let ret_name = if let Some(a) = &fun.alias {
                             a.to_string()
                         } else {

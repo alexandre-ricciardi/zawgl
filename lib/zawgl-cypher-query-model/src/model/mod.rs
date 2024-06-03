@@ -20,7 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{ast::{Ast}, QueryStep, parameters::Parameters};
+use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, model::{Node, Relationship}};
+
+use crate::{ast::Ast, QueryStep, parameters::Parameters};
 
 pub enum Directive {
     CREATE,
@@ -56,48 +58,116 @@ pub enum ValueItem {
     ItemPropertyName(ItemPropertyName),
     NamedItem(String)
 }
+
 #[derive(Debug, Clone)]
-pub struct ReturnItem {
+pub struct ScalarResult {
+    pub name: String,
+    pub value: f64,
+}
+
+impl ScalarResult {
+    pub fn new(name: String, value: f64) -> Self {
+        ScalarResult{name, value}
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NodeResult {
+    pub name: String,
+    pub value: Node,
+}
+
+impl NodeResult {
+    pub fn new(name: String, value: Node) -> Self {
+        NodeResult{name, value}
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StringResult {
+    pub name: String,
+    pub value: String,
+}
+impl StringResult {
+    pub fn new(name: String, value: String) -> Self {
+        StringResult{name, value}
+    }
+}
+#[derive(Debug, Clone)]
+pub struct BoolResult {
+    pub name: String,
+    pub value: bool,
+}
+
+impl BoolResult {
+    pub fn new(name: String, value: bool) -> Self {
+        BoolResult{name, value}
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RelationshipResult {
+    pub name: String,
+    pub value: EdgeData<NodeIndex, EdgeIndex, Relationship>,
+}
+
+impl RelationshipResult {
+    pub fn new(name: String, value: EdgeData<NodeIndex, EdgeIndex, Relationship>) -> Self {
+        RelationshipResult{name, value}
+    }
+}
+pub enum EvalResultItem {
+    Node(NodeResult),
+    Relationship(RelationshipResult),
+    Scalar(ScalarResult),
+    Bool(BoolResult),
+    String(StringResult),
+}
+
+
+#[derive(Debug, Clone)]
+pub struct EvalItem {
     pub item: ValueItem,
     pub alias: Option<String>,
 }
 
-impl ReturnItem {
+impl EvalItem {
     pub fn new_property(item_name: &str, prop_name: &str) -> Self {
-        ReturnItem{item: ValueItem::ItemPropertyName(ItemPropertyName::new(item_name, prop_name)), alias: None}
+        EvalItem{item: ValueItem::ItemPropertyName(ItemPropertyName::new(item_name, prop_name)), alias: None}
     }
     pub fn new_named_item(name: &str) -> Self {
-        ReturnItem{item: ValueItem::NamedItem(name.to_string()), alias: None}
+        EvalItem{item: ValueItem::NamedItem(name.to_string()), alias: None}
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum ReturnExpression {
+pub enum EvalScopeExpression {
     FunctionCall(FunctionCall),
-    Item(ReturnItem),
+    Item(EvalItem),
 }
 
-pub struct ReturnClause {
-    pub expressions: Vec<ReturnExpression>,
+#[derive(Debug, Clone)]
+pub struct EvalScopeClause {
+    pub expressions: Vec<EvalScopeExpression>,
 }
 
-impl Default for ReturnClause {
+impl Default for EvalScopeClause {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ReturnClause {
+impl EvalScopeClause {
     pub fn new() -> Self {
-        ReturnClause{expressions: Vec::new()}
+        EvalScopeClause{expressions: Vec::new()}
     }
-    pub fn new_expression(expressions: Vec<ReturnExpression>) -> Self {
-        ReturnClause{expressions}
+    pub fn new_expression(expressions: Vec<EvalScopeExpression>) -> Self {
+        EvalScopeClause{expressions}
     }
 
     pub fn has_wildcard(&self) -> bool {
         for exp in &self.expressions {
-            if let ReturnExpression::Item(item) = exp {
+            if let EvalScopeExpression::Item(item) = exp {
                 if let ValueItem::NamedItem(ni) = &item.item {
                     if ni == "*" {
                         return true;
@@ -110,7 +180,7 @@ impl ReturnClause {
 
     pub fn contains_aggregation_function(&self) -> bool {
         for exp in &self.expressions {
-            if let ReturnExpression::FunctionCall(func) = exp {
+            if let EvalScopeExpression::FunctionCall(func) = exp {
                 if matches!(func.name.as_str(), "sum" | "collect" | "count") {
                     return true
                 }
@@ -152,7 +222,7 @@ pub struct BoolCondition {
 
 pub struct Request {
     pub steps: Vec<QueryStep>,
-    pub return_clause: Option<ReturnClause>,
+    pub return_clause: Option<EvalScopeClause>,
 }
 
 impl Request {

@@ -22,7 +22,6 @@
 use super::*;
 use super::lexer::LexerError;
 use super::parser::error::ParserError;
-use serde_json::StreamDeserializer;
 use zawgl_core::model::*;
 use crate::tx_handler::DatabaseError;
 
@@ -34,7 +33,7 @@ pub mod where_clause_filter;
 use zawgl_cypher_query_model::parameters::Parameters;
 use zawgl_cypher_query_model::{QueryStep, StepType};
 use zawgl_cypher_query_model::ast::{AstTagNode, Ast, AstVisitorResult, AstVisitor};
-use zawgl_cypher_query_model::model::{Request, ReturnClause, WhereClause, ReturnExpression, FunctionCall, ReturnItem, ValueItem, ItemPropertyName};
+use zawgl_cypher_query_model::model::{Request, EvalScopeClause, WhereClause, EvalScopeExpression, FunctionCall, EvalItem, ValueItem, ItemPropertyName};
 
 use states::*;
 use path_builder::*;
@@ -49,6 +48,7 @@ pub enum CypherError {
     RequestError,
     ResponseError,
     TxError(DatabaseError),
+    EvalError,
 }
 
 
@@ -61,6 +61,7 @@ impl fmt::Display for CypherError {
             CypherError::RequestError => f.write_str("request error"),
             CypherError::ResponseError => f.write_str("response error"),
             CypherError::TxError(te) => f.write_str(&format!("tx error {}", te)),
+            CypherError::EvalError => f.write_str("eval error"),
         }
     }
 }
@@ -97,7 +98,7 @@ struct CypherAstVisitor {
     params: Option<Parameters>,
     current_identifier: Option<String>,
     item_prop_path: Vec<String>,
-    var_scope_filter: Vec<ReturnExpression>,
+    var_scope_filter: Vec<EvalScopeExpression>,
 }
 
 impl CypherAstVisitor {
@@ -143,10 +144,10 @@ impl CypherAstVisitor {
     fn check_var_scope(&mut self, curr_var: &str) -> bool {
         !self.var_scope_filter.is_empty() && self.var_scope_filter.iter().map(|re| {
             match re {
-                ReturnExpression::FunctionCall(fc) => {
+                EvalScopeExpression::FunctionCall(fc) => {
                     fc.alias.clone()
                 }
-                ReturnExpression::Item(i) => {
+                EvalScopeExpression::Item(i) => {
                     i.alias.clone()
                 }
             }
@@ -169,7 +170,7 @@ impl AstVisitor for CypherAstVisitor {
     fn enter_return(&mut self) -> AstVisitorResult {
         self.set_visitor_state(VisitorState::ReturnClause);
         if let Some(request) = &mut self.request {
-            request.return_clause = Some(ReturnClause::new());
+            request.return_clause = Some(EvalScopeClause::new());
         }
         Ok(())
     }
@@ -299,17 +300,17 @@ impl AstVisitor for CypherAstVisitor {
                 let curr_state = self.get_visitor_state();
                 match curr_state {
                     VisitorState::FunctionCall => {
-                        self.var_scope_filter.push(ReturnExpression::FunctionCall(FunctionCall::new(key)));
+                        self.var_scope_filter.push(EvalScopeExpression::FunctionCall(FunctionCall::new(key)));
                     },
                     VisitorState::FunctionArg => {
                         if let Some(expr) = self.var_scope_filter.last_mut() {
-                            if let ReturnExpression::FunctionCall(func_call) = expr {
+                            if let EvalScopeExpression::FunctionCall(func_call) = expr {
                                 func_call.args.push(ValueItem::NamedItem(key.to_string()));
                             }
                         }
                     },
                     VisitorState::ReturnItem => {
-                        self.var_scope_filter.push(ReturnExpression::Item(ReturnItem::new_named_item(key)));
+                        self.var_scope_filter.push(EvalScopeExpression::Item(EvalItem::new_named_item(key)));
                     }
                     VisitorState::ItemPropertyIdentifier => {
                         self.item_prop_path.push(key.to_string());
@@ -363,7 +364,7 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_query(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_return(&mut self) -> AstVisitorResult { 
         if let Some(req) = &mut self.request {
-            req.return_clause = Some(ReturnClause::new_expression(self.var_scope_filter.clone()));
+            req.return_clause = Some(EvalScopeClause::new_expression(self.var_scope_filter.clone()));
         }
         Ok(())
     }
@@ -411,7 +412,7 @@ impl AstVisitor for CypherAstVisitor {
         match state {
             VisitorState::FunctionArg => {
                 if let Some(expr) = self.var_scope_filter.last_mut() {
-                    if let ReturnExpression::FunctionCall(func_call) = expr {
+                    if let EvalScopeExpression::FunctionCall(func_call) = expr {
                         func_call.args.push(ValueItem::ItemPropertyName(ItemPropertyName::new(&self.item_prop_path[0], &self.item_prop_path[1])));
                     }
                 }
@@ -462,8 +463,8 @@ impl AstVisitor for CypherAstVisitor {
         if let Some(alias) = &self.current_identifier {
             if let Some(expr) = self.var_scope_filter.last_mut() {
                 match expr {
-                    ReturnExpression::FunctionCall(fun) => fun.alias = Some(alias.to_string()),
-                    ReturnExpression::Item(item) => item.alias = Some(alias.to_string()),
+                    EvalScopeExpression::FunctionCall(fun) => fun.alias = Some(alias.to_string()),
+                    EvalScopeExpression::Item(item) => item.alias = Some(alias.to_string()),
                 }
             }
         }
@@ -478,7 +479,7 @@ impl AstVisitor for CypherAstVisitor {
     
     fn exit_with_operator(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
-            request.steps.push(QueryStep::new(StepType::WITH(self.var_scope_filter.clone())))
+            request.steps.push(QueryStep::new(StepType::WITH(EvalScopeClause::new_expression(self.var_scope_filter.clone()))))
         }
         Ok(())
     }
@@ -631,7 +632,7 @@ mod test_query_engine {
             assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
             assert_eq!(rel.get_status(), &Status::Match);
             let ret = req.return_clause.as_ref().expect("return clause").expressions.first().expect("a return function with alias");
-            if let ReturnExpression::FunctionCall(func) = ret {
+            if let EvalScopeExpression::FunctionCall(func) = ret {
                 assert_eq!(func.alias, Some("total".to_string()));
                 assert_eq!(func.name, "sum".to_string());
                 assert_eq!(func.args.len(), 1);
