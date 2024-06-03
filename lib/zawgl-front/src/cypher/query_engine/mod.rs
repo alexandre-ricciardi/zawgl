@@ -299,29 +299,17 @@ impl AstVisitor for CypherAstVisitor {
                 let curr_state = self.get_visitor_state();
                 match curr_state {
                     VisitorState::FunctionCall => {
-                        if let Some(req) = &mut self.request {
-                            if let Some(ret) = &mut req.return_clause {
-                                ret.expressions.push(ReturnExpression::FunctionCall(FunctionCall::new(key)));
-                            }
-                        }
+                        self.var_scope_filter.push(ReturnExpression::FunctionCall(FunctionCall::new(key)));
                     },
                     VisitorState::FunctionArg => {
-                        if let Some(req) = &mut self.request {
-                            if let Some(ret) = &mut req.return_clause {
-                                if let Some(expr) = ret.expressions.last_mut() {
-                                    if let ReturnExpression::FunctionCall(func_call) = expr {
-                                        func_call.args.push(ValueItem::NamedItem(key.to_string()));
-                                    }
-                                }
+                        if let Some(expr) = self.var_scope_filter.last_mut() {
+                            if let ReturnExpression::FunctionCall(func_call) = expr {
+                                func_call.args.push(ValueItem::NamedItem(key.to_string()));
                             }
                         }
                     },
                     VisitorState::ReturnItem => {
-                        if let Some(req) = &mut self.request {
-                            if let Some(ret) = &mut req.return_clause {
-                                ret.expressions.push(ReturnExpression::Item(ReturnItem::new_named_item(key)));
-                            }
-                        }
+                        self.var_scope_filter.push(ReturnExpression::Item(ReturnItem::new_named_item(key)));
                     }
                     VisitorState::ItemPropertyIdentifier => {
                         self.item_prop_path.push(key.to_string());
@@ -373,7 +361,12 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_variable(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_label(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_query(&mut self) -> AstVisitorResult { Ok(())}
-    fn exit_return(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_return(&mut self) -> AstVisitorResult { 
+        if let Some(req) = &mut self.request {
+            req.return_clause = Some(ReturnClause::new_expression(self.var_scope_filter.clone()));
+        }
+        Ok(())
+    }
     fn exit_function(&mut self) -> AstVisitorResult { 
         self.set_visitor_state(VisitorState::Empty);    
         Ok(())
@@ -417,13 +410,9 @@ impl AstVisitor for CypherAstVisitor {
         let state = self.pop_visitor_state();
         match state {
             VisitorState::FunctionArg => {
-                if let Some(req) = &mut self.request {
-                    if let Some(ret) = &mut req.return_clause {
-                        if let Some(expr) = ret.expressions.last_mut() {
-                            if let ReturnExpression::FunctionCall(func_call) = expr {
-                                func_call.args.push(ValueItem::ItemPropertyName(ItemPropertyName::new(&self.item_prop_path[0], &self.item_prop_path[1])));
-                            }
-                        }
+                if let Some(expr) = self.var_scope_filter.last_mut() {
+                    if let ReturnExpression::FunctionCall(func_call) = expr {
+                        func_call.args.push(ValueItem::ItemPropertyName(ItemPropertyName::new(&self.item_prop_path[0], &self.item_prop_path[1])));
                     }
                 }
             }
@@ -471,14 +460,10 @@ impl AstVisitor for CypherAstVisitor {
 
     fn exit_as_operator(&mut self) -> AstVisitorResult {
         if let Some(alias) = &self.current_identifier {
-            if let Some(req) = &mut self.request {
-                if let Some(ret) = &mut req.return_clause {
-                    if let Some(expr) = ret.expressions.last_mut() {
-                        match expr {
-                            ReturnExpression::FunctionCall(fun) => fun.alias = Some(alias.to_string()),
-                            ReturnExpression::Item(item) => item.alias = Some(alias.to_string()),
-                        }
-                    }
+            if let Some(expr) = self.var_scope_filter.last_mut() {
+                match expr {
+                    ReturnExpression::FunctionCall(fun) => fun.alias = Some(alias.to_string()),
+                    ReturnExpression::Item(item) => item.alias = Some(alias.to_string()),
                 }
             }
         }
@@ -493,7 +478,7 @@ impl AstVisitor for CypherAstVisitor {
     
     fn exit_with_operator(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
-            //request.steps.push(QueryStep::new(StepType::WITH(())))
+            request.steps.push(QueryStep::new(StepType::WITH(self.var_scope_filter.clone())))
         }
         Ok(())
     }

@@ -91,6 +91,9 @@ impl ReturnClause {
     pub fn new() -> Self {
         ReturnClause{expressions: Vec::new()}
     }
+    pub fn new_expression(expressions: Vec<ReturnExpression>) -> Self {
+        ReturnClause{expressions}
+    }
 
     pub fn has_wildcard(&self) -> bool {
         for exp in &self.expressions {
