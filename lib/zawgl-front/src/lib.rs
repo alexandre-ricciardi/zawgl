@@ -27,7 +27,7 @@ use std::{collections::{HashMap, hash_map::Entry}, slice::Iter};
 use bson::{Bson, Document, doc};
 use cypher::query_engine::{process_cypher_query, CypherError};
 use zawgl_core::{model::{Property, PropertyValue, PropertyGraph, Relationship, Node}, graph::{EdgeData, NodeIndex, EdgeIndex}};
-use zawgl_cypher_query_model::{parameters::build_parameters, model::{Request, EvalScopeExpression, ValueItem}};
+use zawgl_cypher_query_model::{model::{EvalScopeClause, EvalScopeExpression, Request, ValueItem}, parameters::build_parameters, QueryResult, StepType};
 use tx_handler::{handle_graph_request, request_handler::RequestHandler, handler::TxHandler, DatabaseError};
 
 extern crate zawgl_core;
@@ -44,10 +44,10 @@ pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: 
     let request = process_cypher_query(query, params);
     match request {
         Ok(r) => {
-            let matched_graphs = handle_graph_request(tx_handler, graph_request_handler.clone(), r.steps.to_vec(), None);
-            match matched_graphs {
-                Ok(mg) => {
-                    build_response(request_id, mg, &r)
+            let oqr = handle_graph_request(tx_handler, graph_request_handler.clone(), r.steps.to_vec(), None);
+            match oqr {
+                Ok(qr) => {
+                    build_response(request_id, qr, &r)
                 },
                 Err(e) => {
                     graph_request_handler.lock().unwrap().cancel();
@@ -72,18 +72,32 @@ fn build_cypher_error(request_id: &str, err: CypherError) -> Result<Document, Cy
     response_doc.insert("error", format!("database error {}", err));
     Ok(response_doc)
 }
-fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request: &Request) -> Result<Document, CypherError> {
+
+fn get_return_clause(request: &Request) -> Option<&EvalScopeClause> {
+    request.steps.last().and_then(|ret| {
+        match &ret.step_type {
+            StepType::RETURN(ret_clause) => Some(ret_clause),
+            _ => None
+        }
+    })
+}
+
+fn build_response(request_id: &str, qr: QueryResult, request: &Request) -> Result<Document, CypherError> {
     let mut result_doc = Document::new();
     let mut graph_list = Vec::new();
-    
-    if let Some(ret) = &request.return_clause {
-        let wildcard = ret.has_wildcard();
-        for pattern in &matched_graphs {
-            let mut graph_doc = Document::new();  
-            let mut nodes_doc = Vec::new();
-            let mut rels_doc = Vec::new();
-            
-            for ret_exp in &ret.expressions {
+    let return_wildcard = request.steps.last().map(|ret| {
+        match ret.step_type {
+            StepType::RETURN(ret_clause) => ret_clause.has_wildcard(),
+            _ => false
+        }
+    });
+    let wildcard = return_wildcard == Some(true);
+    for pattern in &qr.matched_graphs {
+        let mut graph_doc = Document::new();  
+        let mut nodes_doc = Vec::new();
+        let mut rels_doc = Vec::new();
+        if let Some(ret_clause) = get_return_clause(request) {
+            for ret_exp in &ret_clause.expressions {
                 match ret_exp {
                     EvalScopeExpression::Item(item) => {
                         match &item.item {
@@ -97,123 +111,33 @@ fn build_response(request_id: &str, matched_graphs: Vec<PropertyGraph>, request:
                     _ => {}
                 }
             }
-            
-            if !nodes_doc.is_empty() {
-                graph_doc.insert("nodes", nodes_doc);
-            }
-            if !rels_doc.is_empty() {
-                graph_doc.insert("relationships", rels_doc);
-            }
-            if !graph_doc.is_empty() {
-                graph_list.push(graph_doc);
-            }
         }
-
-        let mut grouping = Vec::new();
-        for ret_exp in &ret.expressions {
-            match ret_exp {
-                EvalScopeExpression::Item(item) => {
-                    match &item.item {
-                        ValueItem::ItemPropertyName(prop_name) => {
-                            grouping.push(&prop_name.item_name);
-                        },
-                        ValueItem::NamedItem(named_item) => {
-                            grouping.push(named_item);
-                        }
-                    }
-                },
-                _ => {}
-            }
-        }
-
-        let mut combinations = vec![];
-        let mut curr_items = vec![];
-        for graph in &matched_graphs {
-            build_items_combinations(grouping.iter(), &graph, &mut combinations, &mut curr_items)?;
-        }
-
-        let mut values_doc = vec![];
         
-        let mut aggregations = HashMap::new();
-
-        for combination in &combinations {
-            let ids = combination.get_item_ids();
-            if let Entry::Vacant(e) = aggregations.entry(ids) {
-                e.insert(vec![combination]);
-            } else {
-                let idsref = combination.get_item_ids();
-                aggregations.get_mut(&idsref).unwrap().push(combination);
-            }
+        if !nodes_doc.is_empty() {
+            graph_doc.insert("nodes", nodes_doc);
         }
-
-
-
-
-        for combinations in aggregations.values() {
-            let mut row = vec![];
-            if let Some(combination) = combinations.first() {
-                let items = combination.get_items();
-                for ret_exp in &ret.expressions {
-                    match ret_exp {
-                        EvalScopeExpression::Item(ret_item) => {
-                            match &ret_item.item {
-                                ValueItem::ItemPropertyName(prop_name) => {
-                                    row.push(get_property_in_items(ret_item.alias.as_ref(), &prop_name.item_name, &prop_name.property_name, items)?);
-                                },
-                                ValueItem::NamedItem(named_item) => {
-                                    for item in &combination.items {
-                                        match item {
-                                            Item::Node(n) => {
-                                                if let Some(var) = n.get_var() {
-                                                    if var == named_item {
-                                                        row.push(make_node_doc(ret_item.alias.as_ref(), &named_item, n)?);
-                                                    }
-                                                }
-                                            },
-                                            Item::Relationship(rel) => {
-                                                if let Some(var) = rel.relationship.get_var() {
-                                                    if var == named_item {
-                                                        row.push(make_relationship_doc(ret_item.alias.as_ref(), &named_item, rel, combination.graph)?);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        _ => {}
-                    }
-                }
-            }
-
-            let graphs = combinations.iter().map(|c| c.graph).collect::<Vec<&PropertyGraph>>();
-            for ret_exp in &ret.expressions {
-                match ret_exp {
-                    EvalScopeExpression::FunctionCall(fun) => {
-                        let ret_name = if let Some(a) = &fun.alias {
-                            a.to_string()
-                        } else {
-                            "sum".to_string()
-                        };
-                        match fun.name.as_str() {
-                            "sum" => {
-                                let sum = compute_sum(&fun.args, &graphs);
-                                row.push(doc! {ret_name: sum});
-                            },
-                            _ => {}
-                        }
-                    },
-                    _ => {}
-                }
-            }
-            values_doc.push(row);
+        if !rels_doc.is_empty() {
+            graph_doc.insert("relationships", rels_doc);
         }
-
-        if !values_doc.is_empty() {
-            result_doc.insert("values", values_doc);
+        if !graph_doc.is_empty() {
+            graph_list.push(graph_doc);
         }
     }
+
+    let mut values_doc = vec![];
+    for res in qr.return_eval {
+        let mut row = vec![];
+        for item in res {
+            row.push(value)
+        }
+        values_doc.push(row);
+    }
+    
+
+    if !values_doc.is_empty() {
+        result_doc.insert("values", values_doc);
+    }
+    
     if !graph_list.is_empty() {
         result_doc.insert("graphs", graph_list);
     }

@@ -26,7 +26,7 @@ use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::GraphEng
 mod pattern_builder;
 
 use pattern_builder::{build_pattern, merge_patterns};
-use zawgl_cypher_query_model::{ast::AstVisitorError, model::{BoolResult, EvalResultItem, EvalScopeExpression, NodeResult, RelationshipResult, ScalarResult, StringResult, ValueItem, WhereClause}, QueryStep, StepType};
+use zawgl_cypher_query_model::{ast::AstVisitorError, model::{BoolResult, EvalResultItem, EvalScopeClause, EvalScopeExpression, NodeResult, RelationshipResult, ScalarResult, StringResult, ValueItem, WhereClause}, QueryResult, QueryStep, StepType};
 
 use crate::cypher::{parser, query_engine::{where_clause_filter::WhereClauseAstVisitor, CypherError}};
 
@@ -53,9 +53,10 @@ pub fn make_cartesian_product<T>(pools: &[Vec<T>]) -> Vec<Vec<&T>> {
     res
 }
 
-pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Result<Vec<PropertyGraph>, CypherError> {
+pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Result<QueryResult, CypherError> {
     let mut results = Vec::<Vec<PropertyGraph>>::new();
     let mut eval_results = Vec::<Vec<EvalResultItem>>::new();
+    let mut return_eval_results = Vec::<Vec<EvalResultItem>>::new();
     let mut first_step = true;
     for step in steps {
         match step.step_type {
@@ -96,110 +97,118 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                 }
             },
             StepType::WITH(eval_scope) => {
-                let matched_graphs = flatten_results(&mut results);
-                let mut grouping = Vec::new();
-                for ret_exp in &eval_scope.expressions {
-                    match ret_exp {
-                        EvalScopeExpression::Item(item) => {
-                            match &item.item {
-                                ValueItem::ItemPropertyName(prop_name) => {
-                                    grouping.push(&prop_name.item_name);
-                                },
-                                ValueItem::NamedItem(named_item) => {
-                                    grouping.push(named_item);
-                                }
-                            }
-                        },
-                        _ => {}
-                    }
-                }
-        
-                let mut combinations = vec![];
-                let mut curr_items = vec![];
-                for graph in &matched_graphs {
-                    build_items_combinations(grouping.iter(), &graph, &mut combinations, &mut curr_items)?;
-                }
-        
-                let mut eval_result_scope = vec![];
-                
-                let mut aggregations = HashMap::new();
-        
-                for combination in &combinations {
-                    let ids = combination.get_item_ids();
-                    if let Entry::Vacant(e) = aggregations.entry(ids) {
-                        e.insert(vec![combination]);
-                    } else {
-                        let idsref = combination.get_item_ids();
-                        aggregations.get_mut(&idsref).unwrap().push(combination);
-                    }
-                }
-        
-                for combinations in aggregations.values() {
-                    let mut row = vec![];
-                    if let Some(combination) = combinations.first() {
-                        let items = combination.get_items();
-                        for ret_exp in &eval_scope.expressions {
-                            match ret_exp {
-                                EvalScopeExpression::Item(ret_item) => {
-                                    match &ret_item.item {
-                                        ValueItem::ItemPropertyName(prop_name) => {
-                                            row.push(get_property_in_items(ret_item.alias.as_ref(), &prop_name.item_name, &prop_name.property_name, items)?);
-                                        },
-                                        ValueItem::NamedItem(named_item) => {
-                                            for item in &combination.items {
-                                                match item {
-                                                    Item::Node(n) => {
-                                                        if let Some(var) = n.get_var() {
-                                                            if var == named_item {
-                                                                row.push(EvalResultItem::Node(make_node(ret_item.alias.as_ref(), &named_item, n)));
-                                                            }
-                                                        }
-                                                    },
-                                                    Item::Relationship(rel) => {
-                                                        if let Some(var) = rel.relationship.get_var() {
-                                                            if var == named_item {
-                                                                row.push(EvalResultItem::Relationship(make_relationship(ret_item.alias.as_ref(), &named_item, rel, combination.graph)));
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                _ => {}
-                            }
-                        }
-                    }
-        
-                    let graphs = combinations.iter().map(|c| c.graph).collect::<Vec<&PropertyGraph>>();
-                    for ret_exp in &eval_scope.expressions {
-                        match ret_exp {
-                            EvalScopeExpression::FunctionCall(fun) => {
-                                let ret_name = if let Some(a) = &fun.alias {
-                                    a.to_string()
-                                } else {
-                                    "sum".to_string()
-                                };
-                                match fun.name.as_str() {
-                                    "sum" => {
-                                        let sum = compute_sum(&fun.args, &graphs);
-                                        row.push(EvalResultItem::Scalar(ScalarResult::new(ret_name, sum)));
-                                    },
-                                    _ => {}
-                                }
-                            },
-                            _ => {}
-                        }
-                    }
-                    eval_result_scope.push(row);
-                }
-                eval_results = eval_result_scope;
+                eval_results = handle_eval(&mut results, eval_scope)?;
+                results = vec![];
+            },
+            StepType::RETURN(eval_scope) => {
+                return_eval_results = handle_eval(&mut results, eval_scope)?;
             },
         }
         first_step = false;
     }
-    Ok(flatten_results(&mut results))
+    Ok(QueryResult::new(flatten_results(&mut results), return_eval_results))
+}
+
+fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeClause) -> Result<Vec<Vec<EvalResultItem>>, CypherError> {
+    let matched_graphs = flatten_results(results);
+    let mut grouping = Vec::new();
+    for ret_exp in &eval_scope.expressions {
+        match ret_exp {
+            EvalScopeExpression::Item(item) => {
+                match &item.item {
+                    ValueItem::ItemPropertyName(prop_name) => {
+                        grouping.push(&prop_name.item_name);
+                    },
+                    ValueItem::NamedItem(named_item) => {
+                        grouping.push(named_item);
+                    }
+                }
+            },
+            _ => {}
+        }
+    }
+
+    let mut combinations = vec![];
+    let mut curr_items = vec![];
+    for graph in &matched_graphs {
+        build_items_combinations(grouping.iter(), &graph, &mut combinations, &mut curr_items)?;
+    }
+
+    let mut eval_result_scope = vec![];
+    
+    let mut aggregations = HashMap::new();
+
+    for combination in &combinations {
+        let ids = combination.get_item_ids();
+        if let Entry::Vacant(e) = aggregations.entry(ids) {
+            e.insert(vec![combination]);
+        } else {
+            let idsref = combination.get_item_ids();
+            aggregations.get_mut(&idsref).unwrap().push(combination);
+        }
+    }
+
+    for combinations in aggregations.values() {
+        let mut row = vec![];
+        if let Some(combination) = combinations.first() {
+            let items = combination.get_items();
+            for ret_exp in &eval_scope.expressions {
+                match ret_exp {
+                    EvalScopeExpression::Item(ret_item) => {
+                        match &ret_item.item {
+                            ValueItem::ItemPropertyName(prop_name) => {
+                                row.push(get_property_in_items(ret_item.alias.as_ref(), &prop_name.item_name, &prop_name.property_name, items)?);
+                            },
+                            ValueItem::NamedItem(named_item) => {
+                                for item in &combination.items {
+                                    match item {
+                                        Item::Node(n) => {
+                                            if let Some(var) = n.get_var() {
+                                                if var == named_item {
+                                                    row.push(EvalResultItem::Node(make_node(ret_item.alias.as_ref(), &named_item, n)));
+                                                }
+                                            }
+                                        },
+                                        Item::Relationship(rel) => {
+                                            if let Some(var) = rel.relationship.get_var() {
+                                                if var == named_item {
+                                                    row.push(EvalResultItem::Relationship(make_relationship(ret_item.alias.as_ref(), &named_item, rel, combination.graph)));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    _ => {}
+                }
+            }
+        }
+
+        let graphs = combinations.iter().map(|c| c.graph).collect::<Vec<&PropertyGraph>>();
+        for ret_exp in &eval_scope.expressions {
+            match ret_exp {
+                EvalScopeExpression::FunctionCall(fun) => {
+                    let ret_name = if let Some(a) = &fun.alias {
+                        a.to_string()
+                    } else {
+                        "sum".to_string()
+                    };
+                    match fun.name.as_str() {
+                        "sum" => {
+                            let sum = compute_sum(&fun.args, &graphs);
+                            row.push(EvalResultItem::Scalar(ScalarResult::new(ret_name, sum)));
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+        eval_result_scope.push(row);
+    }
+    Ok(eval_result_scope)
 }
 
 fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>) -> Vec::<Vec<PropertyGraph>> {

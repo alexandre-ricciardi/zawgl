@@ -29,7 +29,7 @@ use request_handler::RequestHandler;
 use handler::{Scenario, TxHandler, TxStatus};
 
 use zawgl_core::model::PropertyGraph;
-use zawgl_cypher_query_model::QueryStep;
+use zawgl_cypher_query_model::{QueryResult, QueryStep};
 use self::tx_context::TxContext;
 
 pub struct ResultGraph {
@@ -53,7 +53,7 @@ impl fmt::Display for DatabaseError {
     }
 }
 
-pub fn handle_graph_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, steps: Vec<QueryStep>, tx_context: Option<TxContext>) -> Result<Vec<PropertyGraph>, DatabaseError> {
+pub fn handle_graph_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, steps: Vec<QueryStep>, tx_context: Option<TxContext>) -> Result<QueryResult, DatabaseError> {
     let tx_lock = tx_handler.lock();
     let tx_status = tx_lock.borrow_mut().get_session_status(tx_context.clone());
     match tx_status {

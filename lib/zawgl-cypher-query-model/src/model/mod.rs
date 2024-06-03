@@ -124,7 +124,6 @@ pub enum EvalResultItem {
     String(StringResult),
 }
 
-
 #[derive(Debug, Clone)]
 pub struct EvalItem {
     pub item: ValueItem,
@@ -222,12 +221,11 @@ pub struct BoolCondition {
 
 pub struct Request {
     pub steps: Vec<QueryStep>,
-    pub return_clause: Option<EvalScopeClause>,
 }
 
 impl Request {
     pub fn new() -> Self {
-        Request {steps: Vec::new(), return_clause: None}
+        Request {steps: Vec::new()}
     }
 }
 

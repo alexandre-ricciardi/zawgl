@@ -24,9 +24,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use std::sync::Mutex;
+use std::vec;
 use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::model::PropertyGraph;
 use zawgl_core::model::init::InitContext;
+use zawgl_cypher_query_model::QueryResult;
 use zawgl_cypher_query_model::QueryStep;
 use crate::planner::handle_query_steps;
 
@@ -49,7 +51,7 @@ impl <'a> GraphRequestHandler {
         GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new(), graph_engine , commit_tx: Vec::new()}
     }
 
-    pub fn handle_graph_request(&mut self, steps: Vec<QueryStep>) -> Result<Vec<PropertyGraph>, DatabaseError> {
+    pub fn handle_graph_request(&mut self, steps: Vec<QueryStep>) -> Result<QueryResult, DatabaseError> {
         
         let matched_graphs = handle_query_steps(steps, &mut self.graph_engine).map_err(|_err| DatabaseError::EngineError)?;
         Ok(matched_graphs)
@@ -67,15 +69,15 @@ impl <'a> GraphRequestHandler {
         self.commit_tx.clear();
     }
 
-    pub fn handle_graph_request_tx(&mut self, steps: Vec<QueryStep>, tx_context: TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
+    pub fn handle_graph_request_tx(&mut self, steps: Vec<QueryStep>, tx_context: TxContext) -> Result<QueryResult, DatabaseError> {
         let graph_engine = self.map_session_graph_engine.get_mut(&tx_context.session_id).ok_or(DatabaseError::TxError)?;
         let matched_graphs = handle_query_steps(steps, graph_engine).map_err(|_err|DatabaseError::EngineError)?;
         Ok(matched_graphs)
     }
 
-    pub fn commit_tx(&mut self, tx_context: TxContext) -> Result<Vec<PropertyGraph>, DatabaseError> {
+    pub fn commit_tx(&mut self, tx_context: TxContext) -> Result<QueryResult, DatabaseError> {
         self.commit_tx.push(tx_context.session_id.to_string());
-        Ok(Vec::new())
+        Ok(QueryResult::new(vec![], vec![]))
     }
 
     pub fn cancel(&mut self) {

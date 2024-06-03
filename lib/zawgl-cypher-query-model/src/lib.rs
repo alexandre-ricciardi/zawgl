@@ -1,4 +1,4 @@
-use model::{EvalScopeClause, WhereClause};
+use model::{EvalResultItem, EvalScopeClause, WhereClause};
 use zawgl_core::model::PropertyGraph;
 
 pub mod model;
@@ -30,7 +30,7 @@ pub mod parameters;
 
 #[derive(Clone)]
 pub enum StepType {
-    MATCH, CREATE, DELETE, WHERE, WITH(EvalScopeClause)
+    MATCH, CREATE, DELETE, WHERE, WITH(EvalScopeClause), RETURN(EvalScopeClause)
 }
 
 #[derive(Clone)]
@@ -51,5 +51,13 @@ impl QueryStep {
 }
 
 pub struct QueryResult {
-    pub patterns: Vec<PropertyGraph>,
+    pub matched_graphs: Vec<PropertyGraph>,
+    pub return_eval: Vec::<Vec<EvalResultItem>>,
+}
+
+impl QueryResult {
+    pub fn new(matched_graphs: Vec<PropertyGraph>, return_eval: Vec::<Vec<EvalResultItem>>) -> Self {
+        QueryResult{matched_graphs, return_eval}
+    }
+    
 }

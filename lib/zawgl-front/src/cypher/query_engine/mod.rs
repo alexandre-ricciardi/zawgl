@@ -169,9 +169,6 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_return(&mut self) -> AstVisitorResult {
         self.set_visitor_state(VisitorState::ReturnClause);
-        if let Some(request) = &mut self.request {
-            request.return_clause = Some(EvalScopeClause::new());
-        }
         Ok(())
     }
     fn enter_where(&mut self, node: &AstTagNode) -> AstVisitorResult {
@@ -182,9 +179,7 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_function(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
-            if let Some(_) = &mut request.return_clause {
-                self.push_visitor_state(VisitorState::FunctionCall);
-            }
+            self.push_visitor_state(VisitorState::FunctionCall);
         }
         Ok(())
     }
@@ -364,7 +359,7 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_query(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_return(&mut self) -> AstVisitorResult { 
         if let Some(req) = &mut self.request {
-            req.return_clause = Some(EvalScopeClause::new_expression(self.var_scope_filter.clone()));
+            req.steps.push(QueryStep::new(StepType::RETURN(EvalScopeClause::new_expression(self.var_scope_filter.clone()))))
         }
         Ok(())
     }
@@ -631,11 +626,12 @@ mod test_query_engine {
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
             assert_eq!(rel.get_status(), &Status::Match);
-            let ret = req.return_clause.as_ref().expect("return clause").expressions.first().expect("a return function with alias");
-            if let EvalScopeExpression::FunctionCall(func) = ret {
-                assert_eq!(func.alias, Some("total".to_string()));
-                assert_eq!(func.name, "sum".to_string());
-                assert_eq!(func.args.len(), 1);
+            if let StepType::RETURN(eval) = &req.steps.last().expect("return clause").step_type {
+                if let EvalScopeExpression::FunctionCall(func) = eval.expressions.first().expect("a return function with alias") {
+                    assert_eq!(func.alias, Some("total".to_string()));
+                    assert_eq!(func.name, "sum".to_string());
+                    assert_eq!(func.args.len(), 1);
+                }
             }
         } else {
             assert!(false, "no request found");
