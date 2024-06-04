@@ -322,18 +322,6 @@ fn compute_sum(args: &Vec<ValueItem>, graphs: &Vec<&PropertyGraph>) -> f64 {
     }
     sum_value
 }
-fn get_nodes_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Vec<NodeResult> {
-    let mut nodes = vec![];
-    for node in graph.get_nodes() {
-        if let Some(var) = node.get_var() {
-            if var == name || ret_all {
-                nodes.push(make_node(alias, name, node));
-            }
-        }
-    }
-    nodes
-}
-
 
 fn make_node(alias: Option<&String>, name: &str, node: &Node) -> NodeResult {
     let ret_name = if let Some(a) = alias {
@@ -357,18 +345,6 @@ fn make_relationship(alias: Option<&String>, name: &str, rel: &EdgeData<NodeInde
     let sid = graph.get_node_ref(&ret_rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64;
     let tid = graph.get_node_ref(&ret_rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64;
     Ok(RelationshipResult::new(ret_name, ret_rel, sid, tid))
-}
-
-fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Result<Vec<RelationshipResult>, CypherError> {
-    let mut rels = vec![];
-    for rel in graph.get_relationships_and_edges() {
-        if let Some(var) = rel.relationship.get_var() {
-            if var == name || ret_all {
-                rels.push(make_relationship(alias, name, rel, graph)?);
-            }
-        }
-    }
-    Ok(rels)
 }
 
 fn get_property_sum_value(prop: &PropertyValue) -> f64 {
