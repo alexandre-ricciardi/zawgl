@@ -109,11 +109,13 @@ impl BoolResult {
 pub struct RelationshipResult {
     pub name: String,
     pub value: EdgeData<NodeIndex, EdgeIndex, Relationship>,
+    pub source_nid: i64,
+    pub target_nid: i64,
 }
 
 impl RelationshipResult {
-    pub fn new(name: String, value: EdgeData<NodeIndex, EdgeIndex, Relationship>) -> Self {
-        RelationshipResult{name, value}
+    pub fn new(name: String, value: EdgeData<NodeIndex, EdgeIndex, Relationship>, source_nid: i64, target_nid: i64) -> Self {
+        RelationshipResult{name, value, source_nid, target_nid}
     }
 }
 pub enum EvalResultItem {

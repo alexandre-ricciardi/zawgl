@@ -30,6 +30,7 @@ async fn _test_aggregation(mut client: Client) {
     let result1 = client.execute_cypher_request("create (test:Person) return test").await;
     let result2 = client.execute_cypher_request("create (test:Person) return test").await;
     if let (Ok(d1), Ok(d2))  = (result1, result2) {
+        println!("{}", d1.to_string());
         let id1 = extract_node_id(d1).expect("node id");
         let id2 = extract_node_id(d2).expect("node id");
         for i in 0..100 {

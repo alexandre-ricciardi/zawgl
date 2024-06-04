@@ -58,6 +58,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
     let mut eval_results = Vec::<Vec<EvalResultItem>>::new();
     let mut return_eval_results = Vec::<Vec<EvalResultItem>>::new();
     let mut first_step = true;
+    let mut result_graphs = vec![];
     for step in steps {
         match step.step_type {
             StepType::MATCH => {
@@ -97,19 +98,18 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                 }
             },
             StepType::WITH(eval_scope) => {
-                eval_results = handle_eval(&mut results, eval_scope)?;
-                results = vec![];
+                (_, eval_results) = handle_eval(&mut results, eval_scope)?;
             },
             StepType::RETURN(eval_scope) => {
-                return_eval_results = handle_eval(&mut results, eval_scope)?;
+                (result_graphs, return_eval_results) = handle_eval(&mut results, eval_scope)?;
             },
         }
         first_step = false;
     }
-    Ok(QueryResult::new(flatten_results(&mut results), return_eval_results))
+    Ok(QueryResult::new(result_graphs, return_eval_results))
 }
 
-fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeClause) -> Result<Vec<Vec<EvalResultItem>>, CypherError> {
+fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeClause) -> Result<(Vec<PropertyGraph>, Vec<Vec<EvalResultItem>>), CypherError> {
     let matched_graphs = flatten_results(results);
     let mut grouping = Vec::new();
     for ret_exp in &eval_scope.expressions {
@@ -172,7 +172,7 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
                                         Item::Relationship(rel) => {
                                             if let Some(var) = rel.relationship.get_var() {
                                                 if var == named_item {
-                                                    row.push(EvalResultItem::Relationship(make_relationship(ret_item.alias.as_ref(), &named_item, rel, combination.graph)));
+                                                    row.push(EvalResultItem::Relationship(make_relationship(ret_item.alias.as_ref(), &named_item, rel, combination.graph)?));
                                                 }
                                             }
                                         }
@@ -208,7 +208,7 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
         }
         eval_result_scope.push(row);
     }
-    Ok(eval_result_scope)
+    Ok((matched_graphs, eval_result_scope))
 }
 
 fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>) -> Vec::<Vec<PropertyGraph>> {
@@ -346,7 +346,7 @@ fn make_node(alias: Option<&String>, name: &str, node: &Node) -> NodeResult {
     NodeResult::new(ret_name, ret_node)
 }
 
-fn make_relationship(alias: Option<&String>, name: &str, rel: &EdgeData<NodeIndex, EdgeIndex, Relationship>, graph: &PropertyGraph) -> RelationshipResult {
+fn make_relationship(alias: Option<&String>, name: &str, rel: &EdgeData<NodeIndex, EdgeIndex, Relationship>, graph: &PropertyGraph) -> Result<RelationshipResult, CypherError> {
     let ret_name = if let Some(a) = alias {
         a.to_string()
     } else {
@@ -354,19 +354,21 @@ fn make_relationship(alias: Option<&String>, name: &str, rel: &EdgeData<NodeInde
     };
     let mut ret_rel = rel.clone();
     ret_rel.relationship.set_var(&ret_name);
-    RelationshipResult::new(ret_name, ret_rel)
+    let sid = graph.get_node_ref(&ret_rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64;
+    let tid = graph.get_node_ref(&ret_rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64;
+    Ok(RelationshipResult::new(ret_name, ret_rel, sid, tid))
 }
 
-fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Vec<RelationshipResult> {
+fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Result<Vec<RelationshipResult>, CypherError> {
     let mut rels = vec![];
     for rel in graph.get_relationships_and_edges() {
         if let Some(var) = rel.relationship.get_var() {
             if var == name || ret_all {
-                rels.push(make_relationship(alias, name, rel, graph));
+                rels.push(make_relationship(alias, name, rel, graph)?);
             }
         }
     }
-    rels
+    Ok(rels)
 }
 
 fn get_property_sum_value(prop: &PropertyValue) -> f64 {
