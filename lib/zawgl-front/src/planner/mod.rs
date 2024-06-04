@@ -26,7 +26,7 @@ use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::GraphEng
 mod pattern_builder;
 
 use pattern_builder::{build_pattern, merge_patterns};
-use zawgl_cypher_query_model::{ast::AstVisitorError, model::{BoolResult, EvalResultItem, EvalScopeClause, EvalScopeExpression, NodeResult, RelationshipResult, ScalarResult, StringResult, ValueItem, WhereClause}, QueryResult, QueryStep, StepType};
+use zawgl_cypher_query_model::{ast::AstVisitorError, model::{BoolResult, EvalResultItem, EvalScopeClause, EvalScopeExpression, ListResult, NodeResult, RelationshipResult, ScalarResult, StringResult, ValueItem, WhereClause}, QueryResult, QueryStep, StepType};
 
 use crate::cypher::{parser, query_engine::{where_clause_filter::WhereClauseAstVisitor, CypherError}};
 
@@ -98,10 +98,10 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                 }
             },
             StepType::WITH(eval_scope) => {
-                (_, eval_results) = handle_eval(&mut results, eval_scope)?;
+                (_, eval_results) = handle_eval(&mut results, eval_scope, &eval_results)?;
             },
             StepType::RETURN(eval_scope) => {
-                (result_graphs, return_eval_results) = handle_eval(&mut results, eval_scope)?;
+                (result_graphs, return_eval_results) = handle_eval(&mut results, eval_scope, &eval_results)?;
             },
         }
         first_step = false;
@@ -109,7 +109,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
     Ok(QueryResult::new(result_graphs, return_eval_results))
 }
 
-fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeClause) -> Result<(Vec<PropertyGraph>, Vec<Vec<EvalResultItem>>), CypherError> {
+fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeClause, eval_results: &Vec<Vec<EvalResultItem>>) -> Result<(Vec<PropertyGraph>, Vec<Vec<EvalResultItem>>), CypherError> {
     let matched_graphs = flatten_results(results);
     let mut grouping = Vec::new();
     for ret_exp in &eval_scope.expressions {
@@ -178,6 +178,13 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
                                         }
                                     }
                                 }
+                                for eval_row in eval_results {
+                                    for eval_item in eval_row {
+                                        if eval_item.get_name() == named_item {
+                                            row.push(eval_item.clone());
+                                        }                                            
+                                    }
+                                }
                             }
                         }
                     },
@@ -193,13 +200,16 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
                     let ret_name = if let Some(a) = &fun.alias {
                         a.to_string()
                     } else {
-                        "sum".to_string()
+                        fun.name.to_string()
                     };
                     match fun.name.as_str() {
                         "sum" => {
                             let sum = compute_sum(&fun.args, &graphs);
                             row.push(EvalResultItem::Scalar(ScalarResult::new(ret_name, sum)));
                         },
+                        "collect" => {
+                            row.push(EvalResultItem::List(ListResult::new(ret_name, build_item_list(&fun.args, &graphs)?)));
+                        }
                         _ => {}
                     }
                 },
@@ -321,6 +331,36 @@ fn compute_sum(args: &Vec<ValueItem>, graphs: &Vec<&PropertyGraph>) -> f64 {
         sum_value += get_property_sum_value(prop);
     }
     sum_value
+}
+
+fn build_item_list(args: &Vec<ValueItem>, graphs: &Vec<&PropertyGraph>) -> Result<Vec<EvalResultItem>, CypherError> {
+    let mut list = Vec::new();
+    for graph in graphs {
+        for node in graph.get_nodes() {
+            if let Some(var) = node.get_var() {
+                for arg in args {
+                    if let ValueItem::NamedItem(name) = arg {
+                        if name == var {
+                            list.push(EvalResultItem::Node(make_node(None, &name, node)));
+                        }
+                    }
+                }
+            }
+        }
+        for rel in graph.get_edges() {
+            if let Some(var) = rel.relationship.get_var() {
+                for arg in args {
+                    if let ValueItem::NamedItem(name) = arg {
+                        if name == var {
+                            list.push(EvalResultItem::Relationship(make_relationship(None, &name, rel, graph)?));
+                        }
+                    }
+                }
+                
+            }
+        }
+    }
+    Ok(list)
 }
 
 fn make_node(alias: Option<&String>, name: &str, node: &Node) -> NodeResult {

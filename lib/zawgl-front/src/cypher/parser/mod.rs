@@ -238,6 +238,10 @@ mod test_parser {
         with collect(end) as ps
         return ps");
     }
-    
+    #[test]
+    fn test_return_collect() {
+        run("match (s:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(end:Person)
+        return collect(end) as ps");
+    }
 }
 

@@ -104,7 +104,17 @@ impl BoolResult {
         BoolResult{name, value}
     }
 }
+#[derive(Debug, Clone)]
+pub struct ListResult {
+    pub name: String,
+    pub values: Vec<EvalResultItem>,
+}
 
+impl ListResult {
+    pub fn new(name: String, values: Vec<EvalResultItem>) -> Self {
+        ListResult{name, values}
+    }
+}
 #[derive(Debug, Clone)]
 pub struct RelationshipResult {
     pub name: String,
@@ -118,12 +128,27 @@ impl RelationshipResult {
         RelationshipResult{name, value, source_nid, target_nid}
     }
 }
+#[derive(Debug, Clone)]
 pub enum EvalResultItem {
     Node(NodeResult),
     Relationship(RelationshipResult),
     Scalar(ScalarResult),
     Bool(BoolResult),
     String(StringResult),
+    List(ListResult),
+}
+
+impl EvalResultItem {
+    pub fn get_name(&self) -> &str {
+        match self {
+            EvalResultItem::Node(i) => &i.name,
+            EvalResultItem::Relationship(i) => &i.name,
+            EvalResultItem::Scalar(i) => &i.name,
+            EvalResultItem::Bool(i) => &i.name,
+            EvalResultItem::String(i) => &i.name,
+            EvalResultItem::List(i) => &i.name,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -92,7 +92,14 @@ fn eval_item_to_bson(eval_item: &EvalResultItem) -> Result<Document, CypherError
         }),
         EvalResultItem::String(value) =>  Ok(doc! {
             value.name.to_string(): value.value.to_string()
-        })
+        }),
+        EvalResultItem::List(list) => {
+            let mut res = vec![];
+            for item in &list.values {
+                res.push(eval_item_to_bson(item)?)
+            }
+            Ok(doc! {list.name.to_string(): res})
+        }
     }
 }
 

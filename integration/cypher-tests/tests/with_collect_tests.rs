@@ -35,7 +35,7 @@ async fn _test_with_collect(mut client: Client) {
                                                                 create (new)-[:IsFriendOf]->(new2:Person {weight: $weight})
                                                                 return s", p).await;
     let res = client.execute_cypher_request("match (s:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(end:Person)
-                                                                with collect(end) as ps
-                                                                return ps").await;
+                                                                return collect(end) 
+                                                                ").await;
     println!("{}", res.expect("persons").to_string());
 }
