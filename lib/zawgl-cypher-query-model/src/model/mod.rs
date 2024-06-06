@@ -128,6 +128,7 @@ impl RelationshipResult {
         RelationshipResult{name, value, source_nid, target_nid}
     }
 }
+
 #[derive(Debug, Clone)]
 pub enum EvalResultItem {
     Node(NodeResult),

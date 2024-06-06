@@ -133,7 +133,6 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
     for graph in &matched_graphs {
         build_items_combinations(grouping.iter(), &graph, &mut combinations, &mut curr_items)?;
     }
-
     let mut eval_result_scope = vec![];
     
     let mut aggregations = HashMap::new();
@@ -170,19 +169,12 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
                                             }
                                         },
                                         Item::Relationship(rel) => {
-                                            if let Some(var) = rel.relationship.get_var() {
+                                            if let (Some(var), Some(graph)) = (rel.relationship.get_var(), combination.graph) {
                                                 if var == named_item {
-                                                    row.push(EvalResultItem::Relationship(make_relationship(ret_item.alias.as_ref(), &named_item, rel, combination.graph)?));
+                                                    row.push(EvalResultItem::Relationship(make_relationship(ret_item.alias.as_ref(), &named_item, rel, graph)?));
                                                 }
                                             }
                                         }
-                                    }
-                                }
-                                for eval_row in eval_results {
-                                    for eval_item in eval_row {
-                                        if eval_item.get_name() == named_item {
-                                            row.push(eval_item.clone());
-                                        }                                            
                                     }
                                 }
                             }
@@ -193,7 +185,7 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
             }
         }
 
-        let graphs = combinations.iter().map(|c| c.graph).collect::<Vec<&PropertyGraph>>();
+        let graphs = combinations.iter().map(|c| c.graph).collect::<Vec<Option<&PropertyGraph>>>();
         for ret_exp in &eval_scope.expressions {
             match ret_exp {
                 EvalScopeExpression::FunctionCall(fun) => {
@@ -218,7 +210,35 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
         }
         eval_result_scope.push(row);
     }
-    Ok((matched_graphs, eval_result_scope))
+
+    let mut eval_result_scope_join = vec![];
+
+    for eval_item_row in eval_results {
+        let mut row = vec![];
+        if eval_result_scope.is_empty() {
+            for eval_item in eval_item_row {
+                if grouping.contains(&&eval_item.get_name().to_string()) {
+                    row.push(eval_item.clone());
+                }
+            }
+        } else {
+            for eval_row in &mut eval_result_scope {
+                for eval_item in eval_item_row {
+                    if grouping.contains(&&eval_item.get_name().to_string()) {
+                        row.push(eval_item.clone());
+                        row.append(eval_row);
+                    }
+                }
+            }
+        }
+        eval_result_scope_join.push(row);
+    }
+
+    if eval_results.is_empty() {
+        Ok((matched_graphs, eval_result_scope))
+    } else {
+        Ok((matched_graphs, eval_result_scope_join))
+    }
 }
 
 fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>) -> Vec::<Vec<PropertyGraph>> {
@@ -320,10 +340,12 @@ fn get_properties<'a: 'b, 'b>(graph: &'a PropertyGraph, group: &'b mut Vec::<&'a
     }
 }
 
-fn compute_sum(args: &Vec<ValueItem>, graphs: &Vec<&PropertyGraph>) -> f64 {
+fn compute_sum(args: &Vec<ValueItem>, graphs: &Vec<Option<&PropertyGraph>>) -> f64 {
     let mut group = Vec::<&PropertyValue>::new();
-    for graph in graphs {
-        get_properties(graph, &mut group, args);
+    for ograph in graphs {
+        if let Some(graph) = ograph {
+            get_properties(graph, &mut group, args);
+        }
     }
 
     let mut sum_value = 0.;
@@ -333,30 +355,32 @@ fn compute_sum(args: &Vec<ValueItem>, graphs: &Vec<&PropertyGraph>) -> f64 {
     sum_value
 }
 
-fn build_item_list(args: &Vec<ValueItem>, graphs: &Vec<&PropertyGraph>) -> Result<Vec<EvalResultItem>, CypherError> {
+fn build_item_list(args: &Vec<ValueItem>, graphs: &Vec<Option<&PropertyGraph>>) -> Result<Vec<EvalResultItem>, CypherError> {
     let mut list = Vec::new();
-    for graph in graphs {
-        for node in graph.get_nodes() {
-            if let Some(var) = node.get_var() {
-                for arg in args {
-                    if let ValueItem::NamedItem(name) = arg {
-                        if name == var {
-                            list.push(EvalResultItem::Node(make_node(None, &name, node)));
+    for ograph in graphs {
+        if let Some(graph) = ograph {
+            for node in graph.get_nodes() {
+                if let Some(var) = node.get_var() {
+                    for arg in args {
+                        if let ValueItem::NamedItem(name) = arg {
+                            if name == var {
+                                list.push(EvalResultItem::Node(make_node(None, &name, node)));
+                            }
                         }
                     }
                 }
             }
-        }
-        for rel in graph.get_edges() {
-            if let Some(var) = rel.relationship.get_var() {
-                for arg in args {
-                    if let ValueItem::NamedItem(name) = arg {
-                        if name == var {
-                            list.push(EvalResultItem::Relationship(make_relationship(None, &name, rel, graph)?));
+            for rel in graph.get_edges() {
+                if let Some(var) = rel.relationship.get_var() {
+                    for arg in args {
+                        if let ValueItem::NamedItem(name) = arg {
+                            if name == var {
+                                list.push(EvalResultItem::Relationship(make_relationship(None, &name, rel, graph)?));
+                            }
                         }
                     }
+                    
                 }
-                
             }
         }
     }
@@ -409,7 +433,7 @@ enum ItemId {
 }
 
 struct Combination<'a> {
-    graph: &'a PropertyGraph,
+    graph: Option<&'a PropertyGraph>,
     items: Vec<Item<'a>>,
 }
 
@@ -483,7 +507,7 @@ fn build_items_combinations<'a: 'b, 'b>(mut grouping: Iter<&String>, graph: &'a 
             build_items_combinations(grouping.clone(), graph, combinations, curr_items)?;
         }
     } else {
-        combinations.push(Combination { graph: graph, items: curr_items.to_vec() });
+        combinations.push(Combination { graph: Some(graph), items: curr_items.to_vec() });
         curr_items.clear();
     }
     Ok(())
