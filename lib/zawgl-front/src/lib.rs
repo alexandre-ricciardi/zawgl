@@ -113,33 +113,8 @@ fn build_response(request_id: &str, qr: QueryResult, request: &Request) -> Resul
         }
     });
     let wildcard = return_wildcard == &Some(true);
-    for pattern in &qr.matched_graphs {
-        let mut graph_doc = Document::new();  
-        let mut nodes_doc = Vec::new();
-        let mut rels_doc = Vec::new();
-        if let Some(ret_clause) = get_return_clause(request) {
-            for ret_exp in &ret_clause.expressions {
-                match ret_exp {
-                    EvalScopeExpression::Item(item) => {
-                        match &item.item {
-                            ValueItem::NamedItem(named_item) => {
-                                nodes_doc.extend(get_nodes_named(wildcard, item.alias.as_ref(), named_item, pattern)?);
-                                rels_doc.extend(get_relationships_named(wildcard, item.alias.as_ref(), named_item, pattern)?);
-                            },
-                            _ => {}
-                        }
-                    },
-                    _ => {}
-                }
-            }
-        }
-        
-        if !nodes_doc.is_empty() {
-            graph_doc.insert("nodes", nodes_doc);
-        }
-        if !rels_doc.is_empty() {
-            graph_doc.insert("relationships", rels_doc);
-        }
+    for graph in &qr.matched_graphs {
+        let graph_doc = build_graph_doc(&request, graph, wildcard)?;
         if !graph_doc.is_empty() {
             graph_list.push(graph_doc);
         }
@@ -163,11 +138,44 @@ fn build_response(request_id: &str, qr: QueryResult, request: &Request) -> Resul
         result_doc.insert("graphs", graph_list);
     }
 
+    result_doc.insert("merged_graphs", build_graph_doc(&request, &qr.merged_graphs, wildcard)?);
+
     let mut response_doc = Document::new();
     response_doc.insert("request_id", request_id);
     response_doc.insert("result", result_doc);
     Ok(response_doc)
 }
+
+fn build_graph_doc(request: &Request, graph: &PropertyGraph, wildcard: bool) -> Result<Document, CypherError> {
+    let mut graph_doc = Document::new();  
+    let mut nodes_doc = Vec::new();
+    let mut rels_doc = Vec::new();
+    if let Some(ret_clause) = get_return_clause(request) {
+        for ret_exp in &ret_clause.expressions {
+            match ret_exp {
+                EvalScopeExpression::Item(item) => {
+                    match &item.item {
+                        ValueItem::NamedItem(named_item) => {
+                            nodes_doc.extend(get_nodes_named(wildcard, item.alias.as_ref(), named_item, graph)?);
+                            rels_doc.extend(get_relationships_named(wildcard, item.alias.as_ref(), named_item, graph)?);
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+    }
+    
+    if !nodes_doc.is_empty() {
+        graph_doc.insert("nodes", nodes_doc);
+    }
+    if !rels_doc.is_empty() {
+        graph_doc.insert("relationships", rels_doc);
+    }
+    Ok(graph_doc)
+}
+
 
 fn make_node_doc(node: &NodeResult) -> Result<Document, CypherError> {
     let node_doc = doc!{

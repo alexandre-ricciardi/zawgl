@@ -27,6 +27,7 @@ use std::sync::Mutex;
 use std::vec;
 use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::model::init::InitContext;
+use zawgl_core::model::PropertyGraph;
 use zawgl_cypher_query_model::QueryResult;
 use zawgl_cypher_query_model::QueryStep;
 use crate::planner::handle_query_steps;
@@ -76,7 +77,7 @@ impl <'a> GraphRequestHandler {
 
     pub fn commit_tx(&mut self, tx_context: TxContext) -> Result<QueryResult, DatabaseError> {
         self.commit_tx.push(tx_context.session_id.to_string());
-        Ok(QueryResult::new(vec![], vec![]))
+        Ok(QueryResult::new(vec![], PropertyGraph::new(), vec![]))
     }
 
     pub fn cancel(&mut self) {

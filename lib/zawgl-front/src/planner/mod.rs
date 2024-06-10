@@ -106,7 +106,8 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
         }
         first_step = false;
     }
-    Ok(QueryResult::new(result_graphs, return_eval_results))
+    let merged_graphs = merge_patterns(&result_graphs.iter().collect::<Vec<&PropertyGraph>>(), &vec![]);
+    Ok(QueryResult::new(result_graphs, merged_graphs, return_eval_results))
 }
 
 fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeClause, eval_results: &Vec<Vec<EvalResultItem>>) -> Result<(Vec<PropertyGraph>, Vec<Vec<EvalResultItem>>), CypherError> {

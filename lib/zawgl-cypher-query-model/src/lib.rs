@@ -52,12 +52,13 @@ impl QueryStep {
 
 pub struct QueryResult {
     pub matched_graphs: Vec<PropertyGraph>,
+    pub merged_graphs: PropertyGraph,
     pub return_eval: Vec::<Vec<EvalResultItem>>,
 }
 
 impl QueryResult {
-    pub fn new(matched_graphs: Vec<PropertyGraph>, return_eval: Vec::<Vec<EvalResultItem>>) -> Self {
-        QueryResult{matched_graphs, return_eval}
+    pub fn new(matched_graphs: Vec<PropertyGraph>, merged_graphs: PropertyGraph, return_eval: Vec::<Vec<EvalResultItem>>) -> Self {
+        QueryResult{matched_graphs, merged_graphs, return_eval}
     }
     
 }
