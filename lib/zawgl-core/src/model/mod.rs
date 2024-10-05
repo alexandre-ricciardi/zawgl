@@ -119,6 +119,30 @@ impl Property {
         Property {id: None, name, value}
     }
 
+    pub fn new_string(name: &str, value: String) -> Self {
+        Property::new(name.to_string(), PropertyValue::PString(value))
+    }
+
+    pub fn new_str(name: &str, value: &str) -> Self {
+        Property::new(name.to_string(), PropertyValue::PString(value.to_string()))
+    }
+
+    pub fn new_integer(name: &str, value: i64) -> Self {
+        Property::new(name.to_string(), PropertyValue::PInteger(value))
+    }
+
+    pub fn new_uinteger(name: &str, value: u64) -> Self {
+        Property::new(name.to_string(), PropertyValue::PUInteger(value))
+    }
+
+    pub fn new_bool(name: &str, value: bool) -> Self {
+        Property::new(name.to_string(), PropertyValue::PBool(value))
+    }
+
+    pub fn new_float(name: &str, value: f64) -> Self {
+        Property::new(name.to_string(), PropertyValue::PFloat(value))
+    }
+
     pub fn new_with_id(id: u64, name: String, value: PropertyValue) -> Self {
         Property {id: Some(id), name, value}
     }

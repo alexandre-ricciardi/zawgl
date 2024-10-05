@@ -22,6 +22,8 @@ pub mod model;
 
 use std::collections::HashMap;
 
+use crate::repository;
+
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
@@ -50,6 +52,10 @@ impl GraphEngine {
         GraphEngine{repository: GraphRepository::new(ctx)}
     }
 
+    pub fn from_repository(repository: GraphRepository) -> Self {
+        GraphEngine{repository}
+    }
+    
     pub fn create_graph(&mut self, graph: &PropertyGraph) -> Option<PropertyGraph> {
         self.repository.create_graph(graph)
     }
