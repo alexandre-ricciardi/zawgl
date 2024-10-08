@@ -64,7 +64,7 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
    
 }
 
-pub fn extract_node_id(d: Document) -> Option<i64> {
+pub fn extract_node_id(d: JsonValue) -> Option<i64> {
     let res = d.get_document("result").ok()?;
     let graphs = res.get_array("graphs").ok()?;
     assert_eq!(graphs.len(), 1);

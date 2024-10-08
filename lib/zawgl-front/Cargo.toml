@@ -13,6 +13,6 @@ zawgl-cypher-query-model = { path = "../zawgl-cypher-query-model" }
 log = "0.4.19"
 serde_json = "1.0.104"
 serde = { version = "1.0.177", features = ["derive"] }
-bson = "2.6.1"
+json = "0.12.4"
 parking_lot = "0.12.1"
 tokio = { version = "1.29.1", features = ["full"] }
