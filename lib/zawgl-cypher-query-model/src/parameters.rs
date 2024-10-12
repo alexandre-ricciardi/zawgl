@@ -22,7 +22,7 @@
 
 use std::collections::HashMap;
 
-use bson::{Bson, Document};
+use json::JsonValue;
 use zawgl_core::model::PropertyValue;
 
 #[derive(Debug, Clone)]
@@ -33,9 +33,27 @@ pub enum ParameterValue {
 
 pub type Parameters = HashMap<String, ParameterValue>;
 
-pub fn build_parameters(params: &Document) -> Parameters {
+pub fn build_parameters(params: &json::object::Object) -> Parameters {
     let mut parameters = Parameters::new();
-    for param in params {
+    for (pname, pvalue) in params.iter() {
+        match pvalue {
+            JsonValue::Null => todo!(),
+            JsonValue::Short(short) => todo!(),
+            JsonValue::String(_) => todo!(),
+            JsonValue::Number(number) => {
+                
+                parameters.insert(param.0.to_string(), ParameterValue::Value(PropertyValue::PFloat(*v)));
+            },
+            JsonValue::Boolean(_) => todo!(),
+            JsonValue::Object(object) => {
+                if let Some(integer) = object.get("integer") {
+                    
+                }
+            },
+            JsonValue::Array(vec) => todo!(),
+        }
+    }
+    for param in params.members() {
         match param.1 {
             Bson::Double(v) => {parameters.insert(param.0.to_string(), ParameterValue::Value(PropertyValue::PFloat(*v)));}
             Bson::String(v) => {parameters.insert(param.0.to_string(), ParameterValue::Value(PropertyValue::PString(v.to_string())));}

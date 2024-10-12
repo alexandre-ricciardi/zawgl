@@ -91,8 +91,8 @@ impl Client {
 fn extract_value(value: Value) -> JsonValue {
     match value {
         Value::String(sv) => JsonValue::from(sv),
-        Value::Integer(iv) => JsonValue::from(iv),
-        Value::Float(fv) => JsonValue::from(fv),
+        Value::Integer(iv) => object!{ "integer": JsonValue::from(iv)},
+        Value::Float(fv) => object!{ "float": JsonValue::from(fv)},
         Value::Bool(bv) => JsonValue::from(bv),
         Value::Parameters(params) => JsonValue::from(build_parameters(params)),
     }
