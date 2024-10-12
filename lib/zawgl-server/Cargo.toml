@@ -11,11 +11,10 @@ name = "zawgl_server"
 gremlin-client = "0.8.4"
 zawgl-front = { path = "../zawgl-front" }
 zawgl-core = { path = "../zawgl-core" }
-tokio-tungstenite = "0.21.0"
+tokio-tungstenite = "0.24.0"
 tokio = { version = "1.29.1", features = ["full"] }
 futures-util = "0.3.28"
 log = "0.4.19"
 simple_logger = "5.0.0"
-serde_json = "1.0.117"
+serde_json = "1.0.128"
 parking_lot = "0.12.1"
-json = "0.12.4"

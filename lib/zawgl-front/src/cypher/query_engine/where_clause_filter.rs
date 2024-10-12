@@ -1,13 +1,13 @@
+use serde_json::Value;
 use zawgl_core::model::{PropertyGraph, PropertyValue};
-use zawgl_cypher_query_model::parameters::ParameterValue;
-use zawgl_cypher_query_model::{ast::AstVisitor, parameters::Parameters};
+use zawgl_cypher_query_model::ast::AstVisitor;
 use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult, AstVisitorError};
 
 use super::states::VisitorState;
 
 pub struct WhereClauseAstVisitor<'a> {
     graph: &'a PropertyGraph,
-    params: Option<Parameters>,
+    params: Option<Value>,
     state: VisitorState,
     function_name: Option<String>,
     function_args: Vec<String>,
@@ -16,7 +16,7 @@ pub struct WhereClauseAstVisitor<'a> {
 }
 
 impl <'a> WhereClauseAstVisitor<'a> {
-    pub fn new(graph: &'a PropertyGraph, params: Option<Parameters>) -> Self {
+    pub fn new(graph: &'a PropertyGraph, params: Option<Value>) -> Self {
         WhereClauseAstVisitor{graph, params, state: VisitorState::Init, function_name: None,
             function_args: vec![], eval_stack: vec![], item_prop_path: vec![]}
     }
@@ -126,7 +126,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         .and_then(|p|
             p.get(pname)) {
             match pv {
-                ParameterValue::Parameters(_) => todo!(),
+                Value::Parameters(_) => todo!(),
                 ParameterValue::Value(v) => {
                     self.eval_stack.push(v.clone());
                 },
@@ -465,7 +465,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
 #[cfg(test)]
 mod test_where_clause {
     use zawgl_core::model::{PropertyGraph, Node, Property};
-    use zawgl_cypher_query_model::{ast::{AstTag, Ast}, parameters::ParameterValue};
+    use zawgl_cypher_query_model::ast::{AstTag, Ast};
 
     use crate::cypher::{lexer, parser, parser::where_clause_parser_delegate::parse_where_clause};
 

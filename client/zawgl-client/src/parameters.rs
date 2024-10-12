@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Value {
     String(String),
     Integer(i64),

@@ -22,53 +22,49 @@
 pub mod planner;
 pub mod tx_handler;
 
-use bson::{Bson, Document, doc};
 use cypher::query_engine::{process_cypher_query, CypherError};
+use serde_json::{json, Map, Value};
 use zawgl_core::{model::{Property, PropertyValue, PropertyGraph, Relationship, Node}, graph::{EdgeData, NodeIndex, EdgeIndex}};
-use zawgl_cypher_query_model::{model::{EvalResultItem, EvalScopeClause, EvalScopeExpression, NodeResult, RelationshipResult, Request, ValueItem}, parameters::build_parameters, QueryResult, StepType};
+use zawgl_cypher_query_model::{model::{EvalResultItem, EvalScopeClause, EvalScopeExpression, NodeResult, RelationshipResult, Request, ValueItem}, QueryResult, StepType};
 use tx_handler::{handle_graph_request, request_handler::RequestHandler, handler::TxHandler, DatabaseError};
 
 extern crate zawgl_core;
-
-extern crate bson;
-
 pub mod cypher;
 
-pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, cypher_request: &Document) -> Result<Document, CypherError> {
-    let query = cypher_request.get_str("query").map_err(|_err| CypherError::RequestError)?;
-    let request_id = cypher_request.get_str("request_id").map_err(|_err| CypherError::RequestError)?;
-    let parameters = cypher_request.get_document("parameters");
-    let params = parameters.ok().map(build_parameters);
-    let request = process_cypher_query(query, params);
+pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, cypher_request: &Value) -> Result<Value, CypherError> {
+    let query = cypher_request.get("query").ok_or(CypherError::RequestError)?.to_string();
+    let request_id = cypher_request.get("request_id").ok_or(CypherError::RequestError)?.to_string();
+    let parameters = cypher_request.get("parameters");
+    let request = process_cypher_query(&query, parameters);
     match request {
         Ok(r) => {
             let oqr = handle_graph_request(tx_handler, graph_request_handler.clone(), r.steps.to_vec(), None);
             match oqr {
                 Ok(qr) => {
-                    build_response(request_id, qr, &r)
+                    build_response(&request_id, qr, &r)
                 },
                 Err(e) => {
                     graph_request_handler.lock().unwrap().cancel();
-                    build_error(request_id, e)
+                    build_error(&request_id, e)
                 },
             }
         },
-        Err(ce) => build_cypher_error(request_id, ce),
+        Err(ce) => build_cypher_error(&request_id, ce),
     }
 }
 
-fn build_error(request_id: &str, err: DatabaseError) -> Result<Document, CypherError> {
-    let mut response_doc = Document::new();
-    response_doc.insert("request_id", request_id);
-    response_doc.insert("error", format!("database error {}", err));
-    Ok(response_doc)
+fn build_error(request_id: &str, err: DatabaseError) -> Result<Value, CypherError> {
+    Ok(json!({
+        "request_id": request_id, 
+        "error": format!("database error {}", err)
+    }))
 }
 
-fn build_cypher_error(request_id: &str, err: CypherError) -> Result<Document, CypherError> {
-    let mut response_doc = Document::new();
-    response_doc.insert("request_id", request_id);
-    response_doc.insert("error", format!("database error {}", err));
-    Ok(response_doc)
+fn build_cypher_error(request_id: &str, err: CypherError) -> Result<Value, CypherError> {
+    Ok(json!({
+        "request_id": request_id, 
+        "error": format!("database error {}", err)
+    }))
 }
 
 fn get_return_clause(request: &Request) -> Option<&EvalScopeClause> {
@@ -80,31 +76,31 @@ fn get_return_clause(request: &Request) -> Option<&EvalScopeClause> {
     })
 }
 
-fn eval_item_to_bson(eval_item: &EvalResultItem) -> Result<Document, CypherError> {
+fn eval_item_to_json(eval_item: &EvalResultItem) -> Result<Value, CypherError> {
     match eval_item {
         EvalResultItem::Node(n) => make_node_doc(&n),
         EvalResultItem::Relationship(rel) => make_relationship_doc(&rel),
-        EvalResultItem::Scalar(value) => Ok(doc! {
+        EvalResultItem::Scalar(value) => Ok(json!({
             value.name.to_string(): value.value
-        }),
-        EvalResultItem::Bool(value) =>  Ok(doc! {
+        })),
+        EvalResultItem::Bool(value) =>  Ok(json!({
             value.name.to_string(): value.value
-        }),
-        EvalResultItem::String(value) =>  Ok(doc! {
+        })),
+        EvalResultItem::String(value) =>  Ok(json!({
             value.name.to_string(): value.value.to_string()
-        }),
+        })),
         EvalResultItem::List(list) => {
             let mut res = vec![];
             for item in &list.values {
-                res.push(eval_item_to_bson(item)?)
+                res.push(eval_item_to_json(item)?)
             }
-            Ok(doc! {list.name.to_string(): res})
+            Ok(json!({list.name.to_string(): res}))
         }
     }
 }
 
-fn build_response(request_id: &str, qr: QueryResult, request: &Request) -> Result<Document, CypherError> {
-    let mut result_doc = Document::new();
+fn build_response(request_id: &str, qr: QueryResult, request: &Request) -> Result<Value, CypherError> {
+    let mut result_doc = Map::new();
     let mut graph_list = Vec::new();
     let return_wildcard = &request.steps.last().map(|ret| {
         match &ret.step_type {
@@ -115,39 +111,37 @@ fn build_response(request_id: &str, qr: QueryResult, request: &Request) -> Resul
     let wildcard = return_wildcard == &Some(true);
     for graph in &qr.matched_graphs {
         let graph_doc = build_graph_doc(&request, graph, wildcard)?;
-        if !graph_doc.is_empty() {
-            graph_list.push(graph_doc);
-        }
+        graph_list.push(graph_doc);
     }
 
     let mut values_doc = vec![];
     for res in &qr.return_eval {
         let mut row = vec![];
         for eval_item in res {
-            row.push(eval_item_to_bson(eval_item)?);
+            row.push(eval_item_to_json(eval_item)?);
         }
-        values_doc.push(row);
+        values_doc.push(Value::Array(row));
     }
     
 
     if !values_doc.is_empty() {
-        result_doc.insert("values", values_doc);
+        result_doc.insert("values".to_string(), Value::Array(values_doc));
     }
     
     if !graph_list.is_empty() {
-        result_doc.insert("graphs", graph_list);
+        result_doc.insert("graphs".to_string(), Value::Array(graph_list));
     }
 
-    result_doc.insert("merged_graphs", build_graph_doc(&request, &qr.merged_graphs, wildcard)?);
+    result_doc.insert("merged_graphs".to_string(), build_graph_doc(&request, &qr.merged_graphs, wildcard)?);
 
-    let mut response_doc = Document::new();
-    response_doc.insert("request_id", request_id);
-    response_doc.insert("result", result_doc);
-    Ok(response_doc)
+    Ok(json!({
+        "request_id": request_id,
+        "result": result_doc
+    }))
 }
 
-fn build_graph_doc(request: &Request, graph: &PropertyGraph, wildcard: bool) -> Result<Document, CypherError> {
-    let mut graph_doc = Document::new();  
+fn build_graph_doc(request: &Request, graph: &PropertyGraph, wildcard: bool) -> Result<Value, CypherError> {
+    let mut graph_doc = Map::new();  
     let mut nodes_doc = Vec::new();
     let mut rels_doc = Vec::new();
     if let Some(ret_clause) = get_return_clause(request) {
@@ -167,39 +161,36 @@ fn build_graph_doc(request: &Request, graph: &PropertyGraph, wildcard: bool) -> 
         }
     }
     
-    if !nodes_doc.is_empty() {
-        graph_doc.insert("nodes", nodes_doc);
-    }
-    if !rels_doc.is_empty() {
-        graph_doc.insert("relationships", rels_doc);
-    }
-    Ok(graph_doc)
+    Ok(json!({
+        "nodes": nodes_doc,
+        "relationships": rels_doc
+    }))
 }
 
 
-fn make_node_doc(node: &NodeResult) -> Result<Document, CypherError> {
-    let node_doc = doc!{
+fn make_node_doc(node: &NodeResult) -> Result<Value, CypherError> {
+    let node_doc = json!({
         "name": node.name.to_string(),
         "id": node.value.get_id().ok_or(CypherError::ResponseError)? as i64,
         "properties": build_properties(node.value.get_properties_ref()),
-        "labels": Bson::from(node.value.get_labels_ref()),
-    };
+        "labels": node.value.get_labels_ref(),
+    });
     Ok(node_doc)
 }
 
-fn make_relationship_doc(rel: &RelationshipResult) -> Result<Document, CypherError> {
-    let rel_doc = doc!{
+fn make_relationship_doc(rel: &RelationshipResult) -> Result<Value, CypherError> {
+    let rel_doc = json!({
         "name": rel.name.to_string(),
         "id": rel.value.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
         "source_id": rel.source_nid,
         "target_id": rel.target_nid,
         "properties": build_properties(rel.value.relationship.get_properties_ref()),
-        "labels": Bson::from(rel.value.relationship.get_labels_ref()),
-    };
+        "labels": rel.value.relationship.get_labels_ref(),
+    });
     Ok(rel_doc)
 }
 
-fn get_nodes_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Result<Vec<Document>, CypherError> {
+fn get_nodes_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Result<Vec<Value>, CypherError> {
     let mut nodes_doc = vec![];
     for node in graph.get_nodes() {
         if let Some(var) = node.get_var() {
@@ -210,7 +201,7 @@ fn get_nodes_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &Pr
     }
     Ok(nodes_doc)
 }
-fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Result<Vec<Document>, CypherError> {
+fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &PropertyGraph) -> Result<Vec<Value>, CypherError> {
     let mut rels_doc = vec![];
     for rel in graph.get_relationships_and_edges() {
         if let Some(var) = rel.relationship.get_var() {
@@ -222,58 +213,58 @@ fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, gr
     Ok(rels_doc)
 }
 
-fn make_node(alias: Option<&String>, name: &str, node: &Node) -> Result<Document, CypherError> {
+fn make_node(alias: Option<&String>, name: &str, node: &Node) -> Result<Value, CypherError> {
     let ret_name = if let Some(a) = alias {
         a.to_string()
     } else {
         name.to_string()
     };
-    let node_doc = doc!{
+    let node_doc = json!({
         "name": ret_name,
         "id": node.get_id().ok_or(CypherError::ResponseError)? as i64,
         "properties": build_properties(node.get_properties_ref()),
-        "labels": Bson::from(node.get_labels_ref()),
-    };
+        "labels": node.get_labels_ref(),
+    });
     Ok(node_doc)
 }
 
-fn make_relationship(alias: Option<&String>, name: &str, rel: &EdgeData<NodeIndex, EdgeIndex, Relationship>, graph: &PropertyGraph) -> Result<Document, CypherError> {
+fn make_relationship(alias: Option<&String>, name: &str, rel: &EdgeData<NodeIndex, EdgeIndex, Relationship>, graph: &PropertyGraph) -> Result<Value, CypherError> {
     let ret_name = if let Some(a) = alias {
         a.to_string()
     } else {
         name.to_string()
     };
-    let rel_doc = doc!{
+    let rel_doc = json!({
         "name": ret_name,
         "id": rel.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
         "source_id": graph.get_node_ref(&rel.get_source()).get_id().ok_or(CypherError::ResponseError)? as i64,
         "target_id": graph.get_node_ref(&rel.get_target()).get_id().ok_or(CypherError::ResponseError)? as i64,
         "properties": build_properties(rel.relationship.get_properties_ref()),
-        "labels": Bson::from(rel.relationship.get_labels_ref()),
-    };
+        "labels": rel.relationship.get_labels_ref(),
+    });
     Ok(rel_doc)
 }
-fn build_property_value(name: &str, value: &PropertyValue) -> Document {
+fn build_property_value(name: &str, value: &PropertyValue) -> Value {
     match value {
-        PropertyValue::PBool(v) => doc! {
+        PropertyValue::PBool(v) => json!({
             name: v
-        },
-        PropertyValue::PFloat(f) => doc! {
+        }),
+        PropertyValue::PFloat(f) => json!({
             name: f
-        },
-        PropertyValue::PInteger(i) => doc! {
+        }),
+        PropertyValue::PInteger(i) => json!({
             name: i
-        },
-        PropertyValue::PUInteger(u) => doc! {
+        }),
+        PropertyValue::PUInteger(u) => json!({
             name: *u as i64
-        },
-        PropertyValue::PString(s) => doc! {
+        }),
+        PropertyValue::PString(s) => json!({
             name: s
-        }
+        }),
     }
 }
 
-fn build_properties(item_properties: &Vec<Property>) -> Vec<Document> {
+fn build_properties(item_properties: &Vec<Property>) -> Vec<Value> {
     let mut props = Vec::new();
     for p in item_properties {
         let name = p.get_name();

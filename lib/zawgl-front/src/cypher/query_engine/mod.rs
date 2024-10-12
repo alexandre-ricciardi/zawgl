@@ -67,7 +67,7 @@ impl fmt::Display for CypherError {
 }
 
 
-pub fn process_cypher_query(query: &str, params: Option<Parameters>) -> Result<Request, CypherError> {
+pub fn process_cypher_query(query: &str, params: Option<Value>) -> Result<Request, CypherError> {
     let mut lexer = lexer::Lexer::new(query);
     match lexer.get_tokens() {
         Ok(tokens) => {

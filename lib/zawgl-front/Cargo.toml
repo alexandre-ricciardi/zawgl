@@ -11,8 +11,7 @@ name = "zawgl_front"
 zawgl-core = { path = "../zawgl-core" }
 zawgl-cypher-query-model = { path = "../zawgl-cypher-query-model" }
 log = "0.4.19"
-serde_json = "1.0.104"
+serde_json = "1.0.128"
 serde = { version = "1.0.177", features = ["derive"] }
-json = "0.12.4"
 parking_lot = "0.12.1"
 tokio = { version = "1.29.1", features = ["full"] }
