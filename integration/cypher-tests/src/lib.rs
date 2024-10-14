@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use bson::Document;
+use serde_json::Value;
 use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 use zawgl_client::Client;
 use std::future::Future;
@@ -64,16 +64,15 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
    
 }
 
-pub fn extract_node_id(d: JsonValue) -> Option<i64> {
-    let res = d.get_document("result").ok()?;
-    let graphs = res.get_array("graphs").ok()?;
+pub fn extract_node_id(d: Value) -> Option<i64> {
+    let res = &d["result"]["graphs"];
+    let graphs = res.as_array()?;
     assert_eq!(graphs.len(), 1);
     let mut res = None;
     for g in graphs {
-        let graph = g.as_document()?;
-        let nodes = graph.get_array("nodes").ok()?;
+        let nodes = g["nodes"].as_array()?;
         for n in nodes {
-            let nid = n.as_document()?.get_i64("id").ok();
+            let nid = n["id"].as_i64();
             res = nid;
         }
         assert_eq!(nodes.len(), 1);

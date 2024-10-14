@@ -25,6 +25,7 @@ use zawgl_core::model::PropertyGraph;
 pub mod model;
 pub mod ast;
 pub mod token;
+pub mod properties;
 
 #[derive(Clone)]
 pub enum StepType {

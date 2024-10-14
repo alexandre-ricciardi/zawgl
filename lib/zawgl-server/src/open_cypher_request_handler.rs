@@ -19,9 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use bson::Document;
+use serde_json::Value;
 use zawgl_front::{tx_handler::{request_handler::RequestHandler, handler::TxHandler}, cypher::query_engine::CypherError};
 
-pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, cypher_request: &Document) -> Result<Document, CypherError> {
+pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, cypher_request: &Value) -> Result<Value, CypherError> {
     zawgl_front::handle_open_cypher_request(tx_handler, graph_request_handler, cypher_request)
 }

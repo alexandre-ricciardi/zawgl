@@ -18,9 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use serde_json::json;
 use zawgl_client::Client;
 use cypher_tests::run_test;
-use zawgl_client::parameters::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_cypher_create() {
@@ -41,19 +41,17 @@ async fn test_create(mut client: Client) {
     let r = client.execute_cypher_request("match (n:Person) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("result");
         assert_eq!(graphs.len(), 1);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
+            let nodes = g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 1);
             for node in nodes {
-                let props = node.as_document().expect("node doc").get_array("properties").expect("properties");
+                let props = node["properties"].as_array().expect("properties");
                 assert_eq!(props.len(), 1);
                 for prop in props {
-                    let prop_doc = prop.as_document().expect("property");
-                    let value = prop_doc.get_str("name").expect("prop value");
+                    let prop_doc = prop;
+                    let value = prop_doc["name"].as_str().expect("prop value");
                     assert_eq!(value, "Charlie Sheen");
                 }
             }
@@ -66,8 +64,9 @@ async fn test_create(mut client: Client) {
 
 async fn test_filter_on_property_value(mut client: Client) {
     for age in 20..50 {
-        let mut params = Parameters::new();
-        params.insert("age".to_string(), Value::Integer(age));
+        let params = json!({
+            "age": age
+        });
         let r = client.execute_cypher_request_with_parameters("create (charlie:Person { age: $age }) return charlie", params).await;
         if let Ok(d) = r {
             println!("{}", d.to_string());
@@ -77,15 +76,13 @@ async fn test_filter_on_property_value(mut client: Client) {
     let r = client.execute_cypher_request("match (n:Person) where n.age > 40 return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 9);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
+            let nodes = g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 1);
             for node in nodes {
-                let props = node.as_document().expect("node doc").get_array("properties").expect("properties");
+                let props = node["properties"].as_array().expect("properties");
                 assert_eq!(props.len(), 1);
             }
         }

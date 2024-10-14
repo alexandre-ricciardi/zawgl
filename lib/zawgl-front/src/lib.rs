@@ -34,7 +34,7 @@ pub mod cypher;
 pub fn handle_open_cypher_request(tx_handler: TxHandler, graph_request_handler: RequestHandler, cypher_request: &Value) -> Result<Value, CypherError> {
     let query = cypher_request.get("query").ok_or(CypherError::RequestError)?.to_string();
     let request_id = cypher_request.get("request_id").ok_or(CypherError::RequestError)?.to_string();
-    let parameters = cypher_request.get("parameters");
+    let parameters = cypher_request.get("parameters").map(|v| v.clone());
     let request = process_cypher_query(&query, parameters);
     match request {
         Ok(r) => {

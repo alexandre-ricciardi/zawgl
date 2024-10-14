@@ -22,6 +22,7 @@
 use super::*;
 use super::lexer::LexerError;
 use super::parser::error::ParserError;
+use serde_json::Value;
 use zawgl_core::model::*;
 use crate::tx_handler::DatabaseError;
 
@@ -30,7 +31,6 @@ mod states;
 mod pattern_builder;
 pub mod where_clause_filter;
 
-use zawgl_cypher_query_model::parameters::Parameters;
 use zawgl_cypher_query_model::{QueryStep, StepType};
 use zawgl_cypher_query_model::ast::{AstTagNode, Ast, AstVisitorResult, AstVisitor};
 use zawgl_cypher_query_model::model::{Request, EvalScopeClause, WhereClause, EvalScopeExpression, FunctionCall, EvalItem, ValueItem, ItemPropertyName};
@@ -95,14 +95,14 @@ struct CypherAstVisitor {
     state: Vec<VisitorState>,
     id_type: Option<IdentifierType>,    
     path_builders: Vec<PathBuilder>,
-    params: Option<Parameters>,
+    params: Option<Value>,
     current_identifier: Option<String>,
     item_prop_path: Vec<String>,
     var_scope_filter: Vec<EvalScopeExpression>,
 }
 
 impl CypherAstVisitor {
-    fn new(params: Option<Parameters>) -> Self {
+    fn new(params: Option<Value>) -> Self {
         CypherAstVisitor { request: None, state: vec![VisitorState::Init],
             id_type: None, path_builders: Vec::new(), params, current_identifier: None,
             item_prop_path: Vec::new(), var_scope_filter: Vec::new() }
@@ -484,8 +484,8 @@ impl AstVisitor for CypherAstVisitor {
 mod test_query_engine {
 
     use super::*;
+    use serde_json::json;
     use zawgl_core::graph::*;
-    use zawgl_cypher_query_model::parameters::ParameterValue;
     #[test]
     fn test_create_0() {
         let request = process_cypher_query("CREATE (n:Person)", None);
@@ -581,8 +581,7 @@ mod test_query_engine {
 
     #[test]
     fn test_node_id_parameter() {
-        let mut params = Parameters::new();
-        params.insert("mid".to_string(), ParameterValue::Value(PropertyValue::PInteger(12)));
+        let params = json!({"age": 12});
         let request = process_cypher_query("MATCH (m:Movie) WHERE id(m) = $mid RETURN m, a, r", Some(params));
         if let  Ok(req) = request {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));
@@ -597,8 +596,7 @@ mod test_query_engine {
     
     #[test]
     fn test_gt_parameter() {
-        let mut params = Parameters::new();
-        params.insert("age".to_string(), ParameterValue::Value(PropertyValue::PInteger(12)));
+        let params = json!({"age": 12});
         let request = process_cypher_query("match (n:Person) where n.age > 40 return n", Some(params));
         if let  Ok(req) = request {
             let movie = req.steps[0].patterns[0].get_node_ref(&NodeIndex::new(0));

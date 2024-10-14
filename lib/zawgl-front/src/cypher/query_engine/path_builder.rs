@@ -19,11 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use serde_json::Value;
 use zawgl_core::graph::*;
 use zawgl_core::model::*;
 use zawgl_cypher_query_model::ast::AstTag;
-use zawgl_cypher_query_model::parameters::ParameterValue;
-use zawgl_cypher_query_model::parameters::Parameters;
+use zawgl_cypher_query_model::properties::convert_json_value;
 
 use super::states::*;
 
@@ -35,7 +35,7 @@ pub struct PathBuilder {
     id_type: Option<IdentifierType>,
     curr_property_name: Option<String>,
     current_path: PropertyGraph,
-    params: Option<Parameters>,
+    params: Option<Value>,
 }
 
 fn make_relationship(visitor_state: &VisitorState) -> Relationship {
@@ -67,7 +67,7 @@ fn make_node(visitor_state: &VisitorState) -> Node {
 }
 
 impl PathBuilder {
-    pub fn new(params: Option<Parameters>) -> Self {
+    pub fn new(params: Option<Value>) -> Self {
         PathBuilder {curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
             pattern_state: VisitorPatternState::Init,
             id_type: None, curr_property_name: None, current_path: PropertyGraph::new(), params }
@@ -259,12 +259,7 @@ impl PathBuilder {
         if let Some(pv) = self.params.as_ref()
         .and_then(|p|
             p.get(pname)) {
-            match pv {
-                ParameterValue::Parameters(_) => todo!(),
-                ParameterValue::Value(v) => {
-                    self.set_property_value(Some(v.clone()));
-                },
-            }
+                self.set_property_value(convert_json_value(pv.clone()).ok());
         }
     }
 }
