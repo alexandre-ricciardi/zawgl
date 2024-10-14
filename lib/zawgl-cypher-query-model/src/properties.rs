@@ -26,24 +26,29 @@ use zawgl_core::model::PropertyValue;
 use crate::ast::AstVisitorError;
 
 pub fn convert_json_value(value: Value) -> Result<PropertyValue, AstVisitorError> {
-    match value {
-        Value::Null => todo!(),
-        Value::Bool(b) => Ok(PropertyValue::PBool(b)),
-        Value::Number(number) => {
-            if number.is_u64() {
-                Ok(PropertyValue::PUInteger(number.as_u64().ok_or(AstVisitorError::SyntaxError)?))
-            } else if number.is_f64() {
-                Ok(PropertyValue::PFloat(number.as_f64().ok_or(AstVisitorError::SyntaxError)?))
-            } else if number.is_i64() {
-                Ok(PropertyValue::PInteger(number.as_i64().ok_or(AstVisitorError::SyntaxError)?))
-            } else {
-                Err(AstVisitorError::SyntaxError)
-            }
-        },
-        Value::String(s) => Ok(PropertyValue::PString(s)),
-        Value::Array(_) => Err(AstVisitorError::SyntaxError),
-        Value::Object(_) => Err(AstVisitorError::SyntaxError),
+    if value.is_string() {
+        Ok(PropertyValue::PString(value.as_str().ok_or(AstVisitorError::SyntaxError)?.to_string()))
+    } else {
+        match value {
+            Value::Null => todo!(),
+            Value::Bool(b) => Ok(PropertyValue::PBool(b)),
+            Value::Number(number) => {
+                if number.is_u64() {
+                    Ok(PropertyValue::PUInteger(number.as_u64().ok_or(AstVisitorError::SyntaxError)?))
+                } else if number.is_f64() {
+                    Ok(PropertyValue::PFloat(number.as_f64().ok_or(AstVisitorError::SyntaxError)?))
+                } else if number.is_i64() {
+                    Ok(PropertyValue::PInteger(number.as_i64().ok_or(AstVisitorError::SyntaxError)?))
+                } else {
+                    Err(AstVisitorError::SyntaxError)
+                }
+            },
+            Value::String(s) => Ok(PropertyValue::PString(s)),
+            Value::Array(_) => Err(AstVisitorError::SyntaxError),
+            Value::Object(_) => Err(AstVisitorError::SyntaxError),
+        }
     }
+
 }
 
 pub fn convert_property_value(value: PropertyValue) -> Result<Value, AstVisitorError> {

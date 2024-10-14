@@ -23,8 +23,7 @@ pub struct Client {
 impl Client {
 
     pub async fn new(address: &str) -> Self {
-        let request = address.into_client_request().unwrap();
-        let (ws_stream, _) = connect_async(request).await.expect("Failed to connect");
+        let (ws_stream, _) = connect_async(address).await.expect("Failed to connect");
         let (write, read) = ws_stream.split();
         let (request_tx, request_rx) = futures_channel::mpsc::unbounded();
         let (error_tx, error_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -36,14 +35,12 @@ impl Client {
             read.for_each(|message| async {
                 match message {
                     Ok(msg) => {
-                        let doc = from_str(&msg.into_text().expect("json message")).expect("response");
-                        if let Value::Object(json_query) = doc {
-                            let request_id = json_query.get("request_id").expect("request id").as_str().expect("str reuqest id");
-                            if let Some(tx) = clone.lock().unwrap().remove(request_id) {
-                                let res = tx.send(Value::Object(json_query));
-                                if let Err(d) = res {
-                                    error!("parsing document {}", d.to_string())
-                                }
+                        let doc: Value = from_str(&msg.into_text().expect("json message")).expect("response");
+                        let request_id = doc["request_id"].as_str().unwrap();
+                        if let Some(tx) = clone.lock().unwrap().remove(request_id) {
+                            let res = tx.send(doc);
+                            if let Err(d) = res {
+                                error!("parsing document {}", d.to_string())
                             }
                         }
                     },
@@ -56,7 +53,7 @@ impl Client {
                 }
             }).await
         });
-        Client{request_tx, map_rx_channels: map.clone(), error_rx}
+        Client{request_tx, map_rx_channels: Arc::clone(&map), error_rx}
     }
     
     /// Executes a cypher request with parameters
