@@ -403,7 +403,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
                 },
                 (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
                     if *i1 >= 0 {
-                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 <>> *u0));
+                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 > *u0));
                     } else {
                         self.eval_stack.push(PropertyValue::PBool(false));
                     }
@@ -635,7 +635,7 @@ mod test_where_clause {
 
         let where_clause = "where a.age > $age";
         let params = json!({
-            "age": 40
+            "age": 39
         });
         let mut lexer = lexer::Lexer::new(where_clause);
         match lexer.get_tokens() {
