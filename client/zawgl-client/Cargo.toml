@@ -9,7 +9,7 @@ license = "MIT"
 name = "zawgl_client"
 
 [dependencies]
-tokio-tungstenite = "0.21.0"
+tokio-tungstenite = "0.24.0"
 tokio = { version = "1.28.1", features = ["full"] }
 futures-util = "^0.3"
 log = "0.4"

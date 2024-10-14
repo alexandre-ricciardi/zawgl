@@ -1,9 +1,10 @@
 use std::sync::{Arc, Mutex};
-use std::{io::Cursor, collections::HashMap};
+use std::collections::HashMap;
 
 use futures_channel::mpsc::UnboundedSender;
 use futures_channel::oneshot::{Sender, Canceled};
 use futures_util::StreamExt;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use serde_json::{from_str, json, value::Value};
 use uuid::Uuid;
@@ -22,8 +23,8 @@ pub struct Client {
 impl Client {
 
     pub async fn new(address: &str) -> Self {
-        let url = url::Url::parse(address).unwrap();
-        let (ws_stream, _) = connect_async(&url).await.expect("Failed to connect");
+        let request = address.into_client_request().unwrap();
+        let (ws_stream, _) = connect_async(request).await.expect("Failed to connect");
         let (write, read) = ws_stream.split();
         let (request_tx, request_rx) = futures_channel::mpsc::unbounded();
         let (error_tx, error_rx) = tokio::sync::mpsc::unbounded_channel();
