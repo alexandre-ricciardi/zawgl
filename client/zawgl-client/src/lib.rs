@@ -91,6 +91,6 @@ async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, id: S
         "parameters": params,
     });
     msg.push_str(&doc.to_string());
-    tx.unbounded_send(Message::text(doc.to_string())).unwrap();
+    tx.unbounded_send(Message::text(msg.to_string())).unwrap();
     Some(())
 }
