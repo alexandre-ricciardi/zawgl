@@ -116,14 +116,15 @@ async fn _test_aggregation_1(mut client: Client) {
     for _ in 0..10 {
         let result = client.execute_cypher_request("create (test:Person) return test").await;
         if let Ok(doc) = result {
+            println!("{}", doc.to_string());
             let id = extract_node_id(doc).expect("node id");
             for __ in 0..10 {
                 let p = json!({
                     "pid": id,
                     "weight": 1
                 });
-                let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid create (s)-[:IsFriendOf]->(new:Person {weight: $weight}) return new, s", p).await;
-                let res = result.expect("new person");
+                let r1 = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid create (s)-[:IsFriendOf]->(new:Person {weight: $weight}) return new, s", p).await;
+                let res = r1.expect("new person");
                 println!("{}", res.to_string());
             }
         }

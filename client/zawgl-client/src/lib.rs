@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use futures_channel::mpsc::UnboundedSender;
 use futures_channel::oneshot::{Sender, Canceled};
 use futures_util::StreamExt;
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use serde_json::{from_str, json, value::Value};
 use uuid::Uuid;
