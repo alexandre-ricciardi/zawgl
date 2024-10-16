@@ -62,7 +62,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
     for step in steps {
         match step.step_type {
             StepType::MATCH => {
-                if eval_results.is_empty() {
+                if eval_results.is_empty() || results.is_empty() {
                     results = handle_match(&results, graph_engine, &step, &vec![]);
                 } else {
                     let mut res = vec![];
@@ -73,7 +73,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                 }
             },
             StepType::CREATE => {
-                if eval_results.is_empty() {
+                if eval_results.is_empty() || results.is_empty() {
                     results = handle_create(&results, graph_engine, &step, &vec![], first_step);
                 } else {
                     let mut res = vec![];

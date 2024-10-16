@@ -126,6 +126,7 @@ async fn _test_aggregation_1(mut client: Client) {
                 let r1 = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid create (s)-[:IsFriendOf]->(new:Person {weight: $weight}) return new, s", p).await;
                 let res = r1.expect("new person");
                 println!("{}", res.to_string());
+                assert_eq!(1, res["result"]["graphs"].as_array().unwrap().len());
             }
         }
     }

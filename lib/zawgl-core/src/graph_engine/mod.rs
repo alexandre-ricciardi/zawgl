@@ -160,7 +160,7 @@ impl GraphEngine {
     }
 
     pub fn match_patterns_and_create(&mut self, patterns: &Vec<PropertyGraph>) -> Option<Vec<Vec<PropertyGraph>>> {
-        let mut matched_patterns = Vec::new();
+         let mut matched_patterns = Vec::new();
 
         for pattern in patterns {
             let mut map_nodes_ids = HashMap::new();

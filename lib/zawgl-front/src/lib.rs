@@ -171,7 +171,7 @@ fn build_graph_doc(request: &Request, graph: &PropertyGraph, wildcard: bool) -> 
 fn make_node_doc(node: &NodeResult) -> Result<Value, CypherError> {
     let node_doc = json!({
         "name": node.name.to_string(),
-        "id": node.value.get_id().ok_or(CypherError::ResponseError)? as i64,
+        "id": node.value.get_id().ok_or(CypherError::ResponseError)?,
         "properties": build_properties(node.value.get_properties_ref()),
         "labels": node.value.get_labels_ref(),
     });
@@ -181,7 +181,7 @@ fn make_node_doc(node: &NodeResult) -> Result<Value, CypherError> {
 fn make_relationship_doc(rel: &RelationshipResult) -> Result<Value, CypherError> {
     let rel_doc = json!({
         "name": rel.name.to_string(),
-        "id": rel.value.relationship.get_id().ok_or(CypherError::ResponseError)? as i64,
+        "id": rel.value.relationship.get_id().ok_or(CypherError::ResponseError)?,
         "source_id": rel.source_nid,
         "target_id": rel.target_nid,
         "properties": build_properties(rel.value.relationship.get_properties_ref()),
