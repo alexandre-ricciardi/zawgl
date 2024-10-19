@@ -283,6 +283,10 @@ fn extract_value(skip: usize, prop_type: u8, data: &[u8]) -> Option<PropertyValu
         Some(PropertyValue::PFloat(f64::from_be_bytes(bytes)))
     } else if prop_type == 3 {
         Some(PropertyValue::PBool(data[skip + 1] > 0))
+    } else if prop_type == 4 {
+        let mut bytes = [0u8; std::mem::size_of::<u64>()];
+        bytes.copy_from_slice(&data[skip..skip+std::mem::size_of::<i64>()]);
+        Some(PropertyValue::PUInteger(u64::from_be_bytes(bytes)))
     } else {
         None
     }
@@ -324,6 +328,18 @@ mod test_prop_repo {
         let mut pr = PropertiesRespository::new(&props_file, &dyn_file);
         let mut prop = Property::new(String::from("age"),
         PropertyValue::PInteger(19236));
+        pr.create(&mut prop);
+        let load = pr.load(prop.get_id().unwrap()).unwrap();
+        assert_eq!(load.get_name(), prop.get_name());
+        assert_eq!(load.get_value(), prop.get_value());
+    }
+    #[test]
+    fn test_save_full_inlined_unsigned_integer() {
+        let dyn_file = build_file_path_and_rm_old("test_save_full_inlined_unsigned_integer_dyn", "dyn.db").unwrap();
+        let props_file = build_file_path_and_rm_old("test_save_full_inlined_unsigned_integer_prop", "prop.db").unwrap();
+        let mut pr = PropertiesRespository::new(&props_file, &dyn_file);
+        let mut prop = Property::new(String::from("age"),
+        PropertyValue::PUInteger(19236));
         pr.create(&mut prop);
         let load = pr.load(prop.get_id().unwrap()).unwrap();
         assert_eq!(load.get_name(), prop.get_name());

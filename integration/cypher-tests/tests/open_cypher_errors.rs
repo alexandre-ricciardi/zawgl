@@ -29,7 +29,7 @@ async fn test_cypher_error_0() {
 async fn test_cypher_syntax_error(mut client: Client) {
     let r = client.execute_cypher_request("create (n:Person)) return n").await;
     if let Ok(d) = r {
-        d.get_str("error").expect("error");
+        d["error"].as_str().expect("error");
     } else {
         assert!(false, "no response from server")
     }

@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use zawgl_core::{model::PropertyGraph};
-use std::{collections::{HashMap, HashSet}};
+use zawgl_core::model::PropertyGraph;
+use std::collections::{HashMap, HashSet};
 
 
 pub fn merge_paths(paths: &Vec<PropertyGraph>) -> Vec<PropertyGraph> {

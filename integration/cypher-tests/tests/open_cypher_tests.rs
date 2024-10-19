@@ -19,8 +19,8 @@
 // SOFTWARE.
 
 use cypher_tests::extract_node_id;
+use serde_json::{Map, Number, Value};
 use zawgl_client::Client;
-use zawgl_client::parameters::*;
 use cypher_tests::run_test;
 
 
@@ -82,12 +82,11 @@ async fn test_cypher_requests(mut client: Client) {
     
     let r = client.execute_cypher_request("match (n:Person) return n").await;
     if let Ok(d) = r {
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let res = d.get("result").expect("result");
+        let graphs = res["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 2);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 1);
         }
     } else {
@@ -96,12 +95,10 @@ async fn test_cypher_requests(mut client: Client) {
     
     let r = client.execute_cypher_request("match (n:Movie) return n").await;
     if let Ok(d) = r {
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 2);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 1);
         }
     } else {
@@ -111,14 +108,12 @@ async fn test_cypher_requests(mut client: Client) {
     let r = client.execute_cypher_request("match (p:Person), (m:Movie) create (m)<-[r:Played]-(p) return m, r, p").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 4);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
-            let relationships = graph.get_array("relationships").expect("relationships");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 2);
+            let relationships = &g["relationships"].as_array().expect("rels");
             assert_eq!(relationships.len(), 1);
         }
     }
@@ -135,12 +130,10 @@ async fn test_cypher_requests_complete_graph(mut client: Client) {
     let r = client.execute_cypher_request("match (x:Person), (y:Person) create (x)-[f:FRIEND_OF]->(y) return f").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 100);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let relationships = graph.get_array("relationships").expect("relationships");
+            let relationships = &g["relationships"].as_array().expect("rels");
             assert_eq!(relationships.len(), 1);
         }
     }
@@ -155,14 +148,12 @@ async fn test_cypher_self_relationship(mut client: Client) {
     let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f, x").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 1);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
-            let relationships = graph.get_array("relationships").expect("relationships");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 1);
+            let relationships = &g["relationships"].as_array().expect("rels");
             assert_eq!(relationships.len(), 1);
         }
     }
@@ -177,14 +168,12 @@ async fn test_cypher_self_relationship_2(mut client: Client) {
     let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f, x").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 1);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
-            let relationships = graph.get_array("relationships").expect("relationships");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 1);
+            let relationships = &g["relationships"].as_array().expect("rels");
             assert_eq!(relationships.len(), 1);
         }
     }
@@ -194,11 +183,10 @@ async fn test_double_create_issue(mut client: Client) {
     let r3 = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
     if let Ok(d) = r3 {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 2);
         }
     } else {
@@ -210,14 +198,12 @@ async fn test_create_path(mut client: Client) {
      let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 1);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
-            let relationships = graph.get_array("relationships").expect("relationships");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 2);
+            let relationships = &g["relationships"].as_array().expect("rels");
             assert_eq!(relationships.len(), 1);
         }
     } else {
@@ -241,14 +227,12 @@ async fn test_mutliple_match(mut client: Client) {
     let r = client.execute_cypher_request("match (m:Movie)<-[r:Played]-(p:Person) match (m)<-[produced:Produced]-(prd:Producer) return m, r, produced, p, prd").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 1);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
-            let relationships = graph.get_array("relationships").expect("relationships");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 3);
+            let relationships = &g["relationships"].as_array().expect("rels");
             assert_eq!(relationships.len(), 2);
         }
     } else {
@@ -261,30 +245,28 @@ async fn test_mutliple_match(mut client: Client) {
 
 
 async fn test_where_clause_on_ids(mut client: Client) {
-    let mut params = Parameters::new();
+    let mut params = Map::new();
     let r = client.execute_cypher_request("create (n:Person) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        params.insert("pid".to_string(), Value::Integer(extract_node_id(d).expect("pid")));
+        params.insert("pid".to_string(), Value::Number(Number::from(extract_node_id(d).expect("pid"))));
     }
     let r = client.execute_cypher_request("create (n:Movie) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
-        params.insert("nid".to_string(), Value::Integer(extract_node_id(d).expect("nid")));
+        params.insert("nid".to_string(), Value::Number(Number::from(extract_node_id(d).expect("nid"))));
     }
     
     
-    let r = client.execute_cypher_request_with_parameters("match (n:Movie), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p", params).await;
+    let r = client.execute_cypher_request_with_parameters("match (n:Movie), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p", Value::Object(params)).await;
     if let Ok(d) = r {
         println!("reponse {}", d.to_string());
-        let res = d.get_document("result").expect("result");
-        let graphs = res.get_array("graphs").expect("graphs");
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 1);
         for g in graphs {
-            let graph = g.as_document().expect("a graph");
-            let nodes = graph.get_array("nodes").expect("nodes");
-            let relationships = graph.get_array("relationships").expect("relationships");
+            let nodes = &g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 2);
+            let relationships = &g["relationships"].as_array().expect("rels");
             assert_eq!(relationships.len(), 1);
         }
     } else {

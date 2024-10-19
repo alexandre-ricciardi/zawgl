@@ -1,13 +1,14 @@
+use serde_json::Value;
 use zawgl_core::model::{PropertyGraph, PropertyValue};
-use zawgl_cypher_query_model::parameters::ParameterValue;
-use zawgl_cypher_query_model::{ast::AstVisitor, parameters::Parameters};
+use zawgl_cypher_query_model::ast::AstVisitor;
 use zawgl_cypher_query_model::ast::{AstTagNode, AstVisitorResult, AstVisitorError};
+use zawgl_cypher_query_model::properties::convert_json_value;
 
 use super::states::VisitorState;
 
 pub struct WhereClauseAstVisitor<'a> {
     graph: &'a PropertyGraph,
-    params: Option<Parameters>,
+    params: Option<Value>,
     state: VisitorState,
     function_name: Option<String>,
     function_args: Vec<String>,
@@ -16,7 +17,7 @@ pub struct WhereClauseAstVisitor<'a> {
 }
 
 impl <'a> WhereClauseAstVisitor<'a> {
-    pub fn new(graph: &'a PropertyGraph, params: Option<Parameters>) -> Self {
+    pub fn new(graph: &'a PropertyGraph, params: Option<Value>) -> Self {
         WhereClauseAstVisitor{graph, params, state: VisitorState::Init, function_name: None,
             function_args: vec![], eval_stack: vec![], item_prop_path: vec![]}
     }
@@ -122,15 +123,10 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
 
     fn enter_parameter(&mut self, name: &str) -> AstVisitorResult {
         let pname = &name[1..];
-        if let Some(pv) = self.params.as_ref()
+        if let Some(value) = self.params.as_ref()
         .and_then(|p|
             p.get(pname)) {
-            match pv {
-                ParameterValue::Parameters(_) => todo!(),
-                ParameterValue::Value(v) => {
-                    self.eval_stack.push(v.clone());
-                },
-            }
+                self.eval_stack.push(convert_json_value(value.clone())?);
             Ok(())
         } else {
             Err(AstVisitorError::SyntaxError)
@@ -355,7 +351,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
                 },
                 (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
                     if *i1 >= 0 {
-                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 > *u0));
+                        self.eval_stack.push(PropertyValue::PBool((*i1 as u64) < *u0));
                     } else {
                         self.eval_stack.push(PropertyValue::PBool(false));
                     }
@@ -407,7 +403,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
                 },
                 (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
                     if *i1 >= 0 {
-                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 <>> *u0));
+                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 > *u0));
                     } else {
                         self.eval_stack.push(PropertyValue::PBool(false));
                     }
@@ -464,8 +460,9 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
 
 #[cfg(test)]
 mod test_where_clause {
+    use serde_json::json;
     use zawgl_core::model::{PropertyGraph, Node, Property};
-    use zawgl_cypher_query_model::{ast::{AstTag, Ast}, parameters::ParameterValue};
+    use zawgl_cypher_query_model::ast::{AstTag, Ast};
 
     use crate::cypher::{lexer, parser, parser::where_clause_parser_delegate::parse_where_clause};
 
@@ -511,9 +508,10 @@ mod test_where_clause {
         g.add_node(n1);
 
         let where_clause = "where id(a) = $aid and id(b) = $bid";
-        let mut params = Parameters::new();
-        params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
-        params.insert("bid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(15)));
+        let params = json!({
+            "aid": 12,
+            "bid": 15
+        });
         let mut lexer = lexer::Lexer::new(where_clause);
         match lexer.get_tokens() {
             Ok(tokens) => {
@@ -544,9 +542,10 @@ mod test_where_clause {
         g.add_node(n1);
 
         let where_clause = "where id(a) = $aid or id(b) = $bid";
-        let mut params = Parameters::new();
-        params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
-        params.insert("bid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(16)));
+        let params = json!({
+            "aid": 12,
+            "bid": 16
+        });
         let mut lexer = lexer::Lexer::new(where_clause);
         match lexer.get_tokens() {
             Ok(tokens) => {
@@ -575,9 +574,10 @@ mod test_where_clause {
         g.add_node(n1);
 
         let where_clause = "where 1 = 2 and id(a) = $aid or id(b) = $bid";
-        let mut params = Parameters::new();
-        params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
-        params.insert("bid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(16)));
+        let params = json!({
+            "aid": 12,
+            "bid": 16
+        });
         let mut lexer = lexer::Lexer::new(where_clause);
         match lexer.get_tokens() {
             Ok(tokens) => {
@@ -606,10 +606,11 @@ mod test_where_clause {
         g.add_node(n1);
 
         let where_clause = "where $val = 2 and id(a) = $aid or id(b) = $bid";
-        let mut params = Parameters::new();
-        params.insert("aid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(12)));
-        params.insert("bid".to_string(), ParameterValue::Value(PropertyValue::PUInteger(16)));
-        params.insert("val".to_string(), ParameterValue::Value(PropertyValue::PInteger(2)));
+        let params = json!({
+            "aid": 12,
+            "bid": 16,
+            "val": 2
+        });
         let mut lexer = lexer::Lexer::new(where_clause);
         match lexer.get_tokens() {
             Ok(tokens) => {
@@ -633,8 +634,9 @@ mod test_where_clause {
         g.add_node(n0);
 
         let where_clause = "where a.age > $age";
-        let mut params = Parameters::new();
-        params.insert("age".to_string(), ParameterValue::Value(PropertyValue::PInteger(12)));
+        let params = json!({
+            "age": 39
+        });
         let mut lexer = lexer::Lexer::new(where_clause);
         match lexer.get_tokens() {
             Ok(tokens) => {

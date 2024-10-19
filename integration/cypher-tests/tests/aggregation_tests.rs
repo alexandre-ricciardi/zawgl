@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use zawgl_client::{Client, parameters::{Parameters, Value}};
+use serde_json::json;
+use zawgl_client::Client;
 use cypher_tests::{run_test, extract_node_id};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -34,11 +35,11 @@ async fn _test_aggregation(mut client: Client) {
         let id1 = extract_node_id(d1).expect("node id");
         let id2 = extract_node_id(d2).expect("node id");
         for i in 0..100 {
-
-            let mut p = Parameters::new();
-            p.insert("pid1".to_string(), Value::Integer(id1));
-            p.insert("pid2".to_string(), Value::Integer(id2));
-            p.insert("weight".to_string(), Value::Integer(i));
+            let p = json!({
+                "pid1": id1,
+                "pid2": id2,
+                "weight": i
+            });
             let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 create (s)-[:IsFriendOf]->(new:Person {weight: $weight})-[:IsFriendOf]->(t) return new, s, t", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
@@ -64,9 +65,10 @@ async fn _test_aggregation_issue(mut client: Client) {
         let id2 = extract_node_id(d2).expect("node id");
         for _ in 0..100 {
 
-            let mut p = Parameters::new();
-            p.insert("pid1".to_string(), Value::Integer(id1));
-            p.insert("pid2".to_string(), Value::Integer(id2));
+            let p = json!({
+                "pid1": id1,
+                "pid2": id2
+            });
             let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 return s, t", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
@@ -91,9 +93,10 @@ async fn _test_aggregation_match_issue(mut client: Client) {
                 let _res = r.expect("new person");
 
             }
-            let mut p = Parameters::new();
-            p.insert("pid1".to_string(), Value::Integer(id1));
-            p.insert("pid2".to_string(), Value::Integer(id2));
+            let p = json!({
+                "pid1": id1,
+                "pid2": id2
+            });
             let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 return s", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
@@ -113,14 +116,17 @@ async fn _test_aggregation_1(mut client: Client) {
     for _ in 0..10 {
         let result = client.execute_cypher_request("create (test:Person) return test").await;
         if let Ok(doc) = result {
+            println!("{}", doc.to_string());
             let id = extract_node_id(doc).expect("node id");
             for __ in 0..10 {
-                let mut p = Parameters::new();
-                p.insert("pid".to_string(), Value::Integer(id));
-                p.insert("weight".to_string(), Value::Integer(1));
-                let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid create (s)-[:IsFriendOf]->(new:Person {weight: $weight}) return new, s", p).await;
-                let res = result.expect("new person");
+                let p = json!({
+                    "pid": id,
+                    "weight": 1
+                });
+                let r1 = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid create (s)-[:IsFriendOf]->(new:Person {weight: $weight}) return new, s", p).await;
+                let res = r1.expect("new person");
                 println!("{}", res.to_string());
+                assert_eq!(1, res["result"]["graphs"].as_array().unwrap().len());
             }
         }
     }
@@ -128,10 +134,10 @@ async fn _test_aggregation_1(mut client: Client) {
     let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person) return test, sum(new.weight) as sum").await;
     if let Ok(d) = result {
         println!("{}", d.to_string());
-        let values = d.get_document("result").expect("result").get_array("values").expect("values");
+        let values = d["result"]["values"].as_array().expect("values");
         assert_eq!(10, values.len());
         for value in values {
-            let sum = value.as_array().expect("row")[1].as_document().expect("res value").get_f64("sum").expect("the sum");
+            let sum = value.as_array().expect("row")[1]["sum"].as_f64().expect("sum");
             assert_eq!(10., sum);
         }
     } else {
@@ -151,9 +157,10 @@ async fn _test_aggregation_2(mut client: Client) {
         if let Ok(doc) = result {
             let id = extract_node_id(doc).expect("node id");
             for __ in 0..10 {
-                let mut p = Parameters::new();
-                p.insert("pid".to_string(), Value::Integer(id));
-                p.insert("weight".to_string(), Value::Integer(1));
+                let p = json!({
+                    "pid": id,
+                    "weight": 1
+                });
                 let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid 
                                                                             create (s)-[:IsFriendOf]->(new:Person {weight: $weight})
                                                                             create (new)-[:IsFriendOf]->(new1:Person {weight: $weight})
@@ -168,10 +175,10 @@ async fn _test_aggregation_2(mut client: Client) {
 
     let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(new1:Person) return test, new, sum(new1.weight) as sum").await;
     if let Ok(d) = result {
-        let values = d.get_document("result").expect("result").get_array("values").expect("values");
+        let values = d["result"]["values"].as_array().expect("values");
         assert_eq!(100, values.len());
         for value in values {
-            let sum = value.as_array().expect("row")[2].as_document().expect("res value").get_f64("sum").expect("the sum");
+            let sum = value.as_array().expect("row")[2]["sum"].as_f64().expect("the sum");
             assert_eq!(2., sum);
         }
     } else {

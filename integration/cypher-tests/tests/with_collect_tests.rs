@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use zawgl_client::{Client, parameters::{Parameters, Value}};
+use serde_json::json;
+use zawgl_client::Client;
 use cypher_tests::{run_test, extract_node_id};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -27,8 +28,9 @@ async fn test_with_collect() {
 }
 
 async fn _test_with_collect(mut client: Client) {
-    let mut p = Parameters::new();
-    p.insert("weight".to_string(), Value::Integer(1));
+    let p = json!({
+        "weight": 1
+    });
     let _ = client.execute_cypher_request_with_parameters("create (s:Person)
                                                                 create (s)-[:IsFriendOf]->(new:Person {weight: $weight})
                                                                 create (new)-[:IsFriendOf]->(new1:Person {weight: $weight})

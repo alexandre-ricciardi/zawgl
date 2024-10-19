@@ -1,7 +1,7 @@
 [package]
 name = "zawgl-gremlin"
 version = "0.1.0"
-authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+authors = ["Alexandre RICCIARDI <aricciardi501@gmail.com>"]
 edition = "2021"
 
 [lib]

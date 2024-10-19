@@ -1,11 +1,3 @@
-use model::{EvalResultItem, EvalScopeClause, WhereClause};
-use zawgl_core::model::PropertyGraph;
-
-pub mod model;
-pub mod ast;
-pub mod token;
-pub mod parameters;
-
 // MIT License
 //
 // Copyright (c) 2022 Alexandre RICCIARDI
@@ -27,6 +19,13 @@ pub mod parameters;
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+use model::{EvalResultItem, EvalScopeClause, WhereClause};
+use zawgl_core::model::PropertyGraph;
+
+pub mod model;
+pub mod ast;
+pub mod token;
+pub mod properties;
 
 #[derive(Clone)]
 pub enum StepType {

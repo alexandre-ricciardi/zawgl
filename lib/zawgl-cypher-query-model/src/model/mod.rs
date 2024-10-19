@@ -20,9 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use serde_json::Value;
 use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, model::{Node, Relationship}};
-
-use crate::{ast::Ast, QueryStep, parameters::Parameters};
+use crate::{ast::Ast, QueryStep};
 
 pub enum Directive {
     CREATE,
@@ -219,7 +219,7 @@ impl EvalScopeClause {
 
 pub struct WhereClause {
     pub expressions: Box<dyn Ast>,
-    pub params: Option<Parameters>,
+    pub params: Option<Value>,
 }
 
 impl Clone for WhereClause {
@@ -229,7 +229,7 @@ impl Clone for WhereClause {
 }
 
 impl WhereClause {
-    pub fn new(ast: Box<dyn Ast>, params: Option<Parameters>) -> Self {
+    pub fn new(ast: Box<dyn Ast>, params: Option<Value>) -> Self {
         WhereClause{expressions: ast, params}
     }
 }

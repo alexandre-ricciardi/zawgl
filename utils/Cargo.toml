@@ -1,7 +1,7 @@
 [package]
 name = "zawgl-utils"
 version = "0.1.1"
-authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+authors = ["Alexandre RICCIARDI <aricciardi501@gmail.com>"]
 edition = "2021"
 
 [dependencies]

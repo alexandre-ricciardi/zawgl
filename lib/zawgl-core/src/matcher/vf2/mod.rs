@@ -22,6 +22,8 @@ mod base_state;
 mod state;
 
 use std::collections::HashMap;
+use log::trace;
+
 use crate::graph_engine::model::{ProxyNodeId, GraphProxy};
 use crate::model::{PropertyGraph, Relationship, Node};
 
@@ -134,6 +136,7 @@ impl <'g0, VCOMP, ECOMP, CALLBACK> Matcher <'g0, VCOMP, ECOMP, CALLBACK>
                     IterationStates::LookForCandidates => {
                         index0.reset();
                         while !index0.end() && !self.state.possible_candidate_0(index0.value()) {
+                            trace!("possible candidate for pattern {:?}", index0.value());
                             index0.inc();
                         }
                         state = IterationStates::InitGraph1Loop;
@@ -146,6 +149,7 @@ impl <'g0, VCOMP, ECOMP, CALLBACK> Matcher <'g0, VCOMP, ECOMP, CALLBACK>
                         let mut backtrack = true;
                         while !index1.end() {
                             if self.state.possible_candidate_1(index1.value()) && self.state.feasible(index0.value(), index1.value(), graph_1)? {
+                                trace!("feasible dn node {:?}", index1.value());
                                 match_continuation.push((index0.index(), index1.index()));
                                 self.state.push(index0.value(), index1.value(), graph_1);
                                 backtrack = false;
@@ -189,6 +193,5 @@ CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeInde
     let id0 = sort_nodes(graph_0);
     let id1 = graph_1.get_nodes_ids();
     let mut matcher = Matcher::new(graph_0, vcomp, ecomp, callback);
-    
     matcher.process(id0, id1, graph_1)
 }
