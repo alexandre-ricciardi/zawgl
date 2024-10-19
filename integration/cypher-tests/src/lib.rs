@@ -29,7 +29,6 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
 
     println!("BEGIN RUN {}", db_name);
     let db_dir = build_dir_path_and_rm_old(db_name).expect("error");
-    SimpleLogger::new().with_level(LevelFilter::Trace).init().unwrap();
     let ctx = InitContext::new(&db_dir).expect("can't create database context");
     let (tx_start, rx_start) = tokio::sync::oneshot::channel::<()>();
     let address = format!("localhost:{}", port);

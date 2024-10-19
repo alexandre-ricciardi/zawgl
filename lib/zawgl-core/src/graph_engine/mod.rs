@@ -72,6 +72,7 @@ impl GraphEngine {
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
+            trace!("comparing nodes {:?} {:?}", n0, n1);
             if n0.get_id().is_none() && n0.get_labels_ref().is_empty() {
                 trace!("node id none match {:?}", n0);
                 return true;

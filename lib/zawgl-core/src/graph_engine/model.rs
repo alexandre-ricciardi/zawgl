@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use log::trace;
+
 use super::super::model::*;
 use super::super::graph::traits::*;
 use super::super::repository::graph_repository::*;
@@ -113,6 +115,7 @@ impl <'a> GrowableGraphContainerTrait<ProxyNodeId, ProxyRelationshipId, Node, Re
         let db_id = pid.get_store_id();
         if let Entry::Vacant(e) = self.map_vertices.entry(db_id) {
             let index = self.vertices.len();
+            trace!("retrieve node id {}", db_id);
             let node = self.repository.retrieve_node_by_id(db_id)?;
             let inbound = node.1.first_inbound_edge.map(ProxyRelationshipId::new_db);
             let outbound = node.1.first_outbound_edge.map(ProxyRelationshipId::new_db);

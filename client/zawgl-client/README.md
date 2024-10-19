@@ -11,7 +11,7 @@ let mut params = Parameters::new();
 params.insert("pid".to_string(), Value::Integer(12));
 let r = client.execute_cypher_request_with_parameters("match (n:Person) where id(n) = $pid return n", params).await;
 ```
-The response is a Bson document, see example below:
+The response is a Json message, see example below:
 ```json
 {
   "request_id": "969f462c-ec71-41ab-bed8-0b46314f5965",

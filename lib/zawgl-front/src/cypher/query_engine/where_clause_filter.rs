@@ -351,7 +351,7 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
                 },
                 (PropertyValue::PUInteger(u0), PropertyValue::PInteger(i1)) => {
                     if *i1 >= 0 {
-                        self.eval_stack.push(PropertyValue::PBool(*i1 as u64 > *u0));
+                        self.eval_stack.push(PropertyValue::PBool((*i1 as u64) < *u0));
                     } else {
                         self.eval_stack.push(PropertyValue::PBool(false));
                     }
