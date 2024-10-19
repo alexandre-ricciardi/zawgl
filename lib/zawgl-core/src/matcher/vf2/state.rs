@@ -234,9 +234,12 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
         }
 
         pub fn feasible(&mut self, v_new: &NodeIndex, w_new: &ProxyNodeId, graph_1: &mut GraphProxy<'_>) -> Option<bool> {
+            trace!("feasible ids: {:?} {:?}", v_new, w_new);
             let v = self.graph_0.get_node_ref(v_new);
             let w = graph_1.get_node_ref(w_new)?;
+            trace!("feasible nodes: {:?} {:?}", v, w);
             if !(self.vertex_comp)(v, w) {
+                trace!("nodes mismatch: {:?} {:?}", v, w);
                 Some(false)
             } else {
                 trace!("vertex match: {:?} {:?}", v, w);
@@ -377,6 +380,7 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
         }
 
         pub fn possible_candidate_1(&self, v1: &ProxyNodeId) -> bool {
+            trace!("possible candidate: {:?}", v1);
             if self.base_state_0.term_both() && self.base_state_1.term_both() {
                 self.base_state_1.term_both_vertex(v1)
             } else if self.base_state_0.term_out() && self.base_state_1.term_out() {

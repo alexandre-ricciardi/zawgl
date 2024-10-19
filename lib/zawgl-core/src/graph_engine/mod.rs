@@ -21,6 +21,8 @@
 pub mod model;
 
 use std::collections::HashMap;
+use log::trace;
+
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
@@ -71,16 +73,19 @@ impl GraphEngine {
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
         |n0, n1| {
             if n0.get_id().is_none() && n0.get_labels_ref().is_empty() {
+                trace!("node id none match {:?}", n0);
                 return true;
             }
             
             if n0.get_id().is_some() && n0.get_id() != n1.get_id() {
+                trace!("nodes ids mismatch");
                 return false;
             }
 
             let mut match_labels = true;
             for label in n0.get_labels_ref() {
                 if !n1.get_labels_ref().contains(label) {
+                    trace!("labels mismatch");
                     match_labels = false;
                     break;
                 }
@@ -92,6 +97,7 @@ impl GraphEngine {
                         if p1.get_name() == pred.name {
                             match_properties = pred.predicate.eval(p1.get_value());
                             if !match_properties {
+                                trace!("properties mismatch");
                                 break;
                             }
                         }
@@ -160,7 +166,7 @@ impl GraphEngine {
     }
 
     pub fn match_patterns_and_create(&mut self, patterns: &Vec<PropertyGraph>) -> Option<Vec<Vec<PropertyGraph>>> {
-         let mut matched_patterns = Vec::new();
+        let mut matched_patterns = Vec::new();
 
         for pattern in patterns {
             let mut map_nodes_ids = HashMap::new();
