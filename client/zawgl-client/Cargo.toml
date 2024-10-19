@@ -1,7 +1,7 @@
 [package]
 name = "zawgl-client"
 version = "0.1.5"
-authors = ["Alexandre RICCIARDI <alexandre.ricciardi@pm.me>"]
+authors = ["Alexandre RICCIARDI <aricciardi501@gmail.com>"]
 edition = "2021"
 description = "Zawgl Graph Database Client"
 license = "MIT"
