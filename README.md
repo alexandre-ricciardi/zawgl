@@ -42,11 +42,12 @@ A Deno TypeScript client is also available [ZawglClient](client/zawgl-deno-ts-cl
 Example request:
 ```rust
 use zawgl_client::Client;
-use zawgl_client::parameters::{Parameters, Value};
+use serde_json::*;
 
 let client = Client::new("ws://localhost:8182").await;
-let mut params = Parameters::new();
-params.insert("pid".to_string(), Value::Integer(12));
+let params = json!({
+    "pid": 12
+});
 let r = client.execute_cypher_request_with_parameters("match (n:Person) where id(n) = $pid return n", params).await;
 ```
 
