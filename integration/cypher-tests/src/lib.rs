@@ -18,9 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use log::LevelFilter;
 use serde_json::Value;
-use simple_logger::SimpleLogger;
 use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
 use zawgl_client::Client;
 use std::future::Future;
