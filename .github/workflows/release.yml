@@ -1,8 +1,9 @@
 name: Release
 
 on:
-    release:
-      types: [created]
+    push:
+      tags: 
+        - 'v*'
   
 jobs:
     release:
@@ -19,5 +20,9 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
+                tag_name: ${{ github.ref }}
+                release_name: Release ${{ github.ref }}
                 RUSTTARGET: ${{ matrix.target }}
                 EXTRA_FILES: "README.md LICENSE"
+                draft: false
+                prerelease: false
