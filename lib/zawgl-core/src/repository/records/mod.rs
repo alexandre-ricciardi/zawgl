@@ -515,6 +515,8 @@ impl RecordsManager {
 
 #[cfg(test)]
 mod test_record_manager {
+    use std::collections::HashSet;
+
     use super::*;
     use super::super::super::test_utils::*;
     #[test]
@@ -582,4 +584,28 @@ mod test_record_manager {
 
     }
 
+    #[test]
+    fn test_create_issue() {
+        let file = build_file_path_and_rm_old("test_record_manager", "test_create.db").unwrap();
+        let mut rm = RecordsManager::new(&file, NODE_RECORD_SIZE, NODE_NB_RECORDS_PER_PAGE, NODE_NB_PAGES_PER_RECORD);
+
+        let mut ids = HashSet::new();
+        for i in 0..10000 {
+            let data = [i as u8; NODE_RECORD_SIZE];
+            let id = rm.create(&data).expect("record id");
+            ids.insert(id);
+        }
+
+        rm.sync();
+
+        for i in 0..10000 {
+            let data = [i as u8; NODE_RECORD_SIZE];
+            let id = rm.create(&data).expect("record id");
+            ids.insert(id);
+        }
+
+        rm.sync();
+
+        assert_eq!(ids.len(), 20000);
+    }
 }
