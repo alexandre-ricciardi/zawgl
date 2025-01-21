@@ -141,7 +141,6 @@ fn build_response(request_id: &str, qr: QueryResult, request: &Request) -> Resul
 }
 
 fn build_graph_doc(request: &Request, graph: &PropertyGraph, wildcard: bool) -> Result<Value, CypherError> {
-    let mut graph_doc = Map::new();  
     let mut nodes_doc = Vec::new();
     let mut rels_doc = Vec::new();
     if let Some(ret_clause) = get_return_clause(request) {

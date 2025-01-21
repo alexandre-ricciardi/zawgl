@@ -20,7 +20,7 @@
 
 use serde_json::json;
 use zawgl_client::Client;
-use cypher_tests::{run_test, extract_node_id};
+use cypher_tests::run_test;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_with_collect() {
