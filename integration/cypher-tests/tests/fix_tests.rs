@@ -1,6 +1,5 @@
 // MIT License
-//
-// Copyright (c) 2022 Alexandre RICCIARDI
+// Copyright (c) 2025 Alexandre RICCIARDI
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,33 +18,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate zawgl_server;
-extern crate tokio;
-extern crate serde;
-mod settings;
-use log::*;
-use zawgl_core::model::init::InitContext;
-use settings::Settings;
-use simple_logger::SimpleLogger;
+use zawgl_client::Client;
+use cypher_tests::{extract_node_id, run_test};
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 20)]
-async fn main() {
-    let settings = Settings::new();
-    let log_level = settings.get_log_level();
-    SimpleLogger::new().with_level(log_level).init().unwrap();
-    let ctx: InitContext = InitContext::new(&settings.server.database_dir).expect("can't create database context");
-    let (tx_run, rx_run) = zawgl_server::keep_commit_loop(500);
-    let exit = tokio::spawn(async move {
-        tokio::signal::ctrl_c().await.unwrap();
-        if let Ok(_) = tx_run.send(false).await {
-            info!("Exiting commit loop");
-        }
-        info!("Database stopped");
-    });
-    tokio::select! {
-        _ = zawgl_server::run_server(&settings.server.address, ctx, || {
-            info!("Database started");
-        }, rx_run) => 0,
-        _ = exit => 0
-    };
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_create_fix() {
+    run_test("test_create_with_props", 9191, test_create_with_props).await;
+}
+
+async fn test_create_with_props(mut client: Client) {
+    let r = client.execute_cypher_request("create (n:Person {name: 'blabla'}) return n").await;
+    let id_0 = extract_node_id(r.unwrap());
+
+    let r_1 = client.execute_cypher_request("create (n:Person {name: 'blabla'}) return n").await;
+    let id_1 = extract_node_id(r_1.unwrap());
+
+    let r_2 = client.execute_cypher_request("create (n:Person {name: 'blabla'}) return n").await;
+    let id_2 = extract_node_id(r_2.unwrap());
+
+    assert_ne!(id_0, id_1);
+    assert_ne!(id_2, id_1);
 }

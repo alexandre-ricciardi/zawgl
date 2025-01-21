@@ -88,8 +88,10 @@ async fn handle_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMe
                         let (tx, rx) = oneshot::channel();
                         msg_tx.send((doc, tx)).map_err(|_| ServerError::Concurrency)?;
                         let cypher_reply = rx.await.map_err(|_| ServerError::Concurrency)?;
-                        let response = Message::Text(cypher_reply.map_err(ServerError::CypherTx)?.to_string());
-                        ws_sender.send(response).await.map_err(ServerError::Websocket)?;
+                        let response = cypher_reply.map_err(ServerError::CypherTx)?.to_string();
+                        debug!("response message {}", response);
+                        let response_msg = Message::Text(response);
+                        ws_sender.send(response_msg).await.map_err(ServerError::Websocket)?;
                     } else {
                         return Err(ServerError::Header);
                     }
