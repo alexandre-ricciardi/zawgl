@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
-use futures_channel::mpsc::UnboundedSender;
+use futures_channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use futures_channel::oneshot::{Sender, Canceled};
 use futures_util::StreamExt;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -13,10 +13,10 @@ use log::*;
 type SharedChannelsMap = Arc<Mutex<HashMap<String, Sender<Value>>>>;
 
 /// Zawgl graph database client
+#[derive(Debug, Clone)]
 pub struct Client {
     request_tx: UnboundedSender<Message>,
     map_rx_channels: SharedChannelsMap,
-    error_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
 }
 
 impl Client {
@@ -25,7 +25,7 @@ impl Client {
         let (ws_stream, _) = connect_async(address).await.expect("Failed to connect");
         let (write, read) = ws_stream.split();
         let (request_tx, request_rx) = futures_channel::mpsc::unbounded();
-        let (error_tx, error_rx) = tokio::sync::mpsc::unbounded_channel();
+        
         tokio::spawn(request_rx.map(Ok).forward(write));
         let map: SharedChannelsMap = Arc::new(Mutex::new(HashMap::new()));
         
@@ -43,16 +43,13 @@ impl Client {
                             }
                         }
                     },
-                    Err(_) => {
-                        let res = error_tx.send("ws closed".to_string());
-                        if let Err(er) = res {
-                            debug!("error occured {}", er)
-                        }
+                    Err(er) => {
+                        debug!("error occured {}", er);
                     },
                 }
             }).await
         });
-        Client{request_tx, map_rx_channels: Arc::clone(&map), error_rx}
+        Client{request_tx, map_rx_channels: Arc::clone(&map)}
     }
     
     /// Executes a cypher request with parameters
@@ -62,13 +59,6 @@ impl Client {
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
         tokio::spawn(send_request(self.request_tx.clone(), uuid.to_string(), query.to_string(), params));
         tokio::select! {
-            message = self.error_rx.recv() => {
-                match message {
-                    Some(msg) => error!("client error {}", msg),
-                    None => panic!("should not happen"),
-                }
-                Err(Canceled)
-            },
             document = rx => document,
         }
     }
