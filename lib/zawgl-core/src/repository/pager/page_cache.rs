@@ -158,9 +158,9 @@ impl PageCache {
     pub fn get_mut_pages_ref(&self) -> Vec<(PageId, &PageData)> {
         let mut res = Vec::new();
         for ph in self.pages_map.values() {
-            if ph.was_mut {
+            //if ph.was_mut {
                 res.push((ph.page_id, &self.pages[ph.pos]));
-            }
+            //}
         }
         res
     }

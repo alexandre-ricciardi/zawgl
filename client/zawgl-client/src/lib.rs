@@ -17,6 +17,7 @@ type SharedChannelsMap = Arc<Mutex<HashMap<String, Sender<Value>>>>;
 pub struct Client {
     request_tx: UnboundedSender<Message>,
     map_rx_channels: SharedChannelsMap,
+    address: String,
 }
 
 impl Client {
@@ -29,27 +30,31 @@ impl Client {
         tokio::spawn(request_rx.map(Ok).forward(write));
         let map: SharedChannelsMap = Arc::new(Mutex::new(HashMap::new()));
         
+        
         let clone = Arc::clone(&map);
+        
         tokio::spawn(async move {
-            read.for_each(|message| async {
-                match message {
-                    Ok(msg) => {
-                        let doc: Value = from_str(&msg.into_text().expect("json message")).expect("response");
-                        let request_id = doc["request_id"].as_str().unwrap();
-                        if let Some(tx) = clone.lock().unwrap().remove(request_id) {
-                            let res = tx.send(doc);
-                            if let Err(d) = res {
-                                error!("parsing document {}", d.to_string())
-                            }
-                        }
-                    },
-                    Err(er) => {
-                        debug!("error occured {}", er);
-                    },
-                }
-            }).await
+            read.for_each(|message| receive(message, Arc::clone(&map))).await
         });
-        Client{request_tx, map_rx_channels: Arc::clone(&map)}
+        Client{request_tx, map_rx_channels: Arc::clone(&clone), address: address.to_string()}
+    }
+
+
+
+    pub async fn reconnect(&mut self) {
+        let (ws_stream, _) = connect_async(&self.address).await.expect("Failed to connect");
+        let (write, read) = ws_stream.split();
+
+        let (request_tx, request_rx) = futures_channel::mpsc::unbounded();
+        
+        tokio::spawn(request_rx.map(Ok).forward(write));
+
+        let clone = Arc::clone(&self.map_rx_channels);
+        tokio::spawn(async move {
+            read.for_each(|message| receive(message, Arc::clone(&clone))).await
+        });
+        self.request_tx.close_channel();
+        self.request_tx = request_tx;
     }
     
     /// Executes a cypher request with parameters
@@ -77,6 +82,23 @@ async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, id: S
         "parameters": params,
     });
     msg.push_str(&doc.to_string());
-    tx.unbounded_send(Message::text(msg.to_string())).unwrap();
-    Some(())
+    tx.unbounded_send(Message::text(msg.to_string())).ok()
+}
+
+async fn receive(message: Result<Message, tokio_tungstenite::tungstenite::Error>, map: SharedChannelsMap) {
+    match message {
+        Ok(msg) => {
+            let doc: Value = from_str(&msg.into_text().expect("json message")).expect("response");
+            let request_id = doc["request_id"].as_str().unwrap();
+            if let Some(tx) = map.lock().unwrap().remove(request_id) {
+                let res = tx.send(doc);
+                if let Err(d) = res {
+                    error!("parsing document {}", d.to_string())
+                }
+            }
+        },
+        Err(er) => {
+            debug!("error occured {}", er);
+        },
+    }
 }

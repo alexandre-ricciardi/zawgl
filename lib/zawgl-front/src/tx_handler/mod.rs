@@ -79,7 +79,8 @@ pub fn handle_graph_request(tx_handler: TxHandler, graph_request_handler: Reques
         },
         TxStatus::NoTx => {
             trace!("No TX {:?}", tx_context);
-            graph_request_handler.lock().unwrap().handle_graph_request(steps)
+            let mut lock = graph_request_handler.lock().unwrap();
+            lock.handle_graph_request(steps)
         },
     }
 }
