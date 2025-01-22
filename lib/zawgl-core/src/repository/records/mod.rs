@@ -586,7 +586,7 @@ mod test_record_manager {
 
     #[test]
     fn test_create_issue() {
-        let file = build_file_path_and_rm_old("test_record_manager", "test_create.db").unwrap();
+        let file = build_file_path_and_rm_old("test_record_manager", "test_create_issue.db").unwrap();
         let mut rm = RecordsManager::new(&file, NODE_RECORD_SIZE, NODE_NB_RECORDS_PER_PAGE, NODE_NB_PAGES_PER_RECORD);
 
         let mut ids = HashSet::new();

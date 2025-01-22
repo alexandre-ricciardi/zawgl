@@ -47,13 +47,9 @@ async fn test_create(mut client: Client) {
             let nodes = g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 1);
             for node in nodes {
-                let props = node["properties"].as_array().expect("properties");
+                let props = node["properties"].as_object().expect("properties");
                 assert_eq!(props.len(), 1);
-                for prop in props {
-                    let prop_doc = prop;
-                    let value = prop_doc["name"].as_str().expect("prop value");
-                    assert_eq!(value, "Charlie Sheen");
-                }
+                assert_eq!(props["name"].as_str().unwrap(), "Charlie Sheen");
             }
         }
     } else {
@@ -82,7 +78,7 @@ async fn test_filter_on_property_value(mut client: Client) {
             let nodes = g["nodes"].as_array().expect("nodes");
             assert_eq!(nodes.len(), 1);
             for node in nodes {
-                let props = node["properties"].as_array().expect("properties");
+                let props = node["properties"].as_object().expect("properties");
                 assert_eq!(props.len(), 1);
             }
         }

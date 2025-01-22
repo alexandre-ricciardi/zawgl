@@ -23,7 +23,7 @@ pub mod planner;
 pub mod tx_handler;
 
 use cypher::query_engine::{process_cypher_query, CypherError};
-use serde_json::{json, Map, Value};
+use serde_json::{json, Map, Number, Value};
 use zawgl_core::{model::{Property, PropertyValue, PropertyGraph, Relationship, Node}, graph::{EdgeData, NodeIndex, EdgeIndex}};
 use zawgl_cypher_query_model::{model::{EvalResultItem, EvalScopeClause, EvalScopeExpression, NodeResult, RelationshipResult, Request, ValueItem}, QueryResult, StepType};
 use tx_handler::{handle_graph_request, request_handler::RequestHandler, handler::TxHandler, DatabaseError};
@@ -243,32 +243,22 @@ fn make_relationship(alias: Option<&String>, name: &str, rel: &EdgeData<NodeInde
     });
     Ok(rel_doc)
 }
-fn build_property_value(name: &str, value: &PropertyValue) -> Value {
+fn build_property_value(value: &PropertyValue) -> Value {
     match value {
-        PropertyValue::PBool(v) => json!({
-            name: v
-        }),
-        PropertyValue::PFloat(f) => json!({
-            name: f
-        }),
-        PropertyValue::PInteger(i) => json!({
-            name: i
-        }),
-        PropertyValue::PUInteger(u) => json!({
-            name: *u as i64
-        }),
-        PropertyValue::PString(s) => json!({
-            name: s
-        }),
+        PropertyValue::PBool(v) => Value::Bool(*v),
+        PropertyValue::PFloat(f) => Value::Number(Number::from_f64(*f).unwrap()),
+        PropertyValue::PInteger(i) => Value::Number(Number::from(*i)),
+        PropertyValue::PUInteger(u) => Value::Number(Number::from(*u as i64)),
+        PropertyValue::PString(s) => Value::String(s.to_string()),
     }
 }
 
-fn build_properties(item_properties: &Vec<Property>) -> Vec<Value> {
-    let mut props = Vec::new();
+fn build_properties(item_properties: &Vec<Property>) -> Map<String, Value> {
+    let mut props = Map::new();
     for p in item_properties {
         let name = p.get_name();
         let value = p.get_value();
-        props.push(build_property_value(name, value));
+        props.insert(name.to_string(), build_property_value(value));
     }
     props
 }
