@@ -362,7 +362,10 @@ impl AstVisitor for CypherAstVisitor {
         Ok(())
     }
     fn exit_node(&mut self) -> AstVisitorResult { Ok(())}
-    fn exit_relationship(&mut self) -> AstVisitorResult { Ok(())}
+    fn exit_relationship(&mut self) -> AstVisitorResult {
+        
+        Ok(())
+    }
     fn exit_property(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_integer_value(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_float_value(&mut self) -> AstVisitorResult { Ok(())}
@@ -493,6 +496,17 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_with_operator(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
             request.steps.push(QueryStep::new(StepType::With(EvalScopeClause::new_expression(self.var_scope_filter.clone()))))
+        }
+        Ok(())
+    }
+    
+    fn enter_recursive_relationship(&mut self) -> AstVisitorResult {
+        todo!()
+    }
+    
+    fn exit_recursive_relationship(&mut self) -> AstVisitorResult {
+        if let Some(pb) = self.current_path_builder() {
+            pb.set_recursive_relationship();
         }
         Ok(())
     }

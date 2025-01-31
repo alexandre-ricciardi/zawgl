@@ -22,7 +22,7 @@ use super::*;
 use super::error::*;
 
 use zawgl_cypher_query_model::ast::{AstTagNode, AstTag, Ast};
-use zawgl_cypher_query_model::token::{TokenType};
+use zawgl_cypher_query_model::token::TokenType;
 
 use super::properties_parser_delegate::*;
 
@@ -215,6 +215,9 @@ fn exit_rel_def(parser: &mut Parser, mut rel_node: Box<AstTagNode>, rel_fsm: &mu
                     None => Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
                 }
             },
+            TokenType::Mult => {
+                Ok(enter_recursive_relationship(parser, rel_node, rel_fsm, parent_node)?)
+            },
             _ => {
                 Ok(())
             }
@@ -222,6 +225,13 @@ fn exit_rel_def(parser: &mut Parser, mut rel_node: Box<AstTagNode>, rel_fsm: &mu
     } else {
         Ok(())
     }
+}
+
+fn enter_recursive_relationship(parser: &mut Parser, mut rel_node: Box<AstTagNode>, rel_fsm: &mut RelationshipFsm, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
+    if parser.current_token_type_advance(TokenType::Mult) {
+        rel_node.append(Box::new(AstTagNode::new_tag(AstTag::RecursiveRelationship)));
+    }
+    Ok(exit_rel_def(parser, rel_node, rel_fsm, parent_node)?)
 }
 
 pub fn parse_path(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {

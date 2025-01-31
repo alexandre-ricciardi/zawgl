@@ -35,6 +35,7 @@ pub enum AstTag  {
     RelDirectedLR,
     RelDirectedRL,
     RelUndirected,
+    RecursiveRelationship,
     Variable,
     Label,
     Query,
@@ -63,6 +64,7 @@ pub trait AstVisitor {
     fn enter_path(&mut self) -> AstVisitorResult;
     fn enter_node(&mut self) -> AstVisitorResult;
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult;
+    fn enter_recursive_relationship(&mut self) -> AstVisitorResult;
     fn enter_property(&mut self) -> AstVisitorResult;
     fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult;
     fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult;
@@ -88,6 +90,7 @@ pub trait AstVisitor {
     fn exit_path(&mut self) -> AstVisitorResult;
     fn exit_node(&mut self) -> AstVisitorResult;
     fn exit_relationship(&mut self) -> AstVisitorResult;
+    fn exit_recursive_relationship(&mut self) -> AstVisitorResult;
     fn exit_property(&mut self) -> AstVisitorResult;
     fn exit_integer_value(&mut self) -> AstVisitorResult;
     fn exit_float_value(&mut self) -> AstVisitorResult;
@@ -255,6 +258,7 @@ impl Ast for AstTagNode {
                     AstTag::RelUndirected => {
                         visitor.exit_relationship()
                     },
+                    AstTag::RecursiveRelationship => {visitor.exit_recursive_relationship()},
                     AstTag::Node => {
                         visitor.exit_node()
                     },

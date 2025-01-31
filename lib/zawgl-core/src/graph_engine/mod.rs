@@ -142,21 +142,26 @@ impl GraphEngine {
             let mut res_match = PropertyGraph::new();
             for index in gpattern.get_nodes_ids() {
                 let pattern_node = gpattern.get_node_ref(&index);
-                let proxy_index = map0[&index];
-                let mut proxy_node = proxy.get_node_ref(&proxy_index)?.clone();
-                proxy_node.set_option_var(pattern_node.get_var());
-                res_match.add_node(proxy_node);
+                let proxy_index_list = &map0[&index];
+                for proxy_index in proxy_index_list {
+                    let mut proxy_node = proxy.get_node_ref(&proxy_index)?.clone();
+                    proxy_node.set_option_var(pattern_node.get_var());
+                    res_match.add_node(proxy_node);
+                }
             }
             for prel in gpattern.get_relationships_and_edges() {
                 let psource_id = &prel.source;
                 let ptarget_id = &prel.target;
-                let proxy_source_id = map0[psource_id];
-                let proxy_target_id = map0[ptarget_id];
-                for (_rel_id, target_id, rel) in proxy.out_edges(&proxy_source_id)? {
-                    if target_id == proxy_target_id && compare_relationships(&prel.relationship, &rel) {
-                        let mut rel_clone = rel.clone();
-                        rel_clone.set_option_var(prel.relationship.get_var());
-                        res_match.add_relationship(rel_clone, *psource_id, *ptarget_id);
+                let proxy_source_ids = &map0[psource_id];
+                let proxy_target_ids = &map0[ptarget_id];
+                let proxy_ids = proxy_source_ids.iter().zip(proxy_target_ids.iter()).collect::<Vec<(&ProxyNodeId, &ProxyNodeId)>>();
+                for (proxy_source_id, proxy_target_id) in proxy_ids {
+                    for (_rel_id, target_id, rel) in proxy.out_edges(&proxy_source_id)? {
+                        if target_id == *proxy_target_id && compare_relationships(&prel.relationship, &rel) {
+                            let mut rel_clone = rel.clone();
+                            rel_clone.set_option_var(prel.relationship.get_var());
+                            res_match.add_relationship(rel_clone, *psource_id, *ptarget_id);
+                        }
                     }
                 }
             }

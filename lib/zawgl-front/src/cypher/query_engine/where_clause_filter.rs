@@ -464,6 +464,14 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     fn exit_optional_match(&mut self) -> AstVisitorResult {
         todo!()
     }
+    
+    fn enter_recursive_relationship(&mut self) -> AstVisitorResult {
+        todo!()
+    }
+    
+    fn exit_recursive_relationship(&mut self) -> AstVisitorResult {
+        todo!()
+    }
 }
 
 #[cfg(test)]
