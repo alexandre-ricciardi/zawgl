@@ -195,14 +195,21 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn enter_create(&mut self) -> AstVisitorResult {
         if let Some(rq) = &mut self.request {
-            rq.steps.push(QueryStep::new(StepType::CREATE));
+            rq.steps.push(QueryStep::new(StepType::Create));
         }
         self.set_visitor_state(VisitorState::DirectiveCreate);
         Ok(())
     }
     fn enter_match(&mut self) -> AstVisitorResult {
         if let Some(rq) = &mut self.request {
-            rq.steps.push(QueryStep::new(StepType::MATCH));
+            rq.steps.push(QueryStep::new(StepType::Match));
+        }
+        self.set_visitor_state(VisitorState::DirectiveMatch);
+        Ok(())
+    }
+    fn enter_optional_match(&mut self) -> AstVisitorResult {
+        if let Some(rq) = &mut self.request {
+            rq.steps.push(QueryStep::new(StepType::OptionalMatch));
         }
         self.set_visitor_state(VisitorState::DirectiveMatch);
         Ok(())
@@ -340,6 +347,17 @@ impl AstVisitor for CypherAstVisitor {
         }
         Ok(())
     }   
+    fn exit_optional_match(&mut self) -> AstVisitorResult { 
+        if let Some(rq) = &mut self.request {
+            let current_step = rq.steps.last_mut();
+            if let Some(step) = current_step {
+                let paths: &Vec<PropertyGraph> = &self.path_builders.iter().map(|pb| pb.get_path_graph().clone()).collect();
+                step.patterns = merge_paths(paths);
+                self.path_builders.clear();
+            }
+        }
+        Ok(())
+    }   
     fn exit_path(&mut self) -> AstVisitorResult {
         Ok(())
     }
@@ -359,7 +377,7 @@ impl AstVisitor for CypherAstVisitor {
     fn exit_query(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_return(&mut self) -> AstVisitorResult { 
         if let Some(req) = &mut self.request {
-            req.steps.push(QueryStep::new(StepType::RETURN(EvalScopeClause::new_expression(self.var_scope_filter.clone()))))
+            req.steps.push(QueryStep::new(StepType::Return(EvalScopeClause::new_expression(self.var_scope_filter.clone()))))
         }
         Ok(())
     }
@@ -474,7 +492,7 @@ impl AstVisitor for CypherAstVisitor {
     
     fn exit_with_operator(&mut self) -> AstVisitorResult {
         if let Some(request) = &mut self.request {
-            request.steps.push(QueryStep::new(StepType::WITH(EvalScopeClause::new_expression(self.var_scope_filter.clone()))))
+            request.steps.push(QueryStep::new(StepType::With(EvalScopeClause::new_expression(self.var_scope_filter.clone()))))
         }
         Ok(())
     }
@@ -624,7 +642,7 @@ mod test_query_engine {
             assert_eq!(rel.get_var(), &Some(String::from("r")));
             assert_eq!(rel.get_labels_ref()[0], String::from("PLAYED_IN"));
             assert_eq!(rel.get_status(), &Status::Match);
-            if let StepType::RETURN(eval) = &req.steps.last().expect("return clause").step_type {
+            if let StepType::Return(eval) = &req.steps.last().expect("return clause").step_type {
                 if let EvalScopeExpression::FunctionCall(func) = eval.expressions.first().expect("a return function with alias") {
                     assert_eq!(func.alias, Some("total".to_string()));
                     assert_eq!(func.name, "sum".to_string());

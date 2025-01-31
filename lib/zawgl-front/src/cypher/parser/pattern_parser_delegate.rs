@@ -188,7 +188,7 @@ fn enter_rel_def(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> Pars
                     Ok(())
                 }
             },
-            TokenType::Return | TokenType::Where | TokenType::With | TokenType::Create | TokenType::Match | TokenType::Comma => Ok(()),
+            TokenType::Return | TokenType::Where | TokenType::With | TokenType::Create | TokenType::Match | TokenType::Optional |TokenType::Comma => Ok(()),
             _ => {
                 Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
             }

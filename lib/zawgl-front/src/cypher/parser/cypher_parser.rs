@@ -28,12 +28,22 @@ use super::pattern_parser_delegate::*;
 use super::return_clause_parser_delegate::*;
 use super::where_clause_parser_delegate::parse_where_clause;
 
-fn parse_match(parser: &mut Parser, parent_node: &mut Box<AstTagNode>) -> ParserResult<()> {
-    let mut match_node = make_ast_tag(AstTag::Match);
+fn parse_match(parser: &mut Parser, parent_node: &mut Box<AstTagNode>, optional: bool) -> ParserResult<()> {
+    let mut match_node = if optional {
+        make_ast_tag(AstTag::OptionalMatch)
+    } else {
+        make_ast_tag(AstTag::Match)
+    };
     parse_path(parser, &mut match_node)?;
     parent_node.append(match_node);
     if parser.current_token_type_advance(TokenType::Match) {
-        parse_match(parser, parent_node)?;
+        parse_match(parser, parent_node, false)?;
+    } else if parser.current_token_type_advance(TokenType::Optional) {
+        if parser.current_token_type_advance(TokenType::Match) {
+            parse_match(parser, parent_node, true)?;
+        } else {
+            return Err(ParserError::SyntaxError(parser.index, parser.get_current_token_value()))
+        }
     }
     Ok(())
 }
@@ -65,7 +75,7 @@ pub fn parse(parser: &mut Parser) -> ParserResult<Box<dyn Ast>> {
             TokenType::Match => {
                 while parser.check(TokenType::Match) {
                     parser.advance();
-                    parse_match(parser, &mut query_node)?;
+                    parse_match(parser, &mut query_node, false)?;
                     parse_where_clause(parser, &mut query_node)?;
                 }
                 if parser.current_token_type_advance(TokenType::Create) {

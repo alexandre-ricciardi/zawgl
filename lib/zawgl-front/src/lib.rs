@@ -70,7 +70,7 @@ fn build_cypher_error(request_id: &str, err: CypherError) -> Result<Value, Cyphe
 fn get_return_clause(request: &Request) -> Option<&EvalScopeClause> {
     request.steps.last().and_then(|ret| {
         match &ret.step_type {
-            StepType::RETURN(ret_clause) => Some(ret_clause),
+            StepType::Return(ret_clause) => Some(ret_clause),
             _ => None
         }
     })
@@ -104,7 +104,7 @@ fn build_response(request_id: &str, qr: QueryResult, request: &Request) -> Resul
     let mut graph_list = Vec::new();
     let return_wildcard = &request.steps.last().map(|ret| {
         match &ret.step_type {
-            StepType::RETURN(ret_clause) => ret_clause.has_wildcard(),
+            StepType::Return(ret_clause) => ret_clause.has_wildcard(),
             _ => false
         }
     });

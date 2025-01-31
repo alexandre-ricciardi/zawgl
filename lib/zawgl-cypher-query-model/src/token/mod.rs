@@ -63,6 +63,7 @@ pub enum TokenType {
     LessThanOrEqual,
     As,
     With,
+    Optional,
 }
 
 

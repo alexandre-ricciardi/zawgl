@@ -82,7 +82,7 @@ impl <'a> Lexer<'a> {
                             (TokenType::And, "and"), (TokenType::Or, "or"),
                             (TokenType::Plus, "+"), (TokenType::Dot, "."),
                             (TokenType::Divide, "/"), (TokenType::Mult, "*"),
-                            (TokenType::Match, "match"), (TokenType::Where, "where"), (TokenType::With, "with"),
+                            (TokenType::Match, "match"), (TokenType::Optional, "optional"), (TokenType::Where, "where"), (TokenType::With, "with"),
                             (TokenType::Return, "return"), (TokenType::CloseParenthesis, ")"),
                             (TokenType::OpenParenthesis, "("), (TokenType::Colon, ":"),
                             (TokenType::OpenBrace, "{"), (TokenType::CloseBrace, "}"),
@@ -92,7 +92,7 @@ impl <'a> Lexer<'a> {
                             (TokenType::Comma, ","), (TokenType::Equals, "="),
                             (TokenType::Pipe, "|"), (TokenType::Minus, "-"),
                             (TokenType::GreaterThan, ">"), (TokenType::GreaterThanOrEqual, ">="),
-                            (TokenType::As, "as"),
+                            (TokenType::As, "as"), 
                             (TokenType::LessThan, "<"), (TokenType::LessThanOrEqual, "<=")],
             input, position: 0, lookahead: 0}
     }

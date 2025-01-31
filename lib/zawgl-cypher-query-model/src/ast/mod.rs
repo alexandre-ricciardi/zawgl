@@ -28,6 +28,7 @@ use crate::token::TokenType;
 pub enum AstTag  {
     Create,
     Match,
+    OptionalMatch,
     Node,
     Path,
     Property,
@@ -58,6 +59,7 @@ pub enum AstTag  {
 pub trait AstVisitor {
     fn enter_create(&mut self,) -> AstVisitorResult;
     fn enter_match(&mut self) -> AstVisitorResult;
+    fn enter_optional_match(&mut self) -> AstVisitorResult;
     fn enter_path(&mut self) -> AstVisitorResult;
     fn enter_node(&mut self) -> AstVisitorResult;
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult;
@@ -82,6 +84,7 @@ pub trait AstVisitor {
     fn enter_item_property_identifier(&mut self) -> AstVisitorResult;
     fn exit_create(&mut self) -> AstVisitorResult;
     fn exit_match(&mut self) -> AstVisitorResult;
+    fn exit_optional_match(&mut self) -> AstVisitorResult;
     fn exit_path(&mut self) -> AstVisitorResult;
     fn exit_node(&mut self) -> AstVisitorResult;
     fn exit_relationship(&mut self) -> AstVisitorResult;
@@ -174,6 +177,9 @@ impl Ast for AstTagNode {
                     AstTag::Match => {
                         visitor.enter_match()
                     },
+                    AstTag::OptionalMatch => {
+                        visitor.enter_optional_match()
+                    },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |
                     AstTag::RelUndirected => {
@@ -240,6 +246,9 @@ impl Ast for AstTagNode {
                     },
                     AstTag::Match => {
                         visitor.exit_match()
+                    },
+                    AstTag::OptionalMatch => {
+                        visitor.exit_optional_match()
                     },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |

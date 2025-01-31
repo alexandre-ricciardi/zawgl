@@ -243,5 +243,10 @@ mod test_parser {
         run("match (s:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(end:Person)
         return collect(end) as ps");
     }
+    #[test]
+    fn test_optional_match() {
+        run("match (s:Person)-[:IsFriendOf]->(new:Person) optional match (new)-[:IsFriendOf]->(end:Person)
+        return collect(end) as ps");
+    }
 }
 
