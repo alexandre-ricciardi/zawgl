@@ -285,28 +285,23 @@ async fn test_optional_match(mut client: Client) {
 
 
 async fn test_recursive_match(mut client: Client) {
-    let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
+
+    let r = client.execute_cypher_request("create (n:Movie)<-[r:Produced]-(p1:Producer)<-[r1:Produced]-(p2:Producer)<-[r2:Produced]-(p3:Producer) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (m:Movie) create (m)<-[r:Produced]-(p:Producer)<-[r:Produced]-(p:Producer) return m, r, p").await;
-    if let Ok(d) = r {
-        println!("{}", d.to_string());
-    } else {
-        assert!(false, "no response")
-    }
-    let r = client.execute_cypher_request("match (m:Movie)<-[r:Played]-(p:Person) optional match (m)<-[produced:Produced*]-(prd:Producer) return m, r, produced, p, prd").await;
+    let r = client.execute_cypher_request("match (n:Movie)<-[r0:Produced]-(p1:Producer)<-[r1:Produced*]-(p2:Producer)  return n, r0, p1, r1, p2").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 1);
         for g in graphs {
             let nodes = &g["nodes"].as_array().expect("nodes");
-            assert_eq!(nodes.len(), 3);
+            assert_eq!(nodes.len(), 4);
             let relationships = &g["relationships"].as_array().expect("rels");
-            assert_eq!(relationships.len(), 2);
+            assert_eq!(relationships.len(), 3);
         }
     } else {
         assert!(false, "no response")

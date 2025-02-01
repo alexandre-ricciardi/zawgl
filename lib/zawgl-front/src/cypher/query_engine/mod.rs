@@ -363,7 +363,9 @@ impl AstVisitor for CypherAstVisitor {
     }
     fn exit_node(&mut self) -> AstVisitorResult { Ok(())}
     fn exit_relationship(&mut self) -> AstVisitorResult {
-        
+        if let Some(pb) = self.current_path_builder() {
+            pb.exit_relationship();
+        }
         Ok(())
     }
     fn exit_property(&mut self) -> AstVisitorResult { Ok(())}
