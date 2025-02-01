@@ -128,7 +128,7 @@ pub fn push_state_0(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &
         base_state.multi_core_map.get_mut(v0).unwrap().push(*v1);
     }
     base_state.core_count += 1;
-    //base_state.core_map.insert(*v0, *v1);
+
     inc_term(base_state, v0);
 
     for edge_index in graph.in_edges(v0) {
@@ -164,7 +164,8 @@ pub fn pop_state_0(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &P
     base_state.core_count -= 1;
 
     if let Some(proxy_ids) = base_state.multi_core_map.get_mut(v0) {
-        if proxy_ids.pop().is_none() {
+        proxy_ids.pop();
+        if proxy_ids.is_empty() {
             base_state.multi_core_map.remove(v0);
         } 
     }

@@ -427,7 +427,7 @@ fn get_property_sum_value(prop: &PropertyValue) -> f64 {
     match prop {
         PropertyValue::PFloat(f) => *f,
         PropertyValue::PInteger(i) => *i as f64,
-        PropertyValue::PUInteger(u) => *u as f64,
+        PropertyValue::PUInteger(u) => f64::try_from(*u as u32).unwrap_or_default(),
         _ => 0.
     }
 }
