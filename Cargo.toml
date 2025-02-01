@@ -9,3 +9,12 @@ members = [
     "client/zawgl-client",
     "integration/cypher-tests",
 ]
+
+[workspace.dependencies]
+log = "0.4.25"
+simple_logger = "5.0.0"
+serde_json = "1.0.138"
+tokio-tungstenite = "0.26.1"
+tokio = { version = "1.43.0", features = ["full"] }
+toml = "0.8.19"
+serde = { version = "1.0.217", features = ["derive"] }

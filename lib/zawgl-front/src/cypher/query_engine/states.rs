@@ -33,6 +33,7 @@ pub enum VisitorState {
     WithClause,
     ReturnClause
 }
+
 #[derive(PartialEq)]
 pub enum VisitorPatternState {
     Init,

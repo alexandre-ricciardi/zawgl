@@ -262,6 +262,7 @@ pub struct Relationship {
     labels: Vec<String>,
     status: Status,
     property_predicates: Vec<NamedPropertyPredicate>,
+    is_recursive: bool
 }
 
 impl Default for Relationship {
@@ -272,7 +273,7 @@ impl Default for Relationship {
 
 impl Relationship {
     pub fn new() -> Self {
-        Relationship {var: None, properties: Vec::new(), labels: Vec::new(), id: None, status: Status::Empty, property_predicates: Vec::new()}
+        Relationship {var: None, properties: Vec::new(), labels: Vec::new(), id: None, status: Status::Empty, property_predicates: Vec::new(), is_recursive: false}
     }
     pub fn get_id(&self) -> Option<u64> {
         self.id
@@ -332,6 +333,14 @@ impl Relationship {
 
     pub fn get_predicates_ref(&self) -> &Vec<NamedPropertyPredicate> {
         &self.property_predicates
+    }
+
+    pub fn is_recursive(&self) -> bool {
+        self.is_recursive
+    }
+
+    pub fn set_recursive(&mut self, is_recursive: bool) {
+        self.is_recursive = is_recursive;
     }
 }
 

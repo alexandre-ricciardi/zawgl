@@ -60,6 +60,17 @@ async fn test_cypher_8() {
     run_test("test_where_clause_on_ids", 8191, test_where_clause_on_ids).await;
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_cypher_9() {
+    run_test("test_recursive_match", 8192, test_recursive_match).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_cypher_10() {
+    run_test("test_optional_match", 8193, test_optional_match).await;
+}
+
+
 async fn test_cypher_requests(mut client: Client) {
     let r = client.execute_cypher_request("create (n:Person) return n").await;
     if let Ok(d) = r {
@@ -241,6 +252,66 @@ async fn test_mutliple_match(mut client: Client) {
 }
 
 
+
+async fn test_optional_match(mut client: Client) {
+    let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
+    if let Ok(d) = r {
+        println!("{}", d.to_string());
+    } else {
+        assert!(false, "no response")
+    }
+    let r = client.execute_cypher_request("match (m:Movie) create (m)<-[r:Produced]-(p:Producer) return m, r, p").await;
+    if let Ok(d) = r {
+        println!("{}", d.to_string());
+    } else {
+        assert!(false, "no response")
+    }
+    let r = client.execute_cypher_request("match (m:Movie)<-[r:Played]-(p:Person) optional match (m)<-[produced:Produced]-(prd:Producer) return m, r, produced, p, prd").await;
+    if let Ok(d) = r {
+        println!("{}", d.to_string());
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
+        assert_eq!(graphs.len(), 1);
+        for g in graphs {
+            let nodes = &g["nodes"].as_array().expect("nodes");
+            assert_eq!(nodes.len(), 3);
+            let relationships = &g["relationships"].as_array().expect("rels");
+            assert_eq!(relationships.len(), 2);
+        }
+    } else {
+        assert!(false, "no response")
+    }
+}
+
+
+
+async fn test_recursive_match(mut client: Client) {
+    let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
+    if let Ok(d) = r {
+        println!("{}", d.to_string());
+    } else {
+        assert!(false, "no response")
+    }
+    let r = client.execute_cypher_request("match (m:Movie) create (m)<-[r:Produced]-(p:Producer)<-[r:Produced]-(p:Producer) return m, r, p").await;
+    if let Ok(d) = r {
+        println!("{}", d.to_string());
+    } else {
+        assert!(false, "no response")
+    }
+    let r = client.execute_cypher_request("match (m:Movie)<-[r:Played]-(p:Person) optional match (m)<-[produced:Produced*]-(prd:Producer) return m, r, produced, p, prd").await;
+    if let Ok(d) = r {
+        println!("{}", d.to_string());
+        let graphs = d["result"]["graphs"].as_array().expect("graphs");
+        assert_eq!(graphs.len(), 1);
+        for g in graphs {
+            let nodes = &g["nodes"].as_array().expect("nodes");
+            assert_eq!(nodes.len(), 3);
+            let relationships = &g["relationships"].as_array().expect("rels");
+            assert_eq!(relationships.len(), 2);
+        }
+    } else {
+        assert!(false, "no response")
+    }
+}
 
 
 

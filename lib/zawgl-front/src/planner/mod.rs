@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::{collections::{hash_map::Entry, HashMap}, slice::Iter};
+use std::{collections::{hash_map::Entry, HashMap}, ops::Deref, slice::Iter};
 
 use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::GraphEngine, model::*};
 
@@ -60,18 +60,29 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
     let mut result_graphs = vec![];
     for step in steps {
         match step.step_type {
-            StepType::MATCH => {
+            StepType::Match => {
                 if eval_results.is_empty() {
-                    results = handle_match(&results, graph_engine, &step, &vec![]);
+                    results = handle_match(&results, graph_engine, &step, &vec![], false);
                 } else {
                     let mut res = vec![];
                     for eval_row in &eval_results {
-                        res.append(&mut handle_match(&results, graph_engine, &step, eval_row));
+                        res.append(&mut handle_match(&results, graph_engine, &step, eval_row, false));
                     }
                     results = res;
                 }
             },
-            StepType::CREATE => {
+            StepType::OptionalMatch => {
+                if eval_results.is_empty() {
+                    results = handle_match(&results, graph_engine, &step, &vec![], true);
+                } else {
+                    let mut res = vec![];
+                    for eval_row in &eval_results {
+                        res.append(&mut handle_match(&results, graph_engine, &step, eval_row, true));
+                    }
+                    results = res;
+                }
+            },
+            StepType::Create => {
                 if eval_results.is_empty() {
                     results = handle_create(&results, graph_engine, &step, &vec![]);
                 } else {
@@ -82,8 +93,8 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                     results = res;
                 }
             },
-            StepType::DELETE => todo!(),
-            StepType::WHERE => {
+            StepType::Delete => todo!(),
+            StepType::Where => {
                 if let Some(where_clause) = &step.where_clause {
                     let mut where_clause_results = Vec::new();
                     let products = make_cartesian_product(&results);
@@ -96,10 +107,10 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                     results = where_clause_results;
                 }
             },
-            StepType::WITH(eval_scope) => {
+            StepType::With(eval_scope) => {
                 (_, eval_results) = handle_eval(&mut results, eval_scope, &eval_results)?;
             },
-            StepType::RETURN(eval_scope) => {
+            StepType::Return(eval_scope) => {
                 (result_graphs, return_eval_results) = handle_eval(&mut results, eval_scope, &eval_results)?;
             },
         }
@@ -240,7 +251,7 @@ fn handle_eval(results: &mut Vec::<Vec<PropertyGraph>>, eval_scope: EvalScopeCla
     }
 }
 
-fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>) -> Vec::<Vec<PropertyGraph>> {
+fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>, optional: bool) -> Vec::<Vec<PropertyGraph>> {
     let mut new_res = Vec::new();
     if results.is_empty() {
         for pattern in &step.patterns {
@@ -258,6 +269,8 @@ fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEng
                 let matched = graph_engine.match_pattern(&merge);
                 if let Some(c) = matched {
                     new_res.push(c);
+                } else if optional {
+                    new_res.push(product.iter().map(|g| g.deref().clone()).collect());
                 }
             }
         }
@@ -414,7 +427,7 @@ fn get_property_sum_value(prop: &PropertyValue) -> f64 {
     match prop {
         PropertyValue::PFloat(f) => *f,
         PropertyValue::PInteger(i) => *i as f64,
-        PropertyValue::PUInteger(u) => *u as f64,
+        PropertyValue::PUInteger(u) => f64::try_from(*u as u32).unwrap_or_default(),
         _ => 0.
     }
 }

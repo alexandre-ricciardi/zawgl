@@ -6,4 +6,4 @@ edition = "2021"
 
 [dependencies]
 zawgl-core = { path = "../lib/zawgl-core" }
-log = "0.4"
+log = { workspace = true }

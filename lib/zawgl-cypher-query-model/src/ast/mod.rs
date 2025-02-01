@@ -28,12 +28,14 @@ use crate::token::TokenType;
 pub enum AstTag  {
     Create,
     Match,
+    OptionalMatch,
     Node,
     Path,
     Property,
     RelDirectedLR,
     RelDirectedRL,
     RelUndirected,
+    RecursiveRelationship,
     Variable,
     Label,
     Query,
@@ -58,9 +60,11 @@ pub enum AstTag  {
 pub trait AstVisitor {
     fn enter_create(&mut self,) -> AstVisitorResult;
     fn enter_match(&mut self) -> AstVisitorResult;
+    fn enter_optional_match(&mut self) -> AstVisitorResult;
     fn enter_path(&mut self) -> AstVisitorResult;
     fn enter_node(&mut self) -> AstVisitorResult;
     fn enter_relationship(&mut self, node: &AstTagNode) -> AstVisitorResult;
+    fn enter_recursive_relationship(&mut self) -> AstVisitorResult;
     fn enter_property(&mut self) -> AstVisitorResult;
     fn enter_integer_value(&mut self, value: Option<i64>) -> AstVisitorResult;
     fn enter_float_value(&mut self, value: Option<f64>) -> AstVisitorResult;
@@ -82,9 +86,11 @@ pub trait AstVisitor {
     fn enter_item_property_identifier(&mut self) -> AstVisitorResult;
     fn exit_create(&mut self) -> AstVisitorResult;
     fn exit_match(&mut self) -> AstVisitorResult;
+    fn exit_optional_match(&mut self) -> AstVisitorResult;
     fn exit_path(&mut self) -> AstVisitorResult;
     fn exit_node(&mut self) -> AstVisitorResult;
     fn exit_relationship(&mut self) -> AstVisitorResult;
+    fn exit_recursive_relationship(&mut self) -> AstVisitorResult;
     fn exit_property(&mut self) -> AstVisitorResult;
     fn exit_integer_value(&mut self) -> AstVisitorResult;
     fn exit_float_value(&mut self) -> AstVisitorResult;
@@ -174,6 +180,9 @@ impl Ast for AstTagNode {
                     AstTag::Match => {
                         visitor.enter_match()
                     },
+                    AstTag::OptionalMatch => {
+                        visitor.enter_optional_match()
+                    },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |
                     AstTag::RelUndirected => {
@@ -241,11 +250,15 @@ impl Ast for AstTagNode {
                     AstTag::Match => {
                         visitor.exit_match()
                     },
+                    AstTag::OptionalMatch => {
+                        visitor.exit_optional_match()
+                    },
                     AstTag::RelDirectedLR |
                     AstTag::RelDirectedRL |
                     AstTag::RelUndirected => {
                         visitor.exit_relationship()
                     },
+                    AstTag::RecursiveRelationship => {visitor.exit_recursive_relationship()},
                     AstTag::Node => {
                         visitor.exit_node()
                     },

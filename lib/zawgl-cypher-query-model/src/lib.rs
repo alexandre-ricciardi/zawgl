@@ -29,7 +29,7 @@ pub mod properties;
 
 #[derive(Clone)]
 pub enum StepType {
-    MATCH, CREATE, DELETE, WHERE, WITH(EvalScopeClause), RETURN(EvalScopeClause)
+    Match, OptionalMatch, Create, Delete, Where, With(EvalScopeClause), Return(EvalScopeClause)
 }
 
 #[derive(Clone)]
@@ -45,7 +45,7 @@ impl QueryStep {
     }
 
     pub fn new_where_clause(where_clause: WhereClause) -> Self {
-        QueryStep {step_type: StepType::WHERE, patterns: Vec::new(), where_clause: Some(where_clause) }
+        QueryStep {step_type: StepType::Where, patterns: Vec::new(), where_clause: Some(where_clause) }
     }
 }
 

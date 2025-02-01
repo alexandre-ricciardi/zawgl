@@ -29,13 +29,14 @@ use super::states::*;
 
 pub struct PathBuilder {
     curr_node: Option<NodeIndex>,
-    curr_directed_relationship: Option<EdgeIndex>,
+    curr_relationship: Option<EdgeIndex>,
     curr_both_ways_relationship: Option<(EdgeIndex, EdgeIndex)>,
     pattern_state: VisitorPatternState,
     id_type: Option<IdentifierType>,
     curr_property_name: Option<String>,
     current_path: PropertyGraph,
     params: Option<Value>,
+    recursive_relationship: bool
 }
 
 fn make_relationship(visitor_state: &VisitorState) -> Relationship {
@@ -68,9 +69,9 @@ fn make_node(visitor_state: &VisitorState) -> Node {
 
 impl PathBuilder {
     pub fn new(params: Option<Value>) -> Self {
-        PathBuilder {curr_node: None, curr_directed_relationship: None, curr_both_ways_relationship: None,
+        PathBuilder {curr_node: None, curr_relationship: None, curr_both_ways_relationship: None,
             pattern_state: VisitorPatternState::Init,
-            id_type: None, curr_property_name: None, current_path: PropertyGraph::new(), params }
+            id_type: None, curr_property_name: None, current_path: PropertyGraph::new(), params, recursive_relationship: false}
     }
 
     pub fn get_path_graph(&self) -> &PropertyGraph {
@@ -81,7 +82,7 @@ impl PathBuilder {
         match self.pattern_state {
             VisitorPatternState::DirectedRelationshipProperty |
             VisitorPatternState::UndirectedRelationshipProperty => {
-                if let Some(rel_id) = self.curr_directed_relationship {
+                if let Some(rel_id) = self.curr_relationship {
                     let rel = self.current_path.get_relationship_mut(&rel_id);
                     if let (Some(name), Some(value)) = (&self.curr_property_name, property_value) {
                         rel.get_properties_mut().push(Property::new(name.clone(), value))
@@ -116,7 +117,9 @@ impl PathBuilder {
         }
     }
 
-    
+    pub fn set_recursive_relationship(&mut self) {
+        self.recursive_relationship = true;
+    }
     
     pub fn enter_relationship(&mut self, ast_tag: AstTag, visitor_state: VisitorState) {
         
@@ -128,11 +131,11 @@ impl PathBuilder {
         match ast_tag {
             AstTag::RelDirectedLR => {
                 self.pattern_state = VisitorPatternState::RelationshipLR;
-                self.curr_directed_relationship = source_target.map(|st| self.current_path.add_relationship(make_relationship(&visitor_state), st.0, st.1))
+                self.curr_relationship = source_target.map(|st| self.current_path.add_relationship(make_relationship(&visitor_state), st.0, st.1))
             }
             AstTag::RelDirectedRL => {
                 self.pattern_state = VisitorPatternState::RelationshipRL;
-                self.curr_directed_relationship = source_target.map(|st| self.current_path.add_relationship(make_relationship(&visitor_state), st.1, st.0))
+                self.curr_relationship = source_target.map(|st| self.current_path.add_relationship(make_relationship(&visitor_state), st.1, st.0))
             }
             AstTag::RelUndirected => {
                 self.pattern_state = VisitorPatternState::UndirectedRelationship;
@@ -140,6 +143,15 @@ impl PathBuilder {
             }
             _ => {}
         }
+    }
+
+    pub fn exit_relationship(&mut self) {
+        if let Some(rel_id) = self.curr_relationship {
+            let rel = self.current_path.get_relationship_mut(&rel_id);
+            rel.set_recursive(self.recursive_relationship);
+        }
+
+        self.recursive_relationship = false;
     }
 
     pub fn enter_property(&mut self) {
@@ -197,9 +209,8 @@ impl PathBuilder {
                     },
                     VisitorPatternState::RelationshipRL |
                     VisitorPatternState::RelationshipLR => {
-                        if let Some(rel_id) = self.curr_directed_relationship {
+                        if let Some(rel_id) = self.curr_relationship {
                             let rel = self.current_path.get_relationship_mut(&rel_id);
-                            
                             match self.id_type {
                                 Some(IdentifierType::Variable) => {
                                     rel.set_var(key);

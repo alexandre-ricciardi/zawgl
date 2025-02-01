@@ -120,6 +120,7 @@ mod test_parser {
         let mut lexer = Lexer::new(qry);
         match lexer.get_tokens() {
             Ok(tokens) => {
+                println!("tokens: {:?}", tokens);
                 let mut parser = Parser::new(tokens);
                 let root = cypher_parser::parse(&mut parser);
                 parser_utils::print_node(&root.unwrap(), parser.get_tokens(), 0);
@@ -241,6 +242,16 @@ mod test_parser {
     #[test]
     fn test_return_collect() {
         run("match (s:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(end:Person)
+        return collect(end) as ps");
+    }
+    #[test]
+    fn test_optional_match() {
+        run("match (s:Person)-[:IsFriendOf]->(new:Person) optional match (new)-[:IsFriendOf]->(end:Person)
+        return collect(end) as ps");
+    }
+    #[test]
+    fn test_recursive_match() {
+        run("match (s:Person)-[:IsFriendOf*]->(new:Person) 
         return collect(end) as ps");
     }
 }
