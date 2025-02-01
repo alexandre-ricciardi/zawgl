@@ -90,14 +90,14 @@ impl <T> VecIterator<T> {
 
 pub struct Matcher<'g0, VCOMP, ECOMP, CALLBACK>
     where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
-    CALLBACK: FnMut(&HashMap<NodeIndex, Vec<ProxyNodeId>>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>) -> Option<bool> {
+    CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>) -> Option<bool> {
         state: State<'g0, VCOMP, ECOMP>,
         callback: CALLBACK,
 }
 
 impl <'g0, VCOMP, ECOMP, CALLBACK> Matcher <'g0, VCOMP, ECOMP, CALLBACK>
     where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
-    CALLBACK: FnMut(&HashMap<NodeIndex, Vec<ProxyNodeId>>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>) -> Option<bool> {
+    CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>) -> Option<bool> {
 
         pub fn new(graph_0: &'g0 PropertyGraph, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Self {
             Matcher {
@@ -188,7 +188,7 @@ fn sort_nodes(graph: &'_ PropertyGraph) -> Vec<NodeIndex> {
 pub fn sub_graph_isomorphism<'g0: 'g1, 'g1: 'a, 'a, VCOMP, ECOMP, CALLBACK>
 (graph_0: &'g0 PropertyGraph, graph_1: &'g1 mut GraphProxy<'a>, vcomp: VCOMP, ecomp: ECOMP, callback: CALLBACK) -> Option<bool>
 where VCOMP: Fn(&Node, &Node) -> bool, ECOMP: Fn(&Relationship, &Relationship) -> bool,
-CALLBACK: FnMut(&HashMap<NodeIndex, Vec<ProxyNodeId>>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>)-> Option<bool>  {
+CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>)-> Option<bool>  {
 
     let id0 = sort_nodes(graph_0);
     let id1 = graph_1.get_nodes_ids();

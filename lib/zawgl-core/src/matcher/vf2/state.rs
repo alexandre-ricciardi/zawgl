@@ -122,11 +122,7 @@ fn dec_target<NID0, NID1>(base_state: &mut BaseState<NID0, NID1>, target: &NID0)
 }
 
 pub fn push_state_0(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &PropertyGraph, v0: &NodeIndex, v1: &ProxyNodeId) {  
-    if let Entry::Vacant(e) = base_state.multi_core_map.entry(*v0) {
-        e.insert(vec![*v1]);
-    } else {
-        base_state.multi_core_map.get_mut(v0).unwrap().push(*v1);
-    }
+    base_state.core_map.insert(*v0, *v1);
     base_state.core_count += 1;
 
     inc_term(base_state, v0);
@@ -159,16 +155,9 @@ pub fn pop_state_0(base_state: &mut BaseState<NodeIndex, ProxyNodeId>, graph: &P
         dec_target(base_state, &target);
     }
 
-    //base_state.core_map.remove(v0);
-
     base_state.core_count -= 1;
 
-    if let Some(proxy_ids) = base_state.multi_core_map.get_mut(v0) {
-        proxy_ids.pop();
-        if proxy_ids.is_empty() {
-            base_state.multi_core_map.remove(v0);
-        } 
-    }
+    base_state.core_map.remove(v0);
 }
 
 
@@ -238,9 +227,9 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
         }
 
         pub fn pop(&mut self, v0: &NodeIndex, _v1: &ProxyNodeId, graph_1: &mut GraphProxy<'_>) -> Option<()> {
-            if let Some(w) = &self.base_state_0.multi_core_last(v0) {
+            if let Some(&w) = self.base_state_0.core(v0) {
                 pop_state_0(&mut self.base_state_0, self.graph_0, v0);
-                pop_state_1(&mut self.base_state_1, graph_1, w);
+                pop_state_1(&mut self.base_state_1, graph_1, &w);
             }
             Some(())
         }
@@ -308,11 +297,11 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
 
         fn inc_counters_match_edge_0(&mut self, is_inbound: bool, term_in: &mut i32, term_out: &mut i32, rest: &mut i32, v_new: &NodeIndex, v_adj: &NodeIndex, w_new: &ProxyNodeId, edge_index: &EdgeIndex, matched_edge_set: &mut HashSet<ProxyRelationshipId>, graph_1: &mut GraphProxy<'_>) -> Option<bool> {
             let r0 = self.graph_0.get_relationship_ref(edge_index);
-            if self.base_state_0.in_multi_core(v_adj) || v_new == v_adj {
+            if self.base_state_0.in_core(v_adj) || v_new == v_adj {
                 let mut w = *w_new;
                 if v_adj != v_new {
-                    if let Some(ws) = self.base_state_0.multi_core_last(v_adj) {
-                        w =  ws;
+                    if let Some(ws) = self.base_state_0.core(v_adj) {
+                        w =  *ws;
                     }
                 }
 
@@ -323,7 +312,7 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
                 } else if !self.edge_exists_1(w_new, &w, r0, matched_edge_set, graph_1)? {
                     return Some(false);
                 }
-            } else if !r0.is_recursive() {
+            } else {
                 if  self.base_state_0.in_depth(v_adj) > 0 {
                     *term_in += 1;
                 }
@@ -380,13 +369,13 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
 
         pub fn possible_candidate_0(&self, v0: &NodeIndex) -> bool {
             if self.base_state_0.term_both() && self.base_state_1.term_both() {
-                self.base_state_0.multi_term_both_vertex(v0)
+                self.base_state_0.term_both_vertex(v0)
             } else if self.base_state_0.term_out() && self.base_state_1.term_out() {
-                self.base_state_0.multi_term_out_vertex(v0)
+                self.base_state_0.term_out_vertex(v0)
             } else if self.base_state_0.term_in() && self.base_state_1.term_in() {
-                self.base_state_0.multi_term_in_vertex(v0)
+                self.base_state_0.term_in_vertex(v0)
             } else {
-                !self.base_state_0.in_multi_core(v0)
+                !self.base_state_0.in_core(v0)
             }
         }
 
@@ -414,9 +403,9 @@ impl <'g0, VCOMP, ECOMP> State<'g0, VCOMP, ECOMP>
         }
 
         pub fn call_back<CALLBACK>(&mut self, callback: &mut CALLBACK, graph_1: &mut GraphProxy<'_>) -> Option<bool>
-        where CALLBACK: FnMut(&HashMap<NodeIndex, Vec<ProxyNodeId>>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>) -> Option<bool>
+        where CALLBACK: FnMut(&HashMap<NodeIndex, ProxyNodeId>, &HashMap<ProxyNodeId, NodeIndex>, &PropertyGraph, &mut GraphProxy<'_>) -> Option<bool>
         {
-            callback(self.base_state_0.get_multi_core_map(), self.base_state_1.get_map(), self.graph_0, graph_1)
+            callback(self.base_state_0.get_map(), self.base_state_1.get_map(), self.graph_0, graph_1)
         }
 
 }

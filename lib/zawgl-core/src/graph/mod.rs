@@ -84,6 +84,7 @@ pub struct EdgeData<NID: MemGraphId, EID: MemGraphId, R: Clone> {
     pub next_outbound_edge: Option<EID>,
     pub next_inbound_edge: Option<EID>,
     pub relationship: R,
+    pub discard: bool,
 }
 
 impl <NID: MemGraphId + Copy, EID: MemGraphId + Copy, R: Clone> EdgeData<NID, EID, R> {
@@ -122,15 +123,22 @@ impl <R: Clone> Iterator for OutEdges<'_, R> {
     type Item = EdgeIndex;
 
     fn next(&mut self) -> Option<EdgeIndex> {
-        match self.current_edge_index {
-            None => None,
-            Some(edge_index) => {
-                let edge = &self.edges[edge_index.get_index()];
-                let curr_edge_index = self.current_edge_index;
-                self.current_edge_index = edge.next_outbound_edge;
-                curr_edge_index
-            }
+        let mut is_valid = true;
+        let mut curr_edge_index = None;
+        while is_valid {
+            let edge_index = match self.current_edge_index {
+                None => None,
+                Some(edge_index) => {
+                    let edge = &self.edges[edge_index.get_index()];
+                    is_valid = !edge.discard;
+                    let curr_edge_index = self.current_edge_index;
+                    self.current_edge_index = edge.next_outbound_edge;
+                    curr_edge_index
+                }
+            };
+            curr_edge_index = edge_index;
         }
+        curr_edge_index
     }
 }
 
@@ -205,6 +213,14 @@ impl <N: Clone, R: Clone> Graph<N, R> {
         Graph{ vertices: Vec::new(), edges: Vec::new() }
     }
 
+    fn insert_vertex(&mut self, node: N, edge_index: EdgeIndex) {
+        let nid = self.add_vertex(node);
+        let edge_data = self.edges[edge_index.index];
+        let source = self.get_vertex(edge_data.source);
+        let target = self.get_vertex(edge_data.target);
+        
+    }
+
     fn new_clone(nodes: Vec<VertexData<EdgeIndex, N>>, edges: Vec<EdgeData<NodeIndex, EdgeIndex, R>>) -> Self {
         Graph{ vertices: nodes, edges }
     }
@@ -232,6 +248,7 @@ impl <N: Clone, R: Clone> Graph<N, R> {
                 next_inbound_edge: target_data.first_inbound_edge, 
                 next_outbound_edge: source_data.first_outbound_edge,
                 relationship: rel,
+                discard: false,
             });
         }
         
