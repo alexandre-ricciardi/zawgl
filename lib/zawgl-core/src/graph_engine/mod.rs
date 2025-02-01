@@ -21,7 +21,10 @@
 pub mod model;
 
 use std::collections::HashMap;
+use std::vec;
 use log::trace;
+
+use crate::make_cartesian_product;
 
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
@@ -67,10 +70,35 @@ impl GraphEngine {
         self.repository.create_relationship(rel, source_id, target_id)
     }
 
-    pub fn recursive_match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
-        for rel in pattern.get_relationships() {
-            if rel.is_recursive() {
-
+    pub fn recursive_match_pattern(&mut self, pattern: &PropertyGraph, rec_index: usize, result: &mut Vec<PropertyGraph>) {
+        let mut current_pattern = pattern.clone();
+        loop {
+            let mut depth = rec_index;
+            let mut edge_data = None;
+            for e in current_pattern.get_edges() {
+                if e.relationship.is_recursive() {
+                    depth -= 1;
+                    if depth == 0 {
+                        edge_data = Some(e.clone());
+                        break;
+                    }
+                }
+            }
+            if let Some(ed) = edge_data {
+                let node = Node::new();
+                let (src_id, _tgt_id) = current_pattern.insert_node(node, &ed.id.clone());
+                current_pattern.get_relationship_mut(&src_id).set_recursive(false);
+                let mut matched = self.match_pattern(&current_pattern);
+                if let Some(m) = &mut matched {
+                    if m.is_empty() {
+                        break;
+                    } else {
+                        self.recursive_match_pattern(&current_pattern, rec_index + 1, result);
+                        result.append(m);
+                    }
+                }                
+            } else {
+                break;
             }
         }
     }

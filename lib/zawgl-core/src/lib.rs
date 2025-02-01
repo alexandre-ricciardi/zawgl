@@ -31,3 +31,26 @@ pub mod model;
 pub mod repository;
 mod matcher;
 pub mod graph_engine;
+
+pub fn make_cartesian_product<T>(pools: &[Vec<T>]) -> Vec<Vec<&T>> {
+    let mut res: Vec<Vec<&T>> = vec![];
+ 
+    let mut list_iter = pools.iter();
+    if let Some(first_list) = list_iter.next() {
+        for i in first_list {
+            res.push(vec![i]);
+        }
+    }
+    for l in list_iter {
+        let mut tmp = vec![];
+        for r in res {
+            for el in l {
+                let mut tmp_el = r.clone();
+                tmp_el.push(el);
+                tmp.push(tmp_el);
+            }
+        }
+        res = tmp;
+    }
+    res
+}

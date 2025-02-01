@@ -123,11 +123,14 @@ impl <R: Clone> Iterator for OutEdges<'_, R> {
     type Item = EdgeIndex;
 
     fn next(&mut self) -> Option<EdgeIndex> {
-        let mut is_valid = true;
+        let mut is_valid = false;
         let mut curr_edge_index = None;
-        while is_valid {
+        while !is_valid {
             let edge_index = match self.current_edge_index {
-                None => None,
+                None => {
+                    is_valid = true;
+                    None
+                },
                 Some(edge_index) => {
                     let edge = &self.edges[edge_index.get_index()];
                     is_valid = !edge.discard;
@@ -152,15 +155,25 @@ impl <'a, R: Clone> Iterator for InEdges<'a, R> {
     type Item = EdgeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.current_edge_index {
-            None => None,
-            Some(edge_index) => {
-                let edge = &self.edges[edge_index.get_index()];
-                let curr_edge_index = self.current_edge_index;
-                self.current_edge_index = edge.next_inbound_edge;
-                curr_edge_index
-            }
+        let mut is_valid = false;
+        let mut curr_edge_index = None;
+        while !is_valid {
+            let edge_index = match self.current_edge_index {
+                None => {
+                    is_valid = true;
+                    None
+                },
+                Some(edge_index) => {
+                    let edge = &self.edges[edge_index.get_index()];
+                    is_valid = !edge.discard;
+                    let curr_edge_index = self.current_edge_index;
+                    self.current_edge_index = edge.next_inbound_edge;
+                    curr_edge_index
+                }
+            };
+            curr_edge_index = edge_index;
         }
+        curr_edge_index
     }
 }
 
@@ -213,12 +226,20 @@ impl <N: Clone, R: Clone> Graph<N, R> {
         Graph{ vertices: Vec::new(), edges: Vec::new() }
     }
 
-    fn insert_vertex(&mut self, node: N, edge_index: EdgeIndex) {
+    fn insert_vertex(&mut self, node: N, edge_index: &EdgeIndex) -> (EdgeIndex, EdgeIndex) {
         let nid = self.add_vertex(node);
-        let edge_data = self.edges[edge_index.index];
-        let source = self.get_vertex(edge_data.source);
-        let target = self.get_vertex(edge_data.target);
-        
+        let target = self.edges[edge_index.index].target;
+        let source = self.edges[edge_index.index].source;
+        let rel_src = self.edges[edge_index.index].relationship.clone();
+        let rel_tgt = self.edges[edge_index.index].relationship.clone();
+        let source_edge_index = self.add_edge(rel_src, source, nid);
+        let target_edge_index = self.add_edge(rel_tgt, nid, target);
+        self.discard_edge(edge_index);
+        (source_edge_index, target_edge_index)
+    }
+
+    fn discard_edge(&mut self, edge_index: &EdgeIndex) {
+        self.edges[edge_index.index].discard = true;
     }
 
     fn new_clone(nodes: Vec<VertexData<EdgeIndex, N>>, edges: Vec<EdgeData<NodeIndex, EdgeIndex, R>>) -> Self {

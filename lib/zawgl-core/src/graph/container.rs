@@ -44,7 +44,6 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
     pub fn get_relationship_ref(&self, id: &EdgeIndex) -> &RELATIONSHIP {
         &self.graph.edges[id.get_index()].relationship
     }
-
 }
 
 impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
@@ -99,6 +98,10 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
         self.graph.add_edge(rel, source, target)
     }
     
+    pub fn insert_node(&mut self, node: NODE, edge_index: &EdgeIndex) -> (EdgeIndex, EdgeIndex) {
+        self.graph.insert_vertex(node, edge_index)
+    }
+
     pub fn get_inner_graph(&self) -> &Graph<NODE, RELATIONSHIP> {
         &self.graph
     }

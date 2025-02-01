@@ -21,7 +21,7 @@
 
 use std::{collections::{hash_map::Entry, HashMap}, ops::Deref, slice::Iter};
 
-use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::GraphEngine, model::*};
+use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::GraphEngine, make_cartesian_product, model::*};
 
 mod pattern_builder;
 
@@ -29,29 +29,6 @@ use pattern_builder::{build_pattern, merge_patterns};
 use zawgl_cypher_query_model::{ast::AstVisitorError, model::{BoolResult, EvalResultItem, EvalScopeClause, EvalScopeExpression, ListResult, NodeResult, RelationshipResult, ScalarResult, StringResult, ValueItem, WhereClause}, QueryResult, QueryStep, StepType};
 
 use crate::cypher::{parser, query_engine::{where_clause_filter::WhereClauseAstVisitor, CypherError}};
-
-pub fn make_cartesian_product<T>(pools: &[Vec<T>]) -> Vec<Vec<&T>> {
-    let mut res: Vec<Vec<&T>> = vec![];
- 
-    let mut list_iter = pools.iter();
-    if let Some(first_list) = list_iter.next() {
-        for i in first_list {
-            res.push(vec![i]);
-        }
-    }
-    for l in list_iter {
-        let mut tmp = vec![];
-        for r in res {
-            for el in l {
-                let mut tmp_el = r.clone();
-                tmp_el.push(el);
-                tmp.push(tmp_el);
-            }
-        }
-        res = tmp;
-    }
-    res
-}
 
 pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine) -> Result<QueryResult, CypherError> {
     let mut results = Vec::<Vec<PropertyGraph>>::new();
