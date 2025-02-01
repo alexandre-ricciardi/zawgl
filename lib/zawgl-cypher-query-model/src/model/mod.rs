@@ -156,14 +156,18 @@ impl EvalResultItem {
 pub struct EvalItem {
     pub item: ValueItem,
     pub alias: Option<String>,
+    pub wildcard: bool,
 }
 
 impl EvalItem {
     pub fn new_property(item_name: &str, prop_name: &str) -> Self {
-        EvalItem{item: ValueItem::ItemPropertyName(ItemPropertyName::new(item_name, prop_name)), alias: None}
+        EvalItem{item: ValueItem::ItemPropertyName(ItemPropertyName::new(item_name, prop_name)), alias: None, wildcard: false}
     }
     pub fn new_named_item(name: &str) -> Self {
-        EvalItem{item: ValueItem::NamedItem(name.to_string()), alias: None}
+        EvalItem{item: ValueItem::NamedItem(name.to_string()), alias: None, wildcard: false}
+    }
+    pub fn new_wildcard() -> Self {
+        EvalItem{item: ValueItem::NamedItem("*".to_string()), alias: None, wildcard: true}
     }
 }
 

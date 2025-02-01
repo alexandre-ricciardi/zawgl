@@ -70,6 +70,10 @@ fn parse_return_expression(parser: &mut Parser, parent_node: &mut Box<AstTagNode
         if parser.current_token_type_advance(TokenType::Comma) { 
             parse_return_expression(parser, parent_node)?;
         }
+    } else if parser.current_token_type_advance(TokenType::Mult) {
+        let mut wildcard = make_ast_tag(AstTag::Star);
+        wildcard.append(make_ast_token(parser));
+        parent_node.append(wildcard);
     }
     Ok(())
 }

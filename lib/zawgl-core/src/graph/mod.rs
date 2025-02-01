@@ -57,7 +57,7 @@ impl traits::MemGraphId for NodeIndex {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct VertexData<EID: MemGraphId, N> {
     pub first_outbound_edge: Option<EID>,
     pub first_inbound_edge: Option<EID>,
@@ -242,8 +242,8 @@ impl <N: Clone, R: Clone> Graph<N, R> {
         self.edges[edge_index.index].discard = true;
     }
 
-    fn new_clone(nodes: Vec<VertexData<EdgeIndex, N>>, edges: Vec<EdgeData<NodeIndex, EdgeIndex, R>>) -> Self {
-        Graph{ vertices: nodes, edges }
+    fn new_clone(vertices: Vec<VertexData<EdgeIndex, N>>, edges: Vec<EdgeData<NodeIndex, EdgeIndex, R>>) -> Self {
+        Graph{ vertices, edges }
     }
 
     pub fn add_vertex(&mut self, node: N) -> NodeIndex {

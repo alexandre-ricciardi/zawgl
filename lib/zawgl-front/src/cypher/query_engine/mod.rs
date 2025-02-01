@@ -512,6 +512,21 @@ impl AstVisitor for CypherAstVisitor {
         }
         Ok(())
     }
+    
+    fn enter_star_operator(&mut self) -> AstVisitorResult {
+        let state = self.get_first_visitor_state();
+        match state {
+            VisitorState::ReturnClause | VisitorState::WithClause => {
+                self.var_scope_filter.push(EvalScopeExpression::Item(EvalItem::new_wildcard()));
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+    
+    fn exit_star_operator(&mut self) -> AstVisitorResult {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

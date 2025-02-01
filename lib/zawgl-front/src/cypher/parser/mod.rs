@@ -254,5 +254,10 @@ mod test_parser {
         run("match (s:Person)-[:IsFriendOf*]->(new:Person) 
         return collect(end) as ps");
     }
+    #[test]
+    fn test_star() {
+        run("match (s:Person)-[:IsFriendOf*]->(new:Person) 
+        return *");
+    }
 }
 

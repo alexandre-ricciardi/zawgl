@@ -196,6 +196,8 @@ fn get_nodes_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &Pr
             if var == name || ret_all {
                 nodes_doc.push(make_node(alias, name, node)?);
             }
+        } else if ret_all {
+            nodes_doc.push(make_node(alias, name, node)?);
         }
     }
     Ok(nodes_doc)

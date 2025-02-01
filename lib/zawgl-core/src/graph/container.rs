@@ -21,11 +21,15 @@
 use super::*;
 use super::traits::*;
 
-#[derive(Clone)]
 pub struct GraphContainer<NODE: Clone, RELATIONSHIP: Clone> {
     graph: Graph<NODE, RELATIONSHIP>,
 }
 
+impl <N: Clone, R: Clone> Clone for GraphContainer<N, R> {
+    fn clone(&self) -> Self {
+        Self { graph: self.graph.clone() }
+    }
+}
 
 impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
 
@@ -106,7 +110,7 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
         &self.graph
     }
 
-    pub fn get_relationships_and_edges(&self) -> &Vec<EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>> {
+    pub fn get_relationships_and_edges(&self) -> Vec<&EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>> {
         self.get_edges()
     }
 
@@ -122,8 +126,8 @@ impl <NODE: Clone, RELATIONSHIP: Clone> GraphContainer<NODE, RELATIONSHIP> {
         self.graph.edges.iter_mut().map(|e| &mut e.relationship).collect()
     }
 
-    pub fn get_edges(&self) -> &Vec<EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>> {
-        &self.graph.edges
+    pub fn get_edges(&self) -> Vec<&EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>> {
+        self.graph.edges.iter().filter(|e| !e.discard).collect::<Vec<&EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>>>()
     }
 
     pub fn get_edges_mut(&mut self) -> &mut Vec<EdgeData<NodeIndex, EdgeIndex, RELATIONSHIP>> {

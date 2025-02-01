@@ -34,6 +34,16 @@ pub enum VisitorState {
     ReturnClause
 }
 
+#[derive(PartialEq, Clone, Copy)]
+pub struct RelationshipParameters {
+    is_recursive: bool,
+}
+
+impl RelationshipParameters {
+    pub fn new(is_recursive: bool) -> Self {
+        Self { is_recursive }
+    }
+}
 #[derive(PartialEq)]
 pub enum VisitorPatternState {
     Init,

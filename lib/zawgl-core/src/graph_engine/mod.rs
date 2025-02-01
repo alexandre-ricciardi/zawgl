@@ -24,8 +24,6 @@ use std::collections::HashMap;
 use std::vec;
 use log::trace;
 
-use crate::make_cartesian_product;
-
 use super::model::*;
 use super::repository::graph_repository::GraphRepository;
 use self::model::*;
@@ -70,40 +68,45 @@ impl GraphEngine {
         self.repository.create_relationship(rel, source_id, target_id)
     }
 
-    pub fn recursive_match_pattern(&mut self, pattern: &PropertyGraph, rec_index: usize, result: &mut Vec<PropertyGraph>) {
+    pub fn recursive_match_pattern(&mut self, pattern: &PropertyGraph, rec_index: usize, result: &mut Vec<PropertyGraph>) -> Option<()> {
         let mut current_pattern = pattern.clone();
-        loop {
-            let mut depth = rec_index;
-            let mut edge_data = None;
-            for e in current_pattern.get_edges() {
-                if e.relationship.is_recursive() {
-                    depth -= 1;
-                    if depth == 0 {
-                        edge_data = Some(e.clone());
-                        break;
-                    }
+        let mut depth = rec_index;
+        let mut edge_data = None;
+        for e in current_pattern.get_edges() {
+            if e.relationship.is_recursive() {
+                depth -= 1;
+                if depth == 0 {
+                    edge_data = Some(e.clone());
+                    break;
                 }
             }
-            if let Some(ed) = edge_data {
-                let node = Node::new();
-                let (src_id, _tgt_id) = current_pattern.insert_node(node, &ed.id.clone());
-                current_pattern.get_relationship_mut(&src_id).set_recursive(false);
-                let mut matched = self.match_pattern(&current_pattern);
-                if let Some(m) = &mut matched {
-                    if m.is_empty() {
-                        break;
-                    } else {
-                        self.recursive_match_pattern(&current_pattern, rec_index + 1, result);
-                        result.append(m);
-                    }
-                }                
+        }
+        if let Some(ed) = edge_data {
+            let node = Node::new();
+            let (src_id, _tgt_id) = current_pattern.insert_node(node, &ed.id.clone());
+            current_pattern.get_relationship_mut(&src_id).set_recursive(false);
+            let mut matched = self._match_pattern(&current_pattern)?;
+            if !matched.is_empty() {
+                self.recursive_match_pattern(&current_pattern, rec_index + 1, result)?;
+                result.append(&mut matched);
             } else {
-                break;
+                return Some(())
             }
         }
+        if rec_index == 1 {
+            let mut matched = self._match_pattern(&pattern)?;
+            result.append(&mut matched);
+        }
+        Some(())
     }
 
     pub fn match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
+        let mut matched = vec![];
+        self.recursive_match_pattern(pattern, 1, &mut matched)?;
+        Some(matched)
+    }
+
+    pub fn _match_pattern(&mut self, pattern: &PropertyGraph) -> Option<Vec<PropertyGraph>> {
         let mut graph_proxy = GraphProxy::new(&mut self.repository, pattern)?;
         let mut res = Vec::new();
         sub_graph_isomorphism(pattern, &mut graph_proxy, 
@@ -247,9 +250,10 @@ impl GraphEngine {
                 }
             }
 
-            let res = self.match_pattern(&match_pattern)?;
+            let mut matched = vec![];
+            self.recursive_match_pattern(&match_pattern, 1, &mut matched);
 
-            matched_patterns.push((map_nodes_ids, res, pattern));
+            matched_patterns.push((map_nodes_ids, matched, pattern));
         }
 
         let mut results = Vec::new();

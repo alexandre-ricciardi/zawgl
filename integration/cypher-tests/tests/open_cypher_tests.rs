@@ -292,17 +292,17 @@ async fn test_recursive_match(mut client: Client) {
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (n:Movie)<-[r0:Produced]-(p1:Producer)<-[r1:Produced*]-(p2:Producer)  return n, r0, p1, r1, p2").await;
+    let r = client.execute_cypher_request("match (n:Movie)<-[r0:Produced]-(p1:Producer)<-[r1:Produced*]-(p2:Producer)  return *").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
-        assert_eq!(graphs.len(), 1);
+        assert_eq!(graphs.len(), 2);
+        let mut sum = 0;
         for g in graphs {
-            let nodes = &g["nodes"].as_array().expect("nodes");
-            assert_eq!(nodes.len(), 4);
-            let relationships = &g["relationships"].as_array().expect("rels");
-            assert_eq!(relationships.len(), 3);
+            let nodes = g["nodes"].as_array().expect("nodes");
+            sum += nodes.len();
         }
+        assert_eq!(sum, 7);
     } else {
         assert!(false, "no response")
     }
