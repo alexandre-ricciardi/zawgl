@@ -1,6 +1,6 @@
 [package]
 name = "zawgl-core"
-version = "0.1.14"
+version = "0.1.15"
 authors = ["Alexandre RICCIARDI <aricciardi501@gmail.com>"]
 edition = "2021"
 description = "Zawgl Graph Core Library"
@@ -10,6 +10,6 @@ license = "MIT"
 name = "zawgl_core"
 
 [dependencies]
-log = "0.4.19"
-toml = "0.8.12"
-serde = { version = "1.0.177", features = ["derive"] }
+log = { workspace = true }
+toml = { workspace = true }
+serde = { workspace = true }
