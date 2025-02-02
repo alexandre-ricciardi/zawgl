@@ -19,9 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::{collections::{hash_map::Entry, HashMap}, ops::Deref, slice::Iter};
+use std::{collections::{hash_map::Entry, HashMap, HashSet}, ops::Deref, slice::Iter};
 
-use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::GraphEngine, make_cartesian_product, model::*};
+use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::{model::GraphProxy, GraphEngine}, make_cartesian_product, model::*};
 
 mod pattern_builder;
 
@@ -92,7 +92,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
             },
         }
     }
-    let merged_graphs = merge_patterns(&result_graphs.iter().collect::<Vec<&PropertyGraph>>(), &vec![]);
+    let merged_graphs = merge_graphs(&result_graphs);
     Ok(QueryResult::new(result_graphs, merged_graphs, return_eval_results))
 }
 
@@ -520,4 +520,41 @@ fn get_named_items<'a>(name: &str, graph: &'a PropertyGraph) -> Result<Vec<Item<
         }
     }
     Ok(res)
+}
+
+fn merge_graphs(graphs: &Vec<PropertyGraph>) -> PropertyGraph {
+    let mut merge = PropertyGraph::new();
+    let mut graph_index_to_mid = HashMap::new();
+    let mut nid_set = HashSet::new();
+    let mut graph_index = 0;
+    for g in graphs {
+        let mut graph_id_to_mid = HashMap::new();
+        for n in g.get_nodes() {
+            if !nid_set.contains(&n.get_id()) {
+                let mid = merge.add_node(n.clone());
+                nid_set.insert(n.get_id());
+                graph_id_to_mid.insert(n.get_id(), mid);
+            }
+        }
+        graph_index_to_mid.insert(graph_index, graph_id_to_mid);
+        graph_index += 1;
+    }
+    let mut rid_set = HashSet::new();
+    graph_index = 0;
+    for g in graphs {
+        for edge_data in g.get_relationships_and_edges() {
+            if !rid_set.contains(&edge_data.relationship.get_id()) {
+                let src_node = g.get_node_ref(&edge_data.source);
+                let tgt_node = g.get_node_ref(&edge_data.target);
+                let rel = edge_data.relationship.clone();
+                let source = graph_index_to_mid[&graph_index].get(&src_node.get_id());
+                let target = graph_index_to_mid[&graph_index].get(&tgt_node.get_id());
+                if let (Some(sid), Some(tid)) = (source, target) {
+                    merge.add_relationship(rel, *sid, *tid);
+                    rid_set.insert(edge_data.relationship.get_id());
+                }
+            }
+        }
+    }
+    merge
 }
