@@ -194,7 +194,7 @@ fn get_nodes_named(ret_all: bool, alias: Option<&String>, name: &str, graph: &Pr
     for node in graph.get_nodes() {
         if let Some(var) = node.get_var() {
             if var == name || ret_all {
-                nodes_doc.push(make_node(alias, name, node)?);
+                nodes_doc.push(make_node(alias, var, node)?);
             }
         } else if ret_all {
             nodes_doc.push(make_node(alias, name, node)?);
@@ -207,7 +207,7 @@ fn get_relationships_named(ret_all: bool, alias: Option<&String>, name: &str, gr
     for rel in graph.get_relationships_and_edges() {
         if let Some(var) = rel.relationship.get_var() {
             if var == name || ret_all {
-                rels_doc.push(make_relationship(alias, name, rel, graph)?);
+                rels_doc.push(make_relationship(alias, var, rel, graph)?);
             }
         }
     }
