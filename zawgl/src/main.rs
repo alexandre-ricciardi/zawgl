@@ -40,7 +40,6 @@ async fn main() {
         if let Ok(_) = tx_run.send(false).await {
             info!("Exiting commit loop");
         }
-        info!("Database stopped");
     });
     tokio::select! {
         _ = zawgl_server::run_server(&settings.server.address, ctx, || {
@@ -48,4 +47,5 @@ async fn main() {
         }, rx_run) => 0,
         _ = exit => 0
     };
+    info!("Database stopped");
 }

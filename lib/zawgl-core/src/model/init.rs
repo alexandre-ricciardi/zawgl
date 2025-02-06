@@ -34,6 +34,8 @@ pub struct InitContext {
     nodes_labels_index_name: String,
     relationships_types_index_name: String,
     labels_store_name: String,
+    meta_data_index_store_name: String,
+    meta_data_values_store_name: String,
 }
 
 fn build_path(dir: &str, file: &str) -> Option<String> {
@@ -65,6 +67,8 @@ impl InitContext {
             nodes_labels_index_name: NODES_LABELS_INDEX_FILE_NAME.to_string(),
             relationships_types_index_name: RELATIONSHIPS_TYPES_INDEX_FILE_NAME.to_string(),
             labels_store_name: LABELS_FILE_NAME.to_string(),
+            meta_data_index_store_name: META_DATA_INDEX_FILE_NAME.to_string(),
+            meta_data_values_store_name: META_DATA_VALUES_FILE_NAME.to_string(),
         })
     }
 
@@ -91,5 +95,13 @@ impl InitContext {
 
     pub fn get_labels_store_path(&self) -> Option<String> {
         build_path(self.db_dir.as_str(), &self.labels_store_name)
+    }
+
+    pub fn get_meta_data_index_store_path(&self) -> Option<String> {
+        build_path(self.db_dir.as_str(), &self.meta_data_index_store_name)
+    }
+
+    pub fn get_meta_data_values_store_path(&self) -> Option<String> {
+        build_path(self.db_dir.as_str(), &self.meta_data_values_store_name)
     }
 }
