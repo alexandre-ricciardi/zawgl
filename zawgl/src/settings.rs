@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::env;
 
 use config::{Config, ConfigError};
@@ -37,7 +37,8 @@ pub struct Log {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Server {
     pub address: String,
-    pub database_dir: String,
+    pub database_root_dir: String,
+    pub databases_dirs: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -46,15 +47,25 @@ pub struct Settings {
     pub log: Log,
 }
 
+fn get_current_dir() -> PathBuf {
+    let mut current_dir = env::current_dir().map_err(|err| ConfigError::Message(err.to_string())).expect("current directory");
+    let conf_dir = Path::new(CONFIG_DIR);
+    current_dir.push(conf_dir);
+    current_dir
+}
+
+fn make_full_path() -> PathBuf {
+    let current_dir = get_current_dir();
+    let mut full_path = current_dir.clone();
+    let config_file = Path::new(CONFIG_FILE_NAME);
+    full_path.push(config_file);
+    full_path
+}
+
 impl Settings {
     pub fn new() -> Self {
         let s = Config::builder();
-        let mut current_dir = env::current_dir().map_err(|err| ConfigError::Message(err.to_string())).expect("current directory");
-        let conf_dir = Path::new(CONFIG_DIR);
-        current_dir.push(conf_dir);
-        let mut full_path = current_dir.clone();
-        let config_file = Path::new(CONFIG_FILE_NAME);
-        full_path.push(config_file);
+        let full_path = make_full_path();
         if let Some(file_path) = full_path.as_path().to_str() {
             if let Ok(config) = s.add_source(config::File::with_name(file_path))
                 .build() {
@@ -64,10 +75,10 @@ impl Settings {
                     panic!("Failed parsing config file .zawgl/Settings.toml")
                 }
             } else {
-                let server = Server { address: "0.0.0.0:8182".to_string(), database_dir: "zawgl-db".to_string() };
+                let server = Server { address: "0.0.0.0:8182".to_string(), database_root_dir: "zawgl-db".to_string(), databases_dirs: vec!["default".to_string()] };
                 let log = Log { level: "info".to_string() };
                 let settings = Settings { server, log };
-                std::fs::create_dir_all(&current_dir).expect("Failed creating configuration dir");
+                std::fs::create_dir_all(&get_current_dir()).expect("Failed creating configuration dir");
                 std::fs::write(
                     &full_path,
                     toml::to_string(&settings).unwrap()
@@ -82,6 +93,17 @@ impl Settings {
         
     }
 
+    pub fn save(&self) {
+        std::fs::write(
+            &make_full_path(),
+            toml::to_string(&self).unwrap()
+        )
+        .expect("Failed to create configuration file");
+    }
+
+    pub fn get_db_dirs(&self) -> &Vec<String> {
+        &self.server.databases_dirs
+    }
 
     pub fn get_log_level(&self) -> LevelFilter {
         let log_level = match self.log.level.as_str() {

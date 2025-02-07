@@ -47,7 +47,7 @@ pub struct GraphRepository {
 impl GraphRepository {
 
     /// Builds a GraphRepository with its context
-    pub fn new(init_ctx: init::InitContext) -> Self {
+    pub fn new(init_ctx: init::DatabaseInitContext) -> Self {
         let mut nodes_store = nodes_store::NodesStore::new(&init_ctx.get_nodes_store_path().unwrap());
         let nodes_ids = nodes_store.retrieve_all_nodes_ids();
         let mut labels_store = dynamic_store::DynamicStore::new(&init_ctx.get_labels_store_path().unwrap());

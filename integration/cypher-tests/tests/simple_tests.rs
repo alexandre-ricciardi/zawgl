@@ -20,14 +20,14 @@
 
 
 use log::LevelFilter;
-use zawgl_core::{graph_engine::GraphEngine, model::{init::InitContext, Node, Property, PropertyGraph, Relationship}, repository::graph_repository::GraphRepository, test_utils::build_dir_path_and_rm_old};
+use zawgl_core::{graph_engine::GraphEngine, model::{init::{DatabaseInitContext, InitContext}, Node, Property, PropertyGraph, Relationship}, repository::graph_repository::GraphRepository, test_utils::build_dir_path_and_rm_old};
 use simple_logger::SimpleLogger;
 
 #[test]
 fn demo() {
     SimpleLogger::new().with_level(LevelFilter::Info).init().unwrap();
     let db_dir = build_dir_path_and_rm_old("simple_test").expect("error");
-    let ctx: InitContext = InitContext::new(&db_dir).expect("can't create database context");
+    let ctx = DatabaseInitContext::new("integration", &db_dir).expect("can't create database context");
     let mut gr = GraphRepository::new(ctx);
     let mut alice = Node::new();
     alice.set_labels(vec!["Person".to_string()]);

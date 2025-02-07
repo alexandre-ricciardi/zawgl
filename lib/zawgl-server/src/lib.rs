@@ -34,6 +34,7 @@ use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::Receiver;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
+use zawgl_core::model::init::DatabaseInitContext;
 use zawgl_front::cypher::query_engine::CypherError;
 use std::str::FromStr;
 use std::sync::Mutex;
@@ -108,7 +109,7 @@ async fn handle_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMe
     Ok(())
 }
 
-pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_run: Receiver<bool>) -> JoinSet<()> where F : FnOnce() -> () {
+pub async fn run_server<F>(addr: &str, conf: DatabaseInitContext, callback: F, mut rx_run: Receiver<bool>) -> JoinSet<()> where F : FnOnce() -> () {
         
         
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");

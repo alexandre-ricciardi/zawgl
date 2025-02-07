@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 use serde_json::Value;
-use zawgl_core::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
+use zawgl_core::{model::init::{DatabaseInitContext}, test_utils::build_dir_path_and_rm_old};
 use zawgl_client::Client;
 use std::future::Future;
 
@@ -27,7 +27,7 @@ pub async fn run_test<F, T>(db_name: &str, port: i32, lambda: F) where F : FnOnc
 
     println!("BEGIN RUN {}", db_name);
     let db_dir = build_dir_path_and_rm_old(db_name).expect("error");
-    let ctx = InitContext::new(&db_dir).expect("can't create database context");
+    let ctx = DatabaseInitContext::new("integration", &db_dir).expect("can't create database context");
     let (tx_start, rx_start) = tokio::sync::oneshot::channel::<()>();
     let address = format!("localhost:{}", port);
     

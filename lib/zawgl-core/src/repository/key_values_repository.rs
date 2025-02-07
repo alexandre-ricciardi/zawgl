@@ -28,7 +28,7 @@ pub struct KeyValuesRepository {
 }
 
 impl KeyValuesRepository {
-    pub fn new(init_ctx: init::InitContext) -> Self {
+    pub fn new(init_ctx: init::DatabaseInitContext) -> Self {
         KeyValuesRepository { 
             data_repository: PropertiesRespository::new(&init_ctx.get_meta_data_values_store_path().unwrap(), &init_ctx.get_dynamic_store_path().unwrap()),
             data_index: BTreeIndex::new(&init_ctx.get_meta_data_index_store_path().unwrap())

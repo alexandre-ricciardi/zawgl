@@ -24,7 +24,7 @@ use std::collections::HashSet;
 use zawgl_core::graph::traits::GrowableGraphTrait;
 use zawgl_core::graph_engine::model::{GraphProxy, ProxyNodeId};
 use zawgl_core::model::{Node, Property, PropertyValue, Relationship};
-use zawgl_core::model::init::InitContext;
+use zawgl_core::model::init::{DatabaseInitContext, InitContext};
 use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::graph::traits::*;
 use zawgl_core::test_utils::{build_dir_path_and_rm_old};
@@ -32,7 +32,7 @@ use zawgl_core::test_utils::{build_dir_path_and_rm_old};
 fn main() {
     let main_dir = build_dir_path_and_rm_old("zawgl-db").expect("db dir path");
     build_test_graph(&main_dir);
-    let conf = InitContext::new(&main_dir).expect("can't create context");
+    let conf = DatabaseInitContext::new("util", &main_dir).expect("can't create context");
     let mut graph_engine = GraphEngine::new(conf);
     let mut full_graph = graph_engine.retrieve_graph().unwrap();
     println!("{:?}", full_graph.get_nodes_ids());
@@ -93,7 +93,7 @@ fn iterate_adjacent_nodes(labeled: &mut HashSet<ProxyNodeId>, graph: &mut GraphP
 }
 
 fn build_test_graph(main_dir: &str) {
-    let conf = InitContext::new(main_dir).expect("can't create context");
+    let conf = DatabaseInitContext::new("util", main_dir).expect("can't create context");
     let mut graph_engine = GraphEngine::new(conf);
     let mut n0 = Node::new();
     n0.set_labels(vec!["Test".to_string(), "Label".to_string()]);

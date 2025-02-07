@@ -398,7 +398,7 @@ impl <'a> GraphProxy<'a> {
 #[cfg(test)]
 mod test_cache_model {
     use super::*;
-    use crate::{model::init::InitContext, test_utils::build_dir_path_and_rm_old};
+    use crate::{model::init::{DatabaseInitContext, InitContext}, test_utils::build_dir_path_and_rm_old};
 
     fn create_stored_graph(gr: &mut GraphRepository) {
         for _ in 0..10 {
@@ -438,7 +438,7 @@ mod test_cache_model {
     #[test]
     fn test_add_prop_graphs() {
         let db_dir = build_dir_path_and_rm_old("graph_proxy_test").expect("error");
-        let ctx = InitContext::new(&db_dir).expect("error");
+        let ctx = DatabaseInitContext::new("test_cache_model", &db_dir).expect("error");
         let mut gr = GraphRepository::new(ctx);
         create_stored_graph(&mut gr);
         let pattern = create_pattern();

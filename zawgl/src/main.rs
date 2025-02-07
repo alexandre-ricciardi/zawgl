@@ -24,16 +24,27 @@ extern crate tokio;
 extern crate serde;
 mod settings;
 use log::*;
-use zawgl_core::model::init::InitContext;
+use zawgl_core::model::init::{DatabaseInitContext, InitContext};
 use settings::Settings;
 use simple_logger::SimpleLogger;
+use clap::{Parser, Subcommand};
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 20)]
-async fn main() {
-    let settings = Settings::new();
-    let log_level = settings.get_log_level();
-    SimpleLogger::new().with_level(log_level).init().unwrap();
-    let ctx: InitContext = InitContext::new(&settings.server.database_dir).expect("can't create database context");
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    database: Option<DatabaseCommands>,
+}
+
+#[derive(Subcommand)]
+enum DatabaseCommands {
+    Create {
+        #[arg(short, long)]
+        name: String,
+    },
+}
+
+async fn run_database(ctx: DatabaseInitContext, address: &str) {
     let (tx_run, rx_run) = zawgl_server::keep_commit_loop(500);
     let exit = tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
@@ -42,10 +53,36 @@ async fn main() {
         }
     });
     tokio::select! {
-        _ = zawgl_server::run_server(&settings.server.address, ctx, || {
+        _ = zawgl_server::run_server(address, ctx, || {
             info!("Database started");
         }, rx_run) => 0,
         _ = exit => 0
     };
     info!("Database stopped");
+}
+
+
+async fn run_all(ctx: InitContext, address: &str) {
+    for db_ctx in ctx.dbs_ctx {
+        run_database(db_ctx, address).await;
+    }
+}
+
+
+#[tokio::main(flavor = "multi_thread", worker_threads = 20)]
+async fn main() {
+    let mut settings = Settings::new();
+    let log_level = settings.get_log_level();
+    SimpleLogger::new().with_level(log_level).init().unwrap();
+    let ctx: InitContext = InitContext::new(&settings.server.database_root_dir, settings.get_db_dirs());
+
+    let cli = Cli::parse();
+    match &cli.database {
+        Some(DatabaseCommands::Create { name }) => {
+            settings.server.databases_dirs.push(name.to_string());
+        }
+        None => {
+            run_all(ctx, &settings.server.address).await;
+        }
+    }
 }

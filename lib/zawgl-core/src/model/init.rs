@@ -23,9 +23,20 @@ use std::path;
 use std::env;
 use log::info;
 
-/// Zawgl database initialization context
 #[derive(Debug, Clone)]
 pub struct InitContext {
+    pub dbs_ctx: Vec<DatabaseInitContext>,
+}
+
+impl InitContext {
+    pub fn new(root: &str, names: &Vec<String>) -> Self {
+        Self { dbs_ctx: names.iter().map(|n| DatabaseInitContext::new(root, n).expect("can't create database context")).collect() }
+    }
+}
+
+/// Zawgl database initialization context
+#[derive(Debug, Clone)]
+pub struct DatabaseInitContext {
     db_dir: String,
     node_store_name: String,
     relationships_store_name: String,
@@ -45,9 +56,9 @@ fn build_path(dir: &str, file: &str) -> Option<String> {
     file_path.to_str().map(String::from)
 }
 
-impl InitContext {
+impl DatabaseInitContext {
     /// Builds an initialization context by providing the database data directory
-    pub fn new(dir: &str) -> Option<Self> {
+    pub fn new(root: &str, dir: &str) -> Option<Self> {
         let mut dir_path_buf = path::PathBuf::new();
         let dir_path = path::Path::new(dir);
         if dir_path.is_absolute() {
@@ -60,7 +71,7 @@ impl InitContext {
         std::fs::create_dir_all(dir_path_buf.clone()).ok()?;
         let os_str = dir_path_buf.as_os_str();
         info!("Database directory: {}", os_str.to_str()?);
-        Some(InitContext{db_dir: String::from(os_str.to_str()?), node_store_name: NODES_FILE_NAME.to_string(),
+        Some(DatabaseInitContext{db_dir: String::from(os_str.to_str()?), node_store_name: NODES_FILE_NAME.to_string(),
             relationships_store_name: RELATIONSHIPS_FILE_NAME.to_string(), 
             properties_store_name: PROPERTIES_FILE_NAME.to_string(),
             dynamic_store_name: DYN_FILE_NAME.to_string(),

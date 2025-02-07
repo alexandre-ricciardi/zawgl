@@ -26,7 +26,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::vec;
 use zawgl_core::graph_engine::GraphEngine;
-use zawgl_core::model::init::InitContext;
+use zawgl_core::model::init::DatabaseInitContext;
 use zawgl_core::model::PropertyGraph;
 use zawgl_cypher_query_model::QueryResult;
 use zawgl_cypher_query_model::QueryStep;
@@ -39,14 +39,14 @@ use super::DatabaseError;
 pub type RequestHandler = Arc<Mutex<GraphRequestHandler>>;
 
 pub struct GraphRequestHandler {
-    conf: InitContext,
+    conf: DatabaseInitContext,
     map_session_graph_engine: HashMap<String, GraphEngine>,
     graph_engine: GraphEngine,
     commit_tx: Vec<String>, 
 }
 
 impl <'a> GraphRequestHandler {
-    pub fn new(ctx: InitContext) -> Self {
+    pub fn new(ctx: DatabaseInitContext) -> Self {
         let graph_engine = GraphEngine::new(ctx.clone());
         GraphRequestHandler{conf: ctx, map_session_graph_engine: HashMap::new(), graph_engine , commit_tx: Vec::new()}
     }
