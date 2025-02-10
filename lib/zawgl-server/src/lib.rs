@@ -118,8 +118,8 @@ fn make_handlers(conf: &InitContext) -> Vec<GraphHandler> {
     conf.dbs_ctx.iter().map(|ctx| Arc::new(Mutex::new(GraphRequestHandler::new(ctx.clone())))).collect::<Vec<_>>()
 }
 
-fn make_handlers_map(conf: &InitContext, handlers: &Arc<Mutex<Vec<GraphHandler>>>) -> HashMap<String, GraphHandler> {
-    handlers.lock().unwrap().iter().zip(&conf.dbs_ctx).map(|(gh, db_ctx)| (db_ctx.db_name.to_string(), Arc::clone(&gh))).collect::<HashMap<_, _>>()
+fn make_handlers_map(db_names: Vec<String>, handlers: &Arc<Mutex<Vec<GraphHandler>>>) -> HashMap<String, GraphHandler> {
+    handlers.lock().unwrap().iter().zip(&db_names).map(|(gh, db_name)| (db_name.to_string(), Arc::clone(&gh))).collect::<HashMap<_, _>>()
 }
 
 pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_run: Receiver<bool>) -> JoinSet<()> where F : FnOnce() -> () {
@@ -130,11 +130,12 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
     let (msg_tx, mut msg_rx) = tokio::sync::mpsc::unbounded_channel::<ResponseMessage>();
     
     let graph_request_handlers = make_handlers(&conf);
+    let db_names = conf.dbs_ctx.iter().map(|ctx| ctx.db_name.to_string()).collect();
     let mut set = JoinSet::new();
     let gh_handlers = Arc::new(Mutex::new(graph_request_handlers));
     let gh_handlers_for_commit = Arc::clone(&gh_handlers);
     set.spawn(async move {
-        let mut gh_tx_map = make_handlers_map(&conf, &gh_handlers);
+        let mut gh_tx_map = make_handlers_map(db_names, &gh_handlers);
         let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
         while let Some((doc, sender)) = msg_rx.recv().await {
             let db_name = doc.get("database");
@@ -157,8 +158,8 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
                             let ctx = DatabaseInitContext::new(&conf.root, db_name);
                             if let Some(db_ctx) = ctx {
                                 let gh = Arc::new(Mutex::new(GraphRequestHandler::new(db_ctx)));
-                                gh_handlers.lock().unwrap().push(gh);
-                                gh_tx_map = make_handlers_map(&conf, &gh_handlers);
+                                gh_handlers.lock().unwrap().push(Arc::clone(&gh));
+                                gh_tx_map.insert(db_name.to_string(), gh);
                                 let mut settings = Settings::new();
                                 settings.server.databases_dirs.push(db_name.to_string());
                                 settings.save();
