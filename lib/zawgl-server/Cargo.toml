@@ -18,3 +18,6 @@ log = { workspace = true }
 simple_logger = { workspace = true }
 serde_json = { workspace = true }
 parking_lot = "0.12.1"
+config = "0.15.6"
+serde = { workspace = true }
+toml = { workspace = true }

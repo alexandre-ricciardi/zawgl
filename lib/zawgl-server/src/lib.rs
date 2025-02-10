@@ -31,6 +31,7 @@ use futures_util::{
     SinkExt, StreamExt,
 };
 use serde_json::Value;
+use settings::Settings;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::Receiver;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
@@ -53,6 +54,7 @@ use crate::open_cypher_request_handler::handle_open_cypher_request;
 use tokio::sync::oneshot::{self, Sender};
 use tokio::task::JoinSet;
 mod result;
+pub mod settings;
 mod open_cypher_request_handler;
 use self::result::ServerError;
 use zawgl_core::model::init::InitContext;
@@ -127,7 +129,6 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
     let tx_ref = graph_request_handlers.iter().zip(conf.dbs_ctx).map(|(gh, db_ctx)| (db_ctx.db_name.to_string(), Arc::clone(&gh))).collect::<HashMap<_, _>>();
     let mut set = JoinSet::new();
     set.spawn(async move {
-
         let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
         while let Some((doc, sender)) = msg_rx.recv().await {
             let db_name = doc.get("database");
@@ -140,6 +141,15 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
                             error!("sending reply");
                             break;
                         }         
+                    }
+                }
+            } else {
+                let create = doc.get("create");
+                if let Some(create_db_name) = create {
+                    if let Some(db_name) = create_db_name.as_str() {
+                        let mut settings = Settings::new();
+                        settings.server.databases_dirs.push(db_name.to_string());
+                        settings.save();
                     }
                 }
             }

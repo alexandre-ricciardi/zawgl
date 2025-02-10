@@ -19,25 +19,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate zawgl_server;
-extern crate tokio;
-extern crate serde;
-mod settings;
 use log::*;
 use zawgl_core::model::init::{DatabaseInitContext, InitContext};
-use settings::Settings;
 use simple_logger::SimpleLogger;
 use clap::{Parser, Subcommand};
+use zawgl_server::settings::Settings;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
-    database: Option<DatabaseCommands>,
+    database: Option<Database>,
 }
 
 #[derive(Subcommand)]
-enum DatabaseCommands {
+enum Database {
     Create {
         #[arg(short, long)]
         name: String,
@@ -66,14 +62,14 @@ async fn main() {
     let mut settings = Settings::new();
     let log_level = settings.get_log_level();
     SimpleLogger::new().with_level(log_level).init().unwrap();
-    let ctx: InitContext = InitContext::new(&settings.server.database_root_dir, settings.get_db_dirs());
-
     let cli = Cli::parse();
     match &cli.database {
-        Some(DatabaseCommands::Create { name }) => {
+        Some(Database::Create { name }) => {
             settings.server.databases_dirs.push(name.to_string());
+            settings.save();
         }
         None => {
+            let ctx: InitContext = InitContext::new(&settings.server.database_root_dir, settings.get_db_dirs());
             run_database(ctx, &settings.server.address).await;
         }
     }

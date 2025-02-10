@@ -12,8 +12,5 @@ tokio = { workspace = true }
 tungstenite = "0.26.1"
 futures-util = "0.3.28"
 log = { workspace = true }
-config = "0.15.6"
-serde = { workspace = true }
 simple_logger = { workspace = true }
-toml = { workspace = true }
 clap = { version = "4.5.28", features = ["derive"] }
