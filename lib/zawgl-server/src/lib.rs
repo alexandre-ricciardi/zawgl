@@ -34,7 +34,6 @@ use serde_json::Value;
 use settings::Settings;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::Receiver;
-use tokio_tungstenite::tungstenite::protocol::frame::coding::Data;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 use zawgl_core::model::init::DatabaseInitContext;
 use zawgl_front::cypher::query_engine::CypherError;
@@ -154,16 +153,17 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
                 let create = doc.get("create");
                 if let Some(create_db_name) = create {
                     if let Some(db_name) = create_db_name.as_str() {
-                        let ctx = DatabaseInitContext::new(&conf.root, db_name);
-                        if let Some(db_ctx) = ctx {
-                            let gh = Arc::new(Mutex::new(GraphRequestHandler::new(db_ctx)));
-                            gh_handlers.lock().unwrap().push(gh);
-                            gh_tx_map = make_handlers_map(&conf, &gh_handlers);
-                            let mut settings = Settings::new();
-                            settings.server.databases_dirs.push(db_name.to_string());
-                            settings.save();
+                        if !gh_tx_map.contains_key(db_name) {
+                            let ctx = DatabaseInitContext::new(&conf.root, db_name);
+                            if let Some(db_ctx) = ctx {
+                                let gh = Arc::new(Mutex::new(GraphRequestHandler::new(db_ctx)));
+                                gh_handlers.lock().unwrap().push(gh);
+                                gh_tx_map = make_handlers_map(&conf, &gh_handlers);
+                                let mut settings = Settings::new();
+                                settings.server.databases_dirs.push(db_name.to_string());
+                                settings.save();
+                            }
                         }
-
                     }
                 }
             }

@@ -23,7 +23,7 @@ use log::*;
 use zawgl_core::model::init::{DatabaseInitContext, InitContext};
 use simple_logger::SimpleLogger;
 use clap::{Parser, Subcommand};
-use zawgl_server::settings::Settings;
+use zawgl_server::settings::{self, Settings};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -65,8 +65,10 @@ async fn main() {
     let cli = Cli::parse();
     match &cli.database {
         Some(Database::Create { name }) => {
-            settings.server.databases_dirs.push(name.to_string());
-            settings.save();
+            if !settings.server.databases_dirs.contains(name) {
+                settings.server.databases_dirs.push(name.to_string());
+                settings.save();
+            }
         }
         None => {
             let ctx: InitContext = InitContext::new(&settings.server.database_root_dir, settings.get_db_dirs());

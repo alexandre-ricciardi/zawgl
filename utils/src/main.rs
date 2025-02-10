@@ -24,10 +24,10 @@ use std::collections::HashSet;
 use zawgl_core::graph::traits::GrowableGraphTrait;
 use zawgl_core::graph_engine::model::{GraphProxy, ProxyNodeId};
 use zawgl_core::model::{Node, Property, PropertyValue, Relationship};
-use zawgl_core::model::init::{DatabaseInitContext, InitContext};
+use zawgl_core::model::init::DatabaseInitContext;
 use zawgl_core::graph_engine::GraphEngine;
 use zawgl_core::graph::traits::*;
-use zawgl_core::test_utils::{build_dir_path_and_rm_old};
+use zawgl_core::test_utils::build_dir_path_and_rm_old;
 
 fn main() {
     let main_dir = build_dir_path_and_rm_old("zawgl-db").expect("db dir path");

@@ -94,6 +94,7 @@ impl Settings {
     }
 
     pub fn save(&self) {
+        std::fs::create_dir_all(&get_current_dir()).expect("Failed creating configuration dir");
         std::fs::write(
             &make_full_path(),
             toml::to_string(&self).unwrap()
