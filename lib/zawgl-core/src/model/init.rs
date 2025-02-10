@@ -25,12 +25,13 @@ use log::info;
 
 #[derive(Debug, Clone)]
 pub struct InitContext {
+    pub root: String,
     pub dbs_ctx: Vec<DatabaseInitContext>,
 }
 
 impl InitContext {
     pub fn new(root: &str, names: &Vec<String>) -> Self {
-        Self { dbs_ctx: names.iter().map(|n| DatabaseInitContext::new(root, n).expect("can't create database context")).collect() }
+        Self { root: root.to_string(), dbs_ctx: names.iter().map(|n| DatabaseInitContext::new(root, n).expect("can't create database context")).collect() }
     }
 }
 

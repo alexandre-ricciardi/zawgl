@@ -34,6 +34,7 @@ use serde_json::Value;
 use settings::Settings;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::Receiver;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::Data;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 use zawgl_core::model::init::DatabaseInitContext;
 use zawgl_front::cypher::query_engine::CypherError;
@@ -118,6 +119,10 @@ fn make_handlers(conf: &InitContext) -> Vec<GraphHandler> {
     conf.dbs_ctx.iter().map(|ctx| Arc::new(Mutex::new(GraphRequestHandler::new(ctx.clone())))).collect::<Vec<_>>()
 }
 
+fn make_handlers_map(conf: &InitContext, handlers: &Arc<Mutex<Vec<GraphHandler>>>) -> HashMap<String, GraphHandler> {
+    handlers.lock().unwrap().iter().zip(&conf.dbs_ctx).map(|(gh, db_ctx)| (db_ctx.db_name.to_string(), Arc::clone(&gh))).collect::<HashMap<_, _>>()
+}
+
 pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_run: Receiver<bool>) -> JoinSet<()> where F : FnOnce() -> () {
         
         
@@ -126,15 +131,17 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
     let (msg_tx, mut msg_rx) = tokio::sync::mpsc::unbounded_channel::<ResponseMessage>();
     
     let graph_request_handlers = make_handlers(&conf);
-    let tx_ref = graph_request_handlers.iter().zip(conf.dbs_ctx).map(|(gh, db_ctx)| (db_ctx.db_name.to_string(), Arc::clone(&gh))).collect::<HashMap<_, _>>();
     let mut set = JoinSet::new();
+    let gh_handlers = Arc::new(Mutex::new(graph_request_handlers));
+    let gh_handlers_for_commit = Arc::clone(&gh_handlers);
     set.spawn(async move {
+        let mut gh_tx_map = make_handlers_map(&conf, &gh_handlers);
         let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
         while let Some((doc, sender)) = msg_rx.recv().await {
             let db_name = doc.get("database");
             if let Some(db) = db_name {
                 if let Some(db_str_name) = db.as_str() {
-                    let gh = tx_ref.get(db_str_name);
+                    let gh = gh_tx_map.get(db_str_name);
                     if let Some(graph_handler) = gh {
                         let cypher_reply = handle_open_cypher_request(Arc::clone(&tx_handler), Arc::clone(graph_handler), &doc);
                         if let Err(_err) = sender.send(cypher_reply) {
@@ -147,9 +154,16 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
                 let create = doc.get("create");
                 if let Some(create_db_name) = create {
                     if let Some(db_name) = create_db_name.as_str() {
-                        let mut settings = Settings::new();
-                        settings.server.databases_dirs.push(db_name.to_string());
-                        settings.save();
+                        let ctx = DatabaseInitContext::new(&conf.root, db_name);
+                        if let Some(db_ctx) = ctx {
+                            let gh = Arc::new(Mutex::new(GraphRequestHandler::new(db_ctx)));
+                            gh_handlers.lock().unwrap().push(gh);
+                            gh_tx_map = make_handlers_map(&conf, &gh_handlers);
+                            let mut settings = Settings::new();
+                            settings.server.databases_dirs.push(db_name.to_string());
+                            settings.save();
+                        }
+
                     }
                 }
             }
@@ -157,7 +171,7 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
     });
     set.spawn(async move {
         while let Some(run) = rx_run.recv().await {
-            let graph_request_handlers_commit_clone = graph_request_handlers.iter().map(|gh| Arc::clone(gh)).collect::<Vec<GraphHandler>>();
+            let graph_request_handlers_commit_clone = gh_handlers_for_commit.lock().unwrap().iter().map(|gh| Arc::clone(gh)).collect::<Vec<GraphHandler>>();
             for gh in graph_request_handlers_commit_clone {
                 gh.lock().unwrap().commit();
                 if !run {

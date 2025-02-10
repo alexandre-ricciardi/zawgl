@@ -72,18 +72,31 @@ impl Client {
     pub async fn execute_cypher_request(&mut self, db: &str, query: &str) -> Result<Value, Canceled> {
         self.execute_cypher_request_with_parameters(db, query, json!({})).await
     }
+
+
+    /// Create database request
+    pub async fn create_database(&mut self, db_name: &str) {
+        let create = json!({
+            "create": db_name
+        });
+        send(self.request_tx.clone(), create).await;
+    }
 }
 
 async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, db: String, id: String, query: String, params: Value) -> Option<()> {
-    let mut msg = "!application/openCypher".to_string();
     let doc = json!({
         "database": db,
         "request_id": id,
         "query" : query,
         "parameters": params,
     });
-    msg.push_str(&doc.to_string());
-    tx.unbounded_send(Message::text(msg.to_string())).ok()
+    send(tx, doc).await
+}
+
+async fn send(tx: futures_channel::mpsc::UnboundedSender<Message>, msg: Value) -> Option<()> {
+    let mut header = "!application/openCypher".to_string();
+    header.push_str(&msg.to_string());
+    tx.unbounded_send(Message::text(header.to_string())).ok()
 }
 
 async fn receive(message: Result<Message, tokio_tungstenite::tungstenite::Error>, map: SharedChannelsMap) {
