@@ -37,6 +37,7 @@ impl InitContext {
 /// Zawgl database initialization context
 #[derive(Debug, Clone)]
 pub struct DatabaseInitContext {
+    pub db_name: String,
     db_dir: String,
     node_store_name: String,
     relationships_store_name: String,
@@ -58,20 +59,21 @@ fn build_path(dir: &str, file: &str) -> Option<String> {
 
 impl DatabaseInitContext {
     /// Builds an initialization context by providing the database data directory
-    pub fn new(root: &str, dir: &str) -> Option<Self> {
+    pub fn new(root: &str, db_name: &str) -> Option<Self> {
         let mut dir_path_buf = path::PathBuf::new();
-        let dir_path = path::Path::new(dir);
-        if dir_path.is_absolute() {
-            dir_path_buf.push(dir)
+        let root_dir = path::Path::new(root);
+        if root_dir.is_absolute() {
+            dir_path_buf.push(root_dir)
         } else {
             let current_dir = env::current_dir().ok()?;
             dir_path_buf.push(current_dir);
-            dir_path_buf.push(dir);
+            dir_path_buf.push(root_dir);
         }
+        dir_path_buf.push(db_name);
         std::fs::create_dir_all(dir_path_buf.clone()).ok()?;
         let os_str = dir_path_buf.as_os_str();
         info!("Database directory: {}", os_str.to_str()?);
-        Some(DatabaseInitContext{db_dir: String::from(os_str.to_str()?), node_store_name: NODES_FILE_NAME.to_string(),
+        Some(DatabaseInitContext{db_name: db_name.to_string(), db_dir: String::from(os_str.to_str()?), node_store_name: NODES_FILE_NAME.to_string(),
             relationships_store_name: RELATIONSHIPS_FILE_NAME.to_string(), 
             properties_store_name: PROPERTIES_FILE_NAME.to_string(),
             dynamic_store_name: DYN_FILE_NAME.to_string(),

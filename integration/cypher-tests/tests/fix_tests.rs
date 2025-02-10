@@ -27,13 +27,13 @@ async fn test_create_fix() {
 }
 
 async fn test_create_with_props(mut client: Client) {
-    let r = client.execute_cypher_request("create (n:Person {name: 'blabla'}) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Person {name: 'blabla'}) return n").await;
     let id_0 = extract_node_id(r.unwrap());
 
-    let r_1 = client.execute_cypher_request("create (n:Person {name: 'blabla'}) return n").await;
+    let r_1 = client.execute_cypher_request("default", "create (n:Person {name: 'blabla'}) return n").await;
     let id_1 = extract_node_id(r_1.unwrap());
 
-    let r_2 = client.execute_cypher_request("create (n:Person {name: 'blabla'}) return n").await;
+    let r_2 = client.execute_cypher_request("default", "create (n:Person {name: 'blabla'}) return n").await;
     let id_2 = extract_node_id(r_2.unwrap());
 
     assert_ne!(id_0, id_1);

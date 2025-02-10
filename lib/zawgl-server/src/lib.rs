@@ -36,6 +36,7 @@ use tokio::sync::mpsc::Receiver;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 use zawgl_core::model::init::DatabaseInitContext;
 use zawgl_front::cypher::query_engine::CypherError;
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Mutex;
 use zawgl_front::tx_handler::request_handler::GraphRequestHandler;
@@ -109,35 +110,53 @@ async fn handle_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMe
     Ok(())
 }
 
-pub async fn run_server<F>(addr: &str, conf: DatabaseInitContext, callback: F, mut rx_run: Receiver<bool>) -> JoinSet<()> where F : FnOnce() -> () {
+type GraphHandler = Arc<Mutex<GraphRequestHandler>>;
+
+fn make_handlers(conf: &InitContext) -> Vec<GraphHandler> {
+    conf.dbs_ctx.iter().map(|ctx| Arc::new(Mutex::new(GraphRequestHandler::new(ctx.clone())))).collect::<Vec<_>>()
+}
+
+pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_run: Receiver<bool>) -> JoinSet<()> where F : FnOnce() -> () {
         
         
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
     info!("Websocket listening on: {}", addr);
     let (msg_tx, mut msg_rx) = tokio::sync::mpsc::unbounded_channel::<ResponseMessage>();
-        
-    let graph_request_handler = Arc::new(Mutex::new(GraphRequestHandler::new(conf)));
-    let tx_ref = Arc::clone(&graph_request_handler);
+    
+    let graph_request_handlers = make_handlers(&conf);
+    let tx_ref = graph_request_handlers.iter().zip(conf.dbs_ctx).map(|(gh, db_ctx)| (db_ctx.db_name.to_string(), Arc::clone(&gh))).collect::<HashMap<_, _>>();
     let mut set = JoinSet::new();
     set.spawn(async move {
+
         let tx_handler = Arc::new(ReentrantMutex::new(RefCell::new(GraphTxHandler::new())));
         while let Some((doc, sender)) = msg_rx.recv().await {
-            let cypher_reply = handle_open_cypher_request(Arc::clone(&tx_handler), Arc::clone(&tx_ref), &doc);
-            if let Err(_err) = sender.send(cypher_reply) {
-                error!("sending reply");
-                break;
+            let db_name = doc.get("database");
+            if let Some(db) = db_name {
+                if let Some(db_str_name) = db.as_str() {
+                    let gh = tx_ref.get(db_str_name);
+                    if let Some(graph_handler) = gh {
+                        let cypher_reply = handle_open_cypher_request(Arc::clone(&tx_handler), Arc::clone(graph_handler), &doc);
+                        if let Err(_err) = sender.send(cypher_reply) {
+                            error!("sending reply");
+                            break;
+                        }         
+                    }
+                }
             }
         }
     });
-    let commit_ref = Arc::clone(&graph_request_handler);
     set.spawn(async move {
         while let Some(run) = rx_run.recv().await {
-            commit_ref.lock().unwrap().commit();
-            if !run {
-                break;
+            let graph_request_handlers_commit_clone = graph_request_handlers.iter().map(|gh| Arc::clone(gh)).collect::<Vec<GraphHandler>>();
+            for gh in graph_request_handlers_commit_clone {
+                gh.lock().unwrap().commit();
+                if !run {
+                    break;
+                }
             }
         }
     });
+
     callback();
 
     while let Ok((stream, _)) = listener.accept().await {

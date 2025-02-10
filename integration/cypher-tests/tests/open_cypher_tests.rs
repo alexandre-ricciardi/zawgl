@@ -72,26 +72,26 @@ async fn test_cypher_10() {
 
 
 async fn test_cypher_requests(mut client: Client) {
-    let r = client.execute_cypher_request("create (n:Person) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Person) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string())
     }
-    let r = client.execute_cypher_request("create (n:Movie) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Movie) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string())
     }
 
     
-    let r = client.execute_cypher_request("create (n:Person) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Person) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string())
     }
-    let r = client.execute_cypher_request("create (n:Movie) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Movie) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string())
     }
     
-    let r = client.execute_cypher_request("match (n:Person) return n").await;
+    let r = client.execute_cypher_request("default", "match (n:Person) return n").await;
     if let Ok(d) = r {
         let res = d.get("result").expect("result");
         let graphs = res["graphs"].as_array().expect("graphs");
@@ -104,7 +104,7 @@ async fn test_cypher_requests(mut client: Client) {
         assert!(false, "no response")
     }
     
-    let r = client.execute_cypher_request("match (n:Movie) return n").await;
+    let r = client.execute_cypher_request("default", "match (n:Movie) return n").await;
     if let Ok(d) = r {
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
         assert_eq!(graphs.len(), 2);
@@ -116,7 +116,7 @@ async fn test_cypher_requests(mut client: Client) {
         assert!(false, "no response")
     }
     
-    let r = client.execute_cypher_request("match (p:Person), (m:Movie) create (m)<-[r:Played]-(p) return m, r, p").await;
+    let r = client.execute_cypher_request("default", "match (p:Person), (m:Movie) create (m)<-[r:Played]-(p) return m, r, p").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
@@ -132,13 +132,13 @@ async fn test_cypher_requests(mut client: Client) {
 
 async fn test_cypher_requests_complete_graph(mut client: Client) {
     for _ in 0..10 {
-        let r = client.execute_cypher_request("create (n:Person) return n").await;
+        let r = client.execute_cypher_request("default", "create (n:Person) return n").await;
         if let Ok(d) = r {
             println!("{}", d.to_string())
         }
     }
 
-    let r = client.execute_cypher_request("match (x:Person), (y:Person) create (x)-[f:FRIEND_OF]->(y) return f").await;
+    let r = client.execute_cypher_request("default", "match (x:Person), (y:Person) create (x)-[f:FRIEND_OF]->(y) return f").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
@@ -151,12 +151,12 @@ async fn test_cypher_requests_complete_graph(mut client: Client) {
 }
 
 async fn test_cypher_self_relationship(mut client: Client) {
-    let r = client.execute_cypher_request("create (n:Person) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Person) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string())
     }
 
-    let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f, x").await;
+    let r = client.execute_cypher_request("default", "match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f, x").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
@@ -171,12 +171,12 @@ async fn test_cypher_self_relationship(mut client: Client) {
 }
 
 async fn test_cypher_self_relationship_2(mut client: Client) {
-    let r = client.execute_cypher_request("create (n:Person) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Person) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string())
     }
 
-    let r = client.execute_cypher_request("match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f, x").await;
+    let r = client.execute_cypher_request("default", "match (x:Person) create (x)-[f:FRIEND_OF]->(x) return f, x").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
@@ -191,7 +191,7 @@ async fn test_cypher_self_relationship_2(mut client: Client) {
 }
 
 async fn test_double_create_issue(mut client: Client) {
-    let r3 = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
+    let r3 = client.execute_cypher_request("default", "create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
     if let Ok(d) = r3 {
         println!("{}", d.to_string());
 
@@ -206,7 +206,7 @@ async fn test_double_create_issue(mut client: Client) {
 }
 
 async fn test_create_path(mut client: Client) {
-     let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
+     let r = client.execute_cypher_request("default", "create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
@@ -223,19 +223,19 @@ async fn test_create_path(mut client: Client) {
 }
 
 async fn test_mutliple_match(mut client: Client) {
-    let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
+    let r = client.execute_cypher_request("default", "create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (m:Movie) create (m)<-[r:Produced]-(p:Producer) return m, r, p").await;
+    let r = client.execute_cypher_request("default", "match (m:Movie) create (m)<-[r:Produced]-(p:Producer) return m, r, p").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (m:Movie)<-[r:Played]-(p:Person) match (m)<-[produced:Produced]-(prd:Producer) return m, r, produced, p, prd").await;
+    let r = client.execute_cypher_request("default", "match (m:Movie)<-[r:Played]-(p:Person) match (m)<-[produced:Produced]-(prd:Producer) return m, r, produced, p, prd").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
@@ -254,19 +254,19 @@ async fn test_mutliple_match(mut client: Client) {
 
 
 async fn test_optional_match(mut client: Client) {
-    let r = client.execute_cypher_request("create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
+    let r = client.execute_cypher_request("default", "create (n:Movie)<-[r:Played]-(p:Person) return n, r, p").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (m:Movie) create (m)<-[r:Produced]-(p:Producer) return m, r, p").await;
+    let r = client.execute_cypher_request("default", "match (m:Movie) create (m)<-[r:Produced]-(p:Producer) return m, r, p").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (m:Movie)<-[r:Played]-(p:Person) optional match (m)<-[produced:Produced]-(prd:Producer) return m, r, produced, p, prd").await;
+    let r = client.execute_cypher_request("default", "match (m:Movie)<-[r:Played]-(p:Person) optional match (m)<-[produced:Produced]-(prd:Producer) return m, r, produced, p, prd").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
@@ -286,13 +286,13 @@ async fn test_optional_match(mut client: Client) {
 
 async fn test_recursive_match(mut client: Client) {
 
-    let r = client.execute_cypher_request("create (n:Movie)<-[r:Produced]-(p1:Producer)<-[r1:Produced]-(p2:Producer)<-[r2:Produced]-(p3:Producer) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Movie)<-[r:Produced]-(p1:Producer)<-[r1:Produced]-(p2:Producer)<-[r2:Produced]-(p3:Producer) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
     } else {
         assert!(false, "no response")
     }
-    let r = client.execute_cypher_request("match (n:Movie)<-[r0:Produced]-(p1:Producer)<-[r1:Produced*]-(p2:Producer)  return *").await;
+    let r = client.execute_cypher_request("default", "match (n:Movie)<-[r0:Produced]-(p1:Producer)<-[r1:Produced*]-(p2:Producer)  return *").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");
@@ -312,19 +312,19 @@ async fn test_recursive_match(mut client: Client) {
 
 async fn test_where_clause_on_ids(mut client: Client) {
     let mut params = Map::new();
-    let r = client.execute_cypher_request("create (n:Person) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Person) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         params.insert("pid".to_string(), Value::Number(Number::from(extract_node_id(d).expect("pid"))));
     }
-    let r = client.execute_cypher_request("create (n:Movie) return n").await;
+    let r = client.execute_cypher_request("default", "create (n:Movie) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         params.insert("nid".to_string(), Value::Number(Number::from(extract_node_id(d).expect("nid"))));
     }
     
     
-    let r = client.execute_cypher_request_with_parameters("match (n:Movie), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p", Value::Object(params)).await;
+    let r = client.execute_cypher_request_with_parameters("default", "match (n:Movie), (p:Person) where id(n) = $nid and id(p) = $pid create (n:Movie)<-[r:Played]-(p:Person) return n, r, p", Value::Object(params)).await;
     if let Ok(d) = r {
         println!("reponse {}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");

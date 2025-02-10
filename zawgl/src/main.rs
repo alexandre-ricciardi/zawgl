@@ -44,7 +44,7 @@ enum DatabaseCommands {
     },
 }
 
-async fn run_database(ctx: DatabaseInitContext, address: &str) {
+async fn run_database(ctx: InitContext, address: &str) {
     let (tx_run, rx_run) = zawgl_server::keep_commit_loop(500);
     let exit = tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
@@ -61,14 +61,6 @@ async fn run_database(ctx: DatabaseInitContext, address: &str) {
     info!("Database stopped");
 }
 
-
-async fn run_all(ctx: InitContext, address: &str) {
-    for db_ctx in ctx.dbs_ctx {
-        run_database(db_ctx, address).await;
-    }
-}
-
-
 #[tokio::main(flavor = "multi_thread", worker_threads = 20)]
 async fn main() {
     let mut settings = Settings::new();
@@ -82,7 +74,7 @@ async fn main() {
             settings.server.databases_dirs.push(name.to_string());
         }
         None => {
-            run_all(ctx, &settings.server.address).await;
+            run_database(ctx, &settings.server.address).await;
         }
     }
 }

@@ -58,25 +58,26 @@ impl Client {
     }
     
     /// Executes a cypher request with parameters
-    pub async fn execute_cypher_request_with_parameters(&mut self, query: &str, params: Value) -> Result<Value, Canceled> {
+    pub async fn execute_cypher_request_with_parameters(&mut self, db: &str, query: &str, params: Value) -> Result<Value, Canceled> {
         let uuid =  Uuid::new_v4();
         let (tx, rx) = futures_channel::oneshot::channel::<Value>();
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
-        tokio::spawn(send_request(self.request_tx.clone(), uuid.to_string(), query.to_string(), params));
+        tokio::spawn(send_request(self.request_tx.clone(), db.to_string(), uuid.to_string(), query.to_string(), params));
         tokio::select! {
             document = rx => document,
         }
     }
 
     /// Executes a cypher request
-    pub async fn execute_cypher_request(&mut self, query: &str) -> Result<Value, Canceled> {
-        self.execute_cypher_request_with_parameters(query, json!({})).await
+    pub async fn execute_cypher_request(&mut self, db: &str, query: &str) -> Result<Value, Canceled> {
+        self.execute_cypher_request_with_parameters(db, query, json!({})).await
     }
 }
 
-async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, id: String, query: String, params: Value) -> Option<()> {
+async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, db: String, id: String, query: String, params: Value) -> Option<()> {
     let mut msg = "!application/openCypher".to_string();
     let doc = json!({
+        "database": db,
         "request_id": id,
         "query" : query,
         "parameters": params,

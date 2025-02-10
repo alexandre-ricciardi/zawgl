@@ -28,8 +28,8 @@ async fn test_aggregation() {
 }
 
 async fn _test_aggregation(mut client: Client) {
-    let result1 = client.execute_cypher_request("create (test:Person) return test").await;
-    let result2 = client.execute_cypher_request("create (test:Person) return test").await;
+    let result1 = client.execute_cypher_request("default", "create (test:Person) return test").await;
+    let result2 = client.execute_cypher_request("default", "create (test:Person) return test").await;
     if let (Ok(d1), Ok(d2))  = (result1, result2) {
         println!("{}", d1.to_string());
         let id1 = extract_node_id(d1).expect("node id");
@@ -40,12 +40,12 @@ async fn _test_aggregation(mut client: Client) {
                 "pid2": id2,
                 "weight": i
             });
-            let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 create (s)-[:IsFriendOf]->(new:Person {weight: $weight})-[:IsFriendOf]->(t) return new, s, t", p).await;
+            let result = client.execute_cypher_request_with_parameters("default", "match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 create (s)-[:IsFriendOf]->(new:Person {weight: $weight})-[:IsFriendOf]->(t) return new, s, t", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
         }
     }
-    let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(t:Person) return test, sum(new.weight) as sum").await;
+    let result = client.execute_cypher_request("default", "match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(t:Person) return test, sum(new.weight) as sum").await;
     if let Ok(d) = result {
         println!("{}", d.to_string());
     } else {
@@ -58,8 +58,8 @@ async fn test_aggregation_issue() {
 }
 
 async fn _test_aggregation_issue(mut client: Client) {
-    let result1 = client.execute_cypher_request("create (test:Person) return test").await;
-    let result2 = client.execute_cypher_request("create (test:Person) return test").await;
+    let result1 = client.execute_cypher_request("default", "create (test:Person) return test").await;
+    let result2 = client.execute_cypher_request("default", "create (test:Person) return test").await;
     if let (Ok(d1), Ok(d2))  = (result1, result2) {
         let id1 = extract_node_id(d1).expect("node id");
         let id2 = extract_node_id(d2).expect("node id");
@@ -69,7 +69,7 @@ async fn _test_aggregation_issue(mut client: Client) {
                 "pid1": id1,
                 "pid2": id2
             });
-            let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 return s, t", p).await;
+            let result = client.execute_cypher_request_with_parameters("default", "match (s:Person) where id(s) = $pid1 match (t:Person) where id(t) = $pid2 return s, t", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
         }
@@ -82,14 +82,14 @@ async fn test_aggregation_match_issue() {
 }
 
 async fn _test_aggregation_match_issue(mut client: Client) {
-    let result1 = client.execute_cypher_request("create (test:Person) return test").await;
-    let result2 = client.execute_cypher_request("create (test:Person) return test").await;
+    let result1 = client.execute_cypher_request("default", "create (test:Person) return test").await;
+    let result2 = client.execute_cypher_request("default", "create (test:Person) return test").await;
     if let (Ok(d1), Ok(d2))  = (result1, result2) {
         let id1 = extract_node_id(d1).expect("node id");
         let id2 = extract_node_id(d2).expect("node id");
         for _ in 0..100 {
             for _ in 0..10 {
-                let r = client.execute_cypher_request("create (test:Person) return test").await;
+                let r = client.execute_cypher_request("default", "create (test:Person) return test").await;
                 let _res = r.expect("new person");
 
             }
@@ -97,7 +97,7 @@ async fn _test_aggregation_match_issue(mut client: Client) {
                 "pid1": id1,
                 "pid2": id2
             });
-            let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid1 return s", p).await;
+            let result = client.execute_cypher_request_with_parameters("default", "match (s:Person) where id(s) = $pid1 return s", p).await;
             let res = result.expect("new person");
             println!("{}", res.to_string());
             let id = extract_node_id(res).expect("node id");
@@ -114,7 +114,7 @@ async fn test_aggregation_1() {
 
 async fn _test_aggregation_1(mut client: Client) {
     for _ in 0..10 {
-        let result = client.execute_cypher_request("create (test:Person) return test").await;
+        let result = client.execute_cypher_request("default", "create (test:Person) return test").await;
         if let Ok(doc) = result {
             println!("{}", doc.to_string());
             let id = extract_node_id(doc).expect("node id");
@@ -123,7 +123,7 @@ async fn _test_aggregation_1(mut client: Client) {
                     "pid": id,
                     "weight": 1
                 });
-                let r1 = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid create (s)-[:IsFriendOf]->(new:Person {weight: $weight}) return new, s", p).await;
+                let r1 = client.execute_cypher_request_with_parameters("default", "match (s:Person) where id(s) = $pid create (s)-[:IsFriendOf]->(new:Person {weight: $weight}) return new, s", p).await;
                 let res = r1.expect("new person");
                 println!("{}", res.to_string());
                 assert_eq!(1, res["result"]["graphs"].as_array().unwrap().len());
@@ -131,7 +131,7 @@ async fn _test_aggregation_1(mut client: Client) {
         }
     }
 
-    let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person) return test, sum(new.weight) as sum").await;
+    let result = client.execute_cypher_request("default", "match (test:Person)-[:IsFriendOf]->(new:Person) return test, sum(new.weight) as sum").await;
     if let Ok(d) = result {
         println!("{}", d.to_string());
         let values = d["result"]["values"].as_array().expect("values");
@@ -153,7 +153,7 @@ async fn test_aggregation_2() {
 
 async fn _test_aggregation_2(mut client: Client) {
     for _ in 0..10 {
-        let result = client.execute_cypher_request("create (test:Person) return test").await;
+        let result = client.execute_cypher_request("default", "create (test:Person) return test").await;
         if let Ok(doc) = result {
             let id = extract_node_id(doc).expect("node id");
             for __ in 0..10 {
@@ -161,7 +161,7 @@ async fn _test_aggregation_2(mut client: Client) {
                     "pid": id,
                     "weight": 1
                 });
-                let result = client.execute_cypher_request_with_parameters("match (s:Person) where id(s) = $pid 
+                let result = client.execute_cypher_request_with_parameters("default", "match (s:Person) where id(s) = $pid 
                                                                             create (s)-[:IsFriendOf]->(new:Person {weight: $weight})
                                                                             create (new)-[:IsFriendOf]->(new1:Person {weight: $weight})
                                                                             create (new)-[:IsFriendOf]->(new2:Person {weight: $weight})
@@ -173,7 +173,7 @@ async fn _test_aggregation_2(mut client: Client) {
         }
     }
 
-    let result = client.execute_cypher_request("match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(new1:Person) return test, new, sum(new1.weight) as sum").await;
+    let result = client.execute_cypher_request("default", "match (test:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(new1:Person) return test, new, sum(new1.weight) as sum").await;
     if let Ok(d) = result {
         println!("{}", d.to_string());
         let values = d["result"]["values"].as_array().expect("values");

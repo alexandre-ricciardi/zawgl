@@ -31,12 +31,12 @@ async fn _test_with_collect(mut client: Client) {
     let p = json!({
         "weight": 1
     });
-    let _ = client.execute_cypher_request_with_parameters("create (s:Person)
+    let _ = client.execute_cypher_request_with_parameters("default", "create (s:Person)
                                                                 create (s)-[:IsFriendOf]->(new:Person {weight: $weight})
                                                                 create (new)-[:IsFriendOf]->(new1:Person {weight: $weight})
                                                                 create (new)-[:IsFriendOf]->(new2:Person {weight: $weight})
                                                                 return s", p).await;
-    let res = client.execute_cypher_request("match (s:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(end:Person)
+    let res = client.execute_cypher_request("default", "match (s:Person)-[:IsFriendOf]->(new:Person)-[:IsFriendOf]->(end:Person)
                                                                 with collect(end) as list
                                                                 return list").await;
     println!("{}", res.expect("persons").to_string());

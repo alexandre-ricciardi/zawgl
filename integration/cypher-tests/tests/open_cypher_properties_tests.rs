@@ -34,11 +34,11 @@ async fn test_create_match() {
 
 
 async fn test_create(mut client: Client) {
-    let r = client.execute_cypher_request("create (charlie:Person { name:'Charlie Sheen' }) return charlie").await;
+    let r = client.execute_cypher_request("default", "create (charlie:Person { name:'Charlie Sheen' }) return charlie").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
     }
-    let r = client.execute_cypher_request("match (n:Person) return n").await;
+    let r = client.execute_cypher_request("default", "match (n:Person) return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("result");
@@ -63,13 +63,13 @@ async fn test_filter_on_property_value(mut client: Client) {
         let params = json!({
             "age": age
         });
-        let r = client.execute_cypher_request_with_parameters("create (charlie:Person { age: $age }) return charlie", params).await;
+        let r = client.execute_cypher_request_with_parameters("default", "create (charlie:Person { age: $age }) return charlie", params).await;
         if let Ok(d) = r {
             println!("{}", d.to_string());
         }
     }
 
-    let r = client.execute_cypher_request("match (n:Person) where n.age > 40 return n").await;
+    let r = client.execute_cypher_request("default", "match (n:Person) where n.age > 40 return n").await;
     if let Ok(d) = r {
         println!("{}", d.to_string());
         let graphs = d["result"]["graphs"].as_array().expect("graphs");

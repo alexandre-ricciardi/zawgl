@@ -29,13 +29,13 @@ async fn test_benchmark_create() {
 }
 
 async fn benchmark_test(mut client: Client) {
-    let result = client.execute_cypher_request("create (test:Person) return test").await;
+    let result = client.execute_cypher_request("default", "create (test:Person) return test").await;
     if let Err(r) = result {
         println!("{}", r.to_string());
     }
     let start = Instant::now();
     for i in 0..10101 {
-        let result = client.execute_cypher_request("create (test:Person) return test").await;
+        let result = client.execute_cypher_request("default", "create (test:Person) return test").await;
         if let Err(r) = result {
             println!("{}", r.to_string());
             assert!(false, "error {}", i)
