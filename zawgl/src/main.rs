@@ -29,15 +29,21 @@ use zawgl_server::settings::{self, Settings};
 #[command(version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
-    database: Option<Database>,
+    command: Option<Sub>,
 }
 
 #[derive(Subcommand)]
-enum Database {
-    Create {
+enum Sub {
+    Database {
         #[arg(short, long)]
         name: String,
     },
+    Index {
+        #[arg(short, long)]
+        prop: String,
+        #[arg(short, long)]
+        name: String
+    }
 }
 
 async fn run_database(ctx: InitContext, address: &str) {
@@ -63,13 +69,14 @@ async fn main() {
     let log_level = settings.get_log_level();
     SimpleLogger::new().with_level(log_level).init().unwrap();
     let cli = Cli::parse();
-    match &cli.database {
-        Some(Database::Create { name }) => {
+    match &cli.command {
+        Some(Sub::Database { name }) => {
             if !settings.server.databases_dirs.contains(name) {
                 settings.server.databases_dirs.push(name.to_string());
                 settings.save();
             }
         }
+        Some(Sub::Index { prop, name }) => {}
         None => {
             let ctx: InitContext = InitContext::new(&settings.server.database_root_dir, settings.get_db_dirs());
             run_database(ctx, &settings.server.address).await;
