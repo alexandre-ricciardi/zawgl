@@ -196,6 +196,14 @@ impl BTreeNode {
         self.cells.len() == NB_CELL
     }
 
+    pub fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    pub fn is_half_full(&self) -> bool {
+        self.cells.len() >= NB_CELL / 2 
+    }
+
     pub fn get_keys(&self) -> Vec<&str> {
         let mut res: Vec<&str> = Vec::new();
         for cell in &self.cells {
@@ -219,6 +227,11 @@ impl BTreeNode {
         let cell_change_log = CellChangeLogItem::new(index, true, false);
         self.node_change_state.list_cell_change_log_items.push(cell_change_log);
         self.cells.insert(index, cell);
+    }
+
+    pub fn append_cell(&mut self, cell: Cell) {
+        let index = self.cells.len();
+        self.insert_cell(index, cell);
     }
 
     pub fn remove_cell(&mut self, index: usize) {

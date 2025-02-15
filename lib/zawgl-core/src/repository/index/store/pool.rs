@@ -28,7 +28,7 @@ use std::convert::TryInto;
 
 pub type BTreeNodeId = u64;
 pub type BTreeCellId = u32;
-pub type BtreeCellLoc = (BTreeNodeId, BTreeCellId);
+pub type BTreeCellLoc = (BTreeNodeId, BTreeCellId);
 
 
 
@@ -120,7 +120,7 @@ impl NodeRecordPool {
         FreeCellIterator { pool : self }
     }
 
-    pub fn insert_cell_in_free_slot(&mut self, cell_record: &CellRecord) -> Option<BtreeCellLoc> {
+    pub fn insert_cell_in_free_slot(&mut self, cell_record: &CellRecord) -> Option<BTreeCellLoc> {
         let mut iter = self.free_cell_iter();
         let next_free_cell_loc = iter.next()?;
         let nr = self.load_node_record_mut(&next_free_cell_loc.0)?;
@@ -128,7 +128,7 @@ impl NodeRecordPool {
         Some(next_free_cell_loc)
     }
 
-    pub fn disable_cell_records(&mut self, root_cell_record_loc: BtreeCellLoc) -> Option<()> {
+    pub fn disable_cell_records(&mut self, root_cell_record_loc: BTreeCellLoc) -> Option<()> {
         let mut next_cell_loc = root_cell_record_loc;
         while next_cell_loc.0 != 0 {
             let nr = self.load_node_record_mut(&next_cell_loc.0)?;
@@ -237,7 +237,7 @@ impl <'a> FreeCellIterator<'a> {
 }
 
 impl <'a> Iterator for FreeCellIterator<'a> {
-    type Item = BtreeCellLoc;
+    type Item = BTreeCellLoc;
     fn next(&mut self) -> Option<Self::Item> {
         let free_cell_node_id = self.load_or_create_free_cells_overflow_node()?;
         if let Some(node_with_free_cells) = self.pool.load_node_record_mut(&free_cell_node_id) {

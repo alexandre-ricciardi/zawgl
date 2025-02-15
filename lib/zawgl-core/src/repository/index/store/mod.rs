@@ -208,7 +208,7 @@ impl BTreeNodeStore {
         Some((prev_cell_record.node_ptr, prev_cell_record.overflow_cell_ptr))
     }
 
-    fn create_overflow_cells(&mut self, cell_records: &mut [CellRecord], prev_cell_loc: (BTreeNodeId, CellId)) -> Option<BtreeCellLoc> {
+    fn create_overflow_cells(&mut self, cell_records: &mut [CellRecord], prev_cell_loc: (BTreeNodeId, CellId)) -> Option<BTreeCellLoc> {
         let mut prev_cell_loc = prev_cell_loc;
         for cell in cell_records {
             cell.chain_with_cell_location(prev_cell_loc);

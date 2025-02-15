@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::buf_config::NB_CELL;
+
 use super::store::*;
 use super::model::*;
 
@@ -222,8 +224,61 @@ impl BTreeIndex {
         self.insert_or_update_key_ptrs(value, data_ptr, &root).map(|_node|())
     }
 
-    pub fn delete(&mut self, _value: u64) {
+    fn drop_key(&mut self, value: &str, node_id: &NodeId) -> Option<usize> {
+        self.node_store.retrieve_node(node_id)?;
+        let (search_res, keys) = {
+            let node = self.node_store.get_node_ref(node_id)?;
+            let keys = node.get_keys();
+            let res = binary_search_keys(&keys, value);
+            (res, keys.iter().map(|key| key.to_string()).collect::<Vec<String>>())
+        };
+        match search_res {
+            Ok(found) => {
+                let child_id = {
+                    let node = self.node_store.get_node_ref(node_id)?;
+                    node.get_cell_ref(found).get_node_ptr()?
+                };
+                let target_node_cell = self.drop_key(value, &child_id)?;
+                let node = self.node_store.get_node_mut(node_id)?;
+                node.remove_cell(found);
+                self.node_store.save(node_id)?;
+                let current_node = self.node_store.get_node_ref(node_id)?;
+                if !current_node.is_leaf() {
+                    let (child_node_len, child_node_half_full) = {
+                        let child_node = self.node_store.get_node_ref(&child_id)?;
+                        (child_node.len(), child_node.is_half_full())
+                    };
+                    if !child_node_half_full {
+                        if found > 0 {
+                            let sibling_node_id = current_node.get_cell_ref(found - 1).get_node_ptr()?;
+                            let child_node_cells = {
+                                let child_node = self.node_store.get_node_mut(&child_id)?;
+                                let cells = child_node.get_cells_ref().clone();
+                                while let Some(_cell) = child_node.pop_cell() {}
+                                cells
+                            };
+                            let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
+                            if sibling_node.len() + child_node_len <= NB_CELL {
+                                for cell in child_node_cells {
+                                    sibling_node.append_cell(cell.clone());
+                                }
+                            }
+                        }
+                    }
+                }
 
+                
+                Some(found)
+            },
+            Err(_not_found) => {
+                None
+            }
+        }
+    }
+
+    pub fn delete(&mut self, value: &str) -> Option<()> {
+        let root = self.node_store.load_or_create_root_node()?;
+        self.drop_key(value, &root).map(|_node|())
     }
 
     pub fn sync(&mut self) {
