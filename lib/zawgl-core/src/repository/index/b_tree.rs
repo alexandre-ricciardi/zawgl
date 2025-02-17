@@ -245,25 +245,25 @@ impl BTreeIndex {
 
     fn drop_key(&mut self, value: &str, node_id: &NodeId) -> Option<bool> {
         self.node_store.retrieve_node(node_id)?;
-        let (search_res, keys) = {
+        let search_res = {
             let node = self.node_store.get_node_ref(node_id)?;
             let keys = node.get_keys();
             let res = binary_search_keys(&keys, value);
-            (res, keys.iter().map(|key| key.to_string()).collect::<Vec<String>>())
+            res
         };
         match search_res {
             Ok(found) => {
-                let child_id = {
+                let (child_id, is_leaf) = {
                     let node = self.node_store.get_node_ref(node_id)?;
-                    node.get_cell_ref(found).get_node_ptr()?
+                    (node.get_cell_ref(found).get_node_ptr()?, node.is_leaf())
                 };
-                let droped = self.drop_key(value, &child_id)?;
-                let node = self.node_store.get_node_mut(node_id)?;
-                node.remove_cell(found);
-                self.node_store.save(node_id)?;
-                let current_node = self.node_store.get_node_ref(node_id)?;
-                if droped {
-                    if !current_node.is_leaf() {
+                if !is_leaf {
+                    let droped = self.drop_key(value, &child_id)?;
+                    let node = self.node_store.get_node_mut(node_id)?;
+                    node.remove_cell(found);
+                    self.node_store.save(node_id)?;
+                    let current_node = self.node_store.get_node_ref(node_id)?;
+                    if droped {
                         let (child_node_len, child_node_half_full) = {
                             let child_node = self.node_store.get_node_ref(&child_id)?;
                             (child_node.len(), child_node.is_half_full())
@@ -278,12 +278,14 @@ impl BTreeIndex {
                                 };
                                 if merge {
                                     let child_node_cells = {
+                                        self.node_store.retrieve_node(&child_id)?;
                                         let child_node = self.node_store.get_node_mut(&child_id)?;
                                         let cells = child_node.get_cells_ref().clone();
                                         while let Some(_cell) = child_node.pop_cell() {}
                                         self.node_store.save(&child_id)?;
                                         cells
                                     };
+                                    self.node_store.retrieve_node(&sibling_node_id)?;
                                     let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
                                     for cell in child_node_cells {
                                         sibling_node.append_cell(cell);
@@ -305,18 +307,22 @@ impl BTreeIndex {
 
                         }
                     }
+                } else {
+                    let node = self.node_store.get_node_mut(node_id)?;
+                    node.remove_cell(found);
+                    self.node_store.save(node_id)?;
                 }
                 Some(true)
             },
             Err(not_found) => {
-                let child_id = {
+                let (child_id, is_leaf) = {
                     let node = self.node_store.get_node_ref(node_id)?;
-                    node.get_cell_ref(not_found).get_node_ptr()?
+                    (node.get_cell_ref(not_found).get_node_ptr()?, node.is_leaf())
                 };
-                let droped = self.drop_key(value, &child_id)?;
-                let current_node = self.node_store.get_node_ref(node_id)?;
-                if droped {
-                    if !current_node.is_leaf() {
+                if !is_leaf {
+                    let droped = self.drop_key(value, &child_id)?;
+                    let current_node = self.node_store.get_node_ref(node_id)?;
+                    if droped {
                         let (child_node_len, child_node_half_full) = {
                             let child_node = self.node_store.get_node_ref(&child_id)?;
                             (child_node.len(), child_node.is_half_full())
@@ -330,12 +336,14 @@ impl BTreeIndex {
                                 };
                                 if merge {
                                     let child_node_cells = {
+                                        self.node_store.retrieve_node(&child_id)?;
                                         let child_node = self.node_store.get_node_mut(&child_id)?;
                                         let cells = child_node.get_cells_ref().clone();
                                         while let Some(_cell) = child_node.pop_cell() {}
                                         self.node_store.save(&child_id)?;
                                         cells
                                     };
+                                    self.node_store.retrieve_node(&sibling_node_id)?;
                                     let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
                                     for cell in child_node_cells {
                                         sibling_node.append_cell(cell);
@@ -348,8 +356,10 @@ impl BTreeIndex {
                             }
                         }
                     }
+                    Some(droped)
+                } else {
+                    Some(false)
                 }
-                Some(droped)
             }
         }
     }
