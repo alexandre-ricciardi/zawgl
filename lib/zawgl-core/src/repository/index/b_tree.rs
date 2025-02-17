@@ -253,11 +253,12 @@ impl BTreeIndex {
         };
         match search_res {
             Ok(found) => {
-                let (child_id, is_leaf) = {
+                let (ochild_id, is_leaf) = {
                     let node = self.node_store.get_node_ref(node_id)?;
-                    (node.get_cell_ref(found).get_node_ptr()?, node.is_leaf())
+                    (node.get_cell_ref(found).get_node_ptr(), node.is_leaf())
                 };
                 if !is_leaf {
+                    let child_id = ochild_id.unwrap();
                     let droped = self.drop_key(value, &child_id)?;
                     let node = self.node_store.get_node_mut(node_id)?;
                     node.remove_cell(found);
@@ -315,11 +316,12 @@ impl BTreeIndex {
                 Some(true)
             },
             Err(not_found) => {
-                let (child_id, is_leaf) = {
+                let (ochild_id, is_leaf) = {
                     let node = self.node_store.get_node_ref(node_id)?;
-                    (node.get_cell_ref(not_found).get_node_ptr()?, node.is_leaf())
+                    (node.get_cell_ref(not_found).get_node_ptr(), node.is_leaf())
                 };
                 if !is_leaf {
+                    let child_id = &ochild_id.unwrap();
                     let droped = self.drop_key(value, &child_id)?;
                     let current_node = self.node_store.get_node_ref(node_id)?;
                     if droped {
