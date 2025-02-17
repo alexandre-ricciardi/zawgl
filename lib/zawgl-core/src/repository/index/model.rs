@@ -201,7 +201,7 @@ impl BTreeNode {
     }
 
     pub fn is_half_full(&self) -> bool {
-        self.cells.len() >= NB_CELL / 2 
+        self.cells.len() >= (NB_CELL / 2) - 1
     }
 
     pub fn get_keys(&self) -> Vec<&str> {

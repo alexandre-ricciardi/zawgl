@@ -72,6 +72,25 @@ impl BTreeIndex {
         }
     }
 
+    fn get_keys(&mut self, node_id: &NodeId, keys: &mut Vec<String>) -> Option<()> {
+        self.node_store.retrieve_node(node_id)?;
+        let node = self.node_store.get_node_ref(node_id)?;
+        if node.is_leaf() {
+            for cell in node.get_cells_ref() {
+                keys.push(cell.get_key().to_string());
+            }
+        } else {
+            self.get_keys(node_id, keys)?;
+        }
+        Some(())
+    }
+
+    pub fn retrieve_keys(&mut self) -> Option<Vec<String>> {
+        let root = self.node_store.load_or_create_root_node()?;
+        let mut keys = vec![];
+        self.get_keys(&root, &mut keys)?;
+        Some(keys)
+    }
 
     fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node_id: &NodeId, new_cell_index: usize) -> Option<BTreeNode> {
         {   
@@ -224,7 +243,7 @@ impl BTreeIndex {
         self.insert_or_update_key_ptrs(value, data_ptr, &root).map(|_node|())
     }
 
-    fn drop_key(&mut self, value: &str, node_id: &NodeId) -> Option<usize> {
+    fn drop_key(&mut self, value: &str, node_id: &NodeId) -> Option<bool> {
         self.node_store.retrieve_node(node_id)?;
         let (search_res, keys) = {
             let node = self.node_store.get_node_ref(node_id)?;
@@ -238,47 +257,106 @@ impl BTreeIndex {
                     let node = self.node_store.get_node_ref(node_id)?;
                     node.get_cell_ref(found).get_node_ptr()?
                 };
-                let target_node_cell = self.drop_key(value, &child_id)?;
+                let droped = self.drop_key(value, &child_id)?;
                 let node = self.node_store.get_node_mut(node_id)?;
                 node.remove_cell(found);
                 self.node_store.save(node_id)?;
                 let current_node = self.node_store.get_node_ref(node_id)?;
-                if !current_node.is_leaf() {
-                    let (child_node_len, child_node_half_full) = {
-                        let child_node = self.node_store.get_node_ref(&child_id)?;
-                        (child_node.len(), child_node.is_half_full())
-                    };
-                    if !child_node_half_full {
-                        if found > 0 {
-                            let sibling_node_id = current_node.get_cell_ref(found - 1).get_node_ptr()?;
-                            let child_node_cells = {
-                                let child_node = self.node_store.get_node_mut(&child_id)?;
-                                let cells = child_node.get_cells_ref().clone();
-                                while let Some(_cell) = child_node.pop_cell() {}
-                                cells
+                if droped {
+                    if !current_node.is_leaf() {
+                        let (child_node_len, child_node_half_full) = {
+                            let child_node = self.node_store.get_node_ref(&child_id)?;
+                            (child_node.len(), child_node.is_half_full())
+                        };
+                        let mut merged_child_nodes = false;
+                        if !child_node_half_full {
+                            if found > 0 {
+                                let sibling_node_id = current_node.get_cell_ref(found - 1).get_node_ptr()?;
+                                let merge = {
+                                    let sibling = self.node_store.get_node_ref(&sibling_node_id)?;
+                                    sibling.len() + child_node_len <= NB_CELL
+                                };
+                                if merge {
+                                    let child_node_cells = {
+                                        let child_node = self.node_store.get_node_mut(&child_id)?;
+                                        let cells = child_node.get_cells_ref().clone();
+                                        while let Some(_cell) = child_node.pop_cell() {}
+                                        self.node_store.save(&child_id)?;
+                                        cells
+                                    };
+                                    let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
+                                    for cell in child_node_cells {
+                                        sibling_node.append_cell(cell);
+                                    }
+                                    self.node_store.save(&sibling_node_id)?;
+                                    merged_child_nodes = true;
+                                }
+                            }
+                        }
+                        if !merged_child_nodes {
+                            let child_key = {
+                                let child = self.node_store.get_node_ref(&child_id)?;
+                                child.get_cell_ref(0).get_key().to_string()
                             };
-                            let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
-                            if sibling_node.len() + child_node_len <= NB_CELL {
-                                for cell in child_node_cells {
-                                    sibling_node.append_cell(cell.clone());
+                            let node = self.node_store.get_node_mut(node_id)?;
+                            let cell = Cell::new_ptr(&child_key, Some(child_id));
+                            node.insert_cell(found, cell);
+                            self.node_store.save(node_id)?;
+
+                        }
+                    }
+                }
+                Some(true)
+            },
+            Err(not_found) => {
+                let child_id = {
+                    let node = self.node_store.get_node_ref(node_id)?;
+                    node.get_cell_ref(not_found).get_node_ptr()?
+                };
+                let droped = self.drop_key(value, &child_id)?;
+                let current_node = self.node_store.get_node_ref(node_id)?;
+                if droped {
+                    if !current_node.is_leaf() {
+                        let (child_node_len, child_node_half_full) = {
+                            let child_node = self.node_store.get_node_ref(&child_id)?;
+                            (child_node.len(), child_node.is_half_full())
+                        };
+                        if !child_node_half_full {
+                            if not_found > 0 {
+                                let sibling_node_id = current_node.get_cell_ref(not_found - 1).get_node_ptr()?;
+                                let merge = {
+                                    let sibling = self.node_store.get_node_ref(&sibling_node_id)?;
+                                    sibling.len() + child_node_len <= NB_CELL
+                                };
+                                if merge {
+                                    let child_node_cells = {
+                                        let child_node = self.node_store.get_node_mut(&child_id)?;
+                                        let cells = child_node.get_cells_ref().clone();
+                                        while let Some(_cell) = child_node.pop_cell() {}
+                                        self.node_store.save(&child_id)?;
+                                        cells
+                                    };
+                                    let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
+                                    for cell in child_node_cells {
+                                        sibling_node.append_cell(cell);
+                                    }
+                                    self.node_store.save(&sibling_node_id)?;
+                                    let node = self.node_store.get_node_mut(node_id)?;
+                                    node.remove_cell(not_found);
+                                    self.node_store.save(node_id)?;
                                 }
                             }
                         }
                     }
                 }
-
-                
-                Some(found)
-            },
-            Err(_not_found) => {
-                None
+                Some(droped)
             }
         }
     }
 
-    pub fn delete(&mut self, value: &str) -> Option<()> {
+    pub fn delete(&mut self, value: &str) -> Option<bool> {
         let root = self.node_store.load_or_create_root_node()?;
-        self.drop_key(value, &root).map(|_node|())
+        self.drop_key(value, &root)
     }
 
     pub fn sync(&mut self) {
@@ -358,8 +436,15 @@ mod test_b_tree {
             } else {
                 panic!("empty search result for key # {}", i);
             }
-            
         }
+
+        for i in 0..1000 {
+            let droped = index.delete(&format!("key # {}", i));
+            assert_eq!(droped, Some(true));
+        }
+
+        let keys_set = index.retrieve_keys();
+        assert_eq!(keys_set, Some(vec![]));
 
     }
 
