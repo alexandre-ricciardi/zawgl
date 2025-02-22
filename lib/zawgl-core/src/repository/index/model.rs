@@ -61,26 +61,31 @@ impl CellChangeState {
     pub fn append_index(&self) -> usize {
         self.append_index
     }
+
+    pub fn reset(&mut self) {
+        self.is_new_instance = false;
+        self.is_added = false;
+        self.is_removed = false;
+    }
 }
 #[derive(Debug, Clone)]
 pub struct Cell {
     key: String,
     node_ptr: Option<NodeId>,
-    is_active: bool,
     data_ptrs: Vec<NodeId>,
     cell_change_state: CellChangeState,
 }
 
 impl Cell {
     pub fn new_ptr(key: &str, ptr: Option<NodeId>) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, is_active: true, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new(true, 0)}
+        Cell{key: String::from(key), node_ptr: ptr, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new(true, 0)}
     }
     pub fn new_leaf(key: &str, data_ptr: NodeId) -> Self {
-        Cell{key: String::from(key), node_ptr: None, is_active: true, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true, 1)}
+        Cell{key: String::from(key), node_ptr: None, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true, 1)}
     }
-    pub fn new(key: &str, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>, is_active: bool) -> Self {
+    pub fn new(key: &str, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>) -> Self {
         let index = data_ptrs.len();
-        Cell{key: String::from(key), node_ptr: ptr, is_active, data_ptrs, cell_change_state: CellChangeState::new(false, index)}
+        Cell{key: String::from(key), node_ptr: ptr, data_ptrs, cell_change_state: CellChangeState::new(false, index)}
     }
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
         if !self.cell_change_state.list_data_pointer_changed {
@@ -112,6 +117,10 @@ impl Cell {
     }
     pub fn set_node_ptr(&mut self, id: Option<NodeId>) {
         self.node_ptr = id;
+    }
+
+    fn reset(&mut self) {
+
     }
 
 }
@@ -193,23 +202,21 @@ impl BTreeNode {
     }
 
     pub fn is_full(&self) -> bool {
-        self.cells.len() == NB_CELL
+        self.cells.iter().filter(|c| !c.cell_change_state.is_removed()).count() == NB_CELL
     }
 
     pub fn len(&self) -> usize {
-        self.cells.len()
+        self.cells.iter().filter(|c| !c.cell_change_state.is_removed()).count()
     }
 
     pub fn is_half_full(&self) -> bool {
-        self.cells.len() >= (NB_CELL / 2) - 1
+        self.len() >= (NB_CELL / 2) - 1
     }
 
     pub fn get_keys(&self) -> Vec<&str> {
         let mut res: Vec<&str> = Vec::new();
         for cell in &self.cells {
-            if cell.is_active {
-                res.push(&cell.key);
-            }
+            res.push(&cell.key);
         }
         res
     }
@@ -241,12 +248,28 @@ impl BTreeNode {
         self.node_change_state.list_cell_change_log_items.push(cell_change_log);
     }
 
+    pub fn remove_cells(&mut self) {
+        for (index, cell) in self.cells.iter_mut().rev().enumerate() {
+            if !cell.cell_change_state.is_removed() {
+                let cell_change_log = CellChangeLogItem::new(index,false, true);
+                self.node_change_state.list_cell_change_log_items.push(cell_change_log);
+                cell.cell_change_state.set_is_removed();
+            }
+        }
+    }
+
     pub fn pop_cell(&mut self) -> Option<Cell> {
-        let mut cell = self.cells.pop()?;
-        let cell_change_log = CellChangeLogItem::new(self.cells.len(),false, true);
-        self.node_change_state.list_cell_change_log_items.push(cell_change_log);
-        cell.cell_change_state.set_is_removed();
-        Some(cell)
+        let result = self.cells.iter_mut().enumerate().rev().find(|(_index, c)| !c.cell_change_state.is_removed());
+        if let Some((index, cell)) = result {
+            let mut cloned_cell = cell.clone();
+            let cell_change_log = CellChangeLogItem::new(index,false, true);
+            self.node_change_state.list_cell_change_log_items.push(cell_change_log);
+            cell.cell_change_state.set_is_removed();
+            cloned_cell.cell_change_state.reset();
+            Some(cloned_cell)
+        } else {
+            None
+        }
     }
 
     pub fn get_cell_mut(&mut self, index: usize) -> &mut Cell {
@@ -288,6 +311,9 @@ impl BTreeNode {
     }
 
     pub fn reset(&mut self) {
+        let cells = self.cells.iter_mut().filter(|c| !c.cell_change_state.is_removed())
+            .map(|c| {c.reset(); c.clone()}).collect();
+        self.cells = cells;
         self.node_change_state.reset();
     }
 }

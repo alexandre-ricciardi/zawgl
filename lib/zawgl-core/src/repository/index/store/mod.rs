@@ -22,7 +22,7 @@ mod records;
 mod pool;
 
 use log::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use self::records::*;
 use super::super::super::buf_config::*;
 use super::model::*;
@@ -114,10 +114,10 @@ impl BTreeNodeStore {
         cell_load_res.map(|res| {
             match res {
                 CellLoadRes::InteriorCell(id) => {
-                    Cell::new(&String::from_utf8(vkey).unwrap(), Some(id), Vec::new(), cell_record.is_active())
+                    Cell::new(&String::from_utf8(vkey).unwrap(), Some(id), Vec::new())
                 },
                 CellLoadRes::LeafCell(ptrs) => {
-                    Cell::new(&String::from_utf8(vkey).unwrap(), None, ptrs, cell_record.is_active())
+                    Cell::new(&String::from_utf8(vkey).unwrap(), None, ptrs)
                 }
             }
         })
@@ -169,12 +169,12 @@ impl BTreeNodeStore {
         Some(())
     }
 
-    pub fn is_leaf_node(&self, node_id: &NodeId) -> bool {
-        self.get_node_ref(node_id).map_or(false, |n| n.is_leaf())
+    pub fn is_leaf_node(&self, node_id: &NodeId) -> Option<bool> {
+        self.get_node_ref(node_id).map(|n| n.is_leaf())
     }
 
-    pub fn is_full_node(&self, node_id: &NodeId) -> bool {
-        self.get_node_ref(node_id).map_or(false, |n| n.is_full())
+    pub fn is_full_node(&self, node_id: &NodeId) -> Option<bool> {
+        self.get_node_ref(node_id).map(|n| n.is_full())
     }
 
     pub fn get_node_ptr(&self, node_id: &NodeId) -> Option<NodeId> {
@@ -438,26 +438,27 @@ impl BTreeNodeStore {
                 }
             }
             //replay change log
-            let mut list_old_ids_to_delete = Vec::new();
-            for cell_change_log in node.get_node_changes_state().get_list_change_log() {
+            let mut list_removed_ids = HashSet::new();
+            let mut list_added_ids = HashSet::new();
+            let cl = node.get_node_changes_state().get_list_change_log();
+            for cell_change_log in cl {
                 if cell_change_log.is_remove() {
                     let index = cell_change_log.index();
                     let ctx = &cells_context[index];
-                    if !ctx.is_added {
-                        list_old_ids_to_delete.push(ctx.old_cell_id)
-                    }
+                    list_removed_ids.insert(index);
                     cells_context.remove(index);
                 } else if cell_change_log.is_add() {
                     let index = cell_change_log.index();
+                    list_added_ids.insert(index);
                     cells_context.insert(index, CellChangeContext::added());
                 }
             }
-
+            let mut list_old_ids_to_delete = vec![];
             //delete old records
-            for cell_id in &list_old_ids_to_delete {
+            for cell_id in list_removed_ids.difference(&list_added_ids) {
                 main_node_record.cells[*cell_id].set_inactive();
+                list_old_ids_to_delete.push(*cell_id);
             }
-
             list_old_ids_to_delete
         };
         
@@ -473,6 +474,9 @@ impl BTreeNodeStore {
         let main_node_record = self.records_pool.load_node_record_mut(&node_record_id)?;
         let old_cell_records = main_node_record.cells;
 
+        if cells_context.len() > NB_CELL {
+            println!("error");
+        }
         //move and update old records
         for (new_cell_id, ctx) in cells_context.iter().enumerate() {
             if !ctx.is_added && new_cell_id != ctx.old_cell_id {
@@ -622,6 +626,7 @@ impl BTreeNodePool {
 struct CellChangeContext {
     old_cell_id: usize,
     is_added: bool,
+    is_active: bool,
 }
 
 impl CellChangeContext {
@@ -629,12 +634,21 @@ impl CellChangeContext {
         CellChangeContext {
             old_cell_id: 0,
             is_added: true,
+            is_active: true,
         }
     }
     fn old(index: usize) -> Self {
         CellChangeContext {
             old_cell_id: index,
             is_added: false,
+            is_active: true,
+        }
+    }
+    fn old_disabled(index: usize) -> Self {
+        CellChangeContext {
+            old_cell_id: index,
+            is_added: false,
+            is_active: false,
         }
     }
 }
@@ -707,11 +721,11 @@ mod test_btree_node_store {
     fn test_many_ptrs() {
         let file = build_file_path_and_rm_old("b_tree_nodes", "test_many_ptrs.db").unwrap();
         let mut store = BTreeNodeStore::new(&file);
-        let cells = vec![Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9], true)];
+        let cells = vec![Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9])];
         let mut node = BTreeNode::new(true, false, cells);
         store.create(&mut node);
         store.sync();
-        node.insert_cell(1, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9], true));
+        node.insert_cell(1, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9]));
         store.save(&node.get_id().unwrap()).unwrap();
 
         store.sync();
@@ -727,15 +741,15 @@ mod test_btree_node_store {
     fn test_many_ptrs_one_by_one() {
         let file = build_file_path_and_rm_old("b_tree_nodes", "test_many_ptrs_one_by_one.db").unwrap();
         let mut store = BTreeNodeStore::new(&file);
-        let cells =  vec![Cell::new("same key", None, vec![12, 98, 77867867, 21, 9], true)];
+        let cells =  vec![Cell::new("same key", None, vec![12, 98, 77867867, 21, 9])];
         let mut node = BTreeNode::new(true, false, cells);
         store.create(&mut node);
         store.soft_sync();
         let id = node.get_id().unwrap();
         {
             let mref = store.get_node_mut(&id).unwrap();
-            mref.insert_cell(1, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9], true));
-            mref.insert_cell(2, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98], true));
+            mref.insert_cell(0, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9]));
+            mref.insert_cell(1, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98]));
             store.save(&id).unwrap();
 
             store.soft_sync();
@@ -751,9 +765,9 @@ mod test_btree_node_store {
             store.retrieve_node(&id);
             store.get_node_ref(&id)
         }).unwrap();
-        assert_eq!(loaded.get_cell_ref(0).get_data_ptrs_ref().len(), 105);
-        assert_eq!(loaded.get_cell_ref(1).get_data_ptrs_ref().len(), 10);
-        assert_eq!(loaded.get_cell_ref(2).get_data_ptrs_ref().len(), 7);
+        assert_eq!(loaded.get_cell_ref(0).get_data_ptrs_ref().len(), 110);
+        assert_eq!(loaded.get_cell_ref(1).get_data_ptrs_ref().len(), 7);
+        assert_eq!(loaded.get_cell_ref(2).get_data_ptrs_ref().len(), 5);
 
     }
 
