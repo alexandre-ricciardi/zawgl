@@ -444,7 +444,6 @@ impl BTreeNodeStore {
             for cell_change_log in cl {
                 if cell_change_log.is_remove() {
                     let index = cell_change_log.index();
-                    let ctx = &cells_context[index];
                     list_removed_ids.insert(index);
                     cells_context.remove(index);
                 } else if cell_change_log.is_add() {
@@ -499,6 +498,9 @@ impl BTreeNodeStore {
                         0
                     };
                     self.update_cell_data_ptrs(node_record_id, new_cell_id, current_cell.get_data_ptrs_ref(), start_index, current_cell.get_change_state().is_append_only())?;
+                } else if current_cell.get_change_state().did_node_ptr_changed() {
+                    let main_node_record = self.records_pool.load_node_record_mut(&node_record_id)?;
+                    main_node_record.cells[new_cell_id].node_ptr = current_cell.get_node_ptr().unwrap();
                 }
             }
         }

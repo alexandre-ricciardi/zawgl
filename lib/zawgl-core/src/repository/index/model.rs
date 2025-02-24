@@ -31,6 +31,7 @@ pub struct CellChangeState {
     list_data_pointer_changed: bool,
     is_append_only: bool,
     append_index: usize,
+    cell_node_ptr_changed: bool
 }
 
 impl CellChangeState {
@@ -38,7 +39,10 @@ impl CellChangeState {
         CellChangeState{is_new_instance: new, 
             is_added: false,
             is_removed: false, 
-            list_data_pointer_changed: false, append_index, is_append_only: false}
+            list_data_pointer_changed: false,
+            append_index, 
+            is_append_only: false,
+            cell_node_ptr_changed: false}
     }
     fn set_is_removed(&mut self) {
         self.is_removed = true;
@@ -57,6 +61,12 @@ impl CellChangeState {
     }
     pub fn is_append_only(&self) -> bool {
         self.is_append_only
+    }
+    pub fn did_node_ptr_changed(&self) -> bool {
+        self.cell_node_ptr_changed
+    }
+    pub fn set_node_ptr_changed(&mut self) {
+        self.cell_node_ptr_changed = true;
     }
     pub fn append_index(&self) -> usize {
         self.append_index
@@ -116,6 +126,7 @@ impl Cell {
         &self.cell_change_state
     }
     pub fn set_node_ptr(&mut self, id: Option<NodeId>) {
+        self.cell_change_state.cell_node_ptr_changed = true;
         self.node_ptr = id;
     }
 
