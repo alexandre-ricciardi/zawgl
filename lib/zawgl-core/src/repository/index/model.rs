@@ -260,9 +260,9 @@ impl BTreeNode {
     }
 
     pub fn remove_cells(&mut self) {
-        for (index, cell) in self.cells.iter_mut().rev().enumerate() {
+        for cell in self.cells.iter_mut() {
             if !cell.cell_change_state.is_removed() {
-                let cell_change_log = CellChangeLogItem::new(index,false, true);
+                let cell_change_log = CellChangeLogItem::new(0,false, true);
                 self.node_change_state.list_cell_change_log_items.push(cell_change_log);
                 cell.cell_change_state.set_is_removed();
             }

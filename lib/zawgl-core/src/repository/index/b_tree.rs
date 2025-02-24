@@ -287,29 +287,31 @@ impl BTreeIndex {
                         };
                         let mut merged_child_nodes = false;
                         if !child_node_half_full {
-                            if found > 0 {
-                                let sibling_node_id = current_node.get_cell_ref(found - 1).get_node_ptr()?;
-                                let merge = {
-                                    let sibling = self.node_store.get_node_ref(&sibling_node_id)?;
-                                    sibling.len() + child_node_len <= NB_CELL
+                            let sibling_node_id = if found > 0 {
+                                current_node.get_cell_ref(found - 1).get_node_ptr()?
+                            } else {
+                                current_node.get_node_ptr().unwrap()
+                            };
+                            let merge = {
+                                let sibling = self.node_store.get_node_ref(&sibling_node_id)?;
+                                sibling.len() + child_node_len <= NB_CELL
+                            };
+                            if merge {
+                                let child_node_cells = {
+                                    self.node_store.retrieve_node(&child_id)?;
+                                    let child_node = self.node_store.get_node_mut(&child_id)?;
+                                    let cells = child_node.get_cells_ref().clone();
+                                    child_node.remove_cells();
+                                    self.node_store.save(&child_id)?;
+                                    cells
                                 };
-                                if merge {
-                                    let child_node_cells = {
-                                        self.node_store.retrieve_node(&child_id)?;
-                                        let child_node = self.node_store.get_node_mut(&child_id)?;
-                                        let cells = child_node.get_cells_ref().clone();
-                                        child_node.remove_cells();
-                                        self.node_store.save(&child_id)?;
-                                        cells
-                                    };
-                                    self.node_store.retrieve_node(&sibling_node_id)?;
-                                    let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
-                                    for cell in child_node_cells {
-                                        sibling_node.append_cell(cell);
-                                    }
-                                    self.node_store.save(&sibling_node_id)?;
-                                    merged_child_nodes = true;
+                                self.node_store.retrieve_node(&sibling_node_id)?;
+                                let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
+                                for cell in child_node_cells {
+                                    sibling_node.append_cell(cell);
                                 }
+                                self.node_store.save(&sibling_node_id)?;
+                                merged_child_nodes = true;
                             }
                         }
                         if !merged_child_nodes {
@@ -346,32 +348,30 @@ impl BTreeIndex {
                             (child_node.len(), child_node.is_half_full())
                         };
                         if !child_node_half_full {
-                            if not_found > 1 {
-                                let sibling_node_id = current_node.get_cell_ref(not_found - 2).get_node_ptr()?;
-                                let merge = {
-                                    let sibling = self.node_store.get_node_ref(&sibling_node_id)?;
-                                    sibling.len() + child_node_len <= NB_CELL
+                            let sibling_node_id = if not_found > 1 {
+                                current_node.get_cell_ref(not_found - 2).get_node_ptr()?
+                            } else {
+                                current_node.get_node_ptr().unwrap()
+                            };
+                            let merge = {
+                                let sibling = self.node_store.get_node_ref(&sibling_node_id)?;
+                                sibling.len() + child_node_len <= NB_CELL
+                            };
+                            if merge {
+                                let child_node_cells = {
+                                    self.node_store.retrieve_node(&child_id)?;
+                                    let child_node = self.node_store.get_node_mut(&child_id)?;
+                                    let cells = child_node.get_cells_ref().clone();
+                                    child_node.remove_cells();
+                                    self.node_store.save(&child_id)?;
+                                    cells
                                 };
-                                if merge {
-                                    let child_node_cells = {
-                                        self.node_store.retrieve_node(&child_id)?;
-                                        let child_node = self.node_store.get_node_mut(&child_id)?;
-                                        let cells = child_node.get_cells_ref().clone();
-                                        child_node.remove_cells();
-                                        self.node_store.save(&child_id)?;
-                                        cells
-                                    };
-                                    self.node_store.retrieve_node(&sibling_node_id)?;
-                                    let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
-                                    for cell in child_node_cells {
-                                        sibling_node.append_cell(cell);
-                                    }
-                                    self.node_store.retrieve_node(node_id)?;
-                                    self.node_store.save(&sibling_node_id)?;
-                                    let node = self.node_store.get_node_mut(node_id)?;
-                                    node.remove_cell(not_found - 1);
-                                    self.node_store.save(node_id)?;
+                                self.node_store.retrieve_node(&sibling_node_id)?;
+                                let sibling_node = self.node_store.get_node_mut(&sibling_node_id)?;
+                                for cell in child_node_cells {
+                                    sibling_node.append_cell(cell);
                                 }
+                                self.node_store.save(&sibling_node_id)?;
                             }
                         }
                     }

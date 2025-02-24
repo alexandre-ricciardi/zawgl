@@ -472,15 +472,14 @@ impl BTreeNodeStore {
     fn move_old_cell_records(&mut self, node_record_id: NodeId, cells_context: &[CellChangeContext]) -> Option<()> {
         let main_node_record = self.records_pool.load_node_record_mut(&node_record_id)?;
         let old_cell_records = main_node_record.cells;
-
-        if cells_context.len() > NB_CELL {
-            println!("error");
-        }
         //move and update old records
         for (new_cell_id, ctx) in cells_context.iter().enumerate() {
             if !ctx.is_added && new_cell_id != ctx.old_cell_id {
                 main_node_record.cells[new_cell_id] = old_cell_records[ctx.old_cell_id];
             }
+        }
+        for unused_cell_id in cells_context.len()..NB_CELL {
+            main_node_record.cells[unused_cell_id].set_inactive();
         }
         Some(())
     }
@@ -629,6 +628,7 @@ struct CellChangeContext {
     old_cell_id: usize,
     is_added: bool,
     is_active: bool,
+    is_removed: bool,
 }
 
 impl CellChangeContext {
@@ -637,6 +637,7 @@ impl CellChangeContext {
             old_cell_id: 0,
             is_added: true,
             is_active: true,
+            is_removed: false,
         }
     }
     fn old(index: usize) -> Self {
@@ -644,6 +645,7 @@ impl CellChangeContext {
             old_cell_id: index,
             is_added: false,
             is_active: true,
+            is_removed: false,
         }
     }
     fn old_disabled(index: usize) -> Self {
@@ -651,6 +653,7 @@ impl CellChangeContext {
             old_cell_id: index,
             is_added: false,
             is_active: false,
+            is_removed: false,
         }
     }
 }
