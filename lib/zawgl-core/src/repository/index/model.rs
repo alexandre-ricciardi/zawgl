@@ -216,12 +216,16 @@ impl BTreeNode {
         self.cells.iter().filter(|c| !c.cell_change_state.is_removed()).count() == NB_CELL
     }
 
+    pub fn is_empty(&self) -> bool{
+        self.len() == 0
+    }
+
     pub fn len(&self) -> usize {
         self.cells.iter().filter(|c| !c.cell_change_state.is_removed()).count()
     }
 
-    pub fn is_half_full(&self) -> bool {
-        self.len() >= (NB_CELL / 2) - 1
+    pub fn is_not_half_full(&self) -> bool {
+        self.len() < (NB_CELL / 2)
     }
 
     pub fn get_keys(&self) -> Vec<&str> {
