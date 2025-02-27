@@ -80,22 +80,22 @@ impl CellChangeState {
 }
 #[derive(Debug, Clone)]
 pub struct Cell {
-    key: String,
+    key: Key,
     node_ptr: Option<NodeId>,
     data_ptrs: Vec<NodeId>,
     cell_change_state: CellChangeState,
 }
 
 impl Cell {
-    pub fn new_ptr(key: &str, ptr: Option<NodeId>) -> Self {
-        Cell{key: String::from(key), node_ptr: ptr, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new(true, 0)}
+    pub fn new_ptr(key: Key, ptr: Option<NodeId>) -> Self {
+        Cell{key, node_ptr: ptr, data_ptrs: Vec::new(), cell_change_state: CellChangeState::new(true, 0)}
     }
-    pub fn new_leaf(key: &str, data_ptr: NodeId) -> Self {
-        Cell{key: String::from(key), node_ptr: None, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true, 1)}
+    pub fn new_leaf(key: Key, data_ptr: NodeId) -> Self {
+        Cell{key, node_ptr: None, data_ptrs: vec![data_ptr], cell_change_state: CellChangeState::new(true, 1)}
     }
-    pub fn new(key: &str, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>) -> Self {
+    pub fn new(key: Key, ptr: Option<NodeId>, data_ptrs: Vec<NodeId>) -> Self {
         let index = data_ptrs.len();
-        Cell{key: String::from(key), node_ptr: ptr, data_ptrs, cell_change_state: CellChangeState::new(false, index)}
+        Cell{key, node_ptr: ptr, data_ptrs, cell_change_state: CellChangeState::new(false, index)}
     }
     pub fn append_data_ptr(&mut self, data_ptr: NodeId) {
         if !self.cell_change_state.list_data_pointer_changed {
@@ -119,7 +119,7 @@ impl Cell {
     pub fn get_node_ptr(&self) -> Option<NodeId> {
         self.node_ptr
     }
-    pub fn get_key(&self) -> &String {
+    pub fn get_key(&self) -> &Key {
         &self.key
     }
     pub fn get_change_state(&self) -> &CellChangeState {
@@ -228,8 +228,8 @@ impl BTreeNode {
         self.len() < (NB_CELL / 2)
     }
 
-    pub fn get_keys(&self) -> Vec<&str> {
-        let mut res: Vec<&str> = Vec::new();
+    pub fn get_keys(&self) -> Vec<&Key> {
+        let mut res = Vec::new();
         for cell in &self.cells {
             res.push(&cell.key);
         }
@@ -330,5 +330,44 @@ impl BTreeNode {
             .map(|c| {c.reset(); c.clone()}).collect();
         self.cells = cells;
         self.node_change_state.reset();
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
+pub enum Key {
+    String(String),
+    Integer(i128),
+}
+
+impl Key {
+    pub fn new_str(key: Vec<u8>) -> Self {
+        Key::String(String::from_utf8(key).unwrap())
+    }
+    pub fn from_str(key: &str) -> Self {
+        Key::String(key.to_string())
+    }
+    pub fn new_int(key: [u8; 16]) -> Self {
+        Key::Integer(i128::from_be_bytes(key))
+    }
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            Key::String(s) => s.clone().into_bytes(),
+            Key::Integer(i) => i.to_be_bytes().to_vec(),
+        }
+    }
+}
+
+impl Ord for Key {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self {
+            Key::String(probe) => match other {
+                Key::String(value) => Ord::cmp(&probe.len(), &value.len()).then(probe.cmp(value)),
+                _ => std::cmp::Ordering::Less
+            },
+            Key::Integer(i) => match other {
+                Key::String(_) => std::cmp::Ordering::Greater,
+                Key::Integer(value) => Ord::cmp(&i, &value),
+            },
+        }
     }
 }

@@ -25,6 +25,10 @@ use super::super::super::super::buf_config::*;
 const HAS_OVERFLOW_CELL_FLAG: u8 = 0b1000_0000;
 const IS_ACTIVE_CELL_FLAG: u8 = 0b0100_0000;
 const IS_LIST_PTR_CELL_FLAG: u8 = 0b0010_0000;
+const IS_STR_KEY_CELL_FLAG: u8 = 0b0001_0000;
+const IS_INT_KEY_CELL_FLAG: u8 = 0b0001_1000;
+const IS_FLT_KEY_CELL_FLAG: u8 = 0b0000_1000;
+const KEY_TYPE_CELL_BITS: u8 = 0b0001_1000;
 
 const IS_LEAF_NODE_FLAG: u8 = 0b1000_0000;
 const HAS_NEXT_NODE_FLAG: u8 = 0b0100_0000;
@@ -65,6 +69,24 @@ impl CellRecord {
     }
     pub fn set_is_list_ptr(&mut self) {
         self.header |= IS_LIST_PTR_CELL_FLAG;
+    }
+    pub fn is_str_key(&self) -> bool {
+        ((self.header & KEY_TYPE_CELL_BITS) >> 3) == 2
+    }
+    pub fn is_int_key(&self) -> bool {
+        ((self.header & KEY_TYPE_CELL_BITS) >> 3) == 3
+    }
+    pub fn is_float_key(&self) -> bool {
+        ((self.header & KEY_TYPE_CELL_BITS) >> 3) == 1
+    }
+    pub fn set_str_key(&mut self) {
+        self.header |= IS_STR_KEY_CELL_FLAG
+    }
+    pub fn set_int_key(&mut self) {
+        self.header |= IS_INT_KEY_CELL_FLAG
+    }
+    pub fn set_float_key(&mut self) {
+        self.header |= IS_FLT_KEY_CELL_FLAG
     }
     pub fn to_bytes(self) -> [u8; CELL_SIZE] {
         let mut bytes = [0u8; CELL_SIZE];

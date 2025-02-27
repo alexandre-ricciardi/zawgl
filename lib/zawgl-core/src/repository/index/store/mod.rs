@@ -70,6 +70,18 @@ fn read_counter(payload: &[u8]) -> u16 {
     u16::from_be_bytes(counter_buf)
 }
 
+fn make_key(data: Vec<u8>, record: &CellRecord) -> Key {
+    if record.is_str_key() {
+        Key::new_str(data)
+    } else if record.is_int_key() {
+        let mut key = [0u8; 16];
+        key.copy_from_slice(&data);
+        Key::new_int(key)
+    } else {
+        panic!("unkown key type")
+    }
+}
+
 enum CellLoadRes {
     InteriorCell(NodeId),
     LeafCell(Vec<NodeId>),
@@ -114,10 +126,10 @@ impl BTreeNodeStore {
         cell_load_res.map(|res| {
             match res {
                 CellLoadRes::InteriorCell(id) => {
-                    Cell::new(&String::from_utf8(vkey).unwrap(), Some(id), Vec::new())
+                    Cell::new(make_key(vkey, &cell_record), Some(id), Vec::new())
                 },
                 CellLoadRes::LeafCell(ptrs) => {
-                    Cell::new(&String::from_utf8(vkey).unwrap(), None, ptrs)
+                    Cell::new(make_key(vkey, &cell_record), None, ptrs)
                 }
             }
         })
@@ -219,11 +231,15 @@ impl BTreeNodeStore {
 
     fn create_cell(&mut self, cell: &Cell) -> Option<Vec<CellRecord>> {
         let mut cell_records = Vec::new();
-        let key_vec = cell.get_key().clone().into_bytes();
+        let key_vec = cell.get_key().to_bytes();
         
         let mut offset = 0;
         while offset < key_vec.len() {
             let mut cell_record = CellRecord::new();
+            match cell.get_key() {
+                Key::String(_) => cell_record.set_str_key(),
+                Key::Integer(_) => cell_record.set_int_key(),
+            }
             cell_record.set_is_active();
             if offset + KEY_SIZE > key_vec.len() {
                 let len = key_vec.len() - offset;
@@ -668,8 +684,8 @@ mod test_btree_node_store {
         let long_key = "blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
         blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6";
         let mut store = BTreeNodeStore::new(&file);
-        let cells = vec![Cell::new_leaf("blabla1", 1), Cell::new_leaf("blabla2", 2), Cell::new_leaf("blabla3", 3),
-                Cell::new_leaf("blabla4", 4), Cell::new_leaf("blabla5", 5), Cell::new_leaf(long_key, 6)];
+        let cells = vec![Cell::new_leaf(Key::from_str("blabla1"), 1), Cell::new_leaf(Key::from_str("blabla2"), 2), Cell::new_leaf(Key::from_str("blabla3"), 3),
+                Cell::new_leaf(Key::from_str("blabla4"), 4), Cell::new_leaf(Key::from_str("blabla5"), 5), Cell::new_leaf(Key::from_str(long_key), 6)];
         let mut node = BTreeNode::new(false, false, cells);
         node.set_node_ptr(Some(42));
         store.create(&mut node);
@@ -681,11 +697,11 @@ mod test_btree_node_store {
         if let Some(loaded) = load_store.get_node_ref(&id) {
             assert_eq!(loaded.get_node_ptr(), Some(42));
             let cell = loaded.get_cell_ref(3);
-            assert_eq!(cell.get_key(), &String::from("blabla4"));
+            assert_eq!(cell.get_key(), &Key::from_str("blabla4"));
             assert_eq!(cell.get_data_ptrs_ref(), &vec![4]);
 
             let long_key_cell = loaded.get_cell_ref(5);
-            assert_eq!(long_key_cell.get_key(), &String::from(long_key));
+            assert_eq!(long_key_cell.get_key(), &Key::from_str(long_key));
             assert_eq!(long_key_cell.get_node_ptr(), None);
 
         } else {
@@ -704,7 +720,7 @@ mod test_btree_node_store {
         blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6
         blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6blabla6";
         let mut store = BTreeNodeStore::new(&file);
-        let cells = vec![Cell::new_leaf(long_key, 4)];
+        let cells = vec![Cell::new_leaf(Key::from_str(long_key), 4)];
         let mut node = BTreeNode::new(false, false, cells);
         store.create(&mut node);
         store.sync();
@@ -714,7 +730,7 @@ mod test_btree_node_store {
 
         if let Some(loaded) = node.get_id().and_then(|id| load_store.get_node_ref(&id)) {
             let long_key_cell = loaded.get_cell_ref(0);
-            assert_eq!(long_key_cell.get_key(), &String::from(long_key));
+            assert_eq!(long_key_cell.get_key(), &Key::from_str(long_key));
         } else {
             panic!("should not be empty");
         }
@@ -726,11 +742,11 @@ mod test_btree_node_store {
     fn test_many_ptrs() {
         let file = build_file_path_and_rm_old("b_tree_nodes", "test_many_ptrs.db").unwrap();
         let mut store = BTreeNodeStore::new(&file);
-        let cells = vec![Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9])];
+        let cells = vec![Cell::new(Key::from_str("same key"), None, vec![12, 98, 78667867867, 21, 9])];
         let mut node = BTreeNode::new(true, false, cells);
         store.create(&mut node);
         store.sync();
-        node.insert_cell(1, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9]));
+        node.insert_cell(1, Cell::new(Key::from_str("same key"), None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9]));
         store.save(&node.get_id().unwrap()).unwrap();
 
         store.sync();
@@ -746,15 +762,15 @@ mod test_btree_node_store {
     fn test_many_ptrs_one_by_one() {
         let file = build_file_path_and_rm_old("b_tree_nodes", "test_many_ptrs_one_by_one.db").unwrap();
         let mut store = BTreeNodeStore::new(&file);
-        let cells =  vec![Cell::new("same key", None, vec![12, 98, 77867867, 21, 9])];
+        let cells =  vec![Cell::new(Key::from_str("same key"), None, vec![12, 98, 77867867, 21, 9])];
         let mut node = BTreeNode::new(true, false, cells);
         store.create(&mut node);
         store.soft_sync();
         let id = node.get_id().unwrap();
         {
             let mref = store.get_node_mut(&id).unwrap();
-            mref.insert_cell(0, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9]));
-            mref.insert_cell(1, Cell::new("same key", None, vec![12, 98, 78667867867, 21, 9, 12, 98]));
+            mref.insert_cell(0, Cell::new(Key::from_str("same key"), None, vec![12, 98, 78667867867, 21, 9, 12, 98, 78667867867, 21, 9]));
+            mref.insert_cell(1, Cell::new(Key::from_str("same key"), None, vec![12, 98, 78667867867, 21, 9, 12, 98]));
             store.save(&id).unwrap();
 
             store.soft_sync();
@@ -783,11 +799,11 @@ mod test_btree_node_store {
 
         let long_key = "blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3blabla3";
         let cells = vec![
-            Cell::new_leaf("blabla1", 11),
-            Cell::new_leaf("blabla2", 22),
-            Cell::new_leaf(long_key, 33),
-            Cell::new_leaf("blabla4", 44),
-            Cell::new_leaf("blabla5", 55)];
+            Cell::new_leaf(Key::from_str("blabla1"), 11),
+            Cell::new_leaf(Key::from_str("blabla2"), 22),
+            Cell::new_leaf(Key::from_str(long_key), 33),
+            Cell::new_leaf(Key::from_str("blabla4"), 44),
+            Cell::new_leaf(Key::from_str("blabla5"), 55)];
         let mut node = BTreeNode::new(true, false, cells);
 
         store.create(&mut node);
@@ -801,17 +817,17 @@ mod test_btree_node_store {
             assert_eq!(load.get_node_ptr(), None);
             {
                 let cell = load.get_cell_ref(3);
-                assert_eq!(cell.get_key(), &String::from("blabla4"));
+                assert_eq!(cell.get_key(), &Key::from_str("blabla4"));
                 assert_eq!(cell.get_node_ptr(), None);
                 assert_eq!(cell.get_data_ptrs_ref(), &vec![44u64]);
     
                 let cell1 = load.get_cell_ref(1);
-                assert_eq!(cell1.get_key(), &String::from("blabla2"));
+                assert_eq!(cell1.get_key(), &Key::from_str("blabla2"));
                 assert_eq!(cell1.get_node_ptr(), None);
                 assert_eq!(cell1.get_data_ptrs_ref(), &vec![22u64]);
 
                 let long_key_cell = load.get_cell_ref(2);
-                assert_eq!(long_key_cell.get_key(), &String::from(long_key));
+                assert_eq!(long_key_cell.get_key(), &Key::from_str(long_key));
                 assert_eq!(long_key_cell.get_node_ptr(), None);
                 assert_eq!(long_key_cell.get_data_ptrs_ref(), &vec![33u64]);
     
@@ -831,14 +847,14 @@ mod test_btree_node_store {
         node.get_id().and_then(|id| load_store.retrieve_node(&id));
         if let Some(update) = &node.get_id().and_then(|id| load_store.get_node_mut(&id)) {
             let long_key_cell = update.get_cell_ref(2);
-            assert_eq!(long_key_cell.get_key(), &String::from(long_key));
+            assert_eq!(long_key_cell.get_key(), &Key::from_str(long_key));
             assert_eq!(long_key_cell.get_node_ptr(), None);
             assert!(long_key_cell.get_data_ptrs_ref().contains(&33));
             assert!(long_key_cell.get_data_ptrs_ref().contains(&9879));
 
             
             let short_key_cell = update.get_cell_ref(1);
-            assert_eq!(short_key_cell.get_key(), &String::from("blabla2"));
+            assert_eq!(short_key_cell.get_key(), &Key::from_str("blabla2"));
             assert_eq!(short_key_cell.get_node_ptr(), None);
             assert!(short_key_cell.get_data_ptrs_ref().contains(&22));
             assert!(short_key_cell.get_data_ptrs_ref().contains(&578876));

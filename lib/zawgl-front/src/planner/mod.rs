@@ -247,7 +247,7 @@ fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEng
                 if let Some(c) = matched {
                     new_res.push(c);
                 } else if optional {
-                    new_res.push(product.iter().map(|g| g.deref().clone()).collect());
+                    new_res.push(product.iter().map(|g| (*g).clone()).collect());
                 }
             }
         }

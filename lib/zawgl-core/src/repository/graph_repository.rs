@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use super::index::model::Key;
 use super::store::*;
 use super::properties_repository::*;
 use super::super::model::*;
@@ -75,7 +76,7 @@ impl GraphRepository {
     pub fn fetch_nodes_ids_with_labels(&mut self, labels: &Vec<String>) -> HashSet<u64> {
         let mut res = HashSet::new();
         for label in labels {
-            let ids = self.nodes_labels_index.search(label);
+            let ids = self.nodes_labels_index.search(&Key::from_str(label));
             if let Some(node_ids) = &ids {
                 res.extend(node_ids.iter());
             }
@@ -153,7 +154,7 @@ impl GraphRepository {
     pub fn create_node(&mut self, node: &Node) -> Option<Node> {
         let node = self.create_node_with_properties(node)?;
         for label in node.get_labels_ref() {
-            self.nodes_labels_index.insert(label, node.get_id()?);
+            self.nodes_labels_index.insert(&Key::from_str(label), node.get_id()?);
         }
         Some(node)
     }
@@ -221,7 +222,7 @@ impl GraphRepository {
     pub fn create_relationship(&mut self, rel: &Relationship, source: u64, target: u64) -> Option<Relationship> {
         let res = self.create_relationship_with_properties(rel, source, target)?;
         for label in rel.get_labels_ref() {
-            self.relationships_labels_index.insert(label, res.get_id()?);
+            self.relationships_labels_index.insert(&Key::from_str(label), res.get_id()?);
         }
         Some(res)
     }
@@ -282,7 +283,7 @@ impl GraphRepository {
         for id in ids {
             let (node, _v) = self.retrieve_node_by_id(id)?;
             for label in node.get_labels_ref() {
-                self.nodes_labels_index.insert(label, node.get_id()?);
+                self.nodes_labels_index.insert(&Key::from_str(label), node.get_id()?);
             }
         }
         Some(())

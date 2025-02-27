@@ -36,9 +36,9 @@ fn get_node_ptr(not_found_index: usize, node: &BTreeNode) -> Option<NodeId> {
     node_ptr
 }
 
-fn binary_search_keys(keys: &[&str], value: &str) -> Result<usize, usize> {
+fn binary_search_keys(keys: &[&Key], value: &Key) -> Result<usize, usize> {
     keys.binary_search_by(|&probe|{
-        Ord::cmp(&probe.len(), &value.len()).then(probe.cmp(value))
+        Ord::cmp(&probe, &value)
     })
 }
 
@@ -47,7 +47,7 @@ impl BTreeIndex {
         BTreeIndex{node_store: BTreeNodeStore::new(file)}
     }
 
-    fn tree_search(&mut self, value: &str, node_id: &NodeId) -> Option<Vec<DataPtr>> {
+    fn tree_search(&mut self, value: &Key, node_id: &NodeId) -> Option<Vec<DataPtr>> {
         self.node_store.retrieve_node(node_id)?;
         let node = self.node_store.get_node_ref(node_id)?;
         let keys = node.get_keys();
@@ -72,14 +72,14 @@ impl BTreeIndex {
         }
     }
 
-    fn get_keys(&mut self, node_id: &NodeId, keys: &mut Vec<String>) -> Option<()> {
+    fn get_keys(&mut self, node_id: &NodeId, keys: &mut Vec<Key>) -> Option<()> {
         self.node_store.retrieve_node(node_id)?;
         let node = self.node_store.get_node_ref(node_id)?;
         let is_leaf = node.is_leaf();
         let cells = node.get_cells_ref().clone();
         if is_leaf {
             for cell in cells {
-                keys.push(cell.get_key().to_string());
+                keys.push(cell.get_key().clone());
             }
         } else {
             for cell in cells {
@@ -92,17 +92,17 @@ impl BTreeIndex {
         Some(())
     }
 
-    pub fn retrieve_keys(&mut self) -> Option<Vec<String>> {
+    pub fn retrieve_keys(&mut self) -> Option<Vec<Key>> {
         let root = self.node_store.load_or_create_root_node()?;
         let mut keys = vec![];
         self.get_keys(&root, &mut keys)?;
         Some(keys)
     }
 
-    fn split_leaf_node(&mut self, value: &str, data_ptr: u64, node_id: &NodeId, new_cell_index: usize) -> Option<BTreeNode> {
+    fn split_leaf_node(&mut self, value: &Key, data_ptr: u64, node_id: &NodeId, new_cell_index: usize) -> Option<BTreeNode> {
         let new_node_cells = {
             let node = self.node_store.get_node_mut(node_id)?;
-            node.insert_cell(new_cell_index, Cell::new_leaf(value, data_ptr));
+            node.insert_cell(new_cell_index, Cell::new_leaf(value.clone(), data_ptr));
             let split = node.len() / 2;
             let mut new_node_cells = Vec::new();
             while node.len() > split {
@@ -130,7 +130,7 @@ impl BTreeIndex {
         if self.node_store.is_root_node(node_id) {
             self.node_store.set_is_root(node_id, false);
             self.node_store.save(node_id)?;
-            let middle_key = Cell::new_ptr(&new_first_cell_key, new.get_id());
+            let middle_key = Cell::new_ptr(new_first_cell_key, new.get_id());
             let mut new_root = BTreeNode::new(false, true, vec![middle_key]);
             new_root.set_node_ptr(Some(*node_id));
             self.node_store.create(&mut new_root)?;
@@ -140,10 +140,10 @@ impl BTreeIndex {
         }
     }
 
-    fn split_interior_node(&mut self, new_key: &str, chid_id: Option<NodeId>, new_split_ptr: Option<NodeId>, node_id: &NodeId, new_cell_index: usize) -> Option<BTreeNode> {
+    fn split_interior_node(&mut self, new_key: &Key, chid_id: Option<NodeId>, new_split_ptr: Option<NodeId>, node_id: &NodeId, new_cell_index: usize) -> Option<BTreeNode> {
         let new_node_cells = {
             let node = self.node_store.get_node_mut(node_id)?;
-            node.insert_cell(new_cell_index, Cell::new_ptr(new_key, new_split_ptr));
+            node.insert_cell(new_cell_index, Cell::new_ptr(new_key.clone(), new_split_ptr));
             let split = node.len() / 2;
             let mut new_node_cells = Vec::new();
             while node.len() > split {
@@ -161,7 +161,7 @@ impl BTreeIndex {
         if self.node_store.is_root_node(node_id) {
             self.node_store.set_is_root(node_id, false);
             self.node_store.save(node_id)?;
-            let middle_key = Cell::new_ptr(&new_first_cell_key, new.get_id());
+            let middle_key = Cell::new_ptr(new_first_cell_key, new.get_id());
             let mut new_root = BTreeNode::new(false, true, vec![middle_key]);
             new_root.set_node_ptr(Some(*node_id));
             self.node_store.create(&mut new_root)?;
@@ -171,13 +171,13 @@ impl BTreeIndex {
         }
     }
 
-    fn insert_or_update_key_ptrs(&mut self, value: &str, data_ptr: u64, node_id: &NodeId) -> Option<BTreeNode> {
+    fn insert_or_update_key_ptrs(&mut self, value: &Key, data_ptr: u64, node_id: &NodeId) -> Option<BTreeNode> {
         self.node_store.retrieve_node(node_id)?;
         let (search, keys) = {
             let node = self.node_store.get_node_ref(node_id)?;
             let keys = node.get_keys();
             let res = binary_search_keys(&keys, value);
-            (res, keys.iter().map(|key| key.to_string()).collect::<Vec<String>>())
+            (res, keys.iter().map(|key| (*key).clone()).collect::<Vec<Key>>())
         };
         match search {
             Ok(found) => {
@@ -197,7 +197,7 @@ impl BTreeIndex {
                     if node.is_full() {
                         self.split_leaf_node(value, data_ptr, node_id, not_found)
                     } else {
-                        node.insert_cell(not_found, Cell::new_leaf(value, data_ptr));
+                        node.insert_cell(not_found, Cell::new_leaf(value.clone(), data_ptr));
                         self.node_store.save(node_id)?;
                         None
                     }
@@ -209,7 +209,7 @@ impl BTreeIndex {
                     if let Some(child_id) = child_id {
                         let split = self.insert_or_update_key_ptrs(value, data_ptr, &child_id)?;
                         let split_key = split.get_cell_ref(0).get_key();
-                        let search = binary_search_keys(&keys.iter().map(|key| key.as_str()).collect::<Vec<&str>>(), &split_key);
+                        let search = binary_search_keys(&keys.iter().map(|key| key).collect::<Vec<&Key>>(), &split_key);
 
                         let node = self.node_store.get_node_ref(node_id)?;
                         if node.is_full() {
@@ -234,7 +234,7 @@ impl BTreeIndex {
                                 },
                                 Err(not_found_split) => {
                                     let node = self.node_store.get_node_mut(node_id)?;
-                                    node.insert_cell(not_found_split, Cell::new_ptr(&split_key, split.get_id()));
+                                    node.insert_cell(not_found_split, Cell::new_ptr(split_key.clone(), split.get_id()));
                                     self.node_store.save(node_id)?;
                                 },
                             }
@@ -248,17 +248,17 @@ impl BTreeIndex {
         }
     }
 
-    pub fn search(&mut self, value: &str) -> Option<Vec<DataPtr>> {
+    pub fn search(&mut self, value: &Key) -> Option<Vec<DataPtr>> {
         let root = self.node_store.load_or_create_root_node()?;
         self.tree_search(value, &root)
     }
 
-    pub fn insert(&mut self, value: &str, data_ptr: u64) -> Option<()> {
+    pub fn insert(&mut self, value: &Key, data_ptr: u64) -> Option<()> {
         let root = self.node_store.load_or_create_root_node()?;
         self.insert_or_update_key_ptrs(value, data_ptr, &root).map(|_node|())
     }
 
-    fn drop_key(&mut self, value: &str, node_id: &NodeId) -> Option<bool> {
+    fn drop_key(&mut self, value: &Key, node_id: &NodeId) -> Option<bool> {
         self.node_store.retrieve_node(node_id)?;
         let search_res = {
             let node = self.node_store.get_node_ref(node_id)?;
@@ -417,7 +417,7 @@ impl BTreeIndex {
         }
     }
 
-    pub fn delete(&mut self, value: &str) -> Option<bool> {
+    pub fn delete(&mut self, value: &Key) -> Option<bool> {
         let root = self.node_store.load_or_create_root_node()?;
         self.drop_key(value, &root)
     }
@@ -446,13 +446,13 @@ mod test_b_tree {
     fn test_insert() {
         let file = build_file_path_and_rm_old("b_tree", "test_insert.db").unwrap();
         let mut index = BTreeIndex::new(&file);
-        let key = "a short key";
-        index.insert(key, 42);
-        let long_key = "a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key ";
-        index.insert(long_key, 87968567);
+        let key = Key::from_str("a short key");
+        index.insert(&key, 42);
+        let long_key = Key::from_str("a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key a long key ");
+        index.insert(&long_key, 87968567);
 
 
-        let data_ptrs = index.search(key);
+        let data_ptrs = index.search(&key);
 
         if let Some(ptrs) = &data_ptrs {
             assert_eq!(ptrs.len(), 1);
@@ -463,9 +463,9 @@ mod test_b_tree {
 
         index.sync();
 
-        index.insert(key, 56);
+        index.insert(&key, 56);
 
-        let data_ptrs_1 = index.search(key);
+        let data_ptrs_1 = index.search(&key);
 
         if let Some(ptrs) = &data_ptrs_1 {
             assert_eq!(ptrs.len(), 2);
@@ -475,7 +475,7 @@ mod test_b_tree {
             panic!("should not happen");
         }
 
-        let data_ptrs_2 = index.search(long_key).unwrap();
+        let data_ptrs_2 = index.search(&long_key).unwrap();
         assert_eq!(data_ptrs_2.len(), 1);
         assert!(data_ptrs_2.contains(&87968567));
     }
@@ -486,14 +486,14 @@ mod test_b_tree {
         let mut index = BTreeIndex::new(&file);
         let len = 2500;
         for i in 0..len {
-            index.insert(&format!("key # {}", i), i as u64);
+            index.insert(&Key::from_str(&format!("key # {}", i)), i as u64);
             //println!("insert {} values", i);
         }
 
         //index.soft_sync();
 
         for i in 0..len {
-            let optrs = index.search(&format!("key # {}", i));
+            let optrs = index.search(&Key::from_str(&format!("key # {}", i)));
             if let Some(ptrs) = optrs {
                 assert_eq!(ptrs.len(), 1);
                 assert!(ptrs.contains(&(i as u64)));
@@ -503,7 +503,7 @@ mod test_b_tree {
         }
 
         for i in 0..len {
-            let droped = index.delete(&format!("key # {}", i)).unwrap();
+            let droped = index.delete(&Key::from_str(&format!("key # {}", i))).unwrap();
             if i % 1 == 0 {
                 println!("droped {} values", i);
             }
@@ -521,7 +521,7 @@ mod test_b_tree {
         let mut index = BTreeIndex::new(&file);
 
         for i in 0..3000 {
-            index.insert("same key", i);
+            index.insert(&Key::from_str("same key"), i);
             if i % 1000 == 0 {
                 println!("inserted {} values", i);
             }
@@ -529,7 +529,7 @@ mod test_b_tree {
         //index.soft_sync();
 
 
-        let optrs = index.search("same key");
+        let optrs = index.search(&Key::from_str("same key"));
         if let Some(ptrs) = optrs {
             assert_eq!(ptrs.len(), 3000);
         } else {
@@ -544,11 +544,11 @@ mod test_b_tree {
         let mut index = BTreeIndex::new(&file);
         let mut count = 0;
         for i in 0..10000 {
-            index.insert("same key", count);
+            index.insert(&Key::from_str("same key"), count);
             count += 1;
-            index.insert("same key", count);
+            index.insert(&Key::from_str("same key"), count);
             count += 1;
-            index.insert("same key", count);
+            index.insert(&Key::from_str("same key"), count);
             count += 1;
             if i % 1000 == 0 {
                 println!("inserted {} values", i);
@@ -557,7 +557,7 @@ mod test_b_tree {
                 index.sync();
                 index = BTreeIndex::new(&file);
             }
-            let optrs = index.search("same key");
+            let optrs = index.search(&Key::from_str("same key"));
             if let Some(ptrs) = optrs {
                 assert_eq!(ptrs.len(), 3*(i+1) as usize);
                 let mut check = 0;
