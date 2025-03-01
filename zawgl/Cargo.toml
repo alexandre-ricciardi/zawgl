@@ -1,6 +1,6 @@
 [package]
 name = "zawgl"
-version = "0.1.10"
+version = "0.1.11"
 authors = ["Alexandre RICCIARDI <aricciardi501@gmail.com>"]
 edition = "2021"
 
