@@ -179,9 +179,7 @@ impl AstVisitor for CypherAstVisitor {
         Ok(())
     }
     fn enter_function(&mut self) -> AstVisitorResult {
-        if let Some(request) = &mut self.request {
-            self.push_visitor_state(VisitorState::FunctionCall);
-        }
+        self.push_visitor_state(VisitorState::FunctionCall);
         Ok(())
     }
     fn enter_function_arg(&mut self) -> AstVisitorResult {

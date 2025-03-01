@@ -20,10 +20,10 @@
 // SOFTWARE.
 
 use log::*;
-use zawgl_core::model::init::{DatabaseInitContext, InitContext};
+use zawgl_core::model::init::InitContext;
 use simple_logger::SimpleLogger;
 use clap::{Parser, Subcommand};
-use zawgl_server::settings::{self, Settings};
+use zawgl_server::settings::Settings;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
