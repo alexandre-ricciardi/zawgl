@@ -19,9 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::{collections::{hash_map::Entry, HashMap, HashSet}, ops::Deref, slice::Iter};
+use std::{collections::{hash_map::Entry, HashMap, HashSet}, slice::Iter};
 
-use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::{model::GraphProxy, GraphEngine}, make_cartesian_product, model::*};
+use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, graph_engine::{GraphEngine}, make_cartesian_product, model::*};
 
 mod pattern_builder;
 

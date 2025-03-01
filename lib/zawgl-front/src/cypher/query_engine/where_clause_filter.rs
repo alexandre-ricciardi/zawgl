@@ -14,13 +14,12 @@ pub struct WhereClauseAstVisitor<'a> {
     function_args: Vec<String>,
     item_prop_path: Vec<String>,
     pub eval_stack: Vec<PropertyValue>,
-    pre_process: bool,
 }
 
 impl <'a> WhereClauseAstVisitor<'a> {
     pub fn new(graph: &'a PropertyGraph, params: Option<Value>) -> Self {
         WhereClauseAstVisitor{graph, params, state: VisitorState::Init, function_name: None,
-            function_args: vec![], eval_stack: vec![], item_prop_path: vec![], pre_process:false}
+            function_args: vec![], eval_stack: vec![], item_prop_path: vec![]}
     }
 }
 
@@ -32,7 +31,6 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
     fn enter_match(&mut self) -> AstVisitorResult {
         todo!()
     }
-
 
     fn enter_optional_match(&mut self) -> AstVisitorResult {
         todo!()

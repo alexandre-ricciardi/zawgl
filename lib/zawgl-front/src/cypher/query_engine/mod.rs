@@ -30,6 +30,7 @@ mod path_builder;
 mod states;
 mod pattern_builder;
 pub mod where_clause_filter;
+pub mod where_clause_preprocessor;
 
 use zawgl_cypher_query_model::{QueryStep, StepType};
 use zawgl_cypher_query_model::ast::{AstTagNode, Ast, AstVisitorResult, AstVisitor};
