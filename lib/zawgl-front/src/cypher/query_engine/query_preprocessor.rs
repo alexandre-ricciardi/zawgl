@@ -7,7 +7,7 @@ use zawgl_cypher_query_model::{ast::{AstTagNode, AstVisitor, AstVisitorError, As
 
 use super::states::VisitorState;
 
-pub struct WhereClauseAstVisitor<'a> {
+pub struct QueryPreprocessAstVisitor<'a> {
     graph: &'a PropertyGraph,
     params: Option<Value>,
     state: VisitorState,
@@ -17,14 +17,14 @@ pub struct WhereClauseAstVisitor<'a> {
     pub eval_stack: Vec<PropertyValue>,
 }
 
-impl <'a> WhereClauseAstVisitor<'a> {
+impl <'a> QueryPreprocessAstVisitor<'a> {
     pub fn new(graph: &'a PropertyGraph, params: Option<Value>) -> Self {
-        WhereClauseAstVisitor{graph, params, state: VisitorState::Init, function_name: None,
+        QueryPreprocessAstVisitor{graph, params, state: VisitorState::Init, function_name: None,
             function_args: vec![], eval_stack: vec![], item_prop_path: vec![]}
     }
 }
 
-impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
+impl <'a> AstVisitor for QueryPreprocessAstVisitor<'a> {
     fn enter_create(&mut self,) -> AstVisitorResult {
         Ok(())
     }
