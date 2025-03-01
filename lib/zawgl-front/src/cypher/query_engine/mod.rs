@@ -30,6 +30,7 @@ mod path_builder;
 mod states;
 mod pattern_builder;
 pub mod where_clause_filter;
+pub mod query_preprocessor;
 
 use zawgl_cypher_query_model::{QueryStep, StepType};
 use zawgl_cypher_query_model::ast::{AstTagNode, Ast, AstVisitorResult, AstVisitor};
@@ -178,9 +179,7 @@ impl AstVisitor for CypherAstVisitor {
         Ok(())
     }
     fn enter_function(&mut self) -> AstVisitorResult {
-        if let Some(request) = &mut self.request {
-            self.push_visitor_state(VisitorState::FunctionCall);
-        }
+        self.push_visitor_state(VisitorState::FunctionCall);
         Ok(())
     }
     fn enter_function_arg(&mut self) -> AstVisitorResult {

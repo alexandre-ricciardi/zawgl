@@ -20,7 +20,7 @@
 
 
 use log::LevelFilter;
-use zawgl_core::{graph_engine::GraphEngine, model::{init::{DatabaseInitContext, InitContext}, Node, Property, PropertyGraph, Relationship}, repository::graph_repository::GraphRepository, test_utils::build_dir_path_and_rm_old};
+use zawgl_core::{graph_engine::GraphEngine, model::{init::DatabaseInitContext, Node, Property, PropertyGraph, Relationship}, repository::graph_repository::GraphRepository, test_utils::build_dir_path_and_rm_old};
 use simple_logger::SimpleLogger;
 
 #[test]

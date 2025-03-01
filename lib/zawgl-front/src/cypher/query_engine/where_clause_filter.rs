@@ -32,7 +32,6 @@ impl <'a> AstVisitor for WhereClauseAstVisitor<'a> {
         todo!()
     }
 
-
     fn enter_optional_match(&mut self) -> AstVisitorResult {
         todo!()
     }

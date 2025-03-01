@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use super::index::model::Key;
 use super::properties_repository::*;
 use super::super::model::*;
 use super::super::repository::index::b_tree::*;
@@ -37,11 +38,11 @@ impl KeyValuesRepository {
 
     pub fn put(&mut self, key: &str, properties: &mut [Property]) -> Option<()> {
         let props_id = self.data_repository.create_list(properties)?;
-        self.data_index.insert(key, props_id)
+        self.data_index.insert(&Key::from_str(key), props_id)
     }
 
     pub fn get(&mut self, key: &str) -> Option<Vec<Vec<Property>>> {
-        let props_ids = self.data_index.search(key)?;
+        let props_ids = self.data_index.search(&Key::from_str(key))?;
         let mut res = vec![];
         for pid in props_ids {
             let props = self.data_repository.retrieve_list(pid)?;

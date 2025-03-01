@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use std::collections::HashMap;
+
 use serde_json::Value;
 use zawgl_core::{graph::{EdgeData, EdgeIndex, NodeIndex}, model::{Node, Relationship}};
 use crate::{ast::Ast, QueryStep};
@@ -265,4 +267,8 @@ impl Default for Request {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub struct MatchScope {
+    nodes_scope: HashMap<String, Vec<u64>>
 }
