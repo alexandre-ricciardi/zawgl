@@ -62,10 +62,11 @@ impl Client {
         let uuid =  Uuid::new_v4();
         let (tx, rx) = futures_channel::oneshot::channel::<Value>();
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
-        tokio::spawn(send_request(self.request_tx.clone(), db.to_string(), uuid.to_string(), query.to_string(), params));
-        tokio::select! {
-            document = rx => document,
+        let res = tokio::spawn(send_request(self.request_tx.clone(), db.to_string(), uuid.to_string(), query.to_string(), params));
+        if res.await.unwrap().is_none() {
+            self.is_connection_established = false;
         }
+        rx.await
     }
 
     /// Executes a cypher request
