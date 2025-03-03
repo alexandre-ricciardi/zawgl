@@ -1,4 +1,3 @@
-use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
@@ -25,15 +24,19 @@ impl Client {
     pub async fn new(address: &str) -> Self {
         let (request_tx, request_rx) = futures_channel::mpsc::unbounded();
         let map: SharedChannelsMap = Arc::new(Mutex::new(HashMap::new()));
+        let staled = Arc::new(Mutex::new(false));
         if let Ok((ws_stream, _)) = connect_async(address).await {
             let (write, read) = ws_stream.split();
             tokio::spawn(request_rx.map(Ok).forward(write));
             let clone = Arc::clone(&map);
+            let staled_cloned = Arc::clone(&staled);
             tokio::spawn(async move {
-                read.for_each(|message| receive(message, Arc::clone(&clone))).await
+                read.for_each(|message| receive(Arc::clone(&staled_cloned), message, Arc::clone(&clone))).await
             });
+        } else {
+            *staled.lock().unwrap() = true;
         }
-        Client{request_tx: Arc::new(Mutex::new(request_tx)), map_rx_channels: Arc::clone(&map), staled: Arc::new(Mutex::new(false))}
+        Client{request_tx: Arc::new(Mutex::new(request_tx)), map_rx_channels: Arc::clone(&map), staled}
     }
 
     pub fn is_staled(&self) -> bool {
@@ -42,14 +45,18 @@ impl Client {
 
     /// Executes a cypher request with parameters
     pub async fn execute_cypher_request_with_parameters(&mut self, db: &str, query: &str, params: Value) -> Result<Value, Canceled> {
-        let uuid =  Uuid::new_v4();
-        let (tx, rx) = futures_channel::oneshot::channel::<Value>();
-        self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
-        let res = tokio::spawn(send_request(Arc::clone(&self.request_tx), db.to_string(), uuid.to_string(), query.to_string(), params));
-        if res.await.unwrap().is_none() {
-            *self.staled.lock().unwrap() = true;
+        if !*self.staled.lock().unwrap() {
+            let uuid =  Uuid::new_v4();
+            let (tx, rx) = futures_channel::oneshot::channel::<Value>();
+            self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
+            let res = tokio::spawn(send_request(Arc::clone(&self.request_tx), db.to_string(), uuid.to_string(), query.to_string(), params));
+            if res.await.unwrap().is_none() {
+                *self.staled.lock().unwrap() = true;
+            }
+            rx.await
+        } else {
+            Err(Canceled)
         }
-        rx.await
     }
 
     /// Executes a cypher request
@@ -83,7 +90,7 @@ async fn send(tx: Arc<Mutex<UnboundedSender<Message>>>, msg: Value) -> Option<()
     tx.lock().unwrap().unbounded_send(Message::text(header.to_string())).ok()
 }
 
-async fn receive(message: Result<Message, tokio_tungstenite::tungstenite::Error>, map: SharedChannelsMap) {
+async fn receive(staled: Arc<Mutex<bool>>, message: Result<Message, tokio_tungstenite::tungstenite::Error>, map: SharedChannelsMap) {
     match message {
         Ok(msg) => {
             let doc: Value = from_str(&msg.into_text().expect("json message")).expect("response");
@@ -96,6 +103,7 @@ async fn receive(message: Result<Message, tokio_tungstenite::tungstenite::Error>
             }
         },
         Err(er) => {
+            *staled.lock().unwrap() = true;
             debug!("error occured {}", er);
         },
     }
