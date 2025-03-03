@@ -16,7 +16,8 @@ type SharedChannelsMap = Arc<Mutex<HashMap<String, Sender<Value>>>>;
 pub struct Client {
     request_tx: UnboundedSender<Message>,
     map_rx_channels: SharedChannelsMap,
-    staled: bool
+    staled: Arc<Mutex<bool>>,
+    address: String
 }
 
 impl Client {
@@ -32,11 +33,15 @@ impl Client {
                 read.for_each(|message| receive(message, Arc::clone(&clone))).await
             });
         }
-        Client{request_tx, map_rx_channels: Arc::clone(&map), staled: false}
+        Client{request_tx, map_rx_channels: Arc::clone(&map), staled: Arc::new(Mutex::new(false)), address: address.to_string()}
     }
 
     pub fn is_staled(&self) -> bool {
-        self.staled
+        *self.staled.lock().unwrap()
+    }
+
+    pub fn get_address(&self) -> &str {
+        &self.address
     }
 
     /// Executes a cypher request with parameters
@@ -46,7 +51,7 @@ impl Client {
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
         let res = tokio::spawn(send_request(self.request_tx.clone(), db.to_string(), uuid.to_string(), query.to_string(), params));
         if res.await.unwrap().is_none() {
-            self.staled = true;
+            *self.staled.lock().unwrap() = true;
         }
         rx.await
     }
