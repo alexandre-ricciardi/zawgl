@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
@@ -17,7 +18,6 @@ pub struct Client {
     request_tx: Arc<Mutex<UnboundedSender<Message>>>,
     map_rx_channels: SharedChannelsMap,
     staled: Arc<Mutex<bool>>,
-    address: String
 }
 
 impl Client {
@@ -33,15 +33,11 @@ impl Client {
                 read.for_each(|message| receive(message, Arc::clone(&clone))).await
             });
         }
-        Client{request_tx: Arc::new(Mutex::new(request_tx)), map_rx_channels: Arc::clone(&map), staled: Arc::new(Mutex::new(false)), address: address.to_string()}
+        Client{request_tx: Arc::new(Mutex::new(request_tx)), map_rx_channels: Arc::clone(&map), staled: Arc::new(Mutex::new(false))}
     }
 
     pub fn is_staled(&self) -> bool {
         *self.staled.lock().unwrap()
-    }
-
-    pub fn get_address(&self) -> &str {
-        &self.address
     }
 
     /// Executes a cypher request with parameters
