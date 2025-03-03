@@ -9,7 +9,6 @@ use serde_json::{from_str, json, value::Value};
 use uuid::Uuid;
 use log::*;
 
-
 type SharedChannelsMap = Arc<Mutex<HashMap<String, Sender<Value>>>>;
 
 /// Zawgl graph database client
@@ -17,7 +16,7 @@ type SharedChannelsMap = Arc<Mutex<HashMap<String, Sender<Value>>>>;
 pub struct Client {
     request_tx: UnboundedSender<Message>,
     map_rx_channels: SharedChannelsMap,
-    address: String,
+    staled: bool
 }
 
 impl Client {
@@ -33,21 +32,11 @@ impl Client {
                 read.for_each(|message| receive(message, Arc::clone(&clone))).await
             });
         }
-        Client{request_tx, map_rx_channels: Arc::clone(&map), address: address.to_string()}
+        Client{request_tx, map_rx_channels: Arc::clone(&map), staled: false}
     }
 
-    pub async fn try_reconnect(&mut self) {
-        let (request_tx, request_rx) = futures_channel::mpsc::unbounded();
-        if let Ok((ws_stream, _)) = connect_async(self.address.to_string()).await {
-            let (write, read) = ws_stream.split();
-            tokio::spawn(request_rx.map(Ok).forward(write));
-            let clone = Arc::clone(&self.map_rx_channels);
-            tokio::spawn(async move {
-                read.for_each(|message| receive(message, Arc::clone(&clone))).await
-            });
-            self.request_tx.close_channel();
-            self.request_tx = request_tx;
-        }
+    pub fn is_staled(&self) -> bool {
+        self.staled
     }
 
     /// Executes a cypher request with parameters
@@ -57,7 +46,7 @@ impl Client {
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
         let res = tokio::spawn(send_request(self.request_tx.clone(), db.to_string(), uuid.to_string(), query.to_string(), params));
         if res.await.unwrap().is_none() {
-            self.try_reconnect().await;
+            self.staled = true;
         }
         rx.await
     }
