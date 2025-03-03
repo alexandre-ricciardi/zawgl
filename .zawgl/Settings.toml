@@ -1,6 +1,7 @@
 [server]
 address = "0.0.0.0:8182"
-database_dir = "zawgl-db"
+database_root_dir = "zawgl-db"
+databases_dirs = ["default"]
 
 [log]
 level = "info"

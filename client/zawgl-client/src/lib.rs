@@ -18,7 +18,6 @@ pub struct Client {
     request_tx: UnboundedSender<Message>,
     map_rx_channels: SharedChannelsMap,
     address: String,
-    is_connection_established: bool,
 }
 
 impl Client {
@@ -26,7 +25,6 @@ impl Client {
     pub async fn new(address: &str) -> Self {
         let (request_tx, request_rx) = futures_channel::mpsc::unbounded();
         let map: SharedChannelsMap = Arc::new(Mutex::new(HashMap::new()));
-        let mut is_connection_established = false;
         if let Ok((ws_stream, _)) = connect_async(address).await {
             let (write, read) = ws_stream.split();
             tokio::spawn(request_rx.map(Ok).forward(write));
@@ -34,9 +32,8 @@ impl Client {
             tokio::spawn(async move {
                 read.for_each(|message| receive(message, Arc::clone(&clone))).await
             });
-            is_connection_established = true;
         }
-        Client{request_tx, map_rx_channels: Arc::clone(&map), address: address.to_string(), is_connection_established}
+        Client{request_tx, map_rx_channels: Arc::clone(&map), address: address.to_string()}
     }
 
     pub async fn try_reconnect(&mut self) {
@@ -50,21 +47,17 @@ impl Client {
             });
             self.request_tx.close_channel();
             self.request_tx = request_tx;
-            self.is_connection_established = true;
         }
     }
 
     /// Executes a cypher request with parameters
     pub async fn execute_cypher_request_with_parameters(&mut self, db: &str, query: &str, params: Value) -> Result<Value, Canceled> {
-        if !self.is_connection_established {
-            self.try_reconnect().await;
-        }
         let uuid =  Uuid::new_v4();
         let (tx, rx) = futures_channel::oneshot::channel::<Value>();
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
         let res = tokio::spawn(send_request(self.request_tx.clone(), db.to_string(), uuid.to_string(), query.to_string(), params));
         if res.await.unwrap().is_none() {
-            self.is_connection_established = false;
+            self.try_reconnect().await;
         }
         rx.await
     }
