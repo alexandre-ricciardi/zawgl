@@ -14,7 +14,7 @@ type SharedChannelsMap = Arc<Mutex<HashMap<String, Sender<Value>>>>;
 /// Zawgl graph database client
 #[derive(Debug, Clone)]
 pub struct Client {
-    request_tx: UnboundedSender<Message>,
+    request_tx: Arc<Mutex<UnboundedSender<Message>>>,
     map_rx_channels: SharedChannelsMap,
     staled: Arc<Mutex<bool>>,
     address: String
@@ -33,7 +33,7 @@ impl Client {
                 read.for_each(|message| receive(message, Arc::clone(&clone))).await
             });
         }
-        Client{request_tx, map_rx_channels: Arc::clone(&map), staled: Arc::new(Mutex::new(false)), address: address.to_string()}
+        Client{request_tx: Arc::new(Mutex::new(request_tx)), map_rx_channels: Arc::clone(&map), staled: Arc::new(Mutex::new(false)), address: address.to_string()}
     }
 
     pub fn is_staled(&self) -> bool {
@@ -49,7 +49,7 @@ impl Client {
         let uuid =  Uuid::new_v4();
         let (tx, rx) = futures_channel::oneshot::channel::<Value>();
         self.map_rx_channels.lock().unwrap().insert(uuid.to_string(), tx);
-        let res = tokio::spawn(send_request(self.request_tx.clone(), db.to_string(), uuid.to_string(), query.to_string(), params));
+        let res = tokio::spawn(send_request(Arc::clone(&self.request_tx), db.to_string(), uuid.to_string(), query.to_string(), params));
         if res.await.unwrap().is_none() {
             *self.staled.lock().unwrap() = true;
         }
@@ -71,7 +71,7 @@ impl Client {
     }
 }
 
-async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, db: String, id: String, query: String, params: Value) -> Option<()> {
+async fn send_request(tx: Arc<Mutex<UnboundedSender<Message>>>, db: String, id: String, query: String, params: Value) -> Option<()> {
     let doc = json!({
         "database": db,
         "request_id": id,
@@ -81,10 +81,10 @@ async fn send_request(tx: futures_channel::mpsc::UnboundedSender<Message>, db: S
     send(tx, doc).await
 }
 
-async fn send(tx: futures_channel::mpsc::UnboundedSender<Message>, msg: Value) -> Option<()> {
+async fn send(tx: Arc<Mutex<UnboundedSender<Message>>>, msg: Value) -> Option<()> {
     let mut header = "!application/openCypher".to_string();
     header.push_str(&msg.to_string());
-    tx.unbounded_send(Message::text(header.to_string())).ok()
+    tx.lock().unwrap().unbounded_send(Message::text(header.to_string())).ok()
 }
 
 async fn receive(message: Result<Message, tokio_tungstenite::tungstenite::Error>, map: SharedChannelsMap) {
