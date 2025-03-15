@@ -35,6 +35,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
     let mut eval_results = Vec::<Vec<EvalResultItem>>::new();
     let mut return_eval_results = Vec::<Vec<EvalResultItem>>::new();
     let mut result_graphs = vec![];
+    let mut first = true;
     for step in steps {
         match step.step_type {
             StepType::Match => {
@@ -60,12 +61,12 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                 }
             },
             StepType::Create => {
-                if eval_results.is_empty() {
-                    results = handle_create(&results, graph_engine, &step, &vec![]);
+                if eval_results.is_empty(){
+                    results = handle_create(&results, graph_engine, &step, &vec![], first);
                 } else {
                     let mut res = vec![];
                     for eval_row in &eval_results {
-                        res.append(&mut handle_create(&results, graph_engine, &step, eval_row));
+                        res.append(&mut handle_create(&results, graph_engine, &step, eval_row, false));
                     }
                     results = res;
                 }
@@ -91,6 +92,7 @@ pub fn handle_query_steps(steps: Vec<QueryStep>, graph_engine: &mut GraphEngine)
                 (result_graphs, return_eval_results) = handle_eval(&mut results, eval_scope, &eval_results)?;
             },
         }
+        first = false;
     }
     let merged_graphs = merge_graphs(&result_graphs);
     Ok(QueryResult::new(result_graphs, merged_graphs, return_eval_results))
@@ -255,9 +257,9 @@ fn handle_match(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEng
     new_res
 }
 
-fn handle_create(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>) -> Vec::<Vec<PropertyGraph>> {
+fn handle_create(results: &Vec::<Vec<PropertyGraph>>, graph_engine: &mut GraphEngine, step: &QueryStep, eval_row: &Vec<EvalResultItem>, create_only: bool) -> Vec::<Vec<PropertyGraph>> {
     let mut new_res = Vec::new();
-    if results.is_empty() {
+    if results.is_empty() && create_only {
         let created = graph_engine.match_patterns_and_create(&step.patterns);
         if let Some(created_graphs) = created {
             new_res = created_graphs;
