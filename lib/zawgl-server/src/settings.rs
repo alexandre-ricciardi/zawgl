@@ -38,7 +38,6 @@ pub struct Log {
 pub struct Server {
     pub address: String,
     pub database_root_dir: String,
-    pub databases_dirs: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -75,7 +74,7 @@ impl Settings {
                     panic!("Failed parsing config file .zawgl/Settings.toml")
                 }
             } else {
-                let server = Server { address: "0.0.0.0:8182".to_string(), database_root_dir: "zawgl-db".to_string(), databases_dirs: vec!["default".to_string()] };
+                let server = Server { address: "0.0.0.0:8182".to_string(), database_root_dir: "zawgl-db".to_string() };
                 let log = Log { level: "info".to_string() };
                 let settings = Settings { server, log };
                 std::fs::create_dir_all(&get_current_dir()).expect("Failed creating configuration dir");
@@ -84,7 +83,7 @@ impl Settings {
                     toml::to_string(&settings).unwrap()
                 )
                 .expect("Failed to create configuration file");
-                println!("Creating configuration file {}", file_path);
+                info!("Creating configuration file {}", file_path);
                 settings
             }
         } else {
@@ -100,10 +99,6 @@ impl Settings {
             toml::to_string(&self).unwrap()
         )
         .expect("Failed to create configuration file");
-    }
-
-    pub fn get_db_dirs(&self) -> &Vec<String> {
-        &self.server.databases_dirs
     }
 
     pub fn get_log_level(&self) -> LevelFilter {

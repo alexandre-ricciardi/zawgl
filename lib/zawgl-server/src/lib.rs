@@ -39,6 +39,7 @@ use tokio_tungstenite::tungstenite::Utf8Bytes;
 use zawgl_core::model::init::DatabaseInitContext;
 use zawgl_front::cypher::query_engine::CypherError;
 use std::collections::HashMap;
+use std::fs;
 use std::str::FromStr;
 use std::sync::Mutex;
 use zawgl_front::tx_handler::request_handler::GraphRequestHandler;
@@ -161,11 +162,13 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
                                 let gh = Arc::new(Mutex::new(GraphRequestHandler::new(db_ctx)));
                                 gh_handlers.lock().unwrap().push(Arc::clone(&gh));
                                 gh_tx_map.insert(db_name.to_string(), gh);
-                                let mut settings = Settings::new();
-                                settings.server.databases_dirs.push(db_name.to_string());
-                                settings.save();
-                                if let Err(_err) = sender.send(Ok(json!("database created"))) {
-                                    error!("sending reply");
+                                if let Ok(_) = fs::create_dir_all(format!("{}/{}", &conf.root, db_name)) {
+                                    if let Err(_err) = sender.send(Ok(json!("database created"))) {
+                                        error!("sending reply");
+                                        break;
+                                    }
+                                } else {
+                                    error!("Failed to create database directory");
                                     break;
                                 }
                             }

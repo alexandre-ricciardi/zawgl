@@ -19,11 +19,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use std::fs;
+
 use log::*;
 use zawgl_core::model::init::InitContext;
 use simple_logger::SimpleLogger;
 use clap::{Parser, Subcommand};
-use zawgl_server::settings::Settings;
+use zawgl_server::settings::{self, Settings};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -63,22 +65,32 @@ async fn run_database(ctx: InitContext, address: &str) {
     info!("Database stopped");
 }
 
+fn make_db_dirs(settings: &Settings) -> Vec<String> {
+    let mut dirs = Vec::new();
+    dirs.push("default".to_string());
+    let mut other_dirs = fs::read_dir(&settings.server.database_root_dir).unwrap().map(|entry| {
+        entry.unwrap().path().to_str().unwrap().to_string()
+    }).collect();
+    dirs.append(&mut other_dirs);
+    dirs
+}
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 20)]
 async fn main() {
-    let mut settings = Settings::new();
+    let settings = Settings::new();
     let log_level = settings.get_log_level();
     SimpleLogger::new().with_level(log_level).init().unwrap();
     let cli = Cli::parse();
     match &cli.command {
         Some(Sub::Database { name }) => {
-            if !settings.server.databases_dirs.contains(name) {
-                settings.server.databases_dirs.push(name.to_string());
-                settings.save();
+            if fs::create_dir_all(&format!("{}/{}", settings.server.database_root_dir, name)).is_err() {
+                error!("Failed to create database directory");
+                return;
             }
         }
         Some(Sub::Index { prop, name }) => {}
         None => {
-            let ctx: InitContext = InitContext::new(&settings.server.database_root_dir, settings.get_db_dirs());
+            let ctx: InitContext = InitContext::new(&settings.server.database_root_dir, &make_db_dirs(&settings));
             run_database(ctx, &settings.server.address).await;
         }
     }

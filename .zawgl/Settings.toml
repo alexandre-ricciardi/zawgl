@@ -1,7 +1,0 @@
-[server]
-address = "0.0.0.0:8182"
-database_root_dir = "zawgl-db"
-databases_dirs = ["default", "8225c19b-4656-4fb9-8d46-ec420f07785b", "89a0c175-8caa-4fec-8352-2963908c20c6", "7c1e75bb-faa1-43c5-bbf3-0211f450c776", "12cadb73-78e1-42f0-b658-0cacbeb1ce9f", "58a69ba5-f4eb-4927-a329-abde28a23ca2", "3cd34e94-c8ba-466e-9872-7c546cc9b187"]
-
-[log]
-level = "info"
