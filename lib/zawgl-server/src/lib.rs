@@ -30,6 +30,7 @@ extern crate serde_json;
 use futures_util::{
     SinkExt, StreamExt,
 };
+use serde_json::json;
 use serde_json::Value;
 use settings::Settings;
 use tokio::sync::mpsc::UnboundedSender;
@@ -71,7 +72,7 @@ async fn accept_connection(stream: TcpStream, msg_tx: UnboundedSender<ResponseMe
             ServerError::Parsing(err_msg) => error!("parsing error: {}", err_msg),
             ServerError::Header => error!("wrong header"),
             ServerError::CypherTx(err) => error!("tx error {}", err),
-            ServerError::Concurrency => error!("cocurrency error"),
+            ServerError::Concurrency => error!("concurrency error"),
         }
     }
 }
@@ -163,6 +164,10 @@ pub async fn run_server<F>(addr: &str, conf: InitContext, callback: F, mut rx_ru
                                 let mut settings = Settings::new();
                                 settings.server.databases_dirs.push(db_name.to_string());
                                 settings.save();
+                                if let Err(_err) = sender.send(Ok(json!("database created"))) {
+                                    error!("sending reply");
+                                    break;
+                                }
                             }
                         }
                     }
